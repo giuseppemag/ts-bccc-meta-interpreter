@@ -1,0 +1,23 @@
+{
+  "name": "ts-bccc-meta-compiler",
+  "version": "1.0.0",
+  "description": "A meta-compiler based on the ts-bccc package.",
+  "typings": "dist/main.d.ts",
+  "typescript": {
+    "definition": "dist/main.d.ts"
+  },
+  "main": "main.js",
+  "scripts": {
+    "tsc": "node_modules/.bin/tsc -w",
+    "main": "node dist/main.js"
+  },
+  "author": "Dr. Giuseppe Maggiore",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^2.6.1"
+  },
+  "dependencies": {
+    "immutable": "^3.8.2",
+    "ts-bccc": "^1.0.2"
+  }
+}
