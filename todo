@@ -13,8 +13,7 @@
     [ ] Arrays
     [ ] Tuples
     [ ] Statements
-      [ ] Stmt should just become an Expr<Unit>
-      [ ] Delete semicolon from Stmt
+      [x] Stmt should just become an Expr<Unit>
       [x] Variables and assignment
         [ ] set_v should become set_const
         [ ] set_v should accept an Expr<Val> as argument
