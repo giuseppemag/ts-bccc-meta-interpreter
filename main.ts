@@ -3,7 +3,7 @@ import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, app
 import * as CCC from "ts-bccc"
 import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
-import { mk_coroutine, Coroutine, suspend, co_unit, co_run } from "ts-bccc"
+import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
 
 module ImpLanguageWithSuspend {
@@ -20,7 +20,7 @@ module ImpLanguageWithSuspend {
   type Name = string
   type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"n" } | { v:Bool, k:"b" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef
   interface Scope extends Immutable.Map<Name, Val> {}
-  interface Interface extends Immutable.Map<Name, Lambda> {}
+  interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<Name, Lambda> }
   let empty_scope = Immutable.Map<Name, Val>()
   let unt : Val = ({ v:apply(unit(),{}), k:"u" })
   let str : (_:string) => Val = v => ({ v:v, k:"s" })
@@ -38,7 +38,7 @@ module ImpLanguageWithSuspend {
   let val_expr = (v:Val) => (co_unit<Mem,Err,Val>(v))
 
   interface Err extends String { }
-  interface Mem { globals:Scope, heap:Scope, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
+  interface Mem { globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
   let load: Fun<Prod<string, Mem>, Val> = fun(x =>
     !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count()-1).has(x.fst) ?
       x.snd.stack.get(x.snd.stack.count()-1).get(x.fst)
@@ -51,6 +51,8 @@ module ImpLanguageWithSuspend {
       ({...x.snd, globals:x.snd.globals.set(x.fst.fst, x.fst.snd) }))
   let load_class_def: Fun<Prod<Name, Mem>, Interface> = fun(x => x.snd.classes.get(x.fst))
   let store_class_def: Fun<Prod<Prod<Name, Interface>, Mem>, Mem> = fun(x => ({...x.snd, classes:x.snd.classes.set(x.fst.fst, x.fst.snd) }))
+  let load_fun_def: Fun<Prod<Name, Mem>, Lambda> = fun(x => x.snd.functions.get(x.fst))
+  let store_fun_def: Fun<Prod<Prod<Name, Lambda>, Mem>, Mem> = fun(x => ({...x.snd, functions:x.snd.functions.set(x.fst.fst, x.fst.snd) }))
   let load_heap: Fun<Prod<Name, Mem>, Val> = fun(x => x.snd.heap.get(x.fst))
   let store_heap: Fun<Prod<Prod<Name, Val>, Mem>, Mem> = fun(x => ({...x.snd, heap:x.snd.heap.set(x.fst.fst, x.fst.snd) }))
   let heap_alloc: Fun<Mem, Prod<Val, Mem>> = fun(x => {
@@ -63,10 +65,15 @@ module ImpLanguageWithSuspend {
   interface Expr<A> extends Coroutine<Mem, Err, A> {}
   type Stmt = Expr<Unit>
 
-  let empty_memory:Mem = { globals:empty_scope, heap:empty_scope, classes:Immutable.Map<Name, Interface>(), stack:Immutable.Map<number, Scope>() }
+  let empty_memory:Mem = { globals:empty_scope, heap:empty_scope, functions:Immutable.Map<Name,Lambda>(), classes:Immutable.Map<Name, Interface>(), stack:Immutable.Map<number, Scope>() }
 
   let done: Stmt = apply(fun<Unit, Coroutine<Mem, Err, Unit>>(co_unit), {})
+  let runtime_error = function<A>(e:Err) : Expr<A> { return co_error<Mem, Err, A>(e) }
+
   let dbg: Stmt = Co.suspend()
+  let set_v_expr = function (v: Name, e: Expr<Val>): Stmt {
+    return e.then(e_val => set_v(v, e_val))
+  }
   let set_v = function (v: Name, val: Val): Stmt {
     let store_co = store.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
     let f = ((constant<Mem, string>(v).times(constant<Mem, Val>(val))).times(id<Mem>())).then(store_co)
@@ -98,6 +105,15 @@ module ImpLanguageWithSuspend {
     let f = (constant<Mem, string>(v).times(id<Mem>()).then(load_class_def)).times(id<Mem>())
     return mk_coroutine(Co.no_error<Mem, Err, Interface>().after(Co.result<Mem, Err, Interface>().after(Co.value<Mem, Err, Interface>().after(f))))
   }
+  let set_fun_def = function (v: Name, l: Lambda): Stmt {
+    let store_co = store_fun_def.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+    let f = ((constant<Mem, string>(v).times(constant<Mem, Lambda>(l))).times(id<Mem>())).then(store_co)
+    return mk_coroutine(f)
+  }
+  let get_fun_def = function (v: Name): Expr<Lambda> {
+    let f = (constant<Mem, string>(v).times(id<Mem>()).then(load_fun_def)).times(id<Mem>())
+    return mk_coroutine(Co.no_error<Mem, Err, Lambda>().after(Co.result<Mem, Err, Lambda>().after(Co.value<Mem, Err, Lambda>().after(f))))
+  }
 
   let if_then_else = function<c>(f:Fun<Unit,Expr<c>>, g:Fun<Unit,Expr<c>>) : Fun<Bool, Expr<c>> {
     return bool_to_boolcat.times(unit()).then(apply_pair()).then(g.plus(f))
@@ -108,11 +124,11 @@ module ImpLanguageWithSuspend {
   }
 
   let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>) : Stmt {
-    return set_v(n, apply(constant<Unit, Expr<Val>>(body).times(constant<Unit, Array<Name>>(args)).then(fun(lambda)), {}))
+    return set_fun_def(n, apply(constant<Unit, Expr<Val>>(body).times(constant<Unit, Array<Name>>(args)), {}))
   }
 
   let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> {
-    return get_v(f_n).then(f => f.k == "lambda" ? call_lambda(f.v, args) : unit_expr())
+    return get_fun_def(f_n).then(f => call_lambda(f, args))
   }
 
   let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : Expr<Val> {
@@ -121,7 +137,7 @@ module ImpLanguageWithSuspend {
     // let arg_values = args.map(a => a.snd)
     let actual_args:Array<Prod<Name,Expr<Val>>> = arg_names.map((n,i) => ({ fst:n, snd:arg_values[i] }))
     let set_args = actual_args.reduce<Stmt>((sets, arg_expr) =>
-      arg_expr.snd.then(arg_v => set_v(arg_expr.fst, arg_v).then(_ => sets)),
+      set_v_expr(arg_expr.fst, arg_expr.snd).then(_ => sets),
       done)
     let init = mk_coroutine(push_scope.then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
     let cleanup = mk_coroutine(pop_scope.then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
@@ -138,7 +154,7 @@ module ImpLanguageWithSuspend {
 
   let field_get = function(F_name:Name, this_addr:HeapRef) : Expr<Val> {
     return get_heap_v(this_addr.v).then(this_val => {
-      if (this_val.k != "obj") return unit_expr()
+      if (this_val.k != "obj") return runtime_error<Val>(`runtime type error: this is not a reference when looking ${F_name} up.`)
       return val_expr(this_val.v.get(F_name))
     })
   }
@@ -146,28 +162,38 @@ module ImpLanguageWithSuspend {
   let field_set = function(F_name:Name, new_val_expr:Expr<Val>, this_addr:HeapRef) : Stmt {
     return new_val_expr.then(new_val =>
       get_heap_v(this_addr.v).then(this_val => {
-      if (this_val.k != "obj") return done
+      if (this_val.k != "obj") return runtime_error<Unit>(`runtime type error: this is not a reference when looking ${F_name} up.`)
       let new_this_val = {...this_val, v:this_val.v.set(F_name, new_val) }
       return set_heap_v(this_addr.v, new_this_val).then(_ => done)
     }))
   }
 
+  let resolve_method = function(M_name:Name, C_def:Interface) : Sum<Lambda, Unit> {
+    return C_def.methods.has(M_name) ? apply(inl(), C_def.methods.get(M_name))
+           : apply(fun((int:Interface) => resolve_method(M_name, int)).plus(inr<Lambda, Unit>()), C_def.base)
+  }
+
   let call_method = function(M_name:Name, this_addr:Val, args:Array<Expr<Val>>) : Expr<Val> {
-    return this_addr.k != "ref" ? unit_expr() : get_heap_v(this_addr.v).then(this_val => {
-      if (this_val.k != "obj") return unit_expr()
+    return this_addr.k != "ref" ? runtime_error<Val>(`runtime type error: this is not a reference when calling ${M_name}.`) :
+                                  get_heap_v(this_addr.v).then(this_val => {
+      if (this_val.k != "obj") return runtime_error<Val>(`runtime type error: this is not an object when calling ${M_name}.`)
       let this_class = this_val.v.get("class")
-      if (this_class.k != "s") return unit_expr()
-      return get_class_def(this_class.v).then(C_def =>
-      call_lambda(C_def.get(M_name), args.concat([val_expr(this_addr)])))
+      if (this_class.k != "s") return runtime_error<Val>(`runtime type error: this.class is not a string.`)
+      return get_class_def(this_class.v).then(C_def => {
+        let f = fun((m:Lambda) => call_lambda(m, args.concat([val_expr(this_addr)]))).plus(constant<Unit, Expr<Val>>(unit_expr()))
+        return apply(f, resolve_method(M_name, C_def))
+      }
+
+      )
     })
   }
 
   let call_cons = function(C_name:Name, args:Array<Expr<Val>>) : Expr<Val> {
     return get_class_def(C_name).then(C_def =>
     new_v().then(this_addr =>
-    this_addr.k != "ref" ? unit_expr() :
+    this_addr.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
     field_set("class", str_expr(C_name), this_addr).then(_ =>
-    call_lambda(C_def.get("constructor"), args.concat([val_expr(this_addr)])).then(_ =>
+    call_lambda(C_def.methods.get("constructor"), args.concat([val_expr(this_addr)])).then(_ =>
     co_unit<Mem,Err,Val>(this_addr)
     ))))
   }
@@ -187,9 +213,9 @@ export let test_imp = function () {
       set_v("s", str("")).then(_ =>
       set_v("n", int(1000)).then(_ =>
       while_do(get_v("n").then(n => co_unit(n.v > 0)),
-        get_v("n").then(n => n.k == "n" ? set_v("n", int(n.v - 1)) : done).then(_ =>
-        get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : done).then(_ =>
-        get_v("n").then(n => n.k == "n" && n.v % 5 == 0 ? dbg : done)))
+        get_v("n").then(n => n.k == "n" ? set_v("n", int(n.v - 1)) : runtime_error(`${n.v} is not a number`)).then(_ =>
+        get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(`${s.v} is not a string`)).then(_ =>
+        get_v("n").then(n => n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(`${n.v} is not a number`))))
       )))
 
     let lambda_test =
@@ -209,47 +235,70 @@ export let test_imp = function () {
       ))))
 
     let vector2:Interface =
-      Immutable.Map<Name, Lambda>([
-        [ "scale",
-          { fst:get_v("this").then(this_addr =>
-                get_v("k").then(k_val =>
-                this_addr.k != "ref" || k_val.k != "n" ? unit_expr() :
-                field_get("x", this_addr).then(x_val =>
-                x_val.k != "n" ? unit_expr() :
-                field_get("y", this_addr).then(y_val =>
-                y_val.k != "n" ? unit_expr() :
-                dbg.then(_ =>
-                field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(_ =>
-                dbg.then(_ =>
-                field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(_ =>
-                dbg.then(_ =>
-                unit_expr()
-                ))))))))),
-            snd:["k", "this"] } ],
-         [ "constructor",
-          { fst:get_v("this").then(this_addr =>
-                this_addr.k != "ref" ? unit_expr() :
-                get_v("x").then(x_val =>
-                x_val.k != "n" ? unit_expr() :
-                get_v("y").then(y_val =>
-                y_val.k != "n" ? unit_expr() :
-                field_set("x", val_expr(x_val), this_addr).then(_ =>
-                field_set("y", val_expr(y_val), this_addr).then(_ =>
-                unit_expr()
-                ))))),
-            snd:["x", "y", "this"] }]
-      ])
+      {
+        base:apply(inl<Interface, Unit>(),
+          {
+            base:apply(inr<Interface, Unit>(), {}),
+            methods:
+              Immutable.Map<Name, Lambda>([
+                [ "to_string",
+                  { fst:get_v("this").then(this_addr =>
+                        this_addr.k != "ref" ? runtime_error<Val>(`"this" is not a reference when calling to_string`) :
+                        field_get("x", this_addr).then(x_val =>
+                        x_val.k != "n" ? runtime_error<Val>(`${x_val.v} is not a number`) :
+                        field_get("y", this_addr).then(y_val =>
+                        y_val.k != "n" ? runtime_error<Val>(`${y_val.v} is not a number`) :
+                        str_expr(`(${x_val.v}, ${y_val.v})`)
+                        ))),
+                    snd:["this"] } ]
+              ])
+          }
+        ),
+        methods:
+          Immutable.Map<Name, Lambda>([
+            [ "scale",
+              { fst:get_v("this").then(this_addr =>
+                    get_v("k").then(k_val =>
+                    this_addr.k != "ref" || k_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
+                    field_get("x", this_addr).then(x_val =>
+                    x_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
+                    field_get("y", this_addr).then(y_val =>
+                    y_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
+                    dbg.then(_ =>
+                    field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(_ =>
+                    dbg.then(_ =>
+                    field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(_ =>
+                    dbg.then(_ =>
+                    unit_expr()
+                    ))))))))),
+                snd:["k", "this"] } ],
+            [ "constructor",
+              { fst:get_v("this").then(this_addr =>
+                    this_addr.k != "ref" ? runtime_error<Val>(`runtime type error`) :
+                    get_v("x").then(x_val =>
+                    x_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
+                    get_v("y").then(y_val =>
+                    y_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
+                    field_set("x", val_expr(x_val), this_addr).then(_ =>
+                    field_set("y", val_expr(y_val), this_addr).then(_ =>
+                    unit_expr()
+                    ))))),
+                snd:["x", "y", "this"] }]
+          ])
+      }
     let class_test =
       declare_class("Vector2", vector2).then(_ =>
       call_cons("Vector2", [int_expr(10), int_expr(20)]).then(v2 =>
       set_v("v2", v2).then(_ =>
       call_method("scale", v2, [int_expr(2)]).then(_ =>
+      call_method("to_string", v2, []).then(v2_s =>
+      set_v("v2_s", v2_s).then(_ =>
       done
-      ))))
+      ))))))
 
 
     let hrstart = process.hrtime()
-    let p = class_test
+    let p = fun_test
 
     let res = apply((constant<Unit,Stmt>(p).times(constant<Unit,Mem>(empty_memory))).then(run_to_end()), {})
     let hrdiff = process.hrtime(hrstart)

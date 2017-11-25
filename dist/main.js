@@ -49,6 +49,8 @@ var ImpLanguageWithSuspend;
     });
     var load_class_def = ts_bccc_1.fun(function (x) { return x.snd.classes.get(x.fst); });
     var store_class_def = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { classes: x.snd.classes.set(x.fst.fst, x.fst.snd) })); });
+    var load_fun_def = ts_bccc_1.fun(function (x) { return x.snd.functions.get(x.fst); });
+    var store_fun_def = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { functions: x.snd.functions.set(x.fst.fst, x.fst.snd) })); });
     var load_heap = ts_bccc_1.fun(function (x) { return x.snd.heap.get(x.fst); });
     var store_heap = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) })); });
     var heap_alloc = ts_bccc_1.fun(function (x) {
@@ -57,9 +59,13 @@ var ImpLanguageWithSuspend;
     });
     var push_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.set(x.stack.count(), empty_scope) })); });
     var pop_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })); });
-    var empty_memory = { globals: empty_scope, heap: empty_scope, classes: Immutable.Map(), stack: Immutable.Map() };
+    var empty_memory = { globals: empty_scope, heap: empty_scope, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
     var done = ts_bccc_1.apply(ts_bccc_1.fun(ts_bccc_3.co_unit), {});
+    var runtime_error = function (e) { return ts_bccc_3.co_error(e); };
     var dbg = Co.suspend();
+    var set_v_expr = function (v, e) {
+        return e.then(function (e_val) { return set_v(v, e_val); });
+    };
     var set_v = function (v, val) {
         var store_co = store.then(ts_bccc_1.unit().times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
         var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
@@ -91,6 +97,15 @@ var ImpLanguageWithSuspend;
         var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(load_class_def)).times(ts_bccc_1.id());
         return ts_bccc_3.mk_coroutine(Co.no_error().after(Co.result().after(Co.value().after(f))));
     };
+    var set_fun_def = function (v, l) {
+        var store_co = store_fun_def.then(ts_bccc_1.unit().times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+        var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(l))).times(ts_bccc_1.id())).then(store_co);
+        return ts_bccc_3.mk_coroutine(f);
+    };
+    var get_fun_def = function (v) {
+        var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(load_fun_def)).times(ts_bccc_1.id());
+        return ts_bccc_3.mk_coroutine(Co.no_error().after(Co.result().after(Co.value().after(f))));
+    };
     var if_then_else = function (f, g) {
         return bool_to_boolcat.times(ts_bccc_1.unit()).then(ts_bccc_1.apply_pair()).then(g.plus(f));
     };
@@ -99,10 +114,10 @@ var ImpLanguageWithSuspend;
         return p.then(ts_bccc_1.defun(h));
     };
     var def_fun = function (n, body, args) {
-        return set_v(n, ts_bccc_1.apply(ts_bccc_1.constant(body).times(ts_bccc_1.constant(args)).then(ts_bccc_1.fun(lambda)), {}));
+        return set_fun_def(n, ts_bccc_1.apply(ts_bccc_1.constant(body).times(ts_bccc_1.constant(args)), {}));
     };
     var call_by_name = function (f_n, args) {
-        return get_v(f_n).then(function (f) { return f.k == "lambda" ? call_lambda(f.v, args) : unit_expr(); });
+        return get_fun_def(f_n).then(function (f) { return call_lambda(f, args); });
     };
     var call_lambda = function (lambda, arg_values) {
         var body = lambda.fst;
@@ -110,7 +125,7 @@ var ImpLanguageWithSuspend;
         // let arg_values = args.map(a => a.snd)
         var actual_args = arg_names.map(function (n, i) { return ({ fst: n, snd: arg_values[i] }); });
         var set_args = actual_args.reduce(function (sets, arg_expr) {
-            return arg_expr.snd.then(function (arg_v) { return set_v(arg_expr.fst, arg_v).then(function (_) { return sets; }); });
+            return set_v_expr(arg_expr.fst, arg_expr.snd).then(function (_) { return sets; });
         }, done);
         var init = ts_bccc_3.mk_coroutine(push_scope.then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
         var cleanup = ts_bccc_3.mk_coroutine(pop_scope.then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
@@ -130,7 +145,7 @@ var ImpLanguageWithSuspend;
     var field_get = function (F_name, this_addr) {
         return get_heap_v(this_addr.v).then(function (this_val) {
             if (this_val.k != "obj")
-                return unit_expr();
+                return runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
             return val_expr(this_val.v.get(F_name));
         });
     };
@@ -138,30 +153,36 @@ var ImpLanguageWithSuspend;
         return new_val_expr.then(function (new_val) {
             return get_heap_v(this_addr.v).then(function (this_val) {
                 if (this_val.k != "obj")
-                    return done;
+                    return runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
                 var new_this_val = __assign({}, this_val, { v: this_val.v.set(F_name, new_val) });
                 return set_heap_v(this_addr.v, new_this_val).then(function (_) { return done; });
             });
         });
     };
+    var resolve_method = function (M_name, C_def) {
+        return C_def.methods.has(M_name) ? ts_bccc_1.apply(ts_bccc_1.inl(), C_def.methods.get(M_name))
+            : ts_bccc_1.apply(ts_bccc_1.fun(function (int) { return resolve_method(M_name, int); }).plus(ts_bccc_1.inr()), C_def.base);
+    };
     var call_method = function (M_name, this_addr, args) {
-        return this_addr.k != "ref" ? unit_expr() : get_heap_v(this_addr.v).then(function (this_val) {
-            if (this_val.k != "obj")
-                return unit_expr();
-            var this_class = this_val.v.get("class");
-            if (this_class.k != "s")
-                return unit_expr();
-            return get_class_def(this_class.v).then(function (C_def) {
-                return call_lambda(C_def.get(M_name), args.concat([val_expr(this_addr)]));
+        return this_addr.k != "ref" ? runtime_error("runtime type error: this is not a reference when calling " + M_name + ".") :
+            get_heap_v(this_addr.v).then(function (this_val) {
+                if (this_val.k != "obj")
+                    return runtime_error("runtime type error: this is not an object when calling " + M_name + ".");
+                var this_class = this_val.v.get("class");
+                if (this_class.k != "s")
+                    return runtime_error("runtime type error: this.class is not a string.");
+                return get_class_def(this_class.v).then(function (C_def) {
+                    var f = ts_bccc_1.fun(function (m) { return call_lambda(m, args.concat([val_expr(this_addr)])); }).plus(ts_bccc_1.constant(unit_expr()));
+                    return ts_bccc_1.apply(f, resolve_method(M_name, C_def));
+                });
             });
-        });
     };
     var call_cons = function (C_name, args) {
         return get_class_def(C_name).then(function (C_def) {
             return new_v().then(function (this_addr) {
-                return this_addr.k != "ref" ? unit_expr() :
+                return this_addr.k != "ref" ? runtime_error("this is not a reference when calling " + C_name + "::cons") :
                     field_set("class", str_expr(C_name), this_addr).then(function (_) {
-                        return call_lambda(C_def.get("constructor"), args.concat([val_expr(this_addr)])).then(function (_) {
+                        return call_lambda(C_def.methods.get("constructor"), args.concat([val_expr(this_addr)])).then(function (_) {
                             return ts_bccc_3.co_unit(this_addr);
                         });
                     });
@@ -176,9 +197,9 @@ var ImpLanguageWithSuspend;
     ImpLanguageWithSuspend.test_imp = function () {
         var loop_test = set_v("s", str("")).then(function (_) {
             return set_v("n", int(1000)).then(function (_) {
-                return while_do(get_v("n").then(function (n) { return ts_bccc_3.co_unit(n.v > 0); }), get_v("n").then(function (n) { return n.k == "n" ? set_v("n", int(n.v - 1)) : done; }).then(function (_) {
-                    return get_v("s").then(function (s) { return s.k == "s" ? set_v("s", str(s.v + "*")) : done; }).then(function (_) {
-                        return get_v("n").then(function (n) { return n.k == "n" && n.v % 5 == 0 ? dbg : done; });
+                return while_do(get_v("n").then(function (n) { return ts_bccc_3.co_unit(n.v > 0); }), get_v("n").then(function (n) { return n.k == "n" ? set_v("n", int(n.v - 1)) : runtime_error(n.v + " is not a number"); }).then(function (_) {
+                    return get_v("s").then(function (s) { return s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(s.v + " is not a string"); }).then(function (_) {
+                        return get_v("n").then(function (n) { return n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(n.v + " is not a number"); });
                     });
                 }));
             });
@@ -197,59 +218,82 @@ var ImpLanguageWithSuspend;
                 });
             });
         });
-        var vector2 = Immutable.Map([
-            ["scale",
-                { fst: get_v("this").then(function (this_addr) {
-                        return get_v("k").then(function (k_val) {
-                            return this_addr.k != "ref" || k_val.k != "n" ? unit_expr() :
-                                field_get("x", this_addr).then(function (x_val) {
-                                    return x_val.k != "n" ? unit_expr() :
-                                        field_get("y", this_addr).then(function (y_val) {
-                                            return y_val.k != "n" ? unit_expr() :
-                                                dbg.then(function (_) {
-                                                    return field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(function (_) {
-                                                        return dbg.then(function (_) {
-                                                            return field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(function (_) {
-                                                                return dbg.then(function (_) {
-                                                                    return unit_expr();
+        var vector2 = {
+            base: ts_bccc_1.apply(ts_bccc_1.inl(), {
+                base: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
+                methods: Immutable.Map([
+                    ["to_string",
+                        { fst: get_v("this").then(function (this_addr) {
+                                return this_addr.k != "ref" ? runtime_error("\"this\" is not a reference when calling to_string") :
+                                    field_get("x", this_addr).then(function (x_val) {
+                                        return x_val.k != "n" ? runtime_error(x_val.v + " is not a number") :
+                                            field_get("y", this_addr).then(function (y_val) {
+                                                return y_val.k != "n" ? runtime_error(y_val.v + " is not a number") :
+                                                    str_expr("(" + x_val.v + ", " + y_val.v + ")");
+                                            });
+                                    });
+                            }),
+                            snd: ["this"] }]
+                ])
+            }),
+            methods: Immutable.Map([
+                ["scale",
+                    { fst: get_v("this").then(function (this_addr) {
+                            return get_v("k").then(function (k_val) {
+                                return this_addr.k != "ref" || k_val.k != "n" ? runtime_error("runtime type error") :
+                                    field_get("x", this_addr).then(function (x_val) {
+                                        return x_val.k != "n" ? runtime_error("runtime type error") :
+                                            field_get("y", this_addr).then(function (y_val) {
+                                                return y_val.k != "n" ? runtime_error("runtime type error") :
+                                                    dbg.then(function (_) {
+                                                        return field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(function (_) {
+                                                            return dbg.then(function (_) {
+                                                                return field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(function (_) {
+                                                                    return dbg.then(function (_) {
+                                                                        return unit_expr();
+                                                                    });
                                                                 });
                                                             });
                                                         });
                                                     });
-                                                });
-                                        });
-                                });
-                        });
-                    }),
-                    snd: ["k", "this"] }],
-            ["constructor",
-                { fst: get_v("this").then(function (this_addr) {
-                        return this_addr.k != "ref" ? unit_expr() :
-                            get_v("x").then(function (x_val) {
-                                return x_val.k != "n" ? unit_expr() :
-                                    get_v("y").then(function (y_val) {
-                                        return y_val.k != "n" ? unit_expr() :
-                                            field_set("x", val_expr(x_val), this_addr).then(function (_) {
-                                                return field_set("y", val_expr(y_val), this_addr).then(function (_) {
-                                                    return unit_expr();
-                                                });
                                             });
                                     });
                             });
-                    }),
-                    snd: ["x", "y", "this"] }]
-        ]);
+                        }),
+                        snd: ["k", "this"] }],
+                ["constructor",
+                    { fst: get_v("this").then(function (this_addr) {
+                            return this_addr.k != "ref" ? runtime_error("runtime type error") :
+                                get_v("x").then(function (x_val) {
+                                    return x_val.k != "n" ? runtime_error("runtime type error") :
+                                        get_v("y").then(function (y_val) {
+                                            return y_val.k != "n" ? runtime_error("runtime type error") :
+                                                field_set("x", val_expr(x_val), this_addr).then(function (_) {
+                                                    return field_set("y", val_expr(y_val), this_addr).then(function (_) {
+                                                        return unit_expr();
+                                                    });
+                                                });
+                                        });
+                                });
+                        }),
+                        snd: ["x", "y", "this"] }]
+            ])
+        };
         var class_test = declare_class("Vector2", vector2).then(function (_) {
             return call_cons("Vector2", [int_expr(10), int_expr(20)]).then(function (v2) {
                 return set_v("v2", v2).then(function (_) {
                     return call_method("scale", v2, [int_expr(2)]).then(function (_) {
-                        return done;
+                        return call_method("to_string", v2, []).then(function (v2_s) {
+                            return set_v("v2_s", v2_s).then(function (_) {
+                                return done;
+                            });
+                        });
                     });
                 });
             });
         });
         var hrstart = process.hrtime();
-        var p = class_test;
+        var p = fun_test;
         var res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(empty_memory))).then(run_to_end()), {});
         var hrdiff = process.hrtime(hrstart);
         var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
