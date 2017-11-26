@@ -38,6 +38,8 @@ var ImpLanguageWithSuspend;
     var obj_expr = function (o) { return (ts_bccc_3.co_unit(obj(o))); };
     var ref_expr = function (r) { return (ts_bccc_3.co_unit(ref(r))); };
     var val_expr = function (v) { return (ts_bccc_3.co_unit(v)); };
+    var mk_range = function (sr, sc, er, ec) { return ({ start: { row: sr, column: sc }, end: { row: er, column: ec } }); };
+    var highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
     var load = ts_bccc_1.fun(function (x) {
         return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?
             x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst)
@@ -62,10 +64,14 @@ var ImpLanguageWithSuspend;
     });
     var push_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.set(x.stack.count(), empty_scope) })); });
     var pop_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })); });
-    var empty_memory = { globals: empty_scope, heap: empty_scope, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
+    var empty_memory = { highlighting: mk_range(0, 0, 0, 0), globals: empty_scope, heap: empty_scope, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
     var done = ts_bccc_1.apply(ts_bccc_1.fun(ts_bccc_3.co_unit), {});
     var runtime_error = function (e) { return ts_bccc_3.co_error(e); };
-    var dbg = Co.suspend();
+    // let dbg: Stmt = Co.suspend()
+    var dbg = function (range) { return function (v) { return set_highlighting(range).then(function (_) { return Co.suspend().then(function (_) { return ts_bccc_3.co_unit(v); }); }); }; };
+    var set_highlighting = function (r) {
+        return ts_bccc_3.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    };
     var set_v_expr = function (v, e) {
         return e.then(function (e_val) { return set_v(v, e_val); });
     };
@@ -77,6 +83,20 @@ var ImpLanguageWithSuspend;
     var get_v = function (v) {
         var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(load)).times(ts_bccc_1.id());
         return (ts_bccc_3.mk_coroutine(Co.no_error().after(Co.result().after(Co.value().after(f)))));
+    };
+    var lift_binary_operation = function (a, b, check_types, actual_operation, operator_name) {
+        return a.then(function (a_val) { return b.then(function (b_val) {
+            return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.fun(ts_bccc_3.co_unit))).plus(ts_bccc_1.constant(runtime_error("Cannot perform " + operator_name + " on non-boolean values " + a_val.v + " and " + b_val.v + ".")))), { fst: a_val, snd: b_val });
+        }); });
+    };
+    var bool_times = function (a, b) {
+        return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "b" || ab.snd.k != "b" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return bool(ab_val.fst && ab_val.snd); }, "(&&)");
+    };
+    var bool_plus = function (a, b) {
+        return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "b" || ab.snd.k != "b" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return bool(ab_val.fst || ab_val.snd); }, "(||)");
+    };
+    var int_plus = function (a, b) {
+        return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "n" || ab.snd.k != "n" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return int(ab_val.fst || ab_val.snd); }, "(+)");
     };
     var new_obj = function () {
         var heap_alloc_co = ts_bccc_3.mk_coroutine(ts_bccc_1.constant(obj(empty_scope)).times(ts_bccc_1.id()).then(heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
@@ -147,6 +167,9 @@ var ImpLanguageWithSuspend;
     };
     var def_fun = function (n, body, args) {
         return set_fun_def(n, ts_bccc_1.apply(ts_bccc_1.constant(body).times(ts_bccc_1.constant(args)), {}));
+    };
+    var ret = function (e) {
+        return e.then(function (e_val) { return set_v("return", e_val).then(function (_) { return ts_bccc_3.co_unit(e_val); }); });
     };
     var call_by_name = function (f_n, args) {
         return get_fun_def(f_n).then(function (f) { return call_lambda(f, args); });
@@ -231,7 +254,7 @@ var ImpLanguageWithSuspend;
             return set_v("n", int(1000)).then(function (_) {
                 return while_do(get_v("n").then(function (n) { return ts_bccc_3.co_unit(n.v > 0); }), get_v("n").then(function (n) { return n.k == "n" ? set_v("n", int(n.v - 1)) : runtime_error(n.v + " is not a number"); }).then(function (_) {
                     return get_v("s").then(function (s) { return s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(s.v + " is not a string"); }).then(function (_) {
-                        return get_v("n").then(function (n) { return n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(n.v + " is not a number"); });
+                        return get_v("n").then(function (n) { return n.k == "n" && n.v % 5 == 0 ? dbg(mk_range(6, 0, 7, 0))({}) : runtime_error(n.v + " is not a number"); });
                     });
                 }));
             });
@@ -243,21 +266,21 @@ var ImpLanguageWithSuspend;
                         while_do(get_v("i").then(function (i_val) { return ts_bccc_3.co_unit(i_val.v < a_len.v); }), get_v("i").then(function (i_val) { return i_val.k != "n" ? runtime_error(i_val.v + " is not a number") :
                             set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(function (_) {
                                 return set_v("i", int(i_val.v + 1)).then(function (_) {
-                                    return dbg;
+                                    return dbg(mk_range(9, 0, 10, 0))({});
                                 });
                             }); })); });
                 });
             });
         });
         var lambda_test = set_v("n", int(10)).then(function (_) {
-            return call_lambda({ fst: dbg.then(function (_) { return int_expr(1); }), snd: ["n"] }, [int_expr(5)]).then(function (res) {
-                return dbg;
+            return call_lambda({ fst: dbg(mk_range(6, 0, 7, 0))({}).then(function (_) { return int_expr(1); }), snd: ["n"] }, [int_expr(5)]).then(function (res) {
+                return dbg(mk_range(6, 0, 7, 0))({});
             });
         });
-        var fun_test = def_fun("f", dbg.then(function (_) { return int_expr(1); }), []).then(function (_) {
-            return def_fun("g", dbg.then(function (_) { return int_expr(2); }), []).then(function (_) {
+        var fun_test = def_fun("f", dbg(mk_range(1, 0, 2, 0))({}).then(function (_) { return ret(int_expr(1)).then(dbg(mk_range(2, 0, 3, 0))); }), []).then(function (_) {
+            return def_fun("g", dbg(mk_range(3, 0, 4, 0))({}).then(function (_) { return ret(int_expr(2)).then(dbg(mk_range(4, 0, 5, 0))); }), []).then(function (_) {
                 return call_by_name("g", []).then(function (v) {
-                    return dbg.then(function (_) {
+                    return dbg(mk_range(6, 0, 7, 0))({}).then(function (_) {
                         return set_v("n", v);
                     });
                 });
@@ -290,11 +313,11 @@ var ImpLanguageWithSuspend;
                                         return x_val.k != "n" ? runtime_error("runtime type error") :
                                             field_get("y", this_addr).then(function (y_val) {
                                                 return y_val.k != "n" ? runtime_error("runtime type error") :
-                                                    dbg.then(function (_) {
+                                                    dbg(mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                         return field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(function (_) {
-                                                            return dbg.then(function (_) {
+                                                            return dbg(mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                                 return field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(function (_) {
-                                                                    return dbg.then(function (_) {
+                                                                    return dbg(mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                                         return unit_expr();
                                                                     });
                                                                 });
@@ -338,7 +361,7 @@ var ImpLanguageWithSuspend;
             });
         });
         var hrstart = process.hrtime();
-        var p = arr_test;
+        var p = fun_test;
         var res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(empty_memory))).then(run_to_end()), {});
         var hrdiff = process.hrtime(hrstart);
         var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];

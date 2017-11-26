@@ -41,8 +41,12 @@ module ImpLanguageWithSuspend {
   let ref_expr = (r:Name) => (co_unit<Mem,Err,Val>(ref(r)))
   let val_expr = (v:Val) => (co_unit<Mem,Err,Val>(v))
 
+  interface SourcePosition { row:number, column:number }
+  interface SourceRange { start:SourcePosition, end:SourcePosition }
+  let mk_range = (sr:number, sc:number, er:number, ec:number) => ({ start:{row:sr, column:sc}, end:{row:er, column:ec} })
   interface Err extends String { }
-  interface Mem { globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
+  interface Mem { highlighting:SourceRange, globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
+  let highlight : Fun<Prod<SourceRange, Mem>, Mem> = fun(x => ({...x.snd, highlighting:x.fst }))
   let load: Fun<Prod<string, Mem>, Val> = fun(x =>
     !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count()-1).has(x.fst) ?
       x.snd.stack.get(x.snd.stack.count()-1).get(x.fst)
@@ -69,12 +73,16 @@ module ImpLanguageWithSuspend {
   interface Expr<A> extends Coroutine<Mem, Err, A> {}
   type Stmt = Expr<Unit>
 
-  let empty_memory:Mem = { globals:empty_scope, heap:empty_scope, functions:Immutable.Map<Name,Lambda>(), classes:Immutable.Map<Name, Interface>(), stack:Immutable.Map<number, Scope>() }
+  let empty_memory:Mem = { highlighting:mk_range(0,0,0,0), globals:empty_scope, heap:empty_scope, functions:Immutable.Map<Name,Lambda>(), classes:Immutable.Map<Name, Interface>(), stack:Immutable.Map<number, Scope>() }
 
   let done: Stmt = apply(fun<Unit, Coroutine<Mem, Err, Unit>>(co_unit), {})
   let runtime_error = function<A>(e:Err) : Expr<A> { return co_error<Mem, Err, A>(e) }
 
-  let dbg: Stmt = Co.suspend()
+  // let dbg: Stmt = Co.suspend()
+  let dbg = (range:SourceRange) => function<A> (v:A) : Expr<A> { return set_highlighting(range).then(_ => Co.suspend<Mem,Err>().then(_ => co_unit<Mem,Err,A>(v))) }
+  let set_highlighting = function(r:SourceRange) : Stmt {
+    return mk_coroutine(constant<Mem, SourceRange>(r).times(id<Mem>()).then(highlight).then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  }
   let set_v_expr = function (v: Name, e: Expr<Val>): Stmt {
     return e.then(e_val => set_v(v, e_val))
   }
@@ -86,6 +94,25 @@ module ImpLanguageWithSuspend {
   let get_v = function (v: Name): Expr<Val> {
     let f = (constant<Mem, string>(v).times(id<Mem>()).then(load)).times(id<Mem>())
     return (mk_coroutine(Co.no_error<Mem, Err, Val>().after(Co.result<Mem, Err, Val>().after(Co.value<Mem, Err, Val>().after(f)))))
+  }
+  let lift_binary_operation = function<a,b> (a: Expr<Val>, b:Expr<Val>, check_types:(ab:Prod<Val,Val>) => Sum<Prod<a,b>, Unit>, actual_operation:(_:Prod<a,b>)=>Val, operator_name?:string): Expr<Val> {
+    return a.then(a_val => b.then(b_val =>
+      apply(fun(check_types).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(constant<Unit,Expr<Val>>(runtime_error<Val>(`Cannot perform ${operator_name} on non-boolean values ${a_val.v} and ${b_val.v}.`)))), { fst:a_val, snd:b_val })))
+  }
+  let bool_times = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+    return lift_binary_operation<boolean,boolean>(a, b,
+            ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+            ab_val => bool(ab_val.fst && ab_val.snd), "(&&)")
+  }
+  let bool_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+    return lift_binary_operation<boolean,boolean>(a, b,
+            ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+            ab_val => bool(ab_val.fst || ab_val.snd), "(||)")
+  }
+  let int_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+    return lift_binary_operation<number,number>(a, b,
+            ab => ab.fst.k != "n" || ab.snd.k != "n" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+            ab_val => int(ab_val.fst || ab_val.snd), "(+)")
   }
   let new_obj = function (): Expr<Val> {
     let heap_alloc_co:Coroutine<Mem,Err,Val> = mk_coroutine(constant<Mem,Val>(obj(empty_scope)).times(id<Mem>()).then(heap_alloc).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
@@ -155,6 +182,10 @@ module ImpLanguageWithSuspend {
 
   let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>) : Stmt {
     return set_fun_def(n, apply(constant<Unit, Expr<Val>>(body).times(constant<Unit, Array<Name>>(args)), {}))
+  }
+
+  let ret = function (e: Expr<Val>): Expr<Val> {
+    return e.then(e_val => set_v("return", e_val).then(_ => co_unit(e_val)))
   }
 
   let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> {
@@ -245,7 +276,7 @@ export let test_imp = function () {
       while_do(get_v("n").then(n => co_unit(n.v > 0)),
         get_v("n").then(n => n.k == "n" ? set_v("n", int(n.v - 1)) : runtime_error(`${n.v} is not a number`)).then(_ =>
         get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(`${s.v} is not a string`)).then(_ =>
-        get_v("n").then(n => n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(`${n.v} is not a number`))))
+        get_v("n").then(n => n.k == "n" && n.v % 5 == 0 ? dbg(mk_range(6,0,7,0))({}) : runtime_error(`${n.v} is not a number`))))
       )))
 
     let arr_test =
@@ -257,23 +288,22 @@ export let test_imp = function () {
         get_v("i").then(i_val => i_val.k != "n" ? runtime_error(`${i_val.v} is not a number`) :
         set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(_ =>
         set_v("i", int(i_val.v + 1)).then(_ =>
-        dbg
+        dbg(mk_range(9,0,10,0))({})
         ))))))))
-
 
     let lambda_test =
       set_v("n", int(10)).then(_ =>
       call_lambda(
-        { fst: dbg.then(_ => int_expr(1)), snd:["n"] },
+        { fst: dbg(mk_range(6,0,7,0))({}).then(_ => int_expr(1)), snd:["n"] },
         [int_expr(5)]).then(res =>
-      dbg
+          dbg(mk_range(6,0,7,0))({})
       ))
 
     let fun_test =
-      def_fun("f", dbg.then(_ => int_expr(1)), []).then(_ =>
-      def_fun("g", dbg.then(_ => int_expr(2)), []).then(_ =>
+      def_fun("f", dbg(mk_range(1,0,2,0))({}).then(_ => ret(int_expr(1)).then(dbg(mk_range(2,0,3,0)))), []).then(_ =>
+      def_fun("g", dbg(mk_range(3,0,4,0))({}).then(_ => ret(int_expr(2)).then(dbg(mk_range(4,0,5,0)))), []).then(_ =>
       call_by_name("g", []).then(v =>
-      dbg.then(_ =>
+      dbg(mk_range(6,0,7,0))({}).then(_ =>
       set_v("n", v)
       ))))
 
@@ -307,11 +337,11 @@ export let test_imp = function () {
                     x_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
                     field_get("y", this_addr).then(y_val =>
                     y_val.k != "n" ? runtime_error<Val>(`runtime type error`) :
-                    dbg.then(_ =>
+                    dbg(mk_range(6,0,7,0))({}).then(_ =>
                     field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(_ =>
-                    dbg.then(_ =>
+                    dbg(mk_range(6,0,7,0))({}).then(_ =>
                     field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(_ =>
-                    dbg.then(_ =>
+                    dbg(mk_range(6,0,7,0))({}).then(_ =>
                     unit_expr()
                     ))))))))),
                 snd:["k", "this"] } ],
@@ -341,7 +371,7 @@ export let test_imp = function () {
 
 
     let hrstart = process.hrtime()
-    let p = arr_test
+    let p = fun_test
 
     let res = apply((constant<Unit,Stmt>(p).times(constant<Unit,Mem>(empty_memory))).then(run_to_end()), {})
     let hrdiff = process.hrtime(hrstart)

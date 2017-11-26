@@ -4,22 +4,19 @@
   [ ] errors
     [ ] check that the number of arguments passed to a lambda is correct
     [ ] load, save, etc. should all return (Val + unit) to account for not-found elements
-  [x] Arrays
-    [x] Get
-    [x] Set
-    [x] Length
-  [ ] Pretty printing
-    [ ] new `return` statement adds return value to stack, then gives it back
-    [ ] Current position for highlighting (stored in state *and* shown to screen, as curried parameters while : (pos) => (cond, body) => Stmt)
+  [x] Pretty printing
+    [x] new `return` statement adds return value to stack, then gives it back
+    [x] Current position for highlighting (stored in state *and* shown to screen, only for `dbg`)
   [ ] Booleans
-    [ ] And
-    [ ] Or
+    [x] And
+    [x] Or
     [ ] Not
   [ ] Natural numbers
-    [ ] +
+    [x] +
     [ ] -
     [ ] *
     [ ] /
+    [ ] - (unary)
   [ ] Relative numbers
     [ ] +
     [ ] -
@@ -34,6 +31,8 @@
       [ ] set
   [ ] Tuples
   [ ] Multiple files
+[ ] Performance optimisations
+  [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint
