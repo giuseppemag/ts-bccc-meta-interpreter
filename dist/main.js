@@ -20,10 +20,12 @@ var ImpLanguageWithSuspend;
     var False = ts_bccc_1.unit().then(ts_bccc_1.inl());
     var True = ts_bccc_1.unit().then(ts_bccc_1.inr());
     var bool_to_boolcat = ts_bccc_1.fun(function (b) { return b ? True : False; });
+    var init_array_val = function (len) { return ({ elements: Immutable.Map(Immutable.Range(0, len).map(function (i) { return [i, unt]; })), length: len }); };
     var empty_scope = Immutable.Map();
     var unt = ({ v: ts_bccc_1.apply(ts_bccc_1.unit(), {}), k: "u" });
     var str = function (v) { return ({ v: v, k: "s" }); };
     var int = function (v) { return ({ v: v, k: "n" }); };
+    var arr = function (v) { return ({ v: v, k: "arr" }); };
     var bool = function (v) { return ({ v: v, k: "b" }); };
     var lambda = function (l) { return ({ v: l, k: "lambda" }); };
     var obj = function (o) { return ({ v: o, k: "obj" }); };
@@ -31,6 +33,7 @@ var ImpLanguageWithSuspend;
     var unit_expr = function () { return (ts_bccc_3.co_unit(unt)); };
     var str_expr = function (s) { return (ts_bccc_3.co_unit(str(s))); };
     var int_expr = function (n) { return (ts_bccc_3.co_unit(int(n))); };
+    var arr_expr = function (a) { return (ts_bccc_3.co_unit(arr(a))); };
     var lambda_expr = function (l) { return (ts_bccc_3.co_unit(lambda(l))); };
     var obj_expr = function (o) { return (ts_bccc_3.co_unit(obj(o))); };
     var ref_expr = function (r) { return (ts_bccc_3.co_unit(ref(r))); };
@@ -54,8 +57,8 @@ var ImpLanguageWithSuspend;
     var load_heap = ts_bccc_1.fun(function (x) { return x.snd.heap.get(x.fst); });
     var store_heap = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) })); });
     var heap_alloc = ts_bccc_1.fun(function (x) {
-        var new_ref = "ref_" + x.heap.count();
-        return ({ fst: ref(new_ref), snd: __assign({}, x, { heap: x.heap.set(new_ref, obj(empty_scope)) }) });
+        var new_ref = "ref_" + x.snd.heap.count();
+        return ({ fst: ref(new_ref), snd: __assign({}, x.snd, { heap: x.snd.heap.set(new_ref, x.fst) }) });
     });
     var push_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.set(x.stack.count(), empty_scope) })); });
     var pop_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })); });
@@ -75,9 +78,38 @@ var ImpLanguageWithSuspend;
         var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(load)).times(ts_bccc_1.id());
         return (ts_bccc_3.mk_coroutine(Co.no_error().after(Co.result().after(Co.value().after(f)))));
     };
-    var new_v = function () {
-        var heap_alloc_co = ts_bccc_3.mk_coroutine(heap_alloc.then(Co.value().then(Co.result().then(Co.no_error()))));
+    var new_obj = function () {
+        var heap_alloc_co = ts_bccc_3.mk_coroutine(ts_bccc_1.constant(obj(empty_scope)).times(ts_bccc_1.id()).then(heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
         return (heap_alloc_co);
+    };
+    var new_arr = function (len) {
+        var heap_alloc_co = ts_bccc_3.mk_coroutine(ts_bccc_1.constant(arr(init_array_val(len))).times(ts_bccc_1.id()).then(heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
+        return (heap_alloc_co);
+    };
+    var get_arr_len = function (a_ref) {
+        return a_ref.k != "ref" ? runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+            get_heap_v(a_ref.v).then(function (a_val) {
+                return a_val.k != "arr" ? runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
+                    ts_bccc_3.co_unit(int(a_val.v.length));
+            });
+    };
+    var get_arr_el = function (a_ref, i) {
+        return a_ref.k != "ref" ? runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+            get_heap_v(a_ref.v).then(function (a_val) {
+                return a_val.k != "arr" ? runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
+                    !a_val.v.elements.has(i) ? runtime_error("Cannot find element " + i + " on " + a_val.v + ".") :
+                        ts_bccc_3.co_unit(a_val.v.elements.get(i));
+            });
+    };
+    var set_arr_el = function (a_ref, i, v) {
+        return a_ref.k != "ref" ? runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+            get_heap_v(a_ref.v).then(function (a_val) {
+                return a_val.k != "arr" ? runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
+                    set_heap_v(a_ref.v, __assign({}, a_val, { v: __assign({}, a_val.v, { length: Math.max(i + 1, a_val.v.length), elements: a_val.v.elements.set(i, v) }) }));
+            });
+    };
+    var set_arr_el_expr = function (a_ref, i, e) {
+        return e.then(function (e_val) { return set_arr_el(a_ref, i, e_val); });
     };
     var set_heap_v = function (v, val) {
         var store_co = store_heap.then(ts_bccc_1.unit().times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
@@ -179,7 +211,7 @@ var ImpLanguageWithSuspend;
     };
     var call_cons = function (C_name, args) {
         return get_class_def(C_name).then(function (C_def) {
-            return new_v().then(function (this_addr) {
+            return new_obj().then(function (this_addr) {
                 return this_addr.k != "ref" ? runtime_error("this is not a reference when calling " + C_name + "::cons") :
                     field_set("class", str_expr(C_name), this_addr).then(function (_) {
                         return call_lambda(C_def.methods.get("constructor"), args.concat([val_expr(this_addr)])).then(function (_) {
@@ -202,6 +234,19 @@ var ImpLanguageWithSuspend;
                         return get_v("n").then(function (n) { return n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(n.v + " is not a number"); });
                     });
                 }));
+            });
+        });
+        var arr_test = new_arr(10).then(function (a_ref) {
+            return set_v("a", a_ref).then(function (_) {
+                return set_v("i", int(0)).then(function (_) {
+                    return get_arr_len(a_ref).then(function (a_len) { return a_len.k != "n" ? runtime_error(a_len.v + " is not a number") :
+                        while_do(get_v("i").then(function (i_val) { return ts_bccc_3.co_unit(i_val.v < a_len.v); }), get_v("i").then(function (i_val) { return i_val.k != "n" ? runtime_error(i_val.v + " is not a number") :
+                            set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(function (_) {
+                                return set_v("i", int(i_val.v + 1)).then(function (_) {
+                                    return dbg;
+                                });
+                            }); })); });
+                });
             });
         });
         var lambda_test = set_v("n", int(10)).then(function (_) {
@@ -293,7 +338,7 @@ var ImpLanguageWithSuspend;
             });
         });
         var hrstart = process.hrtime();
-        var p = fun_test;
+        var p = arr_test;
         var res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(empty_memory))).then(run_to_end()), {});
         var hrdiff = process.hrtime(hrstart);
         var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];

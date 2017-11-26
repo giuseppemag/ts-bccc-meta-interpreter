@@ -16,15 +16,18 @@ module ImpLanguageWithSuspend {
   let bool_to_boolcat : Fun<Bool, BoolCat> = fun(b => b ? True : False)
   type Lambda = Prod<Expr<Val>, Array<Name>>
   interface HeapRef { v:string, k:"ref" }
+  interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
+  let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, unt])), length:len })
 
   type Name = string
-  type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"n" } | { v:Bool, k:"b" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef
+  type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"n" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef
   interface Scope extends Immutable.Map<Name, Val> {}
   interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<Name, Lambda> }
   let empty_scope = Immutable.Map<Name, Val>()
   let unt : Val = ({ v:apply(unit(),{}), k:"u" })
   let str : (_:string) => Val = v => ({ v:v, k:"s" })
   let int : (_:number) => Val = v => ({ v:v, k:"n" })
+  let arr : (_:ArrayVal) => Val = v => ({ v:v, k:"arr" })
   let bool : (_:boolean) => Val = v => ({ v:v, k:"b" })
   let lambda : (_:Prod<Expr<Val>, Array<Name>>) => Val = l => ({ v:l, k:"lambda" })
   let obj : (_:Scope) => Val = o => ({ v:o, k:"obj" })
@@ -32,6 +35,7 @@ module ImpLanguageWithSuspend {
   let unit_expr = () => (co_unit<Mem,Err,Val>(unt))
   let str_expr = (s:string) => (co_unit<Mem,Err,Val>(str(s)))
   let int_expr = (n:number) => (co_unit<Mem,Err,Val>(int(n)))
+  let arr_expr = (a:ArrayVal) => (co_unit<Mem,Err,Val>(arr(a)))
   let lambda_expr = (l:Prod<Expr<Val>, Array<Name>>) => (co_unit<Mem,Err,Val>(lambda(l)))
   let obj_expr = (o:Scope) => (co_unit<Mem,Err,Val>(obj(o)))
   let ref_expr = (r:Name) => (co_unit<Mem,Err,Val>(ref(r)))
@@ -55,9 +59,9 @@ module ImpLanguageWithSuspend {
   let store_fun_def: Fun<Prod<Prod<Name, Lambda>, Mem>, Mem> = fun(x => ({...x.snd, functions:x.snd.functions.set(x.fst.fst, x.fst.snd) }))
   let load_heap: Fun<Prod<Name, Mem>, Val> = fun(x => x.snd.heap.get(x.fst))
   let store_heap: Fun<Prod<Prod<Name, Val>, Mem>, Mem> = fun(x => ({...x.snd, heap:x.snd.heap.set(x.fst.fst, x.fst.snd) }))
-  let heap_alloc: Fun<Mem, Prod<Val, Mem>> = fun(x => {
-    let new_ref = `ref_${x.heap.count()}`
-    return ({ fst:ref(new_ref), snd:{...x, heap:x.heap.set(new_ref, obj(empty_scope)) }})
+  let heap_alloc: Fun<Prod<Val,Mem>, Prod<Val, Mem>> = fun(x => {
+    let new_ref = `ref_${x.snd.heap.count()}`
+    return ({ fst:ref(new_ref), snd:{...x.snd, heap:x.snd.heap.set(new_ref, x.fst) }})
   })
   let push_scope: Fun<Mem, Mem> = fun(x => ({...x, stack:x.stack.set(x.stack.count(), empty_scope)}))
   let pop_scope: Fun<Mem, Mem> = fun(x => ({...x, stack:x.stack.remove(x.stack.count()-1)}))
@@ -83,9 +87,35 @@ module ImpLanguageWithSuspend {
     let f = (constant<Mem, string>(v).times(id<Mem>()).then(load)).times(id<Mem>())
     return (mk_coroutine(Co.no_error<Mem, Err, Val>().after(Co.result<Mem, Err, Val>().after(Co.value<Mem, Err, Val>().after(f)))))
   }
-  let new_v = function (): Expr<Val> {
-    let heap_alloc_co:Coroutine<Mem,Err,Val> = mk_coroutine(heap_alloc.then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
+  let new_obj = function (): Expr<Val> {
+    let heap_alloc_co:Coroutine<Mem,Err,Val> = mk_coroutine(constant<Mem,Val>(obj(empty_scope)).times(id<Mem>()).then(heap_alloc).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
     return (heap_alloc_co)
+  }
+  let new_arr = function (len:number): Expr<Val> {
+    let heap_alloc_co:Coroutine<Mem,Err,Val> = mk_coroutine(constant<Mem,Val>(arr(init_array_val(len))).times(id<Mem>()).then(heap_alloc).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
+    return (heap_alloc_co)
+  }
+  let get_arr_len = function(a_ref:Val) : Expr<Val> {
+    return a_ref.k != "ref" ? runtime_error<Val>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+           get_heap_v(a_ref.v).then(a_val =>
+           a_val.k != "arr" ? runtime_error<Val>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+           co_unit<Mem,Err,Val>(int(a_val.v.length)))
+  }
+  let get_arr_el = function(a_ref:Val, i:number) : Expr<Val> {
+    return a_ref.k != "ref" ? runtime_error<Val>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+           get_heap_v(a_ref.v).then(a_val =>
+           a_val.k != "arr" ? runtime_error<Val>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+           !a_val.v.elements.has(i) ? runtime_error<Val>(`Cannot find element ${i} on ${a_val.v}.`) :
+           co_unit<Mem,Err,Val>(a_val.v.elements.get(i)))
+  }
+  let set_arr_el = function(a_ref:Val, i:number, v:Val) : Stmt {
+    return a_ref.k != "ref" ? runtime_error<Unit>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+           get_heap_v(a_ref.v).then(a_val =>
+           a_val.k != "arr" ? runtime_error<Unit>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+           set_heap_v(a_ref.v, {...a_val, v:{...a_val.v, length:Math.max(i+1, a_val.v.length), elements:a_val.v.elements.set(i, v)} }))
+  }
+  let set_arr_el_expr = function(a_ref:Val, i:number, e:Expr<Val>) : Stmt {
+    return e.then(e_val => set_arr_el(a_ref, i, e_val))
   }
   let set_heap_v = function (v: Name, val: Val): Stmt {
     let store_co = store_heap.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
@@ -190,7 +220,7 @@ module ImpLanguageWithSuspend {
 
   let call_cons = function(C_name:Name, args:Array<Expr<Val>>) : Expr<Val> {
     return get_class_def(C_name).then(C_def =>
-    new_v().then(this_addr =>
+    new_obj().then(this_addr =>
     this_addr.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
     field_set("class", str_expr(C_name), this_addr).then(_ =>
     call_lambda(C_def.methods.get("constructor"), args.concat([val_expr(this_addr)])).then(_ =>
@@ -217,6 +247,19 @@ export let test_imp = function () {
         get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(`${s.v} is not a string`)).then(_ =>
         get_v("n").then(n => n.k == "n" && n.v % 5 == 0 ? dbg : runtime_error(`${n.v} is not a number`))))
       )))
+
+    let arr_test =
+      new_arr(10).then(a_ref =>
+      set_v("a", a_ref).then(_ =>
+      set_v("i", int(0)).then(_ =>
+      get_arr_len(a_ref).then(a_len => a_len.k != "n" ? runtime_error(`${a_len.v} is not a number`) :
+      while_do(get_v("i").then(i_val => co_unit(i_val.v < a_len.v)),
+        get_v("i").then(i_val => i_val.k != "n" ? runtime_error(`${i_val.v} is not a number`) :
+        set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(_ =>
+        set_v("i", int(i_val.v + 1)).then(_ =>
+        dbg
+        ))))))))
+
 
     let lambda_test =
       set_v("n", int(10)).then(_ =>
@@ -298,7 +341,7 @@ export let test_imp = function () {
 
 
     let hrstart = process.hrtime()
-    let p = fun_test
+    let p = arr_test
 
     let res = apply((constant<Unit,Stmt>(p).times(constant<Unit,Mem>(empty_memory))).then(run_to_end()), {})
     let hrdiff = process.hrtime(hrstart)

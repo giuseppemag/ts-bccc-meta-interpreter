@@ -1,19 +1,13 @@
 [ ] distributive laws applied to monadic combinators such as parallel/concurrent
 
 [ ] IMP interruptible semantics
-  [ ] Classes
-    [ ] properties (as methods)
-      [ ] get
-      [ ] set
-    [x] inheritance
   [ ] errors
-    [x] wherever type assertion fails, instead of done
     [ ] check that the number of arguments passed to a lambda is correct
     [ ] load, save, etc. should all return (Val + unit) to account for not-found elements
-  [ ] Arrays
-    [ ] Get
-    [ ] Set
-    [ ] Length
+  [x] Arrays
+    [x] Get
+    [x] Set
+    [x] Length
   [ ] Pretty printing
     [ ] new `return` statement adds return value to stack, then gives it back
     [ ] Current position for highlighting (stored in state *and* shown to screen, as curried parameters while : (pos) => (cond, body) => Stmt)
@@ -34,8 +28,13 @@
   [ ] Strings
     [ ] +
     [ ] Length
+  [ ] Classes
+    [ ] properties (as methods)
+      [ ] get
+      [ ] set
   [ ] Tuples
   [ ] Multiple files
+[ ] Cleanup/whishlist
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
