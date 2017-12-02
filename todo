@@ -1,64 +1,26 @@
-[ ] distributive laws applied to monadic combinators such as parallel/concurrent
-
 [ ] IMP interruptible semantics
-  [ ] errors
-    [ ] check that the number of arguments passed to a lambda is correct
-    [ ] load, save, etc. should all return (Val + unit) to account for not-found elements
-  [x] Pretty printing
-    [x] new `return` statement adds return value to stack, then gives it back
-    [x] Current position for highlighting (stored in state *and* shown to screen, only for `dbg`)
-  [ ] Booleans
-    [x] And
-    [x] Or
-    [ ] Not
-  [ ] Natural numbers
-    [x] +
-    [ ] -
-    [ ] *
-    [ ] /
-    [ ] - (unary)
-  [ ] Relative numbers
-    [ ] +
-    [ ] -
-    [ ] *
-    [ ] /
-  [ ] Strings
-    [ ] +
-    [ ] Length
-  [ ] Classes
-    [ ] properties (as methods)
-      [ ] get
-      [ ] set
-  [ ] Tuples
-  [ ] Multiple files
+  [x] errors
+    [x] check that the number of arguments passed to a lambda is correct
+    [x] from a to (a + unit) to account for not-found elements
+      [x] load
+      [x] load_class_def
+      [x] load_fun_def
+      [x] load_heap
+      [x] pop_scope
+
+
+[ ] IMP TYPE CHECKER
+[ ] IMP PARSER
+  [ ] distributive laws applied to monadic combinators such as parallel/concurrent
+  [ ] Python
+  [ ] C#
+
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
+  [ ] data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
   [ ] Garbage collection (and `heap_alloc` fills in the gaps)
-  [ ] data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
-
-[ ] IMP TYPE CHECKER
-[ ] IMP PARSER
-  [ ] Python
-  [ ] C#
-
-[ ] memory cells (with getter/setter?)
-
-[ ] closure of s in Option::merge is ugly and should disappear (usual trick of closure as extra dependency ignored by one of the branches)
-[ ] inference is sluggish in VSCode
-  [ ] split into precompiled JS libraries with .d.ts files
-[ ] less interesting distributive laws
-  [ ] a^1 = a (apply, curry)
-  [ ] a*1 = 1*a = a (fst/snd,left-/right-map x ())
-  [ ] a+0 = 0+a = a (inl/inr,left-/right-map x absurd)
-  [ ] a*a = a^2 (apply to inl/inr, curry)
-[ ] Memory values as sums (of basic types)
-[ ] Memory operations as actual sums
-[ ] Test distributivity of CCC's
-[ ] fun2, fun3
-[ ] monadicity of ccc's
-[ ] fixpoint operator
-[ ] get_a, set_a can be formulated more categorically
+  [ ] Memory values as sums (of basic types)
