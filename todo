@@ -1,15 +1,28 @@
-[ ] IMP interruptible semantics
-  [x] errors
-    [x] check that the number of arguments passed to a lambda is correct
-    [x] from a to (a + unit) to account for not-found elements
-      [x] load
-      [x] load_class_def
-      [x] load_fun_def
-      [x] load_heap
-      [x] pop_scope
-
-
+[ ] IMP: localized errors everywhere (curried parameter, used for runtime/compiler errors!)
 [ ] IMP TYPE CHECKER
+  [ ] Expressions
+    [ ] variable lookup
+    [ ] int operators
+    [ ] float operators
+    [ ] bool operators
+    [ ] string operators
+    [ ] array operators
+  [ ] Statements
+    [x] If
+    [x] while
+    [ ] ;
+  [ ] Functions
+    [ ] Lambda's
+    [ ] Function Definition
+    [ ] Function invocation
+  [ ] Classes
+    [ ] Definition
+    [ ] Inheritance
+    [ ] References
+    [ ] Constructor
+    [ ] Field lookups
+    [ ] Method calling
+    [ ] Generics
 [ ] IMP PARSER
   [ ] distributive laws applied to monadic combinators such as parallel/concurrent
   [ ] Python
@@ -17,7 +30,8 @@
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
-  [ ] data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
+  [ ] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
+  [ ] Invoke statically typed semantics
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint

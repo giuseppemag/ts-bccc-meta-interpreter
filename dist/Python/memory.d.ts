@@ -1,6 +1,7 @@
 import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
+import { SourceRange } from "../source_range";
 export declare let runtime_error: <A>(e: Err) => Expr<A>;
 export declare type Bool = boolean;
 export interface Lambda extends Prod<Expr<Val>, Array<Name>> {
@@ -56,24 +57,6 @@ export declare let bool: (_: boolean) => Val;
 export declare let lambda: (_: Prod<Expr<Val>, Array<Name>>) => Val;
 export declare let obj: (_: Scope) => Val;
 export declare let ref: (_: Name) => Val;
-export interface SourcePosition {
-    row: number;
-    column: number;
-}
-export interface SourceRange {
-    start: SourcePosition;
-    end: SourcePosition;
-}
-export declare let mk_range: (sr: number, sc: number, er: number, ec: number) => {
-    start: {
-        row: number;
-        column: number;
-    };
-    end: {
-        row: number;
-        column: number;
-    };
-};
 export interface Err extends String {
 }
 export interface Mem {

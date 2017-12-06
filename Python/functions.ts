@@ -1,7 +1,7 @@
 import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { Stmt, Expr, Interface, Mem, Err, SourceRange, Val, Lambda, Bool,
+import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          runtime_error,
          Name,
          set_fun_def,

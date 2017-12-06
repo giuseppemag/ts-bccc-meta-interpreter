@@ -11,6 +11,7 @@ exports.str_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.str(s))); }
 exports.float_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.float(n))); };
 exports.int_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.int(n))); };
 exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(memory_1.arr(a))); };
+exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.bool(s))); };
 exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(memory_1.lambda(l))); };
 exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(memory_1.obj(o))); };
 exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(memory_1.ref(r))); };

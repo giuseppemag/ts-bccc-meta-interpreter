@@ -1,12 +1,12 @@
 import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { Stmt, Expr, Interface, Mem, Err, SourceRange, Val, Lambda, Bool,
+import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          Name, HeapRef,
          set_class_def, set_fun_def, set_heap_v, set_v, set_v_expr, set_highlighting,
          runtime_error,
          heap_alloc, highlight,
-         load_heap, mk_range, obj, ref, Scope, SourcePosition,
+         load_heap, obj, ref, Scope,
          store, store_class_def, store_fun_def, store_heap, str,
          unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
          get_heap_v, get_v, pop_scope, push_scope, new_obj } from "./memory"

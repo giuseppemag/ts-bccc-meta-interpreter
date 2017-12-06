@@ -1,10 +1,9 @@
 import * as Immutable from "immutable"
 import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
 import * as CCC from "ts-bccc"
-import * as St from "ts-bccc"
-import { mk_state, State } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
+import { SourceRange, mk_range } from "../source_range"
 
 export let runtime_error = function<A>(e:Err) : Expr<A> { return co_error<Mem, Err, A>(e) }
 export type Bool = boolean
@@ -29,9 +28,6 @@ export let lambda : (_:Prod<Expr<Val>, Array<Name>>) => Val = l => ({ v:l, k:"la
 export let obj : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let ref : (_:Name) => Val = r => ({ v:r, k:"ref" })
 
-export interface SourcePosition { row:number, column:number }
-export interface SourceRange { start:SourcePosition, end:SourcePosition }
-export let mk_range = (sr:number, sc:number, er:number, ec:number) => ({ start:{row:sr, column:sc}, end:{row:er, column:ec} })
 export interface Err extends String { }
 export interface Mem { highlighting:SourceRange, globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
 export let highlight : Fun<Prod<SourceRange, Mem>, Mem> = fun(x => ({...x.snd, highlighting:x.fst }))

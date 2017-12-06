@@ -5,23 +5,24 @@ import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { Stmt, Expr, Interface, Mem, Err, SourceRange, Val, Lambda, Bool,
+import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          Name, HeapRef, set_arr_el, set_arr_el_expr, set_class_def, set_fun_def, set_heap_v, set_v, set_v_expr, set_highlighting,
          runtime_error,
          bool, int, float, lambda, new_arr, new_obj, arr,
          ArrayVal, empty_memory, empty_scope, heap_alloc, highlight,
          init_array_val, load, load_class_def, load_fun_def,
-         load_heap, mk_range, obj, ref, Scope, SourcePosition,
+         load_heap, obj, ref, Scope,
          store, store_class_def, store_fun_def, store_heap, str,
          unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
          get_heap_v, get_v, pop_scope, push_scope } from "./Python/memory"
 import { bool_to_boolcat, BoolCat, FalseCat, TrueCat, bool_plus, bool_times, float_div, float_expr, float_minus, float_plus, float_times,
-         int_div, int_minus, int_plus, int_times, int_mod,
-         arr_expr, int_expr, lambda_expr, obj_expr, ref_expr,
+         int_div, int_minus, int_plus, int_times, int_mod, bool_not,
+         arr_expr, int_expr, lambda_expr, obj_expr, ref_expr, bool_expr,
          str_expr, unit_expr, val_expr } from "./Python/expressions"
 import { done, dbg, if_then_else, while_do } from "./Python/basic_statements"
 import { call_by_name, call_lambda, def_fun, ret } from "./Python/functions"
 import { call_cons, call_method, declare_class, field_get, field_set, resolve_method } from "./Python/classes"
+import { mk_range } from "./source_range";
 
 module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -37,7 +38,7 @@ export let test_imp = function () {
     let loop_test =
       set_v("b", str("")).then(_ =>
       set_v("i", int(1000)).then(_ =>
-      while_do(get_v("i").then(n => co_unit(n.v > 0)),
+      while_do(get_v("i").then(n => bool_expr(n.v > 0)),
         get_v("i").then(n => n.k == "i" ? set_v("i", int(n.v - 1)) : runtime_error(`${n.v} is not a number`)).then(_ =>
         get_v("b").then(s => s.k == "b" ? set_v("b", str(s.v + "*")) : runtime_error(`${s.v} is not a string`)).then(_ =>
         get_v("i").then(n => n.k == "i" && n.v % 5 == 0 ? dbg(mk_range(6,0,7,0))({}) : runtime_error(`${n.v} is not a number`))))
@@ -48,7 +49,7 @@ export let test_imp = function () {
       set_v("a", a_ref).then(_ =>
       set_v("i", int(0)).then(_ =>
       get_arr_len(a_ref).then(a_len => a_len.k != "i" ? runtime_error(`${a_len.v} is not a number`) :
-      while_do(get_v("i").then(i_val => co_unit(i_val.v < a_len.v)),
+      while_do(get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
         get_v("i").then(i_val => i_val.k != "i" ? runtime_error(`${i_val.v} is not a number`) :
         set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(_ =>
         set_v("i", int(i_val.v + 1)).then(_ =>

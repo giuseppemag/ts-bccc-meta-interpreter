@@ -9,6 +9,7 @@ var expressions_1 = require("./Python/expressions");
 var basic_statements_1 = require("./Python/basic_statements");
 var functions_1 = require("./Python/functions");
 var classes_1 = require("./Python/classes");
+var source_range_1 = require("./source_range");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function () {
@@ -19,9 +20,9 @@ var ImpLanguageWithSuspend;
     ImpLanguageWithSuspend.test_imp = function () {
         var loop_test = memory_1.set_v("b", memory_1.str("")).then(function (_) {
             return memory_1.set_v("i", memory_1.int(1000)).then(function (_) {
-                return basic_statements_1.while_do(memory_1.get_v("i").then(function (n) { return ts_bccc_2.co_unit(n.v > 0); }), memory_1.get_v("i").then(function (n) { return n.k == "i" ? memory_1.set_v("i", memory_1.int(n.v - 1)) : memory_1.runtime_error(n.v + " is not a number"); }).then(function (_) {
+                return basic_statements_1.while_do(memory_1.get_v("i").then(function (n) { return expressions_1.bool_expr(n.v > 0); }), memory_1.get_v("i").then(function (n) { return n.k == "i" ? memory_1.set_v("i", memory_1.int(n.v - 1)) : memory_1.runtime_error(n.v + " is not a number"); }).then(function (_) {
                     return memory_1.get_v("b").then(function (s) { return s.k == "b" ? memory_1.set_v("b", memory_1.str(s.v + "*")) : memory_1.runtime_error(s.v + " is not a string"); }).then(function (_) {
-                        return memory_1.get_v("i").then(function (n) { return n.k == "i" && n.v % 5 == 0 ? basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}) : memory_1.runtime_error(n.v + " is not a number"); });
+                        return memory_1.get_v("i").then(function (n) { return n.k == "i" && n.v % 5 == 0 ? basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}) : memory_1.runtime_error(n.v + " is not a number"); });
                     });
                 }));
             });
@@ -30,24 +31,24 @@ var ImpLanguageWithSuspend;
             return memory_1.set_v("a", a_ref).then(function (_) {
                 return memory_1.set_v("i", memory_1.int(0)).then(function (_) {
                     return memory_1.get_arr_len(a_ref).then(function (a_len) { return a_len.k != "i" ? memory_1.runtime_error(a_len.v + " is not a number") :
-                        basic_statements_1.while_do(memory_1.get_v("i").then(function (i_val) { return ts_bccc_2.co_unit(i_val.v < a_len.v); }), memory_1.get_v("i").then(function (i_val) { return i_val.k != "i" ? memory_1.runtime_error(i_val.v + " is not a number") :
+                        basic_statements_1.while_do(memory_1.get_v("i").then(function (i_val) { return expressions_1.bool_expr(i_val.v < a_len.v); }), memory_1.get_v("i").then(function (i_val) { return i_val.k != "i" ? memory_1.runtime_error(i_val.v + " is not a number") :
                             memory_1.set_arr_el(a_ref, i_val.v, memory_1.int(i_val.v * 2)).then(function (_) {
                                 return memory_1.set_v("i", memory_1.int(i_val.v + 1)).then(function (_) {
-                                    return basic_statements_1.dbg(memory_1.mk_range(9, 0, 10, 0))({});
+                                    return basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))({});
                                 });
                             }); })); });
                 });
             });
         });
         var lambda_test = memory_1.set_v("i", memory_1.int(10)).then(function (_) {
-            return functions_1.call_lambda({ fst: basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}).then(function (_) { return expressions_1.int_expr(1); }), snd: ["i"] }, [expressions_1.int_expr(5)]).then(function (res) {
-                return basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({});
+            return functions_1.call_lambda({ fst: basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) { return expressions_1.int_expr(1); }), snd: ["i"] }, [expressions_1.int_expr(5)]).then(function (res) {
+                return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({});
             });
         });
-        var fun_test = functions_1.def_fun("f", basic_statements_1.dbg(memory_1.mk_range(1, 0, 2, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(1)).then(basic_statements_1.dbg(memory_1.mk_range(2, 0, 3, 0))); }), []).then(function (_) {
-            return functions_1.def_fun("g", basic_statements_1.dbg(memory_1.mk_range(3, 0, 4, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(2)).then(basic_statements_1.dbg(memory_1.mk_range(4, 0, 5, 0))); }), []).then(function (_) {
+        var fun_test = functions_1.def_fun("f", basic_statements_1.dbg(source_range_1.mk_range(1, 0, 2, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(1)).then(basic_statements_1.dbg(source_range_1.mk_range(2, 0, 3, 0))); }), []).then(function (_) {
+            return functions_1.def_fun("g", basic_statements_1.dbg(source_range_1.mk_range(3, 0, 4, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(2)).then(basic_statements_1.dbg(source_range_1.mk_range(4, 0, 5, 0))); }), []).then(function (_) {
                 return functions_1.call_by_name("g", []).then(function (v) {
-                    return basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
+                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
                         return memory_1.set_v("i", v);
                     });
                 });
@@ -80,11 +81,11 @@ var ImpLanguageWithSuspend;
                                         return x_val.k != "i" ? memory_1.runtime_error("runtime type error") :
                                             classes_1.field_get("y", this_addr).then(function (y_val) {
                                                 return y_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                                    basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
+                                                    basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                         return classes_1.field_set("x", expressions_1.val_expr(memory_1.int(x_val.v * k_val.v)), this_addr).then(function (_) {
-                                                            return basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
+                                                            return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                                 return classes_1.field_set("y", expressions_1.val_expr(memory_1.int(y_val.v * k_val.v)), this_addr).then(function (_) {
-                                                                    return basic_statements_1.dbg(memory_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
+                                                                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
                                                                         return expressions_1.unit_expr();
                                                                     });
                                                                 });

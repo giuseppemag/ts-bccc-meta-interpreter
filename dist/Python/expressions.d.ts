@@ -11,6 +11,7 @@ export declare let str_expr: (s: string) => Coroutine<Mem, Err, Val>;
 export declare let float_expr: (n: number) => Coroutine<Mem, Err, Val>;
 export declare let int_expr: (n: number) => Coroutine<Mem, Err, Val>;
 export declare let arr_expr: (a: ArrayVal) => Coroutine<Mem, Err, Val>;
+export declare let bool_expr: (s: boolean) => Coroutine<Mem, Err, Val>;
 export declare let lambda_expr: (l: Prod<Expr<Val>, string[]>) => Coroutine<Mem, Err, Val>;
 export declare let obj_expr: (o: Scope) => Coroutine<Mem, Err, Val>;
 export declare let ref_expr: (r: string) => Coroutine<Mem, Err, Val>;

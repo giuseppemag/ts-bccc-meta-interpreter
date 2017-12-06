@@ -6,14 +6,14 @@ import { mk_state, State } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
 
-import { Stmt, Expr, Interface, Mem, Err, SourceRange, Val, Lambda, Bool,
+import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
   Name, HeapRef,
   set_arr_el, set_arr_el_expr, set_class_def, set_fun_def, set_heap_v, set_v, set_v_expr, set_highlighting,
   runtime_error,
   bool, int, float, lambda, new_arr, new_obj, arr,
   ArrayVal, empty_memory, empty_scope, heap_alloc, highlight,
   init_array_val, load, load_class_def, load_fun_def,
-  load_heap, mk_range, obj, ref, Scope, SourcePosition,
+  load_heap, obj, ref, Scope,
   store, store_class_def, store_fun_def, store_heap, str,
   unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
   get_heap_v, get_v, pop_scope, push_scope } from "./memory"
@@ -28,6 +28,7 @@ export let str_expr = (s:string) => (co_unit<Mem,Err,Val>(str(s)))
 export let float_expr = (n:number) => (co_unit<Mem,Err,Val>(float(n)))
 export let int_expr = (n:number) => (co_unit<Mem,Err,Val>(int(n)))
 export let arr_expr = (a:ArrayVal) => (co_unit<Mem,Err,Val>(arr(a)))
+export let bool_expr = (s:boolean) => (co_unit<Mem,Err,Val>(bool(s)))
 export let lambda_expr = (l:Prod<Expr<Val>, Array<Name>>) => (co_unit<Mem,Err,Val>(lambda(l)))
 export let obj_expr = (o:Scope) => (co_unit<Mem,Err,Val>(obj(o)))
 export let ref_expr = (r:Name) => (co_unit<Mem,Err,Val>(ref(r)))

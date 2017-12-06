@@ -13,6 +13,7 @@ var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var Co = require("ts-bccc");
+var source_range_1 = require("../source_range");
 exports.runtime_error = function (e) { return ts_bccc_2.co_error(e); };
 exports.init_array_val = function (len) { return ({ elements: Immutable.Map(Immutable.Range(0, len).map(function (i) { return [i, exports.unt]; })), length: len }); };
 exports.empty_scope = Immutable.Map();
@@ -25,7 +26,6 @@ exports.bool = function (v) { return ({ v: v, k: "b" }); };
 exports.lambda = function (l) { return ({ v: l, k: "lambda" }); };
 exports.obj = function (o) { return ({ v: o, k: "obj" }); };
 exports.ref = function (r) { return ({ v: r, k: "ref" }); };
-exports.mk_range = function (sr, sc, er, ec) { return ({ start: { row: sr, column: sc }, end: { row: er, column: ec } }); };
 exports.highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.load = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?
@@ -66,7 +66,7 @@ exports.pop_scope = ts_bccc_1.fun(function (x) {
         ts_bccc_1.apply(ts_bccc_1.inr(), (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.empty_memory = { highlighting: exports.mk_range(0, 0, 0, 0), globals: exports.empty_scope, heap: exports.empty_scope, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
+exports.empty_memory = { highlighting: source_range_1.mk_range(0, 0, 0, 0), globals: exports.empty_scope, heap: exports.empty_scope, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
 exports.set_highlighting = function (r) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(exports.highlight).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
