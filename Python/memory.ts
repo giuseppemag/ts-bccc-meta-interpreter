@@ -5,7 +5,7 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
 
-export let runtime_error = function<A>(e:Err) : Expr<A> { return co_error<Mem, Err, A>(e) }
+export let runtime_error = function(e:Err) : Expr<Val> { return co_error<Mem, Err, Val>(e) }
 export type Bool = boolean
 
 export interface Lambda extends Prod<Expr<Val>, Array<Name>> {}
@@ -28,7 +28,7 @@ export let lambda : (_:Prod<Expr<Val>, Array<Name>>) => Val = l => ({ v:l, k:"la
 export let obj : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let ref : (_:Name) => Val = r => ({ v:r, k:"ref" })
 
-export interface Err extends String { }
+export type Err = string
 export interface Mem { highlighting:SourceRange, globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }
 export let highlight : Fun<Prod<SourceRange, Mem>, Mem> = fun(x => ({...x.snd, highlighting:x.fst }))
 export let load: Fun<Prod<string, Mem>, Sum<Unit,Val>> = fun(x =>
@@ -66,18 +66,18 @@ export let pop_scope: Fun<Mem, Sum<Unit,Mem>> = fun(x =>
   : apply(inl(), {}))
 
 export interface Expr<A> extends Coroutine<Mem, Err, A> {}
-export type Stmt = Expr<Unit>
+export type Stmt = Expr<Val>
 
 export let empty_memory:Mem = { highlighting:mk_range(0,0,0,0), globals:empty_scope, heap:empty_scope, functions:Immutable.Map<Name,Lambda>(), classes:Immutable.Map<Name, Interface>(), stack:Immutable.Map<number, Scope>() }
 
 export let set_highlighting = function(r:SourceRange) : Stmt {
-  return mk_coroutine(constant<Mem, SourceRange>(r).times(id<Mem>()).then(highlight).then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  return mk_coroutine(constant<Mem, SourceRange>(r).times(id<Mem>()).then(highlight).then(constant<Mem,Val>(unt).times(id<Mem>())).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
 }
 export let set_v_expr = function (v: Name, e: Expr<Val>): Stmt {
   return e.then(e_val => set_v(v, e_val))
 }
 export let set_v = function (v: Name, val: Val): Stmt {
-  let store_co = store.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  let store_co = store.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
   let f = ((constant<Mem, string>(v).times(constant<Mem, Val>(val))).times(id<Mem>())).then(store_co)
   return mk_coroutine(f)
 }
@@ -98,29 +98,29 @@ export let new_arr = function (len:number): Expr<Val> {
   return (heap_alloc_co)
 }
 export let get_arr_len = function(a_ref:Val) : Expr<Val> {
-  return a_ref.k != "ref" ? runtime_error<Val>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>
-         a_val.k != "arr" ? runtime_error<Val>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+         a_val.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
          co_unit<Mem,Err,Val>(int(a_val.v.length)))
 }
 export let get_arr_el = function(a_ref:Val, i:number) : Expr<Val> {
-  return a_ref.k != "ref" ? runtime_error<Val>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>
-         a_val.k != "arr" ? runtime_error<Val>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
-         !a_val.v.elements.has(i) ? runtime_error<Val>(`Cannot find element ${i} on ${a_val.v}.`) :
+         a_val.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+         !a_val.v.elements.has(i) ? runtime_error(`Cannot find element ${i} on ${a_val.v}.`) :
          co_unit<Mem,Err,Val>(a_val.v.elements.get(i)))
 }
 export let set_arr_el = function(a_ref:Val, i:number, v:Val) : Stmt {
-  return a_ref.k != "ref" ? runtime_error<Unit>(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>
-         a_val.k != "arr" ? runtime_error<Unit>(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
+         a_val.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
          set_heap_v(a_ref.v, {...a_val, v:{...a_val.v, length:Math.max(i+1, a_val.v.length), elements:a_val.v.elements.set(i, v)} }))
 }
 export let set_arr_el_expr = function(a_ref:Val, i:number, e:Expr<Val>) : Stmt {
   return e.then(e_val => set_arr_el(a_ref, i, e_val))
 }
 export let set_heap_v = function (v: Name, val: Val): Stmt {
-  let store_co = store_heap.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  let store_co = store_heap.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
   let f = ((constant<Mem, string>(v).times(constant<Mem, Val>(val))).times(id<Mem>())).then(store_co)
   return mk_coroutine(f)
 }
@@ -132,7 +132,7 @@ export let get_heap_v = function (v: Name): Expr<Val> {
   return mk_coroutine(f.then(g))
 }
 export let set_class_def = function (v: Name, int: Interface): Stmt {
-  let store_co = store_class_def.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  let store_co = store_class_def.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
   let f = ((constant<Mem, string>(v).times(constant<Mem, Interface>(int))).times(id<Mem>())).then(store_co)
   return mk_coroutine(f)
 }
@@ -145,7 +145,7 @@ export let get_class_def = function (v: Name): Expr<Interface> {
   return mk_coroutine(f.then(g))
 }
 export let set_fun_def = function (v: Name, l: Lambda): Stmt {
-  let store_co = store_fun_def.then(unit<Mem>().times(id<Mem>()).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  let store_co = store_fun_def.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
   let f = ((constant<Mem, string>(v).times(constant<Mem, Lambda>(l))).times(id<Mem>())).then(store_co)
   return mk_coroutine(f)
 }

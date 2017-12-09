@@ -2,7 +2,7 @@ import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
-export declare let runtime_error: <A>(e: Err) => Expr<A>;
+export declare let runtime_error: (e: string) => Expr<Val>;
 export declare type Bool = boolean;
 export interface Lambda extends Prod<Expr<Val>, Array<Name>> {
 }
@@ -57,8 +57,7 @@ export declare let bool: (_: boolean) => Val;
 export declare let lambda: (_: Prod<Expr<Val>, Array<Name>>) => Val;
 export declare let obj: (_: Scope) => Val;
 export declare let ref: (_: Name) => Val;
-export interface Err extends String {
-}
+export declare type Err = string;
 export interface Mem {
     highlighting: SourceRange;
     globals: Scope;
@@ -81,21 +80,21 @@ export declare let push_scope: Fun<Mem, Mem>;
 export declare let pop_scope: Fun<Mem, Sum<Unit, Mem>>;
 export interface Expr<A> extends Coroutine<Mem, Err, A> {
 }
-export declare type Stmt = Expr<Unit>;
+export declare type Stmt = Expr<Val>;
 export declare let empty_memory: Mem;
-export declare let set_highlighting: (r: SourceRange) => Expr<Unit>;
-export declare let set_v_expr: (v: string, e: Expr<Val>) => Expr<Unit>;
-export declare let set_v: (v: string, val: Val) => Expr<Unit>;
+export declare let set_highlighting: (r: SourceRange) => Expr<Val>;
+export declare let set_v_expr: (v: string, e: Expr<Val>) => Expr<Val>;
+export declare let set_v: (v: string, val: Val) => Expr<Val>;
 export declare let get_v: (v: string) => Expr<Val>;
 export declare let new_obj: () => Expr<Val>;
 export declare let new_arr: (len: number) => Expr<Val>;
 export declare let get_arr_len: (a_ref: Val) => Expr<Val>;
 export declare let get_arr_el: (a_ref: Val, i: number) => Expr<Val>;
-export declare let set_arr_el: (a_ref: Val, i: number, v: Val) => Expr<Unit>;
-export declare let set_arr_el_expr: (a_ref: Val, i: number, e: Expr<Val>) => Expr<Unit>;
-export declare let set_heap_v: (v: string, val: Val) => Expr<Unit>;
+export declare let set_arr_el: (a_ref: Val, i: number, v: Val) => Expr<Val>;
+export declare let set_arr_el_expr: (a_ref: Val, i: number, e: Expr<Val>) => Expr<Val>;
+export declare let set_heap_v: (v: string, val: Val) => Expr<Val>;
 export declare let get_heap_v: (v: string) => Expr<Val>;
-export declare let set_class_def: (v: string, int: Interface) => Expr<Unit>;
+export declare let set_class_def: (v: string, int: Interface) => Expr<Val>;
 export declare let get_class_def: (v: string) => Expr<Interface>;
-export declare let set_fun_def: (v: string, l: Lambda) => Expr<Unit>;
+export declare let set_fun_def: (v: string, l: Lambda) => Expr<Val>;
 export declare let get_fun_def: (v: string) => Expr<Lambda>;

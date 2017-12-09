@@ -36,7 +36,8 @@ export let val_expr = (v:Val) => (co_unit<Mem,Err,Val>(v))
 
 let lift_binary_operation = function<a,b> (a: Expr<Val>, b:Expr<Val>, check_types:(ab:Prod<Val,Val>) => Sum<Prod<a,b>, Unit>, actual_operation:(_:Prod<a,b>)=>Val, operator_name?:string): Expr<Val> {
   return a.then(a_val => b.then(b_val =>
-    apply(fun(check_types).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(constant<Unit,Expr<Val>>(runtime_error<Val>(`Type error: cannot perform ${operator_name} on ${a_val.v} and ${b_val.v}.`)))), { fst:a_val, snd:b_val })))
+    apply(fun(check_types).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(
+      constant<Unit,Expr<Val>>(runtime_error(`Type error: cannot perform ${operator_name} on ${a_val.v} and ${b_val.v}.`)))), { fst:a_val, snd:b_val })))
 }
 export let bool_times = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<boolean,boolean>(a, b,
@@ -101,7 +102,8 @@ export let string_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
 
 let lift_unary_operation = function<a> (a: Expr<Val>, check_type:(a:Val) => Sum<a, Unit>, actual_operation:(_:a)=>Val, operator_name?:string): Expr<Val> {
   return a.then(a_val =>
-    apply(fun(check_type).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(constant<Unit,Expr<Val>>(runtime_error<Val>(`Type error: cannot perform ${operator_name} on value ${a_val.v}.`)))), a_val))
+    apply(fun(check_type).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(constant<Unit,Expr<Val>>(
+      runtime_error(`Type error: cannot perform ${operator_name} on value ${a_val.v}.`)))), a_val))
 }
 export let bool_not = function (a: Expr<Val>): Expr<Val> {
   return lift_unary_operation<boolean>(a,

@@ -20,7 +20,7 @@ export let declare_class = function(C_name:Name, int:Interface) : Stmt {
 
 export let field_get = function(F_name:Name, this_addr:HeapRef) : Expr<Val> {
   return get_heap_v(this_addr.v).then(this_val => {
-    if (this_val.k != "obj") return runtime_error<Val>(`runtime type error: this is not a reference when looking ${F_name} up.`)
+    if (this_val.k != "obj") return runtime_error(`runtime type error: this is not a reference when looking ${F_name} up.`)
     return val_expr(this_val.v.get(F_name))
   })
 }
@@ -28,7 +28,7 @@ export let field_get = function(F_name:Name, this_addr:HeapRef) : Expr<Val> {
 export let field_set = function(F_name:Name, new_val_expr:Expr<Val>, this_addr:HeapRef) : Stmt {
   return new_val_expr.then(new_val =>
     get_heap_v(this_addr.v).then(this_val => {
-    if (this_val.k != "obj") return runtime_error<Unit>(`runtime type error: this is not a reference when looking ${F_name} up.`)
+    if (this_val.k != "obj") return runtime_error(`runtime type error: this is not a reference when looking ${F_name} up.`)
     let new_this_val = {...this_val, v:this_val.v.set(F_name, new_val) }
     return set_heap_v(this_addr.v, new_this_val).then(_ => done)
   }))
@@ -40,11 +40,11 @@ export let resolve_method = function(M_name:Name, C_def:Interface) : Sum<Lambda,
 }
 
 export let call_method = function(M_name:Name, this_addr:Val, args:Array<Expr<Val>>) : Expr<Val> {
-  return this_addr.k != "ref" ? runtime_error<Val>(`runtime type error: this is not a reference when calling ${M_name}.`) :
+  return this_addr.k != "ref" ? runtime_error(`runtime type error: this is not a reference when calling ${M_name}.`) :
                                 get_heap_v(this_addr.v).then(this_val => {
-    if (this_val.k != "obj") return runtime_error<Val>(`runtime type error: this is not an object when calling ${M_name}.`)
+    if (this_val.k != "obj") return runtime_error(`runtime type error: this is not an object when calling ${M_name}.`)
     let this_class = this_val.v.get("class")
-    if (this_class.k != "s") return runtime_error<Val>(`runtime type error: this.class is not a string.`)
+    if (this_class.k != "s") return runtime_error(`runtime type error: this.class is not a string.`)
     return get_class_def(this_class.v).then(C_def => {
       let f = fun((m:Lambda) => call_lambda(m, args.concat([val_expr(this_addr)]))).plus(constant<Unit, Expr<Val>>(unit_expr()))
       return apply(f, resolve_method(M_name, C_def))

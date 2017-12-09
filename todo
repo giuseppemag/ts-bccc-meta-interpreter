@@ -1,16 +1,35 @@
-[ ] IMP: localized errors everywhere (curried parameter, used for runtime/compiler errors!)
 [ ] IMP TYPE CHECKER
-  [ ] Expressions
-    [ ] variable lookup
-    [ ] int operators
-    [ ] float operators
-    [ ] bool operators
-    [ ] string operators
-    [ ] array operators
-  [ ] Statements
+  [ ] Split into multiple files
+  [x] Expressions
+    [x] variable lookup and assignment
+    [x] int operators
+      [x] +
+      [x] -
+      [x] /
+      [x] *
+      [x] %
+      [x] - (unary)
+    [x] float operators
+      [x] +
+      [x] -
+      [x] /
+      [x] *
+      [x] - (unary)
+    [x] bool operators
+      [x] and
+      [x] or
+      [x] not
+    [x] string operators
+      [x] +
+      [x] length
+    [x] array operators
+      [x] length
+      [x] get
+      [x] set
+  [x] Statements
     [x] If
     [x] while
-    [ ] ;
+    [x] ;
   [ ] Functions
     [ ] Lambda's
     [ ] Function Definition
@@ -18,6 +37,7 @@
   [ ] Classes
     [ ] Definition
     [ ] Inheritance
+      [ ] Covariance/contravariance in all relevant expressions
     [ ] References
     [ ] Constructor
     [ ] Field lookups
@@ -27,6 +47,12 @@
   [ ] distributive laws applied to monadic combinators such as parallel/concurrent
   [ ] Python
   [ ] C#
+
+[ ] Required for basic quality but not basic functionality
+  [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
+
+[ ] Advanced
+  [ ] closures (closure is extra scope passed to lambda upon call, and stored with lambda in state; it goes in the state *before* the parameters)
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`

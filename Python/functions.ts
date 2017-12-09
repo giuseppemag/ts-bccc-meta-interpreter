@@ -26,7 +26,7 @@ export let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> 
 
 export let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : Expr<Val> {
   let body = lambda.fst
-  if (arg_values.length != lambda.snd.length) return runtime_error<Val>(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.snd.length}, received ${arg_values.length}.`)
+  if (arg_values.length != lambda.snd.length) return runtime_error(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.snd.length}, received ${arg_values.length}.`)
   let set_args = lambda.snd.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<Stmt>((sets, arg_expr) =>
     set_v_expr(arg_expr.fst, arg_expr.snd).then(_ => sets),
     done)

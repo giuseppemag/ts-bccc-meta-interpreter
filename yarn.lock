@@ -10,9 +10,9 @@ immutable@^3.8.2:
   version "3.8.2"
   resolved "https://registry.yarnpkg.com/immutable/-/immutable-3.8.2.tgz#c2439951455bb39913daf281376f1530e104adf3"
 
-ts-bccc@^1.0.5:
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/ts-bccc/-/ts-bccc-1.0.7.tgz#10db517fbc340a7c4847ae4e2210aa8571d1e3c2"
+ts-bccc@^1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/ts-bccc/-/ts-bccc-1.0.9.tgz#5f31d9c84ca782e30de4e86a87e29d1a6706162c"
   dependencies:
     "@types/node" "^8.0.51"
     immutable "^3.8.2"

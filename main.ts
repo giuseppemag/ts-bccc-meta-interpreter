@@ -36,13 +36,12 @@ module ImpLanguageWithSuspend {
 
 export let test_imp = function () {
     let loop_test =
-      set_v("b", str("")).then(_ =>
-      set_v("i", int(1000)).then(_ =>
+      set_v("s", str("")).then(_ =>
+      set_v("i", int(100)).then(_ =>
       while_do(get_v("i").then(n => bool_expr(n.v > 0)),
         get_v("i").then(n => n.k == "i" ? set_v("i", int(n.v - 1)) : runtime_error(`${n.v} is not a number`)).then(_ =>
-        get_v("b").then(s => s.k == "b" ? set_v("b", str(s.v + "*")) : runtime_error(`${s.v} is not a string`)).then(_ =>
-        get_v("i").then(n => n.k == "i" && n.v % 5 == 0 ? dbg(mk_range(6,0,7,0))({}) : runtime_error(`${n.v} is not a number`))))
-      )))
+        get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(`${s.v} is not a string`))
+      ))))
 
     let arr_test =
       new_arr(10).then(a_ref =>
@@ -53,7 +52,7 @@ export let test_imp = function () {
         get_v("i").then(i_val => i_val.k != "i" ? runtime_error(`${i_val.v} is not a number`) :
         set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(_ =>
         set_v("i", int(i_val.v + 1)).then(_ =>
-        dbg(mk_range(9,0,10,0))({})
+        dbg(mk_range(9,0,10,0))(unt)
         ))))))))
 
     let lambda_test =
@@ -81,11 +80,11 @@ export let test_imp = function () {
               Immutable.Map<Name, Lambda>([
                 [ "to_string",
                   { fst:get_v("this").then(this_addr =>
-                        this_addr.k != "ref" ? runtime_error<Val>(`"this" is not a reference when calling to_string`) :
+                        this_addr.k != "ref" ? runtime_error(`"this" is not a reference when calling to_string`) :
                         field_get("x", this_addr).then(x_val =>
-                        x_val.k != "i" ? runtime_error<Val>(`${x_val.v} is not a number`) :
+                        x_val.k != "i" ? runtime_error(`${x_val.v} is not a number`) :
                         field_get("y", this_addr).then(y_val =>
-                        y_val.k != "i" ? runtime_error<Val>(`${y_val.v} is not a number`) :
+                        y_val.k != "i" ? runtime_error(`${y_val.v} is not a number`) :
                         str_expr(`(${x_val.v}, ${y_val.v})`)
                         ))),
                     snd:["this"] } ]
@@ -97,11 +96,11 @@ export let test_imp = function () {
             [ "scale",
               { fst:get_v("this").then(this_addr =>
                     get_v("k").then(k_val =>
-                    this_addr.k != "ref" || k_val.k != "i" ? runtime_error<Val>(`runtime type error`) :
+                    this_addr.k != "ref" || k_val.k != "i" ? runtime_error(`runtime type error`) :
                     field_get("x", this_addr).then(x_val =>
-                    x_val.k != "i" ? runtime_error<Val>(`runtime type error`) :
+                    x_val.k != "i" ? runtime_error(`runtime type error`) :
                     field_get("y", this_addr).then(y_val =>
-                    y_val.k != "i" ? runtime_error<Val>(`runtime type error`) :
+                    y_val.k != "i" ? runtime_error(`runtime type error`) :
                     dbg(mk_range(6,0,7,0))({}).then(_ =>
                     field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(_ =>
                     dbg(mk_range(6,0,7,0))({}).then(_ =>
@@ -112,11 +111,11 @@ export let test_imp = function () {
                 snd:["k", "this"] } ],
             [ "constructor",
               { fst:get_v("this").then(this_addr =>
-                    this_addr.k != "ref" ? runtime_error<Val>(`runtime type error`) :
+                    this_addr.k != "ref" ? runtime_error(`runtime type error`) :
                     get_v("x").then(x_val =>
-                    x_val.k != "i" ? runtime_error<Val>(`runtime type error`) :
+                    x_val.k != "i" ? runtime_error(`runtime type error`) :
                     get_v("y").then(y_val =>
-                    y_val.k != "i" ? runtime_error<Val>(`runtime type error`) :
+                    y_val.k != "i" ? runtime_error(`runtime type error`) :
                     field_set("x", val_expr(x_val), this_addr).then(_ =>
                     field_set("y", val_expr(y_val), this_addr).then(_ =>
                     unit_expr()
@@ -136,7 +135,7 @@ export let test_imp = function () {
 
 
     let hrstart = process.hrtime()
-    let p = fun_test
+    let p = loop_test
 
     let res = apply((constant<Unit,Stmt>(p).times(constant<Unit,Mem>(empty_memory))).then(run_to_end()), {})
     let hrdiff = process.hrtime(hrstart)
