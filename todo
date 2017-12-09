@@ -50,6 +50,7 @@
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
+  [ ] Typed array lookup operators have inlined semantics, which should be the `expr` variant of the same operators
 
 [ ] Advanced
   [ ] closures (closure is extra scope passed to lambda upon call, and stored with lambda in state; it goes in the state *before* the parameters)
