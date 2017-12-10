@@ -1,5 +1,8 @@
 [ ] IMP TYPE CHECKER
-  [ ] Split into multiple files
+  [ ] File management
+    [ ] Split into multiple files
+    [ ] Python.ts: export * from memory, export * from ..., ...
+    [ ] CSharp.ts: export * from memory, export * from ..., ...
   [x] Expressions
     [x] variable lookup and assignment
     [x] int operators
@@ -30,6 +33,7 @@
     [x] If
     [x] while
     [x] ;
+  [ ] Test typechecker made until now
   [ ] Functions
     [ ] Lambda's
     [ ] Function Definition
@@ -50,7 +54,6 @@
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
-  [ ] Typed array lookup operators have inlined semantics, which should be the `expr` variant of the same operators
 
 [ ] Advanced
   [ ] closures (closure is extra scope passed to lambda upon call, and stored with lambda in state; it goes in the state *before* the parameters)

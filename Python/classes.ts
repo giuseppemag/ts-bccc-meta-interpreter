@@ -25,6 +25,12 @@ export let field_get = function(F_name:Name, this_addr:HeapRef) : Expr<Val> {
   })
 }
 
+export let field_get_expr = function(F_name:Name, this_expr:Expr<Val>) : Expr<Val> {
+  return this_expr.then(this_addr =>
+    this_addr.k != "ref" ? runtime_error(`runtime type error`) :
+    field_get(F_name, this_addr))
+}
+
 export let field_set = function(F_name:Name, new_val_expr:Expr<Val>, this_addr:HeapRef) : Stmt {
   return new_val_expr.then(new_val =>
     get_heap_v(this_addr.v).then(this_val => {
@@ -32,6 +38,12 @@ export let field_set = function(F_name:Name, new_val_expr:Expr<Val>, this_addr:H
     let new_this_val = {...this_val, v:this_val.v.set(F_name, new_val) }
     return set_heap_v(this_addr.v, new_this_val).then(_ => done)
   }))
+}
+
+export let field_set_expr = function(F_name:Name, new_val_expr:Expr<Val>, this_expr:Expr<Val>) : Stmt {
+  return this_expr.then(this_addr =>
+    this_addr.k != "ref" ? runtime_error(`runtime type error`) :
+    field_set(F_name, new_val_expr, this_addr))
 }
 
 export let resolve_method = function(M_name:Name, C_def:Interface) : Sum<Lambda, Unit> {
@@ -52,6 +64,10 @@ export let call_method = function(M_name:Name, this_addr:Val, args:Array<Expr<Va
 
     )
   })
+}
+
+export let call_method_expr = function(M_name:Name, this_expr:Expr<Val>, args:Array<Expr<Val>>) : Expr<Val> {
+  return this_expr.then(this_addr => call_method(M_name, this_addr, args))
 }
 
 export let call_cons = function(C_name:Name, args:Array<Expr<Val>>) : Expr<Val> {

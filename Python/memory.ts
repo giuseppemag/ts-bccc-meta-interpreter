@@ -74,7 +74,9 @@ export let set_highlighting = function(r:SourceRange) : Stmt {
   return mk_coroutine(constant<Mem, SourceRange>(r).times(id<Mem>()).then(highlight).then(constant<Mem,Val>(unt).times(id<Mem>())).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
 }
 export let set_v_expr = function (v: Name, e: Expr<Val>): Stmt {
-  return e.then(e_val => set_v(v, e_val))
+  return e.then(e_val =>
+    // console.log(`Setting ${v} to ${JSON.stringify(e_val)}`) ||
+    set_v(v, e_val))
 }
 export let set_v = function (v: Name, val: Val): Stmt {
   let store_co = store.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
@@ -103,6 +105,9 @@ export let get_arr_len = function(a_ref:Val) : Expr<Val> {
          a_val.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
          co_unit<Mem,Err,Val>(int(a_val.v.length)))
 }
+export let get_arr_len_expr = function(a:Expr<Val>) : Expr<Val> {
+  return a.then(a_val => get_arr_len(a_val))
+}
 export let get_arr_el = function(a_ref:Val, i:number) : Expr<Val> {
   return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>
@@ -110,14 +115,23 @@ export let get_arr_el = function(a_ref:Val, i:number) : Expr<Val> {
          !a_val.v.elements.has(i) ? runtime_error(`Cannot find element ${i} on ${a_val.v}.`) :
          co_unit<Mem,Err,Val>(a_val.v.elements.get(i)))
 }
+export let get_arr_el_expr = function(a:Expr<Val>, i:Expr<Val>) : Expr<Val> {
+  return a.then(a_val =>
+         i.then(i_val =>
+         i_val.k != "i" ? runtime_error(`Index ${i_val} is not an integer.`) :
+         get_arr_el(a_val, i_val.v)))
+}
 export let set_arr_el = function(a_ref:Val, i:number, v:Val) : Stmt {
   return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>
          a_val.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.v} as it is not an array.`) :
          set_heap_v(a_ref.v, {...a_val, v:{...a_val.v, length:Math.max(i+1, a_val.v.length), elements:a_val.v.elements.set(i, v)} }))
 }
-export let set_arr_el_expr = function(a_ref:Val, i:number, e:Expr<Val>) : Stmt {
-  return e.then(e_val => set_arr_el(a_ref, i, e_val))
+export let set_arr_el_expr = function(a:Expr<Val>, i:Expr<Val>, e:Expr<Val>) : Stmt {
+  return a.then(a_val =>
+         i.then(i_val =>
+         i_val.k != "i" ? runtime_error(`Index ${i_val} is not an integer.`) :
+         e.then(e_val => set_arr_el(a_val, i_val.v, e_val))))
 }
 export let set_heap_v = function (v: Name, val: Val): Stmt {
   let store_co = store_heap.then(constant<Mem,Val>(unt).times(id<Mem>()).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))

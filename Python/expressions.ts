@@ -74,6 +74,36 @@ export let int_mod = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => int(ab_val.fst % ab_val.snd), "(%)")
 }
+export let int_gt = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst > ab_val.snd), "(>)")
+}
+export let int_lt = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst < ab_val.snd), "(<)")
+}
+export let int_geq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst >= ab_val.snd), "(>=)")
+}
+export let int_leq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst <= ab_val.snd), "(<=)")
+}
+export let int_eq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst == ab_val.snd), "(==)")
+}
+export let int_neq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst != ab_val.snd), "(!=)")
+}
 export let float_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
           ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
@@ -94,6 +124,37 @@ export let float_div = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
           ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => float(ab_val.fst / ab_val.snd), "(/)")
 }
+export let float_gt = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst > ab_val.snd), "(>)")
+}
+export let float_lt = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst < ab_val.snd), "(<)")
+}
+export let float_geq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst >= ab_val.snd), "(>=)")
+}
+export let float_leq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst <= ab_val.snd), "(<=)")
+}
+export let float_eq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst == ab_val.snd), "(==)")
+}
+export let float_neq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<number,number>(a, b,
+          ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst != ab_val.snd), "(!=)")
+}
+
 export let string_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<string,string>(a, b,
           ab => ab.fst.k != "s" || ab.snd.k != "s" ? inr<Prod<string,string>, Unit>().f({}) : inl<Prod<string,string>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),

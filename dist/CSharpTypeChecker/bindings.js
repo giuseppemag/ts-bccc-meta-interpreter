@@ -160,12 +160,7 @@ exports.get_index = function (a, i) {
     return a.then(function (a_t) {
         return i.then(function (i_t) {
             return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) ?
-                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, a_t.sem.then(function (a_val) {
-                    return i_t.sem.then(function (i_val) {
-                        return i_val.k != "i" ? Sem.runtime_error("Error: array lookup requires integer argument")
-                            : Sem.get_arr_el(a_val, i_val.v);
-                    });
-                })))
+                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr(a_t.sem, i_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported types for array lookup!");
         });
     });
@@ -175,12 +170,7 @@ exports.set_index = function (a, i, e) {
         return i.then(function (i_t) {
             return e.then(function (e_t) {
                 return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
-                    ts_bccc_2.co_unit(mk_typing(a_t.type.arg, a_t.sem.then(function (a_val) {
-                        return i_t.sem.then(function (i_val) {
-                            return i_val.k != "i" ? Sem.runtime_error("Error: array lookup requires integer argument")
-                                : Sem.set_arr_el_expr(a_val, i_val.v, e_t.sem);
-                        });
-                    })))
+                    ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for writing in an array!");
             });
         });

@@ -14,14 +14,14 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          load_heap, obj, ref, Scope,
          store, store_class_def, store_fun_def, store_heap, str,
          unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
-         get_heap_v, get_v, pop_scope, push_scope } from "./Python/memory"
+         get_heap_v, get_v, pop_scope, push_scope, get_arr_el_expr, get_arr_len_expr } from "./Python/memory"
 import { bool_to_boolcat, BoolCat, FalseCat, TrueCat, bool_plus, bool_times, float_div, float_expr, float_minus, float_plus, float_times,
          int_div, int_minus, int_plus, int_times, int_mod, bool_not,
          arr_expr, int_expr, lambda_expr, obj_expr, ref_expr, bool_expr,
-         str_expr, unit_expr, val_expr } from "./Python/expressions"
+         str_expr, unit_expr, val_expr, int_geq, string_plus, int_eq, int_lt } from "./Python/expressions"
 import { done, dbg, if_then_else, while_do } from "./Python/basic_statements"
 import { call_by_name, call_lambda, def_fun, ret } from "./Python/functions"
-import { call_cons, call_method, declare_class, field_get, field_set, resolve_method } from "./Python/classes"
+import { call_cons, call_method, declare_class, field_get, field_set, resolve_method, field_set_expr, field_get_expr, call_method_expr } from "./Python/classes"
 import { mk_range } from "./source_range";
 
 module ImpLanguageWithSuspend {
@@ -35,25 +35,28 @@ module ImpLanguageWithSuspend {
   }
 
 export let test_imp = function () {
+
     let loop_test =
       set_v("s", str("")).then(_ =>
-      set_v("i", int(100)).then(_ =>
-      while_do(get_v("i").then(n => bool_expr(n.v > 0)),
-        get_v("i").then(n => n.k == "i" ? set_v("i", int(n.v - 1)) : runtime_error(`${n.v} is not a number`)).then(_ =>
-        get_v("s").then(s => s.k == "s" ? set_v("s", str(s.v + "*")) : runtime_error(`${s.v} is not a string`))
-      ))))
+      set_v("i", int(20)).then(_ =>
+      while_do(int_geq(get_v("i"), int_expr(0)),
+        set_v_expr("i", int_minus(get_v("i"), int_expr(1))).then(_ =>
+        set_v_expr("s", string_plus(get_v("s"), str_expr("*"))).then(_ =>
+        if_then_else(int_eq(int_mod(get_v("i"), int_expr(5)), int_expr(0)),
+          dbg(mk_range(9,0,10,0))(unt),
+          done)
+      )))
+    ))
 
     let arr_test =
-      new_arr(10).then(a_ref =>
-      set_v("a", a_ref).then(_ =>
+      set_v_expr("a", new_arr(10)).then(_ =>
       set_v("i", int(0)).then(_ =>
-      get_arr_len(a_ref).then(a_len => a_len.k != "i" ? runtime_error(`${a_len.v} is not a number`) :
-      while_do(get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
+      while_do(int_lt(get_v("i"), get_arr_len_expr(get_v("a")))  , // get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
         get_v("i").then(i_val => i_val.k != "i" ? runtime_error(`${i_val.v} is not a number`) :
-        set_arr_el(a_ref, i_val.v, int(i_val.v * 2)).then(_ =>
-        set_v("i", int(i_val.v + 1)).then(_ =>
+        set_arr_el_expr(get_v("a"), get_v("i"), int_times(get_v("i"), int_expr(2))).then(_ =>
+        set_v_expr("i", int_plus(get_v("i"), int_expr(1))).then(_ =>
         dbg(mk_range(9,0,10,0))(unt)
-        ))))))))
+        ))))))
 
     let lambda_test =
       set_v("i", int(10)).then(_ =>
@@ -94,32 +97,17 @@ export let test_imp = function () {
         methods:
           Immutable.Map<Name, Lambda>([
             [ "scale",
-              { fst:get_v("this").then(this_addr =>
-                    get_v("k").then(k_val =>
-                    this_addr.k != "ref" || k_val.k != "i" ? runtime_error(`runtime type error`) :
-                    field_get("x", this_addr).then(x_val =>
-                    x_val.k != "i" ? runtime_error(`runtime type error`) :
-                    field_get("y", this_addr).then(y_val =>
-                    y_val.k != "i" ? runtime_error(`runtime type error`) :
-                    dbg(mk_range(6,0,7,0))({}).then(_ =>
-                    field_set("x", val_expr(int(x_val.v * k_val.v)), this_addr).then(_ =>
-                    dbg(mk_range(6,0,7,0))({}).then(_ =>
-                    field_set("y", val_expr(int(y_val.v * k_val.v)), this_addr).then(_ =>
-                    dbg(mk_range(6,0,7,0))({}).then(_ =>
-                    unit_expr()
-                    ))))))))),
+              { fst:field_set_expr("x", int_times(field_get_expr("x", get_v("this")), get_v("k")), get_v("this")).then(_ =>
+                    dbg(mk_range(6,0,7,0))(unt).then(_ =>
+                    field_set_expr("y", int_times(field_get_expr("y", get_v("this")), get_v("k")), get_v("this")).then(_ =>
+                    dbg(mk_range(6,0,7,0))(unt)
+                    ))),
                 snd:["k", "this"] } ],
             [ "constructor",
-              { fst:get_v("this").then(this_addr =>
-                    this_addr.k != "ref" ? runtime_error(`runtime type error`) :
-                    get_v("x").then(x_val =>
-                    x_val.k != "i" ? runtime_error(`runtime type error`) :
-                    get_v("y").then(y_val =>
-                    y_val.k != "i" ? runtime_error(`runtime type error`) :
-                    field_set("x", val_expr(x_val), this_addr).then(_ =>
-                    field_set("y", val_expr(y_val), this_addr).then(_ =>
+              { fst:field_set_expr("x", get_v("x"), get_v("this")).then(_ =>
+                    field_set_expr("y", get_v("y"), get_v("this")).then(_ =>
                     unit_expr()
-                    ))))),
+                    )),
                 snd:["x", "y", "this"] }]
           ])
       }
@@ -127,15 +115,13 @@ export let test_imp = function () {
       declare_class("Vector2", vector2).then(_ =>
       call_cons("Vector2", [int_expr(10), int_expr(20)]).then(v2 =>
       set_v("v2", v2).then(_ =>
-      call_method("scale", v2, [int_expr(2)]).then(_ =>
-      call_method("to_string", v2, []).then(v2_s =>
-      set_v("v2_s", v2_s).then(_ =>
-      done
-      ))))))
+      call_method_expr("scale", get_v("v2"), [int_expr(2)]).then(_ =>
+      set_v_expr("v2_s", call_method_expr("to_string", get_v("v2"), []))
+      ))))
 
 
     let hrstart = process.hrtime()
-    let p = loop_test
+    let p = class_test
 
     let res = apply((constant<Unit,Stmt>(p).times(constant<Unit,Mem>(empty_memory))).then(run_to_end()), {})
     let hrdiff = process.hrtime(hrstart)

@@ -71,7 +71,10 @@ exports.set_highlighting = function (r) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(exports.highlight).then(ts_bccc_1.constant(exports.unt).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
 exports.set_v_expr = function (v, e) {
-    return e.then(function (e_val) { return exports.set_v(v, e_val); });
+    return e.then(function (e_val) {
+        // console.log(`Setting ${v} to ${JSON.stringify(e_val)}`) ||
+        return exports.set_v(v, e_val);
+    });
 };
 exports.set_v = function (v, val) {
     var store_co = exports.store.then(ts_bccc_1.constant(exports.unt).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
@@ -100,6 +103,9 @@ exports.get_arr_len = function (a_ref) {
                 ts_bccc_2.co_unit(exports.int(a_val.v.length));
         });
 };
+exports.get_arr_len_expr = function (a) {
+    return a.then(function (a_val) { return exports.get_arr_len(a_val); });
+};
 exports.get_arr_el = function (a_ref, i) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v(a_ref.v).then(function (a_val) {
@@ -108,6 +114,14 @@ exports.get_arr_el = function (a_ref, i) {
                     ts_bccc_2.co_unit(a_val.v.elements.get(i));
         });
 };
+exports.get_arr_el_expr = function (a, i) {
+    return a.then(function (a_val) {
+        return i.then(function (i_val) {
+            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
+                exports.get_arr_el(a_val, i_val.v);
+        });
+    });
+};
 exports.set_arr_el = function (a_ref, i, v) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v(a_ref.v).then(function (a_val) {
@@ -115,8 +129,13 @@ exports.set_arr_el = function (a_ref, i, v) {
                 exports.set_heap_v(a_ref.v, __assign({}, a_val, { v: __assign({}, a_val.v, { length: Math.max(i + 1, a_val.v.length), elements: a_val.v.elements.set(i, v) }) }));
         });
 };
-exports.set_arr_el_expr = function (a_ref, i, e) {
-    return e.then(function (e_val) { return exports.set_arr_el(a_ref, i, e_val); });
+exports.set_arr_el_expr = function (a, i, e) {
+    return a.then(function (a_val) {
+        return i.then(function (i_val) {
+            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
+                e.then(function (e_val) { return exports.set_arr_el(a_val, i_val.v, e_val); });
+        });
+    });
 };
 exports.set_heap_v = function (v, val) {
     var store_co = exports.store_heap.then(ts_bccc_1.constant(exports.unt).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));

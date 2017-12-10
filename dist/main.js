@@ -19,23 +19,23 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.test_imp = function () {
         var loop_test = memory_1.set_v("s", memory_1.str("")).then(function (_) {
-            return memory_1.set_v("i", memory_1.int(100)).then(function (_) {
-                return basic_statements_1.while_do(memory_1.get_v("i").then(function (n) { return expressions_1.bool_expr(n.v > 0); }), memory_1.get_v("i").then(function (n) { return n.k == "i" ? memory_1.set_v("i", memory_1.int(n.v - 1)) : memory_1.runtime_error(n.v + " is not a number"); }).then(function (_) {
-                    return memory_1.get_v("s").then(function (s) { return s.k == "s" ? memory_1.set_v("s", memory_1.str(s.v + "*")) : memory_1.runtime_error(s.v + " is not a string"); });
+            return memory_1.set_v("i", memory_1.int(20)).then(function (_) {
+                return basic_statements_1.while_do(expressions_1.int_geq(memory_1.get_v("i"), expressions_1.int_expr(0)), memory_1.set_v_expr("i", expressions_1.int_minus(memory_1.get_v("i"), expressions_1.int_expr(1))).then(function (_) {
+                    return memory_1.set_v_expr("s", expressions_1.string_plus(memory_1.get_v("s"), expressions_1.str_expr("*"))).then(function (_) {
+                        return basic_statements_1.if_then_else(expressions_1.int_eq(expressions_1.int_mod(memory_1.get_v("i"), expressions_1.int_expr(5)), expressions_1.int_expr(0)), basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))(memory_1.unt), basic_statements_1.done);
+                    });
                 }));
             });
         });
-        var arr_test = memory_1.new_arr(10).then(function (a_ref) {
-            return memory_1.set_v("a", a_ref).then(function (_) {
-                return memory_1.set_v("i", memory_1.int(0)).then(function (_) {
-                    return memory_1.get_arr_len(a_ref).then(function (a_len) { return a_len.k != "i" ? memory_1.runtime_error(a_len.v + " is not a number") :
-                        basic_statements_1.while_do(memory_1.get_v("i").then(function (i_val) { return expressions_1.bool_expr(i_val.v < a_len.v); }), memory_1.get_v("i").then(function (i_val) { return i_val.k != "i" ? memory_1.runtime_error(i_val.v + " is not a number") :
-                            memory_1.set_arr_el(a_ref, i_val.v, memory_1.int(i_val.v * 2)).then(function (_) {
-                                return memory_1.set_v("i", memory_1.int(i_val.v + 1)).then(function (_) {
-                                    return basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))(memory_1.unt);
-                                });
-                            }); })); });
-                });
+        var arr_test = memory_1.set_v_expr("a", memory_1.new_arr(10)).then(function (_) {
+            return memory_1.set_v("i", memory_1.int(0)).then(function (_) {
+                return basic_statements_1.while_do(expressions_1.int_lt(memory_1.get_v("i"), memory_1.get_arr_len_expr(memory_1.get_v("a"))), // get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
+                memory_1.get_v("i").then(function (i_val) { return i_val.k != "i" ? memory_1.runtime_error(i_val.v + " is not a number") :
+                    memory_1.set_arr_el_expr(memory_1.get_v("a"), memory_1.get_v("i"), expressions_1.int_times(memory_1.get_v("i"), expressions_1.int_expr(2))).then(function (_) {
+                        return memory_1.set_v_expr("i", expressions_1.int_plus(memory_1.get_v("i"), expressions_1.int_expr(1))).then(function (_) {
+                            return basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))(memory_1.unt);
+                        });
+                    }); }));
             });
         });
         var lambda_test = memory_1.set_v("i", memory_1.int(10)).then(function (_) {
@@ -72,43 +72,19 @@ var ImpLanguageWithSuspend;
             }),
             methods: Immutable.Map([
                 ["scale",
-                    { fst: memory_1.get_v("this").then(function (this_addr) {
-                            return memory_1.get_v("k").then(function (k_val) {
-                                return this_addr.k != "ref" || k_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                    classes_1.field_get("x", this_addr).then(function (x_val) {
-                                        return x_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                            classes_1.field_get("y", this_addr).then(function (y_val) {
-                                                return y_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                                    basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
-                                                        return classes_1.field_set("x", expressions_1.val_expr(memory_1.int(x_val.v * k_val.v)), this_addr).then(function (_) {
-                                                            return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
-                                                                return classes_1.field_set("y", expressions_1.val_expr(memory_1.int(y_val.v * k_val.v)), this_addr).then(function (_) {
-                                                                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
-                                                                        return expressions_1.unit_expr();
-                                                                    });
-                                                                });
-                                                            });
-                                                        });
-                                                    });
-                                            });
-                                    });
+                    { fst: classes_1.field_set_expr("x", expressions_1.int_times(classes_1.field_get_expr("x", memory_1.get_v("this")), memory_1.get_v("k")), memory_1.get_v("this")).then(function (_) {
+                            return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))(memory_1.unt).then(function (_) {
+                                return classes_1.field_set_expr("y", expressions_1.int_times(classes_1.field_get_expr("y", memory_1.get_v("this")), memory_1.get_v("k")), memory_1.get_v("this")).then(function (_) {
+                                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))(memory_1.unt);
+                                });
                             });
                         }),
                         snd: ["k", "this"] }],
                 ["constructor",
-                    { fst: memory_1.get_v("this").then(function (this_addr) {
-                            return this_addr.k != "ref" ? memory_1.runtime_error("runtime type error") :
-                                memory_1.get_v("x").then(function (x_val) {
-                                    return x_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                        memory_1.get_v("y").then(function (y_val) {
-                                            return y_val.k != "i" ? memory_1.runtime_error("runtime type error") :
-                                                classes_1.field_set("x", expressions_1.val_expr(x_val), this_addr).then(function (_) {
-                                                    return classes_1.field_set("y", expressions_1.val_expr(y_val), this_addr).then(function (_) {
-                                                        return expressions_1.unit_expr();
-                                                    });
-                                                });
-                                        });
-                                });
+                    { fst: classes_1.field_set_expr("x", memory_1.get_v("x"), memory_1.get_v("this")).then(function (_) {
+                            return classes_1.field_set_expr("y", memory_1.get_v("y"), memory_1.get_v("this")).then(function (_) {
+                                return expressions_1.unit_expr();
+                            });
                         }),
                         snd: ["x", "y", "this"] }]
             ])
@@ -116,18 +92,14 @@ var ImpLanguageWithSuspend;
         var class_test = classes_1.declare_class("Vector2", vector2).then(function (_) {
             return classes_1.call_cons("Vector2", [expressions_1.int_expr(10), expressions_1.int_expr(20)]).then(function (v2) {
                 return memory_1.set_v("v2", v2).then(function (_) {
-                    return classes_1.call_method("scale", v2, [expressions_1.int_expr(2)]).then(function (_) {
-                        return classes_1.call_method("to_string", v2, []).then(function (v2_s) {
-                            return memory_1.set_v("v2_s", v2_s).then(function (_) {
-                                return basic_statements_1.done;
-                            });
-                        });
+                    return classes_1.call_method_expr("scale", memory_1.get_v("v2"), [expressions_1.int_expr(2)]).then(function (_) {
+                        return memory_1.set_v_expr("v2_s", classes_1.call_method_expr("to_string", memory_1.get_v("v2"), []));
                     });
                 });
             });
         });
         var hrstart = process.hrtime();
-        var p = loop_test;
+        var p = class_test;
         var res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(memory_1.empty_memory))).then(run_to_end()), {});
         var hrdiff = process.hrtime(hrstart);
         var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];

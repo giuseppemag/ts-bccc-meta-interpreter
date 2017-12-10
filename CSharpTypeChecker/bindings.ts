@@ -181,11 +181,7 @@ export let get_index = function(a:Stmt, i:Stmt) : Stmt {
   return a.then(a_t =>
          i.then(i_t =>
           a_t.type.kind == "arr" && type_equals(i_t.type, int_type) ?
-            co_unit(mk_typing(a_t.type.arg,
-                a_t.sem.then(a_val =>
-                i_t.sem.then(i_val =>
-                i_val.k != "i" ? Sem.runtime_error("Error: array lookup requires integer argument")
-                : Sem.get_arr_el(a_val, i_val.v)))))
+            co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr(a_t.sem, i_t.sem)))
           : co_error<State,Err,Typing>("Error: unsupported types for array lookup!")
         ))
 }
@@ -195,11 +191,7 @@ export let set_index = function(a:Stmt, i:Stmt, e:Stmt) : Stmt {
          i.then(i_t =>
          e.then(e_t =>
           a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
-            co_unit(mk_typing(a_t.type.arg,
-                a_t.sem.then(a_val =>
-                i_t.sem.then(i_val =>
-                i_val.k != "i" ? Sem.runtime_error("Error: array lookup requires integer argument")
-                : Sem.set_arr_el_expr(a_val, i_val.v, e_t.sem)))))
+            co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
           : co_error<State,Err,Typing>("Error: unsupported types for writing in an array!")
         )))
 }
