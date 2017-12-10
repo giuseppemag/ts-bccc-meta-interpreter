@@ -1,42 +1,11 @@
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
-    [ ] Python.ts: export * from memory, export * from ..., ...
-    [ ] CSharp.ts: export * from memory, export * from ..., ...
-  [x] Expressions
-    [x] variable lookup and assignment
-    [x] int operators
-      [x] +
-      [x] -
-      [x] /
-      [x] *
-      [x] %
-      [x] - (unary)
-    [x] float operators
-      [x] +
-      [x] -
-      [x] /
-      [x] *
-      [x] - (unary)
-    [x] bool operators
-      [x] and
-      [x] or
-      [x] not
-    [x] string operators
-      [x] +
-      [x] length
-    [x] array operators
-      [x] length
-      [x] get
-      [x] set
-  [x] Statements
-    [x] If
-    [x] while
-    [x] ;
-  [ ] Test typechecker made until now
   [ ] Functions
     [ ] Lambda's
     [ ] Function Definition
+      [ ] Closure definition
+      [ ] Closure semantics
     [ ] Function invocation
   [ ] Classes
     [ ] Definition

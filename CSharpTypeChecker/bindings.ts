@@ -4,9 +4,7 @@ import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
-import * as Sem from "../Python/memory"
-import * as SemExpr from "../Python/expressions"
-import * as SemStmts from "../Python/basic_statements"
+import * as Sem from "../Python/python"
 
 // Bindings
 
@@ -20,17 +18,19 @@ export let string_type : Type = { kind:"string" }
 export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
 export interface Bindings extends Immutable.Map<Name, Type>  {}
-export interface State extends Bindings { highlighting:SourceRange }
+export interface State { highlighting:SourceRange, bindings:Bindings }
 export interface Typing { type:Type, sem:Sem.Expr<Sem.Val> }
 let mk_typing = (t:Type,s:Sem.Expr<Sem.Val>) : Typing => ({ type:t, sem:s })
-export let mk_typing_cat = fun2(mk_typing)
+let mk_typing_cat = fun2(mk_typing)
+
+export let empty_state : State = { highlighting:{ start:{ row:0, column:0 }, end:{ row:0, column:0 } }, bindings:Immutable.Map<Name, Type>() }
 
 export let load: Fun<Prod<string, State>, Sum<Unit,Type>> = fun(x =>
-  x.snd.has(x.fst) ?
-    apply(inr<Unit,Type>(), x.snd.get(x.fst))
+  x.snd.bindings.has(x.fst) ?
+    apply(inr<Unit,Type>(), x.snd.bindings.get(x.fst))
   : apply(inl<Unit,Type>(), {}))
-export let store: Fun<Prod<Prod<string, Type>, Bindings>, Bindings> = fun(x =>
-    x.snd.set(x.fst.fst, x.fst.snd))
+export let store: Fun<Prod<Prod<string, Type>, State>, State> = fun(x =>
+    ({...x.snd, bindings:x.snd.bindings.set(x.fst.fst, x.fst.snd) }))
 
 let type_equals = (t1:Type,t2:Type) : boolean =>
   (t1.kind == "fun" && t2.kind == "fun" && type_equals(t1.in,t2.in) && type_equals(t1.out,t2.out))
@@ -42,6 +42,7 @@ let type_equals = (t1:Type,t2:Type) : boolean =>
 
 // Basic statements and expressions
 let wrap_co_res = Co.value<State,Err,Typing>().then(Co.result<State,Err,Typing>())
+let wrap_co = wrap_co_res.then(Co.no_error())
 export interface Stmt extends Coroutine<State, Err, Typing> {}
 export let get_v = function(v:Name) : Stmt {
   let f = load.then(
@@ -56,6 +57,13 @@ export let get_v = function(v:Name) : Stmt {
   let h = apply(curry(g1), v)
   return mk_coroutine<State,Err,Typing>(h)
 }
+export let decl_v = function(v:Name, t:Type) : Stmt {
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.done)).times(id())).then(wrap_co)
+  let g = curry(f)
+  let args = apply(constant<Unit,Name>(v).times(constant<Unit,Type>(t)), {})
+  return mk_coroutine<State,Err,Typing>(apply(g, args))
+
+}
 export let set_v = function(v:Name, e:Stmt) : Stmt {
   return e.then(e_val =>
          get_v(v).then(v_val =>
@@ -65,17 +73,37 @@ export let set_v = function(v:Name, e:Stmt) : Stmt {
            co_error<State,Err,Typing>(`Error: cannot assign ${v} to ${e}: type ${v_val.type} does not match ${e_val.type}`)
          ))
 }
+export let str = function(s:string) : Stmt {
+  return co_unit(mk_typing(string_type, Sem.str_expr(s)))
+}
+
+export let int = function(i:number) : Stmt {
+  return co_unit(mk_typing(int_type, Sem.int_expr(i)))
+}
+
+export let gt = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_gt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_gt(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (>)!")
+          : co_error<State,Err,Typing>("Error: cannot sum expressions of different types!")
+        ))
+}
 
 export let plus = function(a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_plus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_plus(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(int_type, SemExpr.float_plus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.float_plus(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, string_type) ?
-             co_unit(mk_typing(string_type, SemExpr.string_plus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(string_type, Sem.string_plus(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (+)!")
           : co_error<State,Err,Typing>("Error: cannot sum expressions of different types!")
         ))
@@ -86,9 +114,9 @@ export let minus = function(a:Stmt, b:Stmt) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_minus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_minus(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, SemExpr.float_minus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_minus(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (-)!")
           : co_error<State,Err,Typing>("Error: cannot subtract expressions of different types!")
         ))
@@ -99,9 +127,9 @@ export let div = function(a:Stmt, b:Stmt) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_div(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_div(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, SemExpr.float_div(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_div(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (/)!")
           : co_error<State,Err,Typing>("Error: cannot divide expressions of different types!")
         ))
@@ -112,9 +140,9 @@ export let times = function(a:Stmt, b:Stmt) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_times(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_times(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, SemExpr.float_times(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_times(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (*)!")
           : co_error<State,Err,Typing>("Error: cannot multiply expressions of different types!")
         ))
@@ -125,7 +153,7 @@ export let mod = function(a:Stmt, b:Stmt) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_mod(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_mod(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (-)!")
           : co_error<State,Err,Typing>("Error: cannot mod expressions of different types!")
         ))
@@ -134,9 +162,9 @@ export let mod = function(a:Stmt, b:Stmt) : Stmt {
 export let minus_unary = function(a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, SemExpr.int_minus_unary(a_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_minus_unary(a_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, SemExpr.float_minus_unary(a_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_minus_unary(a_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported type for unary operator (-)!")
         )
 }
@@ -145,7 +173,7 @@ export let or = function(a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, SemExpr.bool_plus(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.bool_plus(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (&&)!")
         ))
 }
@@ -154,7 +182,7 @@ export let and = function(a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, SemExpr.bool_times(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.bool_times(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (&&)!")
         ))
 }
@@ -162,7 +190,7 @@ export let and = function(a:Stmt, b:Stmt) : Stmt {
 export let not = function(a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, SemExpr.bool_not(a_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.bool_not(a_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported type for unary operator (!)!")
         )
 }
@@ -170,7 +198,7 @@ export let not = function(a:Stmt) : Stmt {
 export let length = function(a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, string_type) ?
-             co_unit(mk_typing(int_type, SemExpr.string_length(a_t.sem)))
+             co_unit(mk_typing(int_type, Sem.string_length(a_t.sem)))
             : a_t.type.kind == "arr" ?
              co_unit(mk_typing(int_type, a_t.sem.then(a_val => Sem.get_arr_len(a_val))))
             : co_error<State,Err,Typing>("Error: unsupported type for unary operator (-)!")
@@ -196,26 +224,42 @@ export let set_index = function(a:Stmt, i:Stmt, e:Stmt) : Stmt {
         )))
 }
 
+// Debugger statements
+export let breakpoint = function(r:SourceRange) : Stmt {
+  return co_unit(mk_typing(unit_type, Sem.dbg(r)(Sem.unt)))
+}
+
+export let highlight : Fun<Prod<SourceRange, State>, State> = fun(x => ({...x.snd, highlighting:x.fst }))
+export let set_highlighting = function(r:SourceRange) : Stmt {
+  return mk_coroutine(constant<State, SourceRange>(r).times(id<State>()).then(highlight).then(
+    constant<State,Typing>(mk_typing(unit_type,Sem.done)).times(id<State>())).then(Co.value<State, Err, Typing>().then(Co.result<State, Err, Typing>().then(Co.no_error<State, Err, Typing>()))))
+}
+
+export let typechecker_breakpoint = function(range:SourceRange) : Stmt {
+  return semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done))))
+}
+
 // Control flow statements
+export let done : Stmt = co_unit(mk_typing(unit_type, Sem.done))
+
 export let if_then_else = function(c:Stmt, t:Stmt, e:Stmt) : Stmt {
   return c.then(c_t =>
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
          t.then(t_t =>
          e.then(e_t =>
-         type_equals(t_t.type, unit_type) && type_equals(e_t.type, unit_type) ? co_error<State,Err,Typing>("Error: the branches of a conditional should be of type unit!") :
-         co_unit(mk_typing(t_t.type,
-            SemStmts.if_then_else(c_t.sem, t_t.sem, e_t.sem))
-         ))))
+         type_equals(t_t.type, unit_type) && type_equals(e_t.type, unit_type) ?
+           co_unit(mk_typing(t_t.type,Sem.if_then_else(c_t.sem, t_t.sem, e_t.sem)))
+         : co_error<State,Err,Typing>("Error: the branches of a conditional should be of type unit!"))))
 }
 
 export let while_do = function(c:Stmt, b:Stmt) : Stmt {
   return c.then(c_t =>
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
          b.then(t_t =>
-         type_equals(t_t.type, unit_type) ? co_error<State,Err,Typing>("Error: the body of a loop should be of type unit!") :
-         co_unit(mk_typing(t_t.type,
-            SemStmts.while_do(c_t.sem, t_t.sem))
-         )))
+         type_equals(t_t.type, unit_type) ?
+           co_unit(mk_typing(t_t.type,Sem.while_do(c_t.sem, t_t.sem)))
+         : co_error<State,Err,Typing>(`Error: the body of a loop should be of type unit, instead it has type ${JSON.stringify(t_t.type)}`)
+         ))
 }
 
 export let semicolon = function(p:Stmt, q:Stmt) : Stmt {

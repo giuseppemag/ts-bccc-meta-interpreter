@@ -1,15 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
-var memory_1 = require("./Python/memory");
-var expressions_1 = require("./Python/expressions");
-var basic_statements_1 = require("./Python/basic_statements");
-var functions_1 = require("./Python/functions");
-var classes_1 = require("./Python/classes");
 var source_range_1 = require("./source_range");
+var Py = require("./Python/python");
+var CSharp = require("./CSharpTypeChecker/csharp");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function () {
@@ -18,98 +14,100 @@ var ImpLanguageWithSuspend;
             s; }))).then(CCC.apply_pair()).then(CCC.inl().plus(f.plus(CCC.inr())));
     };
     ImpLanguageWithSuspend.test_imp = function () {
-        var loop_test = memory_1.set_v("s", memory_1.str("")).then(function (_) {
-            return memory_1.set_v("i", memory_1.int(20)).then(function (_) {
-                return basic_statements_1.while_do(expressions_1.int_geq(memory_1.get_v("i"), expressions_1.int_expr(0)), memory_1.set_v_expr("i", expressions_1.int_minus(memory_1.get_v("i"), expressions_1.int_expr(1))).then(function (_) {
-                    return memory_1.set_v_expr("s", expressions_1.string_plus(memory_1.get_v("s"), expressions_1.str_expr("*"))).then(function (_) {
-                        return basic_statements_1.if_then_else(expressions_1.int_eq(expressions_1.int_mod(memory_1.get_v("i"), expressions_1.int_expr(5)), expressions_1.int_expr(0)), basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))(memory_1.unt), basic_statements_1.done);
+        var loop_test_compiler = CSharp.semicolon(CSharp.decl_v("s", CSharp.string_type), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("s", CSharp.str("")), CSharp.semicolon(CSharp.set_v("i", CSharp.int(20)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.while_do(CSharp.gt(CSharp.get_v("i"), CSharp.int(0)), CSharp.semicolon(CSharp.set_v("i", CSharp.minus(CSharp.get_v("i"), CSharp.int(1))), CSharp.semicolon(CSharp.set_v("s", CSharp.plus(CSharp.get_v("s"), CSharp.str("*"))), 
+        // CSharp.breakpoint(mk_range(0,0,10,10))
+        CSharp.done)))))))));
+        var loop_test = Py.set_v("s", Py.str("")).then(function (_) {
+            return Py.set_v("i", Py.int(20)).then(function (_) {
+                return Py.while_do(Py.int_geq(Py.get_v("i"), Py.int_expr(0)), Py.set_v_expr("i", Py.int_minus(Py.get_v("i"), Py.int_expr(1))).then(function (_) {
+                    return Py.set_v_expr("s", Py.string_plus(Py.get_v("s"), Py.str_expr("*"))).then(function (_) {
+                        return Py.if_then_else(Py.int_eq(Py.int_mod(Py.get_v("i"), Py.int_expr(5)), Py.int_expr(0)), Py.dbg(source_range_1.mk_range(9, 0, 10, 0))(Py.unt), Py.done);
                     });
                 }));
             });
         });
-        var arr_test = memory_1.set_v_expr("a", memory_1.new_arr(10)).then(function (_) {
-            return memory_1.set_v("i", memory_1.int(0)).then(function (_) {
-                return basic_statements_1.while_do(expressions_1.int_lt(memory_1.get_v("i"), memory_1.get_arr_len_expr(memory_1.get_v("a"))), // get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
-                memory_1.get_v("i").then(function (i_val) { return i_val.k != "i" ? memory_1.runtime_error(i_val.v + " is not a number") :
-                    memory_1.set_arr_el_expr(memory_1.get_v("a"), memory_1.get_v("i"), expressions_1.int_times(memory_1.get_v("i"), expressions_1.int_expr(2))).then(function (_) {
-                        return memory_1.set_v_expr("i", expressions_1.int_plus(memory_1.get_v("i"), expressions_1.int_expr(1))).then(function (_) {
-                            return basic_statements_1.dbg(source_range_1.mk_range(9, 0, 10, 0))(memory_1.unt);
-                        });
-                    }); }));
-            });
-        });
-        var lambda_test = memory_1.set_v("i", memory_1.int(10)).then(function (_) {
-            return functions_1.call_lambda({ fst: basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) { return expressions_1.int_expr(1); }), snd: ["i"] }, [expressions_1.int_expr(5)]).then(function (res) {
-                return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({});
-            });
-        });
-        var fun_test = functions_1.def_fun("f", basic_statements_1.dbg(source_range_1.mk_range(1, 0, 2, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(1)).then(basic_statements_1.dbg(source_range_1.mk_range(2, 0, 3, 0))); }), []).then(function (_) {
-            return functions_1.def_fun("g", basic_statements_1.dbg(source_range_1.mk_range(3, 0, 4, 0))({}).then(function (_) { return functions_1.ret(expressions_1.int_expr(2)).then(basic_statements_1.dbg(source_range_1.mk_range(4, 0, 5, 0))); }), []).then(function (_) {
-                return functions_1.call_by_name("g", []).then(function (v) {
-                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) {
-                        return memory_1.set_v("i", v);
-                    });
-                });
-            });
-        });
-        var vector2 = {
-            base: ts_bccc_1.apply(ts_bccc_1.inl(), {
-                base: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
-                methods: Immutable.Map([
-                    ["to_string",
-                        { fst: memory_1.get_v("this").then(function (this_addr) {
-                                return this_addr.k != "ref" ? memory_1.runtime_error("\"this\" is not a reference when calling to_string") :
-                                    classes_1.field_get("x", this_addr).then(function (x_val) {
-                                        return x_val.k != "i" ? memory_1.runtime_error(x_val.v + " is not a number") :
-                                            classes_1.field_get("y", this_addr).then(function (y_val) {
-                                                return y_val.k != "i" ? memory_1.runtime_error(y_val.v + " is not a number") :
-                                                    expressions_1.str_expr("(" + x_val.v + ", " + y_val.v + ")");
-                                            });
-                                    });
-                            }),
-                            snd: ["this"] }]
-                ])
-            }),
-            methods: Immutable.Map([
-                ["scale",
-                    { fst: classes_1.field_set_expr("x", expressions_1.int_times(classes_1.field_get_expr("x", memory_1.get_v("this")), memory_1.get_v("k")), memory_1.get_v("this")).then(function (_) {
-                            return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))(memory_1.unt).then(function (_) {
-                                return classes_1.field_set_expr("y", expressions_1.int_times(classes_1.field_get_expr("y", memory_1.get_v("this")), memory_1.get_v("k")), memory_1.get_v("this")).then(function (_) {
-                                    return basic_statements_1.dbg(source_range_1.mk_range(6, 0, 7, 0))(memory_1.unt);
-                                });
-                            });
-                        }),
-                        snd: ["k", "this"] }],
-                ["constructor",
-                    { fst: classes_1.field_set_expr("x", memory_1.get_v("x"), memory_1.get_v("this")).then(function (_) {
-                            return classes_1.field_set_expr("y", memory_1.get_v("y"), memory_1.get_v("this")).then(function (_) {
-                                return expressions_1.unit_expr();
-                            });
-                        }),
-                        snd: ["x", "y", "this"] }]
-            ])
-        };
-        var class_test = classes_1.declare_class("Vector2", vector2).then(function (_) {
-            return classes_1.call_cons("Vector2", [expressions_1.int_expr(10), expressions_1.int_expr(20)]).then(function (v2) {
-                return memory_1.set_v("v2", v2).then(function (_) {
-                    return classes_1.call_method_expr("scale", memory_1.get_v("v2"), [expressions_1.int_expr(2)]).then(function (_) {
-                        return memory_1.set_v_expr("v2_s", classes_1.call_method_expr("to_string", memory_1.get_v("v2"), []));
-                    });
-                });
-            });
-        });
+        // let arr_test =
+        //   set_v_expr("a", new_arr(10)).then(_ =>
+        //   set_v("i", int(0)).then(_ =>
+        //   while_do(int_lt(get_v("i"), get_arr_len_expr(get_v("a")))  , // get_v("i").then(i_val => bool_expr(i_val.v < a_len.v)),
+        //     get_v("i").then(i_val => i_val.k != "i" ? runtime_error(`${i_val.v} is not a number`) :
+        //     set_arr_el_expr(get_v("a"), get_v("i"), int_times(get_v("i"), int_expr(2))).then(_ =>
+        //     set_v_expr("i", int_plus(get_v("i"), int_expr(1))).then(_ =>
+        //     dbg(mk_range(9,0,10,0))(unt)
+        //     ))))))
+        // let lambda_test =
+        //   set_v("i", int(10)).then(_ =>
+        //   call_lambda(
+        //     { fst: dbg(mk_range(6,0,7,0))({}).then(_ => int_expr(1)), snd:["i"] },
+        //     [int_expr(5)]).then(res =>
+        //       dbg(mk_range(6,0,7,0))({})
+        //   ))
+        // let fun_test =
+        //   def_fun("f", dbg(mk_range(1,0,2,0))({}).then(_ => ret(int_expr(1)).then(dbg(mk_range(2,0,3,0)))), []).then(_ =>
+        //   def_fun("g", dbg(mk_range(3,0,4,0))({}).then(_ => ret(int_expr(2)).then(dbg(mk_range(4,0,5,0)))), []).then(_ =>
+        //   call_by_name("g", []).then(v =>
+        //   dbg(mk_range(6,0,7,0))({}).then(_ =>
+        //   set_v("i", v)
+        //   ))))
+        // let vector2:Interface =
+        //   {
+        //     base:apply(inl<Interface, Unit>(),
+        //       {
+        //         base:apply(inr<Interface, Unit>(), {}),
+        //         methods:
+        //           Immutable.Map<Name, Lambda>([
+        //             [ "to_string",
+        //               { fst:get_v("this").then(this_addr =>
+        //                     this_addr.k != "ref" ? runtime_error(`"this" is not a reference when calling to_string`) :
+        //                     field_get("x", this_addr).then(x_val =>
+        //                     x_val.k != "i" ? runtime_error(`${x_val.v} is not a number`) :
+        //                     field_get("y", this_addr).then(y_val =>
+        //                     y_val.k != "i" ? runtime_error(`${y_val.v} is not a number`) :
+        //                     str_expr(`(${x_val.v}, ${y_val.v})`)
+        //                     ))),
+        //                 snd:["this"] } ]
+        //           ])
+        //       }
+        //     ),
+        //     methods:
+        //       Immutable.Map<Name, Lambda>([
+        //         [ "scale",
+        //           { fst:field_set_expr("x", int_times(field_get_expr("x", get_v("this")), get_v("k")), get_v("this")).then(_ =>
+        //                 dbg(mk_range(6,0,7,0))(unt).then(_ =>
+        //                 field_set_expr("y", int_times(field_get_expr("y", get_v("this")), get_v("k")), get_v("this")).then(_ =>
+        //                 dbg(mk_range(6,0,7,0))(unt)
+        //                 ))),
+        //             snd:["k", "this"] } ],
+        //         [ "constructor",
+        //           { fst:field_set_expr("x", get_v("x"), get_v("this")).then(_ =>
+        //                 field_set_expr("y", get_v("y"), get_v("this")).then(_ =>
+        //                 unit_expr()
+        //                 )),
+        //             snd:["x", "y", "this"] }]
+        //       ])
+        //   }
+        // let class_test =
+        //   declare_class("Vector2", vector2).then(_ =>
+        //   call_cons("Vector2", [int_expr(10), int_expr(20)]).then(v2 =>
+        //   set_v("v2", v2).then(_ =>
+        //   call_method_expr("scale", get_v("v2"), [int_expr(2)]).then(_ =>
+        //   set_v_expr("v2_s", call_method_expr("to_string", get_v("v2"), []))
+        //   ))))
         var hrstart = process.hrtime();
-        var p = class_test;
-        var res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(memory_1.empty_memory))).then(run_to_end()), {});
-        var hrdiff = process.hrtime(hrstart);
-        var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
-        console.log("Timer: " + time_in_ns / 1000000 + "ms\n Result: ", JSON.stringify(res));
+        var p = loop_test_compiler;
+        var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
+        if (compiler_res.kind == "left") {
+            var hrdiff = process.hrtime(hrstart);
+            var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
+            console.log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
+        }
+        else {
+            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
+            var hrdiff = process.hrtime(hrstart);
+            var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
+            console.log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
+            console.log("Runtime result: ", JSON.stringify(runtime_res));
+        }
     };
 })(ImpLanguageWithSuspend || (ImpLanguageWithSuspend = {}));
 ImpLanguageWithSuspend.test_imp();
-// let incr = CCC.fun<number,number>(x => x + 1)
-// let double = CCC.fun<number,number>(x => x * 2)
-// console.log(CCC.apply(incr.then(double), 5))
-// console.log(CCC.apply(incr.map_times(double), CCC.mk_pair<number,number>(5)(2)))
-// console.log(CCC.apply(incr.map_plus(double), CCC.inl<number,number>().f(5)))
-// console.log(CCC.apply(incr.plus(double), CCC.inr<number,number>().f(4)))
