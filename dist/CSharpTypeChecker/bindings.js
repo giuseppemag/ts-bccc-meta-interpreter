@@ -248,7 +248,7 @@ exports.while_do = function (c, b) {
 exports.semicolon = function (p, q) {
     return p.then(function (p_t) {
         return q.then(function (q_t) {
-            return ts_bccc_2.co_unit(mk_typing(exports.unit_type, p_t.sem.then(function (_) { return q_t.sem; })));
+            return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (_) { return q_t.sem; })));
         });
     });
 };

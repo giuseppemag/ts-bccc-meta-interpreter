@@ -265,7 +265,6 @@ export let while_do = function(c:Stmt, b:Stmt) : Stmt {
 export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
   return p.then(p_t =>
          q.then(q_t =>
-         co_unit(mk_typing(unit_type,
-            p_t.sem.then(_ => q_t.sem))
+         co_unit(mk_typing(q_t.type, p_t.sem.then(_ => q_t.sem))
          )))
 }

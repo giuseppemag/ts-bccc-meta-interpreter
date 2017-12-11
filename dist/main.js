@@ -14,18 +14,9 @@ var ImpLanguageWithSuspend;
             s; }))).then(CCC.apply_pair()).then(CCC.inl().plus(f.plus(CCC.inr())));
     };
     ImpLanguageWithSuspend.test_imp = function () {
-        var loop_test_compiler = CSharp.semicolon(CSharp.decl_v("s", CSharp.string_type), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("s", CSharp.str("")), CSharp.semicolon(CSharp.set_v("i", CSharp.int(20)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.while_do(CSharp.gt(CSharp.get_v("i"), CSharp.int(0)), CSharp.semicolon(CSharp.set_v("i", CSharp.minus(CSharp.get_v("i"), CSharp.int(1))), CSharp.semicolon(CSharp.set_v("s", CSharp.plus(CSharp.get_v("s"), CSharp.str("*"))), 
-        // CSharp.breakpoint(mk_range(0,0,10,10))
-        CSharp.done)))))))));
-        var loop_test = Py.set_v("s", Py.str("")).then(function (_) {
-            return Py.set_v("i", Py.int(20)).then(function (_) {
-                return Py.while_do(Py.int_geq(Py.get_v("i"), Py.int_expr(0)), Py.set_v_expr("i", Py.int_minus(Py.get_v("i"), Py.int_expr(1))).then(function (_) {
-                    return Py.set_v_expr("s", Py.string_plus(Py.get_v("s"), Py.str_expr("*"))).then(function (_) {
-                        return Py.if_then_else(Py.int_eq(Py.int_mod(Py.get_v("i"), Py.int_expr(5)), Py.int_expr(0)), Py.dbg(source_range_1.mk_range(9, 0, 10, 0))(Py.unt), Py.done);
-                    });
-                }));
-            });
-        });
+        var loop_test_compiler = CSharp.semicolon(CSharp.decl_v("s", CSharp.string_type), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("s", CSharp.str("")), CSharp.semicolon(CSharp.set_v("i", CSharp.int(20)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10)), CSharp.while_do(CSharp.gt(CSharp.get_v("i"), CSharp.int(0)), CSharp.semicolon(CSharp.set_v("i", CSharp.minus(CSharp.get_v("i"), CSharp.int(1))), CSharp.semicolon(CSharp.set_v("s", CSharp.plus(CSharp.get_v("s"), CSharp.str("*"))), CSharp.breakpoint(source_range_1.mk_range(0, 0, 10, 10))
+        //CSharp.done
+        )))))))));
         // let arr_test =
         //   set_v_expr("a", new_arr(10)).then(_ =>
         //   set_v("i", int(0)).then(_ =>
@@ -35,13 +26,11 @@ var ImpLanguageWithSuspend;
         //     set_v_expr("i", int_plus(get_v("i"), int_expr(1))).then(_ =>
         //     dbg(mk_range(9,0,10,0))(unt)
         //     ))))))
-        // let lambda_test =
-        //   set_v("i", int(10)).then(_ =>
-        //   call_lambda(
-        //     { fst: dbg(mk_range(6,0,7,0))({}).then(_ => int_expr(1)), snd:["i"] },
-        //     [int_expr(5)]).then(res =>
-        //       dbg(mk_range(6,0,7,0))({})
-        //   ))
+        var lambda_test = Py.set_v("i", Py.int(10)).then(function (_) {
+            return Py.call_lambda({ body: Py.dbg(source_range_1.mk_range(6, 0, 7, 0))({}).then(function (_) { return Py.ret(Py.int_plus(Py.get_v("i"), Py.int_expr(1))).then(Py.dbg(source_range_1.mk_range(2, 0, 3, 0))); }), parameters: ["i"], closure: Py.empty_scope }, [Py.int_expr(5)]).then(function (res) {
+                return Py.dbg(source_range_1.mk_range(6, 0, 7, 0))(Py.unt);
+            });
+        });
         // let fun_test =
         //   def_fun("f", dbg(mk_range(1,0,2,0))({}).then(_ => ret(int_expr(1)).then(dbg(mk_range(2,0,3,0)))), []).then(_ =>
         //   def_fun("g", dbg(mk_range(3,0,4,0))({}).then(_ => ret(int_expr(2)).then(dbg(mk_range(4,0,5,0)))), []).then(_ =>

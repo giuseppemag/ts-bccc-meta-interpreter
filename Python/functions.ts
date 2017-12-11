@@ -11,9 +11,10 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          push_scope,
          pop_scope} from "./memory"
 import { done, dbg } from "./basic_statements"
+import { empty_scope, Scope } from "./python";
 
-export let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>) : Stmt {
-  return set_fun_def(n, apply(constant<Unit, Expr<Val>>(body).times(constant<Unit, Array<Name>>(args)), {}))
+export let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>, closure:Scope) : Stmt {
+  return set_fun_def(n, { body:body, parameters:args, closure:closure})
 }
 
 export let ret = function (e: Expr<Val>): Expr<Val> {
@@ -25,12 +26,12 @@ export let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> 
 }
 
 export let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : Expr<Val> {
-  let body = lambda.fst
-  if (arg_values.length != lambda.snd.length) return runtime_error(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.snd.length}, received ${arg_values.length}.`)
-  let set_args = lambda.snd.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<Stmt>((sets, arg_expr) =>
+  let body = lambda.body
+  if (arg_values.length != lambda.parameters.length) return runtime_error(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.parameters.length}, received ${arg_values.length}.`)
+  let set_args = lambda.parameters.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<Stmt>((sets, arg_expr) =>
     set_v_expr(arg_expr.fst, arg_expr.snd).then(_ => sets),
     done)
-  let init = mk_coroutine(push_scope.then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
+  let init = mk_coroutine(apply(push_scope, lambda.closure).then(unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>()))))
 
   let pop_success = (unit<Mem>().times(id<Mem>())).then(Co.value<Mem, Err, Unit>().then(Co.result<Mem, Err, Unit>().then(Co.no_error<Mem, Err, Unit>())))
   let pop_failure = constant<Unit,Err>(`Internal error: cannot pop an empty stack.`).then(Co.error<Mem,Err,Unit>())

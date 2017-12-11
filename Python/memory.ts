@@ -1,5 +1,5 @@
 import * as Immutable from "immutable"
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, fun2 } from "ts-bccc"
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
@@ -8,7 +8,7 @@ import { SourceRange, mk_range } from "../source_range"
 export let runtime_error = function(e:Err) : Expr<Val> { return co_error<Mem, Err, Val>(e) }
 export type Bool = boolean
 
-export interface Lambda extends Prod<Expr<Val>, Array<Name>> {}
+export interface Lambda { body:Expr<Val>, parameters:Array<Name>, closure: Scope }
 export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, unt])), length:len })
@@ -24,7 +24,7 @@ export let int : (_:number) => Val = v => ({ v:Math.floor(v), k:"i" })
 export let float : (_:number) => Val = v => ({ v:v, k:"f" })
 export let arr : (_:ArrayVal) => Val = v => ({ v:v, k:"arr" })
 export let bool : (_:boolean) => Val = v => ({ v:v, k:"b" })
-export let lambda : (_:Prod<Expr<Val>, Array<Name>>) => Val = l => ({ v:l, k:"lambda" })
+export let lambda : (_:Lambda) => Val = l => ({ v:l, k:"lambda" })
 export let obj : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let ref : (_:Name) => Val = r => ({ v:r, k:"ref" })
 
@@ -59,7 +59,7 @@ export let heap_alloc: Fun<Prod<Val,Mem>, Prod<Val, Mem>> = fun(x => {
   let new_ref = `ref_${x.snd.heap.count()}`
   return ({ fst:ref(new_ref), snd:{...x.snd, heap:x.snd.heap.set(new_ref, x.fst) }})
 })
-export let push_scope: Fun<Mem, Mem> = fun(x => ({...x, stack:x.stack.set(x.stack.count(), empty_scope)}))
+export let push_scope = curry(fun2<Scope,Mem,Mem>((s,m) => ({...m, stack:m.stack.set(m.stack.count(), s)})))
 export let pop_scope: Fun<Mem, Sum<Unit,Mem>> = fun(x =>
   !x.stack.isEmpty() ?
     apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)}))

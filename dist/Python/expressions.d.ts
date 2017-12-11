@@ -1,6 +1,6 @@
-import { Unit, Fun, Prod, Sum } from "ts-bccc";
+import { Unit, Fun, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
-import { Expr, Mem, Val, Bool, ArrayVal, Scope } from "./memory";
+import { Expr, Mem, Val, Lambda, Bool, ArrayVal, Scope } from "./memory";
 export interface BoolCat extends Fun<Unit, Sum<Unit, Unit>> {
 }
 export declare let FalseCat: BoolCat;
@@ -12,7 +12,7 @@ export declare let float_expr: (n: number) => Coroutine<Mem, string, Val>;
 export declare let int_expr: (n: number) => Coroutine<Mem, string, Val>;
 export declare let arr_expr: (a: ArrayVal) => Coroutine<Mem, string, Val>;
 export declare let bool_expr: (s: boolean) => Coroutine<Mem, string, Val>;
-export declare let lambda_expr: (l: Prod<Expr<Val>, string[]>) => Coroutine<Mem, string, Val>;
+export declare let lambda_expr: (l: Lambda) => Coroutine<Mem, string, Val>;
 export declare let obj_expr: (o: Scope) => Coroutine<Mem, string, Val>;
 export declare let ref_expr: (r: string) => Coroutine<Mem, string, Val>;
 export declare let val_expr: (v: Val) => Coroutine<Mem, string, Val>;

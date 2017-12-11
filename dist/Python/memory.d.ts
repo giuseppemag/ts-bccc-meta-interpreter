@@ -4,7 +4,10 @@ import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 export declare let runtime_error: (e: string) => Expr<Val>;
 export declare type Bool = boolean;
-export interface Lambda extends Prod<Expr<Val>, Array<Name>> {
+export interface Lambda {
+    body: Expr<Val>;
+    parameters: Array<Name>;
+    closure: Scope;
 }
 export interface HeapRef {
     v: string;
@@ -54,7 +57,7 @@ export declare let int: (_: number) => Val;
 export declare let float: (_: number) => Val;
 export declare let arr: (_: ArrayVal) => Val;
 export declare let bool: (_: boolean) => Val;
-export declare let lambda: (_: Prod<Expr<Val>, Array<Name>>) => Val;
+export declare let lambda: (_: Lambda) => Val;
 export declare let obj: (_: Scope) => Val;
 export declare let ref: (_: Name) => Val;
 export declare type Err = string;
@@ -76,7 +79,7 @@ export declare let store_fun_def: Fun<Prod<Prod<Name, Lambda>, Mem>, Mem>;
 export declare let load_heap: Fun<Prod<Name, Mem>, Sum<Unit, Val>>;
 export declare let store_heap: Fun<Prod<Prod<Name, Val>, Mem>, Mem>;
 export declare let heap_alloc: Fun<Prod<Val, Mem>, Prod<Val, Mem>>;
-export declare let push_scope: Fun<Mem, Mem>;
+export declare let push_scope: Fun<Scope, Fun<Mem, Mem>>;
 export declare let pop_scope: Fun<Mem, Sum<Unit, Mem>>;
 export interface Expr<A> extends Coroutine<Mem, Err, A> {
 }

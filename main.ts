@@ -32,22 +32,10 @@ export let test_imp = function () {
       CSharp.while_do(CSharp.gt(CSharp.get_v("i"), CSharp.int(0)),
         CSharp.semicolon(CSharp.set_v("i", CSharp.minus(CSharp.get_v("i"), CSharp.int(1))),
         CSharp.semicolon(CSharp.set_v("s", CSharp.plus(CSharp.get_v("s"), CSharp.str("*"))),
-        // CSharp.breakpoint(mk_range(0,0,10,10))
-        CSharp.done
+        CSharp.breakpoint(mk_range(0,0,10,10))
+        //CSharp.done
         ))
       )))))))
-
-    let loop_test =
-      Py.set_v("s", Py.str("")).then(_ =>
-      Py.set_v("i", Py.int(20)).then(_ =>
-      Py.while_do(Py.int_geq(Py.get_v("i"), Py.int_expr(0)),
-        Py.set_v_expr("i", Py.int_minus(Py.get_v("i"), Py.int_expr(1))).then(_ =>
-        Py.set_v_expr("s", Py.string_plus(Py.get_v("s"), Py.str_expr("*"))).then(_ =>
-        Py.if_then_else(Py.int_eq(Py.int_mod(Py.get_v("i"), Py.int_expr(5)), Py.int_expr(0)),
-          Py.dbg(mk_range(9,0,10,0))(Py.unt),
-          Py.done)
-      )))
-    ))
 
     // let arr_test =
     //   set_v_expr("a", new_arr(10)).then(_ =>
@@ -59,13 +47,13 @@ export let test_imp = function () {
     //     dbg(mk_range(9,0,10,0))(unt)
     //     ))))))
 
-    // let lambda_test =
-    //   set_v("i", int(10)).then(_ =>
-    //   call_lambda(
-    //     { fst: dbg(mk_range(6,0,7,0))({}).then(_ => int_expr(1)), snd:["i"] },
-    //     [int_expr(5)]).then(res =>
-    //       dbg(mk_range(6,0,7,0))({})
-    //   ))
+    let lambda_test =
+      Py.set_v("i", Py.int(10)).then(_ =>
+      Py.call_lambda(
+        { body: Py.dbg(mk_range(6,0,7,0))({}).then(_ => Py.ret(Py.int_plus(Py.get_v("i"), Py.int_expr(1))).then(Py.dbg(mk_range(2,0,3,0)))), parameters:["i"], closure:Py.empty_scope },
+        [Py.int_expr(5)]).then(res =>
+          Py.dbg(mk_range(6,0,7,0))(Py.unt)
+      ))
 
     // let fun_test =
     //   def_fun("f", dbg(mk_range(1,0,2,0))({}).then(_ => ret(int_expr(1)).then(dbg(mk_range(2,0,3,0)))), []).then(_ =>

@@ -60,7 +60,7 @@ exports.heap_alloc = ts_bccc_1.fun(function (x) {
     var new_ref = "ref_" + x.snd.heap.count();
     return ({ fst: exports.ref(new_ref), snd: __assign({}, x.snd, { heap: x.snd.heap.set(new_ref, x.fst) }) });
 });
-exports.push_scope = ts_bccc_1.fun(function (x) { return (__assign({}, x, { stack: x.stack.set(x.stack.count(), exports.empty_scope) })); });
+exports.push_scope = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) { return (__assign({}, m, { stack: m.stack.set(m.stack.count(), s) })); }));
 exports.pop_scope = ts_bccc_1.fun(function (x) {
     return !x.stack.isEmpty() ?
         ts_bccc_1.apply(ts_bccc_1.inr(), (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })))

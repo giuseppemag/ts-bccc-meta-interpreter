@@ -2,10 +2,14 @@
   [ ] File management
     [ ] Split into multiple files
   [ ] Functions
+
+    l -> body,params,closure   args,b => args_t    closure,b => closure_t  body, b + params + closure -> body_t
+    -------------------------------------------------------------------------------------------------------------
+    call(l, args), b -> body_t.type, call(body_t.sem, closure_t.map(.sem), args_t.map(.sem))
+
     [ ] Lambda's
     [ ] Function Definition
       [ ] Closure definition
-      [ ] Closure semantics
     [ ] Function invocation
   [ ] Classes
     [ ] Definition
@@ -24,8 +28,6 @@
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
 
-[ ] Advanced
-  [ ] closures (closure is extra scope passed to lambda upon call, and stored with lambda in state; it goes in the state *before* the parameters)
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
