@@ -1,12 +1,12 @@
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
-  [ ] Functions
+  [/] Functions
     [/] Lambda's
     [/] Closure definition
     [/] Lambda invocation
-    [ ] Function Definition
-    [ ] Function invocation
+    [/] Function Definition
+    [/] Function invocation
   [ ] Classes
     [ ] Definition
     [ ] Inheritance
@@ -23,7 +23,7 @@
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
-    [ ] lambda arguments
+    [ ] lambda arguments in lambda type-checking errors
 
 
 [ ] Performance optimisations

@@ -18,6 +18,8 @@ exports.int_type = { kind: "int" };
 exports.string_type = { kind: "string" };
 exports.bool_type = { kind: "bool" };
 exports.float_type = { kind: "float" };
+exports.fun_type = function (i, o) { return ({ kind: "fun", in: i, out: o }); };
+exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 var mk_typing = function (t, s) { return ({ type: t, sem: s }); };
 var mk_typing_cat = ts_bccc_1.fun2(mk_typing);
 exports.empty_state = { highlighting: { start: { row: 0, column: 0 }, end: { row: 0, column: 0 } }, bindings: Immutable.Map() };
@@ -31,6 +33,7 @@ exports.store = ts_bccc_1.fun(function (x) {
 });
 var type_equals = function (t1, t2) {
     return (t1.kind == "fun" && t2.kind == "fun" && type_equals(t1.in, t2.in) && type_equals(t1.out, t2.out))
+        || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every(function (t1_arg, i) { return type_equals(t1_arg, t2.args[i]); }))
         || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg, t2.arg))
         || (t1.kind == "obj" && t2.kind == "obj" &&
             !t1.inner.some(function (v1, k1) { return v1 == undefined || k1 == undefined || !t2.inner.has(k1) || !type_equals(t2.inner.get(k1), v1); }) &&
@@ -250,5 +253,43 @@ exports.semicolon = function (p, q) {
         return q.then(function (q_t) {
             return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (_) { return q_t.sem; })));
         });
+    });
+};
+exports.mk_lambda = function (body, parameters, closure_parameters) {
+    var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(exports.decl_v(par.name, par.type), acc); }, closure_parameters.reduce(function (acc, cp) { return exports.semicolon(exports.get_v(cp).then(function (cp_t) { return exports.decl_v(cp, cp_t.type); }), acc); }, exports.done));
+    return Co.co_get_state().then(function (initial_bindings) {
+        return set_bindings.then(function (_) {
+            return body.then(function (body_t) {
+                return Co.co_set_state(initial_bindings).then(function (_) {
+                    return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters)));
+                });
+            });
+        });
+    });
+};
+var def_fun = function (n, body, parameters, closure_parameters) {
+    // let f = mk_lambda(body, parameters, closure_parameters).then(l_t => set_v(n, l_t))
+    return undefined;
+};
+exports.call_lambda = function (lambda, arg_values) {
+    var check_arguments = arg_values.reduce(function (args, arg) {
+        return arg.then(function (arg_t) {
+            return args.then(function (args_t) {
+                return ts_bccc_2.co_unit(args_t.push(arg_t));
+            });
+        });
+    }, ts_bccc_2.co_unit(Immutable.List()));
+    return lambda.then(function (lambda_t) {
+        return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+            check_arguments.then(function (args_t) {
+                return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+                    arg_values.length != lambda_t.type.in.args.length ||
+                    args_t.some(function (arg_t, i) { return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                        !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
+                    ts_bccc_2.co_error("Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type))
+                    :
+                        ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+            })
+            : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type));
     });
 };

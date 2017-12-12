@@ -273,15 +273,19 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
 }
 
 export type Parameter = { name:Name, type:Type }
-export let lambda = function(body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Parameter>) : Stmt {
+export let mk_lambda = function(body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type), acc),
-                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(decl_v(cp.name, cp.type), acc), done))
+                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(get_v(cp).then(cp_t => decl_v(cp, cp_t.type)), acc), done))
   return  Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings.then(_ =>
           body.then(body_t =>
           Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-          co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters.map(p => p.name))))
+          co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters)))
           ))))
+}
+
+export let def_fun = function(n:Name, body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
+  return set_v(n, mk_lambda(body, parameters, closure_parameters))
 }
 
 export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
@@ -305,4 +309,9 @@ export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
       )
     : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
     )
+}
+
+
+export let call_by_name = function(f_n:Name, args:Array<Stmt>) : Stmt {
+  return call_lambda(get_v(f_n), args)
 }

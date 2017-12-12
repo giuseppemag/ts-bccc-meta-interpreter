@@ -25,12 +25,17 @@ export declare type Type = {
 } | {
     kind: "arr";
     arg: Type;
+} | {
+    kind: "tuple";
+    args: Array<Type>;
 };
 export declare let unit_type: Type;
 export declare let int_type: Type;
 export declare let string_type: Type;
 export declare let bool_type: Type;
 export declare let float_type: Type;
+export declare let fun_type: (i: Type, o: Type) => Type;
+export declare let tuple_type: (args: Array<Type>) => Type;
 export interface Bindings extends Immutable.Map<Name, Type> {
 }
 export interface State {
@@ -72,3 +77,9 @@ export declare let done: Stmt;
 export declare let if_then_else: (c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (c: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (p: Stmt, q: Stmt) => Stmt;
+export declare type Parameter = {
+    name: Name;
+    type: Type;
+};
+export declare let mk_lambda: (body: Stmt, parameters: Parameter[], closure_parameters: string[]) => Stmt;
+export declare let call_lambda: (lambda: Stmt, arg_values: Stmt[]) => Stmt;

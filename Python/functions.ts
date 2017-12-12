@@ -13,8 +13,20 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
 import { done, dbg } from "./basic_statements"
 import { empty_scope, Scope, lambda_expr, get_v } from "./python";
 
-export let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>, closure:Scope) : Stmt {
-  return set_fun_def(n, { body:body, parameters:args, closure:closure})
+let build_closure = (closure_parameters:Array<Name>) => function(i:number, closure:Scope) : Expr<Scope> {
+  if (i >= closure_parameters.length) return co_unit(closure)
+  else
+    return get_v(closure_parameters[i]).then(c_val =>
+           build_closure(closure_parameters)(i+1, closure.set(closure_parameters[i], c_val))
+           )
+}
+
+export let mk_lambda = function(body:Expr<Val>, parameters:Array<Name>, closure_parameters:Array<Name>) : Expr<Val> {
+  return build_closure(closure_parameters)(0, empty_scope).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure }))
+}
+
+export let def_fun = function(n:Name, body:Expr<Val>, parameters:Array<Name>, closure_parameters:Array<Name>) : Stmt {
+  return build_closure(closure_parameters)(0, empty_scope).then(closure => set_fun_def(n, { body:body, parameters:parameters, closure:closure }))
 }
 
 export let ret = function (e: Expr<Val>): Expr<Val> {
@@ -47,16 +59,4 @@ export let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : 
          body.then(res =>
          cleanup.then(_ =>
          co_unit(res)))))
-}
-
-export let mk_lambda = function(body:Expr<Val>, parameters:Array<Name>, closure_parameters:Array<Name>) : Expr<Val> {
-  let build_closure = function(i:number, closure:Scope) : Expr<Scope> {
-    if (i >= closure_parameters.length) return co_unit(closure)
-    else
-      return get_v(closure_parameters[i]).then(c_val =>
-             build_closure(i+1, closure.set(closure_parameters[i], c_val))
-             )
-  }
-
-  return build_closure(0, empty_scope).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure }))
 }
