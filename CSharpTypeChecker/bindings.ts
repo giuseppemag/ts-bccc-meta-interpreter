@@ -11,12 +11,14 @@ import * as Sem from "../Python/python"
 export type Name = string
 export type Err = string
 export type Type = { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", inner:Bindings }
-                 | { kind:"arr", arg:Type }
+                 | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let string_type : Type = { kind:"string" }
 export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
+export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, out:o })
+export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
 export interface Bindings extends Immutable.Map<Name, Type>  {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
 export interface Typing { type:Type, sem:Sem.Expr<Sem.Val> }
@@ -34,6 +36,7 @@ export let store: Fun<Prod<Prod<string, Type>, State>, State> = fun(x =>
 
 let type_equals = (t1:Type,t2:Type) : boolean =>
   (t1.kind == "fun" && t2.kind == "fun" && type_equals(t1.in,t2.in) && type_equals(t1.out,t2.out))
+  || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i])))
   || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg,t2.arg))
   || (t1.kind == "obj" && t2.kind == "obj" &&
       !t1.inner.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.inner.has(k1) || !type_equals(t2.inner.get(k1), v1)) &&
@@ -267,4 +270,39 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
          q.then(q_t =>
          co_unit(mk_typing(q_t.type, p_t.sem.then(_ => q_t.sem))
          )))
+}
+
+export type Parameter = { name:Name, type:Type }
+export let lambda = function(body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Parameter>) : Stmt {
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type), acc),
+                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(decl_v(cp.name, cp.type), acc), done))
+  return  Co.co_get_state<State,Err>().then(initial_bindings =>
+          set_bindings.then(_ =>
+          body.then(body_t =>
+          Co.co_set_state<State,Err>(initial_bindings).then(_ =>
+          co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters.map(p => p.name))))
+          ))))
+}
+
+export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
+  let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
+    arg.then(arg_t =>
+    args.then(args_t =>
+    co_unit(args_t.push(arg_t))
+    )),
+    co_unit(Immutable.List<Typing>()))
+
+  return lambda.then(lambda_t =>
+    lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+      check_arguments.then(args_t =>
+        lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+        arg_values.length != lambda_t.type.in.args.length ||
+        args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                  !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
+          co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`)
+        :
+          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+      )
+    : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+    )
 }

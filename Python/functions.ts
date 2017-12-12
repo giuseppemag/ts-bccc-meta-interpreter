@@ -11,7 +11,7 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
          push_scope,
          pop_scope} from "./memory"
 import { done, dbg } from "./basic_statements"
-import { empty_scope, Scope } from "./python";
+import { empty_scope, Scope, lambda_expr, get_v } from "./python";
 
 export let def_fun = function(n:Name, body:Expr<Val>, args:Array<Name>, closure:Scope) : Stmt {
   return set_fun_def(n, { body:body, parameters:args, closure:closure})
@@ -23,6 +23,12 @@ export let ret = function (e: Expr<Val>): Expr<Val> {
 
 export let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> {
   return get_fun_def(f_n).then(f => call_lambda(f, args))
+}
+
+export let call_lambda_expr = function(lambda:Expr<Val>, arg_values:Array<Expr<Val>>) : Expr<Val> {
+  return lambda.then(l =>
+         l.k == "lambda" ? call_lambda(l.v, arg_values)
+         : runtime_error("Cannot invoke non-lambda expression."))
 }
 
 export let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : Expr<Val> {
@@ -41,4 +47,16 @@ export let call_lambda = function(lambda:Lambda, arg_values:Array<Expr<Val>>) : 
          body.then(res =>
          cleanup.then(_ =>
          co_unit(res)))))
+}
+
+export let mk_lambda = function(body:Expr<Val>, parameters:Array<Name>, closure_parameters:Array<Name>) : Expr<Val> {
+  let build_closure = function(i:number, closure:Scope) : Expr<Scope> {
+    if (i >= closure_parameters.length) return co_unit(closure)
+    else
+      return get_v(closure_parameters[i]).then(c_val =>
+             build_closure(i+1, closure.set(closure_parameters[i], c_val))
+             )
+  }
+
+  return build_closure(0, empty_scope).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure }))
 }

@@ -2,14 +2,10 @@
   [ ] File management
     [ ] Split into multiple files
   [ ] Functions
-
-    l -> body,params,closure   args,b => args_t    closure,b => closure_t  body, b + params + closure -> body_t
-    -------------------------------------------------------------------------------------------------------------
-    call(l, args), b -> body_t.type, call(body_t.sem, closure_t.map(.sem), args_t.map(.sem))
-
-    [ ] Lambda's
+    [/] Lambda's
+    [/] Closure definition
+    [/] Lambda invocation
     [ ] Function Definition
-      [ ] Closure definition
     [ ] Function invocation
   [ ] Classes
     [ ] Definition
@@ -27,6 +23,7 @@
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
+    [ ] lambda arguments
 
 
 [ ] Performance optimisations
