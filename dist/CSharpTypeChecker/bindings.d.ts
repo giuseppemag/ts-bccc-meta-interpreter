@@ -35,28 +35,34 @@ export declare let string_type: Type;
 export declare let bool_type: Type;
 export declare let float_type: Type;
 export declare let fun_type: (i: Type, o: Type) => Type;
+export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
-export interface Bindings extends Immutable.Map<Name, Type> {
+export declare type TypeInformation = Type & {
+    is_constant: boolean;
+};
+export interface Bindings extends Immutable.Map<Name, TypeInformation> {
 }
 export interface State {
     highlighting: SourceRange;
     bindings: Bindings;
 }
 export interface Typing {
-    type: Type;
+    type: TypeInformation;
     sem: Sem.Expr<Sem.Val>;
 }
 export declare let empty_state: State;
-export declare let load: Fun<Prod<string, State>, Sum<Unit, Type>>;
-export declare let store: Fun<Prod<Prod<string, Type>, State>, State>;
+export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
+export declare let store: Fun<Prod<Prod<string, TypeInformation>, State>, State>;
 export interface Stmt extends Coroutine<State, Err, Typing> {
 }
 export declare let get_v: (v: string) => Stmt;
-export declare let decl_v: (v: string, t: Type) => Stmt;
+export declare let decl_v: (v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
+export declare let decl_const: (c: string, t: Type, e: Stmt) => Stmt;
 export declare let set_v: (v: string, e: Stmt) => Stmt;
 export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
 export declare let gt: (a: Stmt, b: Stmt) => Stmt;
+export declare let lt: (a: Stmt, b: Stmt) => Stmt;
 export declare let plus: (a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (a: Stmt, b: Stmt) => Stmt;
 export declare let div: (a: Stmt, b: Stmt) => Stmt;
@@ -69,17 +75,28 @@ export declare let not: (a: Stmt) => Stmt;
 export declare let length: (a: Stmt) => Stmt;
 export declare let get_index: (a: Stmt, i: Stmt) => Stmt;
 export declare let set_index: (a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let breakpoint: (r: SourceRange) => Stmt;
+export declare let breakpoint: (r: SourceRange) => (_: Stmt) => Stmt;
 export declare let highlight: Fun<Prod<SourceRange, State>, State>;
 export declare let set_highlighting: (r: SourceRange) => Stmt;
-export declare let typechecker_breakpoint: (range: SourceRange) => Stmt;
+export declare let typechecker_breakpoint: (range: SourceRange) => (_: Stmt) => Stmt;
 export declare let done: Stmt;
 export declare let if_then_else: (c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (c: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (p: Stmt, q: Stmt) => Stmt;
-export declare type Parameter = {
+export interface Parameter {
     name: Name;
+    type: Type;
+}
+export declare let mk_param: (name: string, type: Type) => {
+    name: string;
     type: Type;
 };
 export declare let mk_lambda: (body: Stmt, parameters: Parameter[], closure_parameters: string[]) => Stmt;
+export declare let def_fun: (n: string, body: Stmt, parameters: Parameter[], closure_parameters: string[]) => Stmt;
 export declare let call_lambda: (lambda: Stmt, arg_values: Stmt[]) => Stmt;
+export declare let call_by_name: (f_n: string, args: Stmt[]) => Stmt;
+export declare let ret: (p: Stmt) => Stmt;
+export declare let new_array: (type: Type, len: Stmt) => Coroutine<State, string, Typing>;
+export declare let get_arr_len: (a: Stmt) => Coroutine<State, string, Typing>;
+export declare let get_arr_el: (a: Stmt, i: Stmt) => Coroutine<State, string, Typing>;
+export declare let set_arr_el: (a: Stmt, i: Stmt, e: Stmt) => Coroutine<State, string, Typing>;

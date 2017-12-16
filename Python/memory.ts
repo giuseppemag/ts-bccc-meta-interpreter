@@ -99,6 +99,9 @@ export let new_arr = function (len:number): Expr<Val> {
   let heap_alloc_co:Coroutine<Mem,Err,Val> = mk_coroutine(constant<Mem,Val>(arr(init_array_val(len))).times(id<Mem>()).then(heap_alloc).then(Co.value<Mem, Err, Val>().then(Co.result<Mem, Err, Val>().then(Co.no_error<Mem, Err, Val>()))))
   return (heap_alloc_co)
 }
+export let new_arr_ex = function (len:Expr<Val>): Expr<Val> {
+  return len.then(len_v => len_v.k != "i" ? runtime_error(`Cannot create array of length ${len_v.v} as it is not an integer.`) : new_arr(len_v.v))
+}
 export let get_arr_len = function(a_ref:Val) : Expr<Val> {
   return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
          get_heap_v(a_ref.v).then(a_val =>

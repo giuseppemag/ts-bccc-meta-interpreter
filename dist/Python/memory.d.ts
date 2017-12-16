@@ -91,6 +91,7 @@ export declare let set_v: (v: string, val: Val) => Expr<Val>;
 export declare let get_v: (v: string) => Expr<Val>;
 export declare let new_obj: () => Expr<Val>;
 export declare let new_arr: (len: number) => Expr<Val>;
+export declare let new_arr_ex: (len: Expr<Val>) => Expr<Val>;
 export declare let get_arr_len: (a_ref: Val) => Expr<Val>;
 export declare let get_arr_len_expr: (a: Expr<Val>) => Expr<Val>;
 export declare let get_arr_el: (a_ref: Val, i: number) => Expr<Val>;

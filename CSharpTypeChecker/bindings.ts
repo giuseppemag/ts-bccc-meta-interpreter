@@ -1,5 +1,5 @@
 import * as Immutable from "immutable"
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod, fun3 } from "ts-bccc"
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
@@ -18,20 +18,23 @@ export let string_type : Type = { kind:"string" }
 export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
 export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, out:o })
+export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
-export interface Bindings extends Immutable.Map<Name, Type>  {}
+export type TypeInformation = Type & { is_constant:boolean }
+export interface Bindings extends Immutable.Map<Name, TypeInformation>  {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
-export interface Typing { type:Type, sem:Sem.Expr<Sem.Val> }
-let mk_typing = (t:Type,s:Sem.Expr<Sem.Val>) : Typing => ({ type:t, sem:s })
+export interface Typing { type:TypeInformation, sem:Sem.Expr<Sem.Val> }
+let mk_typing = (t:Type,s:Sem.Expr<Sem.Val>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
 let mk_typing_cat = fun2(mk_typing)
+let mk_typing_cat_full = fun2<TypeInformation, Sem.Expr<Sem.Val>, Typing>((t,s) => mk_typing(t,s,t.is_constant))
 
-export let empty_state : State = { highlighting:{ start:{ row:0, column:0 }, end:{ row:0, column:0 } }, bindings:Immutable.Map<Name, Type>() }
+export let empty_state : State = { highlighting:{ start:{ row:0, column:0 }, end:{ row:0, column:0 } }, bindings:Immutable.Map<Name, TypeInformation>() }
 
-export let load: Fun<Prod<string, State>, Sum<Unit,Type>> = fun(x =>
+export let load: Fun<Prod<string, State>, Sum<Unit,TypeInformation>> = fun(x =>
   x.snd.bindings.has(x.fst) ?
-    apply(inr<Unit,Type>(), x.snd.bindings.get(x.fst))
-  : apply(inl<Unit,Type>(), {}))
-export let store: Fun<Prod<Prod<string, Type>, State>, State> = fun(x =>
+    apply(inr<Unit,TypeInformation>(), x.snd.bindings.get(x.fst))
+  : apply(inl<Unit,TypeInformation>(), {}))
+export let store: Fun<Prod<Prod<string, TypeInformation>, State>, State> = fun(x =>
     ({...x.snd, bindings:x.snd.bindings.set(x.fst.fst, x.fst.snd) }))
 
 let type_equals = (t1:Type,t2:Type) : boolean =>
@@ -50,7 +53,7 @@ export interface Stmt extends Coroutine<State, Err, Typing> {}
 export let get_v = function(v:Name) : Stmt {
   let f = load.then(
     constant<Unit,Err>(`Error: variable ${v} does not exist.`).map_plus(
-    (id<Type>().times(constant<Type, Sem.Expr<Sem.Val>>(Sem.get_v(v)))).then(mk_typing_cat)
+    (id<TypeInformation>().times(constant<TypeInformation, Sem.Expr<Sem.Val>>(Sem.get_v(v)))).then(mk_typing_cat_full)
   ))
   let g = snd<Name,State>().times(f).then(distribute_sum_prod())
   let g1 = g.then(
@@ -60,20 +63,35 @@ export let get_v = function(v:Name) : Stmt {
   let h = apply(curry(g1), v)
   return mk_coroutine<State,Err,Typing>(h)
 }
-export let decl_v = function(v:Name, t:Type) : Stmt {
+export let decl_v = function(v:Name, t:Type, is_constant?:boolean) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.done)).times(id())).then(wrap_co)
   let g = curry(f)
-  let args = apply(constant<Unit,Name>(v).times(constant<Unit,Type>(t)), {})
+  let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args))
-
 }
+export let decl_const = function(c:Name, t:Type, e:Stmt) : Stmt {
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.done)).times(id())).then(wrap_co)
+  let g = curry(f)
+  let args = apply(constant<Unit,Name>(c).times(constant<Unit,TypeInformation>({...t, is_constant:true})), {})
+  return mk_coroutine<State,Err,Typing>(apply(g, args)).then(_ =>
+         e.then(e_val =>
+         get_v(c).then(c_val =>
+         // console.log(`Initialising constant ${v} (${JSON.stringify(v_val.type)})`) ||
+         type_equals(e_val.type, c_val.type) ?
+           co_unit(mk_typing(unit_type, Sem.set_v_expr(c, e_val.sem)))
+         : co_error<State,Err,Typing>(`Error: cannot assign ${c} to ${e}: type ${c_val.type} does not match ${e_val.type}`)
+         )))
+}
+
 export let set_v = function(v:Name, e:Stmt) : Stmt {
   return e.then(e_val =>
          get_v(v).then(v_val =>
-         type_equals(e_val.type, v_val.type) ?
+         // console.log(`Assigning ${v} (${JSON.stringify(v_val.type)})`) ||
+         type_equals(e_val.type, v_val.type) && !v_val.type.is_constant ?
            co_unit(mk_typing(unit_type, Sem.set_v_expr(v, e_val.sem)))
-         :
-           co_error<State,Err,Typing>(`Error: cannot assign ${v} to ${e}: type ${v_val.type} does not match ${e_val.type}`)
+         : v_val.type.is_constant ?
+           co_error<State,Err,Typing>(`Error: cannot assign anything to ${v}: it is a constant.`)
+         : co_error<State,Err,Typing>(`Error: cannot assign ${v} to ${e}: type ${v_val.type} does not match ${e_val.type}`)
          ))
 }
 export let str = function(s:string) : Stmt {
@@ -93,7 +111,20 @@ export let gt = function(a:Stmt, b:Stmt) : Stmt {
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_gt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (>)!")
-          : co_error<State,Err,Typing>("Error: cannot sum expressions of different types!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
+export let lt = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_lt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_lt(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (<)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
         ))
 }
 
@@ -228,8 +259,8 @@ export let set_index = function(a:Stmt, i:Stmt, e:Stmt) : Stmt {
 }
 
 // Debugger statements
-export let breakpoint = function(r:SourceRange) : Stmt {
-  return co_unit(mk_typing(unit_type, Sem.dbg(r)(Sem.unt)))
+export let breakpoint = function(r:SourceRange) : (_:Stmt) => Stmt {
+  return p => semicolon(co_unit(mk_typing(unit_type, Sem.dbg(r)(Sem.unt))), p)
 }
 
 export let highlight : Fun<Prod<SourceRange, State>, State> = fun(x => ({...x.snd, highlighting:x.fst }))
@@ -238,8 +269,8 @@ export let set_highlighting = function(r:SourceRange) : Stmt {
     constant<State,Typing>(mk_typing(unit_type,Sem.done)).times(id<State>())).then(Co.value<State, Err, Typing>().then(Co.result<State, Err, Typing>().then(Co.no_error<State, Err, Typing>()))))
 }
 
-export let typechecker_breakpoint = function(range:SourceRange) : Stmt {
-  return semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done))))
+export let typechecker_breakpoint = function(range:SourceRange) : (_:Stmt) => Stmt {
+  return p => semicolon(semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done)))), p)
 }
 
 // Control flow statements
@@ -272,10 +303,13 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
          )))
 }
 
-export type Parameter = { name:Name, type:Type }
+export interface Parameter { name:Name, type:Type }
+export let mk_param = function(name:Name, type:Type) {
+  return { name:name, type:type }
+}
 export let mk_lambda = function(body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
-  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type), acc),
-                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(get_v(cp).then(cp_t => decl_v(cp, cp_t.type)), acc), done))
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type, false), acc),
+                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(get_v(cp).then(cp_t => decl_v(cp, cp_t.type, true)), acc), done))
   return  Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings.then(_ =>
           body.then(body_t =>
@@ -285,7 +319,8 @@ export let mk_lambda = function(body:Stmt, parameters:Array<Parameter>, closure_
 }
 
 export let def_fun = function(n:Name, body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
-  return set_v(n, mk_lambda(body, parameters, closure_parameters))
+  return mk_lambda(body, parameters, closure_parameters).then(l =>
+         decl_const(n, l.type, co_unit(l)))
 }
 
 export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
@@ -311,7 +346,46 @@ export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
     )
 }
 
-
 export let call_by_name = function(f_n:Name, args:Array<Stmt>) : Stmt {
   return call_lambda(get_v(f_n), args)
+}
+
+export let ret = function(p:Stmt) : Stmt {
+  return p.then(p_t =>
+         co_unit(mk_typing(p_t.type, Sem.ret(p_t.sem))
+         ))
+}
+
+export let new_array = function(type:Type, len:Stmt) {
+  return len.then(len_t =>
+         type_equals(len_t.type, int_type) ?
+           co_unit(mk_typing(arr_type(type), Sem.new_arr_ex(len_t.sem)))
+         : co_error<State,Err,Typing>(`Error: argument of array constructor must be of type int`))
+}
+
+export let get_arr_len = function(a:Stmt) {
+  return a.then(a_t =>
+         a_t.type.kind == "arr"  ?
+           co_unit(mk_typing(int_type, Sem.get_arr_len_expr(a_t.sem)))
+         : co_error<State,Err,Typing>(`Error: array length requires an array`)
+        )
+}
+
+export let get_arr_el = function(a:Stmt, i:Stmt) {
+  return a.then(a_t =>
+         i.then(i_t =>
+         a_t.type.kind == "arr" && type_equals(i_t.type, int_type)  ?
+           co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr(a_t.sem, i_t.sem)))
+         : co_error<State,Err,Typing>(`Error: array getter requires an array and an integer as arguments`)
+        ))
+}
+
+export let set_arr_el = function(a:Stmt, i:Stmt, e:Stmt) {
+  return a.then(a_t =>
+         i.then(i_t =>
+         e.then(e_t =>
+         a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
+           co_unit(mk_typing(unit_type, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
+         : co_error<State,Err,Typing>(`Error: array setter requires an array and an integer as arguments`)
+        )))
 }

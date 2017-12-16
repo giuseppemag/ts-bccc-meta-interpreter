@@ -1,21 +1,19 @@
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
-  [/] Functions
-    [/] Lambda's
-    [/] Closure definition
-    [/] Lambda invocation
-    [/] Function Definition
-    [/] Function invocation
   [ ] Classes
     [ ] Definition
-    [ ] Inheritance
-      [ ] Covariance/contravariance in all relevant expressions
     [ ] References
     [ ] Constructor
     [ ] Field lookups
     [ ] Method calling
+
     [ ] Generics
+    [ ] Polymorphism
+      [ ] Inheritance
+      [ ] Covariance/contravariance in function calls and variable assignments
+    [ ] Structs
+    [ ] Tuples
 [ ] IMP PARSER
   [ ] distributive laws applied to monadic combinators such as parallel/concurrent
   [ ] Python
@@ -24,7 +22,7 @@
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] lambda arguments in lambda type-checking errors
-
+  [ ] breakpoint right after return (`ret_break?`)
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`

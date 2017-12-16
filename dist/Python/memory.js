@@ -96,6 +96,9 @@ exports.new_arr = function (len) {
     var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.arr(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
+exports.new_arr_ex = function (len) {
+    return len.then(function (len_v) { return len_v.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.v + " as it is not an integer.") : exports.new_arr(len_v.v); });
+};
 exports.get_arr_len = function (a_ref) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v(a_ref.v).then(function (a_val) {
