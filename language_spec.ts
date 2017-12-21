@@ -1,8 +1,5 @@
-// import * as Immutable from "immutable"
-// import {fun, Prod, apply, curry, id, inl, inr, unit} from "./ccc"
-// import * as CCC from "./ccc"
-// import * as Option from "./option"
-// import * as Lexer from "./lexer"
+import * as Immutable from "immutable"
+import { fun, Prod, apply, curry, id, inl, inr, unit, Option, Sum, Unit } from "ts-bccc"
 
 // let source = `if x = 0 then
 //   print x
@@ -18,29 +15,41 @@
 //   print z
 // `
 
-// type Token = { kind:"Newline"} | { kind:"Indent"} | { kind:"Deindent"}
-//   | { kind:"int", v:number } | { kind:"float", v:number }
-//   | { kind:"if" } | { kind:"then" } | { kind:"else" }
-//   | { kind:"identifier", v:string }
-//   | { kind:"=" }
+export type Token = { kind:"Newline"} | { kind:"Indent"} | { kind:"Deindent"}
+  | { kind:"int", v:number } | { kind:"float", v:number }
+  | { kind:"if" } | { kind:"then" } | { kind:"else" }
+  | { kind:"identifier", v:string }
+  | { kind:"=" }
 
-// let newline:Token = ({ kind:"Newline" })
-// let indent:Token = ({ kind:"Indent" })
-// let deindent:Token = ({ kind:"Deindent" })
-// let int : (_:string) => Option.Option<Token>
-//         = s => !/^[0-9]+$/.test(s) ? Option.none() : Option.some<Token>({ kind:"int", v:parseInt(s) })
-// let float : (_:string) => Option.Option<Token>
-//         = s => !/^[0-9]+.[0-9]+$/.test(s) ? Option.none() : Option.some<Token>({ kind:"float", v:parseFloat(s) })
-// let _if : (_:string) => Option.Option<Token>
-//         = s => !/^if$/.test(s) ? Option.none() : Option.some<Token>({ kind:"if" })
-// let _eq : (_:string) => Option.Option<Token>
-//         = s => !/^=$/.test(s) ? Option.none() : Option.some<Token>({ kind:"=" })
-// let _then : (_:string) => Option.Option<Token>
-//         = s => !/^then$/.test(s) ? Option.none() : Option.some<Token>({ kind:"then" })
-// let _else : (_:string) => Option.Option<Token>
-//         = s => !/^else$/.test(s) ? Option.none() : Option.some<Token>({ kind:"else" })
-// let identifier : (_:string) => Option.Option<Token>
-//         = s => !/^[a-zA-Z][a-zA-Z0-9]*$/.test(s) ? Option.none() : Option.some<Token>({ kind:"identifier", v:s })
+//Option<A> = CCC.Sum<A, CCC.Unit>;
+let none = <T> () : Sum<T, Unit> =>
+  {return{
+    kind: "right",
+    value: {}
+  }} 
+let some = <T> (v:T): Sum<T, Unit> =>
+  {return{
+      kind: "left",
+      value: v
+  }}
+
+export let newline:Token = ({ kind:"Newline" })
+export let indent:Token = ({ kind:"Indent" })
+export let deindent:Token = ({ kind:"Deindent" })
+export let int : (_:string) => Option<Token>
+        = s => !/^[0-9]+$/.test(s) ? none() : some<Token>({ kind:"int", v:parseInt(s) })
+export let float : (_:string) => Option<Token>
+        = s => !/^[0-9]+.[0-9]+$/.test(s) ? none() : some<Token>({ kind:"float", v:parseFloat(s) })
+export let _if : (_:string) => Option<Token>
+        = s => !/^if$/.test(s) ? none() : some<Token>({ kind:"if" })
+export let _eq : (_:string) => Option<Token>
+        = s => !/^=$/.test(s) ? none() : some<Token>({ kind:"=" })
+export let _then : (_:string) => Option<Token>
+        = s => !/^then$/.test(s) ? none() : some<Token>({ kind:"then" })
+export let _else : (_:string) => Option<Token>
+        = s => !/^else$/.test(s) ? none() : some<Token>({ kind:"else" })
+export let identifier : (_:string) => Option<Token>
+        = s => !/^[a-zA-Z][a-zA-Z0-9]*$/.test(s) ? none() : some<Token>({ kind:"identifier", v:s })
 
 // // console.log(//Lexer.pre_process_indentation(source))
 // Lexer.tokenize<Token>(Lexer.pre_process_indentation(source),
