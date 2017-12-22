@@ -74,9 +74,9 @@ export let test_imp = function () {
         (CSharp.ret(CSharp.plus(CSharp.get_v("i"), CSharp.get_v("x")))), [CSharp.mk_param("i", CSharp.int_type)], ["x"]),
       CSharp.semicolon(CSharp.def_fun("g",
         (CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x")))), [CSharp.mk_param("j", CSharp.int_type)], ["x"]),
-      CSharp.semicolon(CSharp.breakpoint(mk_range(3,3,3,3))(CSharp.done),
+      CSharp.semicolon(CSharp.breakpoint(mk_range(3,0,4,0))(CSharp.done),
       CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])),
-      CSharp.semicolon(CSharp.breakpoint(mk_range(4,4,4,4))(CSharp.done),
+      CSharp.semicolon(CSharp.breakpoint(mk_range(4,0,5,0))(CSharp.done),
       CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")]))
       )))))))))
 
