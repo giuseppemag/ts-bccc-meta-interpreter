@@ -1,5 +1,5 @@
 import * as Immutable from "immutable"
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod, fun3 } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod, fun3, co_get_state, co_set_state } from "ts-bccc"
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
@@ -10,8 +10,8 @@ import * as Sem from "../Python/python"
 
 export type Name = string
 export type Err = string
-export type Type = { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", inner:Bindings }
-                 | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
+export type Type = { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", methods:Immutable.Map<Name, Typing>, fields:Immutable.Map<Name, Type> }
+                 | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let string_type : Type = { kind:"string" }
@@ -20,8 +20,9 @@ export let float_type : Type = { kind:"float" }
 export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, out:o })
 export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
+export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_name:C_name })
 export type TypeInformation = Type & { is_constant:boolean }
-export interface Bindings extends Immutable.Map<Name, TypeInformation>  {}
+export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
 export interface Typing { type:TypeInformation, sem:Sem.Expr<Sem.Val> }
 let mk_typing = (t:Type,s:Sem.Expr<Sem.Val>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
@@ -42,8 +43,8 @@ let type_equals = (t1:Type,t2:Type) : boolean =>
   || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i])))
   || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg,t2.arg))
   || (t1.kind == "obj" && t2.kind == "obj" &&
-      !t1.inner.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.inner.has(k1) || !type_equals(t2.inner.get(k1), v1)) &&
-      !t2.inner.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.inner.has(k2)))
+      !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).type, v1.type)) &&
+      !t2.methods.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.methods.has(k2)))
   || t1.kind == t2.kind
 
 // Basic statements and expressions
@@ -304,23 +305,38 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
 }
 
 export interface Parameter { name:Name, type:Type }
+export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
+export interface FunDefinition extends LambdaDefinition { name:string }
 export let mk_param = function(name:Name, type:Type) {
   return { name:name, type:type }
 }
-export let mk_lambda = function(body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
+export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<Name>) : Stmt {
+  let parameters = def.parameters
+  let return_t = def.return_t
+  let body = def.body
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type, false), acc),
                      closure_parameters.reduce<Stmt>((acc, cp) => semicolon(get_v(cp).then(cp_t => decl_v(cp, cp_t.type, true)), acc), done))
   return  Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings.then(_ =>
           body.then(body_t =>
-          Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-          co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters)))
-          ))))
+          type_equals(body_t.type, return_t) ?
+            Co.co_set_state<State,Err>(initial_bindings).then(_ =>
+            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters))))
+          :
+            co_error<State,Err,Typing>(`Error: return type does not match declaration`)
+          )))
 }
 
-export let def_fun = function(n:Name, body:Stmt, parameters:Array<Parameter>, closure_parameters:Array<Name>) : Stmt {
-  return mk_lambda(body, parameters, closure_parameters).then(l =>
-         decl_const(n, l.type, co_unit(l)))
+export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
+  return mk_lambda(def, closure_parameters).then(l =>
+         decl_const(def.name, l.type, co_unit(l)))
+}
+
+export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
+  let parameters_with_this:Array<Parameter> = [{ name:"this", type:ref_type(C_name)}]
+  def.parameters = parameters_with_this.concat(def.parameters)
+  return mk_lambda(def, []).then(l =>
+         decl_const(def.name, l.type, co_unit(l)))
 }
 
 export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
@@ -388,4 +404,49 @@ export let set_arr_el = function(a:Stmt, i:Stmt, e:Stmt) {
            co_unit(mk_typing(unit_type, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
          : co_error<State,Err,Typing>(`Error: array setter requires an array and an integer as arguments`)
         )))
+}
+
+let comm_list_coroutine = function<S,E,A>(ps:Immutable.List<Coroutine<S,E,A>>) : Coroutine<S,E,Immutable.List<A>> {
+  if (ps.isEmpty()) return co_unit<S,E,Immutable.List<A>>(Immutable.List<A>())
+  let h = ps.first()
+  let t = ps.rest().toList()
+  return h.then(h_res =>
+         comm_list_coroutine(t).then(t_res =>
+         co_unit<S,E,Immutable.List<A>>(Immutable.List<A>([h_res, ...t_res.toArray()]))
+         ))
+}
+
+export let def_class = function(C_name:string, methods:Array<FunDefinition>, fields:Array<Parameter>) : Stmt {
+  let C_type_placeholder:Type = {
+    kind: "obj",
+    methods:Immutable.Map<Name, Typing>(
+      methods.map(m => [m.name, mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t), Sem.done)])
+    ),
+    fields:Immutable.Map<Name, Type>(
+      fields.map(f => [f.name, f.type])
+    )
+  }
+
+  return co_get_state<State, Err>().then(initial_bindings =>
+          co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type_placeholder, is_constant:true}) }).then(_ =>
+          comm_list_coroutine(Immutable.List<Stmt>(methods.map(m => def_method(C_name, m)))).then(methods_t => {
+          let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<FunDefinition>(methods)).toArray()
+          let C_type:Type = {
+            kind: "obj",
+            methods:Immutable.Map<Name, Typing>(
+              methods_full_t.map(m => [m.def.name, m.typ])
+            ),
+            fields:Immutable.Map<Name, Type>(
+              fields.map(f => [f.name, f.type])
+            )
+          }
+          let C_int:Sem.Interface = {
+            base:apply(inr<Sem.Interface, Unit>(), {}),
+            methods:
+              Immutable.Map<Name, Sem.Lambda>(methods_full_t.map(m => [m.def.name, undefined]))
+          }
+          return co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type, is_constant:true}) }).then(_ =>
+            co_unit(mk_typing(unit_type, Sem.declare_class(C_name, C_int))))
+          }
+          )))
 }

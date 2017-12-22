@@ -14,10 +14,15 @@
       [ ] Covariance/contravariance in function calls and variable assignments
     [ ] Structs
     [ ] Tuples
+    [ ] Extension methods
+    [ ] Static methods
+    [ ] LINQ
 [ ] IMP PARSER
   [ ] distributive laws applied to monadic combinators such as parallel/concurrent
   [ ] Python
   [ ] C#
+
+[ ] Canvas/electron playground
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
