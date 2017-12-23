@@ -450,3 +450,17 @@ export let def_class = function(C_name:string, methods:Array<FunDefinition>, fie
           }
           )))
 }
+
+export let field_get = function(this_ref:Stmt, F_name:string) : Stmt {
+  return this_ref.then(this_ref_t =>
+         co_get_state<State, Err>().then(bindings => {
+           if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
+           let C_def = bindings.bindings.get(this_ref_t.type.C_name)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is not a clas`)
+           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
+           let F_def = C_def.fields.get(F_name)
+           return co_unit(mk_typing(F_def, Sem.field_get_expr("F_name", this_ref_t.sem)))
+          }
+         ))
+}

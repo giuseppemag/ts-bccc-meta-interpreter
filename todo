@@ -1,8 +1,10 @@
+[ ] Move comm_list_co to CCC repo
+
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
   [ ] Classes
-    [ ] Definition
+    [/] Definition
     [ ] References
     [ ] Constructor
     [ ] Field lookups

@@ -6,7 +6,7 @@
   "typescript": {
     "definition": "dist/main.d.ts"
   },
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
     "tsc": "node_modules/.bin/tsc -w",
     "main": "node dist/main.js"
