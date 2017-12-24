@@ -17,37 +17,16 @@
       line-height: 2;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
 </head>
 
 <body>
   <h1>Electron Hello World!</h1>
-  <div id="react-root"></div>
   <div class="code">
     <!-- <blockquote>
       <pre><code> -->
-    <script type="text/babel">
-      let React = require("react")
-      let ReactDOM = require("react-dom")
+    <script>
       let sharedObject = require('electron').remote.getGlobal('sharedObject')
-      //document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
-      let page = sharedObject.language.ImpLanguageWithSuspend.visualizer()
-      console.log(page)
-
-      class ShoppingList extends React.Component {
-        render() {
-          return (
-            <div className="shopping-list">
-              <h1>???</h1>
-              {
-                page
-              }
-            </div>
-          );
-        }
-      }
-
-      ReactDOM.render(<ShoppingList />, document.getElementById('react-root'));
+      document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
     </script>
   </div>
 </body>

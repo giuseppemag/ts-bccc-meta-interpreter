@@ -4,20 +4,14 @@
   [ ] File management
     [ ] Split into multiple files
   [ ] Classes
-    [/] Definition
-    [ ] References
-    [ ] Constructor
-    [ ] Field lookups
-    [ ] Method calling
-
     [ ] Generics
     [ ] Polymorphism
       [ ] Inheritance
       [ ] Covariance/contravariance in function calls and variable assignments
     [ ] Structs
     [ ] Tuples
-    [ ] Extension methods
     [ ] Static methods
+    [ ] Extension methods
     [ ] LINQ
 [ ] IMP PARSER
   [ ] distributive laws applied to monadic combinators such as parallel/concurrent

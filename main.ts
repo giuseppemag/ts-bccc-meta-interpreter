@@ -10,7 +10,7 @@ import { mk_range } from "./source_range";
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 
-module ImpLanguageWithSuspend {
+export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
       let f : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> =
           CCC.fun(p => run_to_end<S,E,A>().f(p))
@@ -21,7 +21,6 @@ module ImpLanguageWithSuspend {
   }
 
 export let test_imp = function () {
-
   let loop_test =
     CSharp.semicolon(CSharp.decl_v("s", CSharp.string_type),
     CSharp.semicolon(CSharp.typechecker_breakpoint(mk_range(0,0,10,10))(CSharp.done),
@@ -117,20 +116,26 @@ export let test_imp = function () {
     let hrstart = process.hrtime()
     let p = class_test
 
+    let output = ""
+    let log = function(s:string,x:any) {
+      output = output + s + JSON.stringify(x)
+    }
+
     let compiler_res = apply((constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
     if (compiler_res.kind == "left") {
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      console.log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
+      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
     } else {
       let runtime_res = apply((constant<Unit,Py.Stmt>(compiler_res.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory))).then(run_to_end()), {})
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      console.log(`Timer: ${time_in_ns / 1000000}ms\n Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
-      console.log(`Runtime result: `, JSON.stringify(runtime_res))
+      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
+      log(`Runtime result: `, JSON.stringify(runtime_res))
     }
+    return output
   }
 }
 
-ImpLanguageWithSuspend.test_imp()
+// ImpLanguageWithSuspend.test_imp()

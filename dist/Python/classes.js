@@ -73,8 +73,7 @@ exports.call_cons = function (C_name, args) {
             return this_addr.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
                 exports.field_set("class", expressions_1.str_expr(C_name), this_addr).then(function (_) {
                     return functions_1.call_lambda(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
-                        return console.log("Res of constructor call is", res) ||
-                            ts_bccc_2.co_unit(this_addr);
+                        return ts_bccc_2.co_unit(this_addr);
                     });
                 });
         });

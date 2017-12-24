@@ -48,19 +48,24 @@ var ImpLanguageWithSuspend;
             { name: "Y", type: CSharp.int_type }]), CSharp.semicolon(CSharp.decl_v("v2", CSharp.ref_type("Vector2")), CSharp.semicolon(CSharp.set_v("v2", CSharp.call_cons("Vector2", [CSharp.int(10), CSharp.int(20)])), CSharp.semicolon(CSharp.call_method(CSharp.get_v("v2"), "Scale", [CSharp.int(2)]), CSharp.done))));
         var hrstart = process.hrtime();
         var p = class_test;
+        var output = "";
+        var log = function (s, x) {
+            output = output + s + JSON.stringify(x);
+        };
         var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
         if (compiler_res.kind == "left") {
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
-            console.log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
+            log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
         }
         else {
             var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
-            console.log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
-            console.log("Runtime result: ", JSON.stringify(runtime_res));
+            log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
+            log("Runtime result: ", JSON.stringify(runtime_res));
         }
+        return output;
     };
-})(ImpLanguageWithSuspend || (ImpLanguageWithSuspend = {}));
-ImpLanguageWithSuspend.test_imp();
+})(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
+// ImpLanguageWithSuspend.test_imp()
