@@ -75,7 +75,8 @@ export let call_cons = function(C_name:Name, args:Array<Expr<Val>>) : Expr<Val> 
   new_obj().then(this_addr =>
   this_addr.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
   field_set("class", str_expr(C_name), this_addr).then(_ =>
-  call_lambda(C_def.methods.get("constructor"), args.concat([val_expr(this_addr)])).then(_ =>
+  call_lambda(C_def.methods.get(C_name), args.concat([val_expr(this_addr)])).then(res =>
+  console.log(`Res of constructor call is`, res) ||
   co_unit<Mem,Err,Val>(this_addr)
   ))))
 }

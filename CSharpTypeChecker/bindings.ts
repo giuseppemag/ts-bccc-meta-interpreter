@@ -80,7 +80,7 @@ export let decl_const = function(c:Name, t:Type, e:Stmt) : Stmt {
          // console.log(`Initialising constant ${v} (${JSON.stringify(v_val.type)})`) ||
          type_equals(e_val.type, c_val.type) ?
            co_unit(mk_typing(unit_type, Sem.set_v_expr(c, e_val.sem)))
-         : co_error<State,Err,Typing>(`Error: cannot assign ${c} to ${e}: type ${c_val.type} does not match ${e_val.type}`)
+         : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(c)} to ${JSON.stringify(e)}: type ${JSON.stringify(c_val.type)} does not match ${JSON.stringify(e_val.type)}`)
          )))
 }
 
@@ -92,7 +92,7 @@ export let set_v = function(v:Name, e:Stmt) : Stmt {
            co_unit(mk_typing(unit_type, Sem.set_v_expr(v, e_val.sem)))
          : v_val.type.is_constant ?
            co_error<State,Err,Typing>(`Error: cannot assign anything to ${v}: it is a constant.`)
-         : co_error<State,Err,Typing>(`Error: cannot assign ${v} to ${e}: type ${v_val.type} does not match ${e_val.type}`)
+         : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}`)
          ))
 }
 export let str = function(s:string) : Stmt {
@@ -334,9 +334,22 @@ export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>)
 
 export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
   let parameters_with_this:Array<Parameter> = [{ name:"this", type:ref_type(C_name)}]
-  def.parameters = parameters_with_this.concat(def.parameters)
-  return mk_lambda(def, []).then(l =>
-         decl_const(def.name, l.type, co_unit(l)))
+  def.parameters = def.parameters.concat(parameters_with_this)
+
+  let parameters = def.parameters
+  let return_t = def.return_t
+  let body = def.body
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type, false), acc), done)
+  return  Co.co_get_state<State,Err>().then(initial_bindings =>
+          set_bindings.then(_ =>
+          body.then(body_t =>
+          type_equals(body_t.type, return_t) ?
+            Co.co_set_state<State,Err>(initial_bindings).then(_ =>
+            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
+                              body_t.sem)))
+          :
+            co_error<State,Err,Typing>(`Error: return type does not match declaration`)
+          )))
 }
 
 export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
@@ -443,7 +456,14 @@ export let def_class = function(C_name:string, methods:Array<FunDefinition>, fie
           let C_int:Sem.Interface = {
             base:apply(inr<Sem.Interface, Unit>(), {}),
             methods:
-              Immutable.Map<Name, Sem.Lambda>(methods_full_t.map(m => [m.def.name, undefined]))
+              Immutable.Map<Name, Sem.Lambda>(methods_full_t.map(m =>
+                {
+                  let res:[Name, Sem.Lambda] = [
+                    m.def.name,
+                    { body:m.typ.sem, parameters:m.def.parameters.map(p => p.name), closure: Sem.empty_scope }]
+                  return res
+                }
+              ))
           }
           return co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type, is_constant:true}) }).then(_ =>
             co_unit(mk_typing(unit_type, Sem.declare_class(C_name, C_int))))
@@ -460,7 +480,86 @@ export let field_get = function(this_ref:Stmt, F_name:string) : Stmt {
            if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is not a clas`)
            if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
            let F_def = C_def.fields.get(F_name)
-           return co_unit(mk_typing(F_def, Sem.field_get_expr("F_name", this_ref_t.sem)))
+           return co_unit(mk_typing(F_def, Sem.field_get_expr(F_name, this_ref_t.sem)))
           }
          ))
+}
+
+export let field_set = function(this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
+  return this_ref.then(this_ref_t =>
+         new_value.then(new_value_t =>
+         co_get_state<State, Err>().then(bindings => {
+           if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
+           let C_def = bindings.bindings.get(this_ref_t.type.C_name)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type ${this_ref_t.type.C_name} is not a class`)
+           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
+           let F_def = C_def.fields.get(F_name)
+           if (!type_equals(F_def, new_value_t.type)) return co_error<State,Err,Typing>(`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`)
+           return co_unit(mk_typing(unit_type, Sem.field_set_expr(F_name, new_value_t.sem, this_ref_t.sem)))
+          }
+         )))
+}
+
+
+export let call_cons = function(C_name:string, arg_values:Array<Stmt>) : Stmt {
+  return co_get_state<State, Err>().then(bindings => {
+    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+    let C_def = bindings.bindings.get(C_name)
+    if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
+    if (!C_def.methods.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+    let lambda_t = C_def.methods.get(C_name)
+
+    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
+      arg.then(arg_t =>
+      args.then(args_t =>
+      co_unit(args_t.push(arg_t))
+      )),
+      co_unit(Immutable.List<Typing>()))
+
+    return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+        check_arguments.then(args_t =>
+          lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+          arg_values.length != lambda_t.type.in.args.length - 1 ||
+          args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                    !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
+            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify(args_t)}`)
+          :
+            co_unit(mk_typing(ref_type(C_name), Sem.call_cons(C_name, args_t.toArray().map(arg_t => arg_t.sem))))
+        )
+      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+  })
+}
+
+
+export let call_method = function(this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
+  return this_ref.then(this_ref_t =>
+    co_get_state<State, Err>().then(bindings => {
+      if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+      let C_name = this_ref_t.type.C_name
+    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+    let C_def = bindings.bindings.get(C_name)
+    if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
+    if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+    let lambda_t = C_def.methods.get(M_name)
+
+    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
+      arg.then(arg_t =>
+      args.then(args_t =>
+      co_unit(args_t.push(arg_t))
+      )),
+      co_unit(Immutable.List<Typing>()))
+
+    return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+        check_arguments.then(args_t =>
+          lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+          arg_values.length != lambda_t.type.in.args.length - 1 ||
+          args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                    !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
+            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify(args_t)}`)
+          :
+            co_unit(mk_typing(ref_type(C_name), Sem.call_method_expr(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+        )
+      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+  }))
 }

@@ -1,40 +1,28 @@
 "use strict";
-// import * as Immutable from "immutable"
-// import {fun, Prod, apply, curry, id, inl, inr, unit} from "./ccc"
-// import * as CCC from "./ccc"
-// import * as Option from "./option"
-// import * as Lexer from "./lexer"
-// let source = `if x = 0 then
-//   print x
-//   if y = 0 then
-//     print y
-//   else
-//     print w
-// else
-//   print z
-// `
-// type Token = { kind:"Newline"} | { kind:"Indent"} | { kind:"Deindent"}
-//   | { kind:"int", v:number } | { kind:"float", v:number }
-//   | { kind:"if" } | { kind:"then" } | { kind:"else" }
-//   | { kind:"identifier", v:string }
-//   | { kind:"=" }
-// let newline:Token = ({ kind:"Newline" })
-// let indent:Token = ({ kind:"Indent" })
-// let deindent:Token = ({ kind:"Deindent" })
-// let int : (_:string) => Option.Option<Token>
-//         = s => !/^[0-9]+$/.test(s) ? Option.none() : Option.some<Token>({ kind:"int", v:parseInt(s) })
-// let float : (_:string) => Option.Option<Token>
-//         = s => !/^[0-9]+.[0-9]+$/.test(s) ? Option.none() : Option.some<Token>({ kind:"float", v:parseFloat(s) })
-// let _if : (_:string) => Option.Option<Token>
-//         = s => !/^if$/.test(s) ? Option.none() : Option.some<Token>({ kind:"if" })
-// let _eq : (_:string) => Option.Option<Token>
-//         = s => !/^=$/.test(s) ? Option.none() : Option.some<Token>({ kind:"=" })
-// let _then : (_:string) => Option.Option<Token>
-//         = s => !/^then$/.test(s) ? Option.none() : Option.some<Token>({ kind:"then" })
-// let _else : (_:string) => Option.Option<Token>
-//         = s => !/^else$/.test(s) ? Option.none() : Option.some<Token>({ kind:"else" })
-// let identifier : (_:string) => Option.Option<Token>
-//         = s => !/^[a-zA-Z][a-zA-Z0-9]*$/.test(s) ? Option.none() : Option.some<Token>({ kind:"identifier", v:s })
+Object.defineProperty(exports, "__esModule", { value: true });
+//Option<A> = CCC.Sum<A, CCC.Unit>;
+var none = function () {
+    return {
+        kind: "right",
+        value: {}
+    };
+};
+var some = function (v) {
+    return {
+        kind: "left",
+        value: v
+    };
+};
+exports.newline = ({ kind: "Newline" });
+exports.indent = ({ kind: "Indent" });
+exports.deindent = ({ kind: "Deindent" });
+exports.int = function (s) { return !/^[0-9]+$/.test(s) ? none() : some({ kind: "int", v: parseInt(s) }); };
+exports.float = function (s) { return !/^[0-9]+.[0-9]+$/.test(s) ? none() : some({ kind: "float", v: parseFloat(s) }); };
+exports._if = function (s) { return !/^if$/.test(s) ? none() : some({ kind: "if" }); };
+exports._eq = function (s) { return !/^=$/.test(s) ? none() : some({ kind: "=" }); };
+exports._then = function (s) { return !/^then$/.test(s) ? none() : some({ kind: "then" }); };
+exports._else = function (s) { return !/^else$/.test(s) ? none() : some({ kind: "else" }); };
+exports.identifier = function (s) { return !/^[a-zA-Z][a-zA-Z0-9]*$/.test(s) ? none() : some({ kind: "identifier", v: s }); };
 // // console.log(//Lexer.pre_process_indentation(source))
 // Lexer.tokenize<Token>(Lexer.pre_process_indentation(source),
 //   _ => newline, _ => indent, _ => deindent,

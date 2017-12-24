@@ -21,7 +21,11 @@ export declare type Type = {
     out: Type;
 } | {
     kind: "obj";
-    inner: Bindings;
+    methods: Immutable.Map<Name, Typing>;
+    fields: Immutable.Map<Name, Type>;
+} | {
+    kind: "ref";
+    C_name: string;
 } | {
     kind: "arr";
     arg: Type;
@@ -37,6 +41,7 @@ export declare let float_type: Type;
 export declare let fun_type: (i: Type, o: Type) => Type;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
+export declare let ref_type: (C_name: string) => Type;
 export declare type TypeInformation = Type & {
     is_constant: boolean;
 };
@@ -87,12 +92,21 @@ export interface Parameter {
     name: Name;
     type: Type;
 }
+export interface LambdaDefinition {
+    return_t: Type;
+    parameters: Array<Parameter>;
+    body: Stmt;
+}
+export interface FunDefinition extends LambdaDefinition {
+    name: string;
+}
 export declare let mk_param: (name: string, type: Type) => {
     name: string;
     type: Type;
 };
-export declare let mk_lambda: (body: Stmt, parameters: Parameter[], closure_parameters: string[]) => Stmt;
-export declare let def_fun: (n: string, body: Stmt, parameters: Parameter[], closure_parameters: string[]) => Stmt;
+export declare let mk_lambda: (def: LambdaDefinition, closure_parameters: string[]) => Stmt;
+export declare let def_fun: (def: FunDefinition, closure_parameters: string[]) => Stmt;
+export declare let def_method: (C_name: string, def: FunDefinition) => Stmt;
 export declare let call_lambda: (lambda: Stmt, arg_values: Stmt[]) => Stmt;
 export declare let call_by_name: (f_n: string, args: Stmt[]) => Stmt;
 export declare let ret: (p: Stmt) => Stmt;
@@ -100,3 +114,8 @@ export declare let new_array: (type: Type, len: Stmt) => Coroutine<State, string
 export declare let get_arr_len: (a: Stmt) => Coroutine<State, string, Typing>;
 export declare let get_arr_el: (a: Stmt, i: Stmt) => Coroutine<State, string, Typing>;
 export declare let set_arr_el: (a: Stmt, i: Stmt, e: Stmt) => Coroutine<State, string, Typing>;
+export declare let def_class: (C_name: string, methods: FunDefinition[], fields: Parameter[]) => Stmt;
+export declare let field_get: (this_ref: Stmt, F_name: string) => Stmt;
+export declare let field_set: (this_ref: Stmt, F_name: string, new_value: Stmt) => Stmt;
+export declare let call_cons: (C_name: string, arg_values: Stmt[]) => Stmt;
+export declare let call_method: (this_ref: Stmt, M_name: string, arg_values: Stmt[]) => Stmt;

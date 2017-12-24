@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Electron Hello World!</title>
+  <style>
+    .code {
+      font-family: monospace;
+      font-size: x-large;
+      text-shadow: 0 1px #fff;
+      direction: ltr;
+      text-align: left;
+      word-spacing: normal;
+      word-break: normal;
+      word-wrap: normal;
+      line-height: 2;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+</head>
+
+<body>
+  <h1>Electron Hello World!</h1>
+  <div id="react-root"></div>
+  <div class="code">
+    <!-- <blockquote>
+      <pre><code> -->
+    <script type="text/babel">
+      let React = require("react")
+      let ReactDOM = require("react-dom")
+      let sharedObject = require('electron').remote.getGlobal('sharedObject')
+      //document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
+      let page = sharedObject.language.ImpLanguageWithSuspend.visualizer()
+      console.log(page)
+
+      class ShoppingList extends React.Component {
+        render() {
+          return (
+            <div className="shopping-list">
+              <h1>???</h1>
+              {
+                page
+              }
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(<ShoppingList />, document.getElementById('react-root'));
+    </script>
+  </div>
+</body>
+
+</html>
