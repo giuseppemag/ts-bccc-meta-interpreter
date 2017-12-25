@@ -118,7 +118,7 @@ export let test_imp = function () {
 
     let output = ""
     let log = function(s:string,x:any) {
-      output = output + s + JSON.stringify(x)
+      output = output + s + JSON.stringify(x) + "\n\n"
     }
 
     let compiler_res = apply((constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
@@ -138,4 +138,4 @@ export let test_imp = function () {
   }
 }
 
-// ImpLanguageWithSuspend.test_imp()
+console.log(ImpLanguageWithSuspend.test_imp())

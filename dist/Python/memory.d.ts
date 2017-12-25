@@ -48,7 +48,7 @@ export interface Scope extends Immutable.Map<Name, Val> {
 }
 export interface Interface {
     base: Sum<Interface, Unit>;
-    methods: Immutable.Map<Name, Lambda>;
+    methods: Immutable.Map<Name, Stmt>;
 }
 export declare let empty_scope: Immutable.Map<string, Val>;
 export declare let unt: Val;

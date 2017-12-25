@@ -346,7 +346,7 @@ export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
-                              body_t.sem)))
+                              Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), []))))
           :
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))
@@ -456,11 +456,11 @@ export let def_class = function(C_name:string, methods:Array<FunDefinition>, fie
           let C_int:Sem.Interface = {
             base:apply(inr<Sem.Interface, Unit>(), {}),
             methods:
-              Immutable.Map<Name, Sem.Lambda>(methods_full_t.map(m =>
+              Immutable.Map<Name, Sem.Stmt>(methods_full_t.map(m =>
                 {
-                  let res:[Name, Sem.Lambda] = [
+                  let res:[Name, Sem.Stmt] = [
                     m.def.name,
-                    { body:m.typ.sem, parameters:m.def.parameters.map(p => p.name), closure: Sem.empty_scope }]
+                    m.typ.sem ]
                   return res
                 }
               ))

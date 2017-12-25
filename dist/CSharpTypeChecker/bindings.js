@@ -326,7 +326,7 @@ exports.def_method = function (C_name, def) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), body_t.sem));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(function (p) { return p.name; }), [])));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -429,7 +429,7 @@ exports.def_class = function (C_name, methods, fields) {
                     methods: Immutable.Map(methods_full_t.map(function (m) {
                         var res = [
                             m.def.name,
-                            { body: m.typ.sem, parameters: m.def.parameters.map(function (p) { return p.name; }), closure: Sem.empty_scope }
+                            m.typ.sem
                         ];
                         return res;
                     }))

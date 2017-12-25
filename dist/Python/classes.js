@@ -12,8 +12,8 @@ var ts_bccc_1 = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var memory_1 = require("./memory");
 var basic_statements_1 = require("./basic_statements");
-var functions_1 = require("./functions");
 var expressions_1 = require("./expressions");
+var python_1 = require("./python");
 exports.declare_class = function (C_name, int) {
     return memory_1.set_class_def(C_name, int);
 };
@@ -59,7 +59,7 @@ exports.call_method = function (M_name, this_addr, args) {
             if (this_class.k != "s")
                 return memory_1.runtime_error("runtime type error: this.class is not a string.");
             return memory_1.get_class_def(this_class.v).then(function (C_def) {
-                var f = ts_bccc_1.fun(function (m) { return functions_1.call_lambda(m, args.concat([expressions_1.val_expr(this_addr)])); }).plus(ts_bccc_1.constant(expressions_1.unit_expr()));
+                var f = ts_bccc_1.fun(function (m) { return python_1.call_lambda_expr(m, args.concat([expressions_1.val_expr(this_addr)])); }).plus(ts_bccc_1.constant(expressions_1.unit_expr()));
                 return ts_bccc_1.apply(f, exports.resolve_method(M_name, C_def));
             });
         });
@@ -72,7 +72,7 @@ exports.call_cons = function (C_name, args) {
         return memory_1.new_obj().then(function (this_addr) {
             return this_addr.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
                 exports.field_set("class", expressions_1.str_expr(C_name), this_addr).then(function (_) {
-                    return functions_1.call_lambda(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
+                    return python_1.call_lambda_expr(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
                         return ts_bccc_2.co_unit(this_addr);
                     });
                 });

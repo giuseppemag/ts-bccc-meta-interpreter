@@ -16,7 +16,7 @@ export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements
 export type Name = string
 export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef
 export interface Scope extends Immutable.Map<Name, Val> {}
-export interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<Name, Lambda> }
+export interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<Name, Stmt> }
 export let empty_scope = Immutable.Map<Name, Val>()
 export let unt : Val = ({ v:apply(unit(),{}), k:"u" })
 export let str : (_:string) => Val = v => ({ v:v, k:"s" })

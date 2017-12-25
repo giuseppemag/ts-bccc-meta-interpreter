@@ -13,6 +13,7 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
 import { done, dbg, if_then_else, while_do } from "./basic_statements"
 import { call_by_name, call_lambda, def_fun, ret } from "./functions"
 import { val_expr, unit_expr, str_expr } from "./expressions"
+import { call_lambda_expr } from "./python";
 
 export let declare_class = function(C_name:Name, int:Interface) : Stmt {
   return set_class_def(C_name, int)
@@ -46,9 +47,9 @@ export let field_set_expr = function(F_name:Name, new_val_expr:Expr<Val>, this_e
     field_set(F_name, new_val_expr, this_addr))
 }
 
-export let resolve_method = function(M_name:Name, C_def:Interface) : Sum<Lambda, Unit> {
+export let resolve_method = function(M_name:Name, C_def:Interface) : Sum<Stmt, Unit> {
   return C_def.methods.has(M_name) ? apply(inl(), C_def.methods.get(M_name))
-         : apply(fun((int:Interface) => resolve_method(M_name, int)).plus(inr<Lambda, Unit>()), C_def.base)
+         : apply(fun((int:Interface) => resolve_method(M_name, int)).plus(inr<Stmt, Unit>()), C_def.base)
 }
 
 export let call_method = function(M_name:Name, this_addr:Val, args:Array<Expr<Val>>) : Expr<Val> {
@@ -58,7 +59,7 @@ export let call_method = function(M_name:Name, this_addr:Val, args:Array<Expr<Va
     let this_class = this_val.v.get("class")
     if (this_class.k != "s") return runtime_error(`runtime type error: this.class is not a string.`)
     return get_class_def(this_class.v).then(C_def => {
-      let f = fun((m:Lambda) => call_lambda(m, args.concat([val_expr(this_addr)]))).plus(constant<Unit, Expr<Val>>(unit_expr()))
+      let f = fun((m:Stmt) => call_lambda_expr(m, args.concat([val_expr(this_addr)]))).plus(constant<Unit, Expr<Val>>(unit_expr()))
       return apply(f, resolve_method(M_name, C_def))
     }
 
@@ -75,7 +76,7 @@ export let call_cons = function(C_name:Name, args:Array<Expr<Val>>) : Expr<Val> 
   new_obj().then(this_addr =>
   this_addr.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
   field_set("class", str_expr(C_name), this_addr).then(_ =>
-  call_lambda(C_def.methods.get(C_name), args.concat([val_expr(this_addr)])).then(res =>
+  call_lambda_expr(C_def.methods.get(C_name), args.concat([val_expr(this_addr)])).then(res =>
   co_unit<Mem,Err,Val>(this_addr)
   ))))
 }

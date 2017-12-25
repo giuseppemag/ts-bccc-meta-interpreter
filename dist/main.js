@@ -50,7 +50,7 @@ var ImpLanguageWithSuspend;
         var p = class_test;
         var output = "";
         var log = function (s, x) {
-            output = output + s + JSON.stringify(x);
+            output = output + s + JSON.stringify(x) + "\n\n";
         };
         var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
         if (compiler_res.kind == "left") {
@@ -68,4 +68,4 @@ var ImpLanguageWithSuspend;
         return output;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
-// ImpLanguageWithSuspend.test_imp()
+console.log(ImpLanguageWithSuspend.test_imp());
