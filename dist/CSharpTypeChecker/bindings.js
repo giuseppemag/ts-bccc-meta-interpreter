@@ -13,6 +13,7 @@ var ts_bccc_1 = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var Co = require("ts-bccc");
 var Sem = require("../Python/python");
+var ccc_aux_1 = require("../ccc_aux");
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
 exports.string_type = { kind: "string" };
@@ -398,17 +399,6 @@ exports.set_arr_el = function (a, i, e) {
         });
     });
 };
-var comm_list_coroutine = function (ps) {
-    if (ps.isEmpty())
-        return ts_bccc_2.co_unit(Immutable.List());
-    var h = ps.first();
-    var t = ps.rest().toList();
-    return h.then(function (h_res) {
-        return comm_list_coroutine(t).then(function (t_res) {
-            return ts_bccc_2.co_unit(Immutable.List([h_res].concat(t_res.toArray())));
-        });
-    });
-};
 exports.def_class = function (C_name, methods, fields) {
     var C_type_placeholder = {
         kind: "obj",
@@ -417,7 +407,7 @@ exports.def_class = function (C_name, methods, fields) {
     };
     return ts_bccc_1.co_get_state().then(function (initial_bindings) {
         return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type_placeholder, { is_constant: true })) })).then(function (_) {
-            return comm_list_coroutine(Immutable.List(methods.map(function (m) { return exports.def_method(C_name, m); }))).then(function (methods_t) {
+            return ccc_aux_1.comm_list_coroutine(Immutable.List(methods.map(function (m) { return exports.def_method(C_name, m); }))).then(function (methods_t) {
                 var methods_full_t = methods_t.zipWith(function (m_t, m_d) { return ({ typ: m_t, def: m_d }); }, Immutable.Seq(methods)).toArray();
                 var C_type = {
                     kind: "obj",

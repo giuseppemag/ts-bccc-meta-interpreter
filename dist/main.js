@@ -67,5 +67,10 @@ var ImpLanguageWithSuspend;
         }
         return output;
     };
+    ImpLanguageWithSuspend.test_parser = function () {
+        var source = "if x = 0 then\n  print x\n\n  if y = 0 then\n\n    print y\n\n  else\n\n    print w\nelse\n  print z\n";
+        return CSharp.tokenize(source);
+    };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
-console.log(ImpLanguageWithSuspend.test_imp());
+// console.log(ImpLanguageWithSuspend.test_imp())
+console.log(ImpLanguageWithSuspend.test_parser());

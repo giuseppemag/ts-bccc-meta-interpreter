@@ -5,6 +5,7 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
 import * as Sem from "../Python/python"
+import { comm_list_coroutine } from "../ccc_aux";
 
 // Bindings
 
@@ -417,16 +418,6 @@ export let set_arr_el = function(a:Stmt, i:Stmt, e:Stmt) {
            co_unit(mk_typing(unit_type, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
          : co_error<State,Err,Typing>(`Error: array setter requires an array and an integer as arguments`)
         )))
-}
-
-let comm_list_coroutine = function<S,E,A>(ps:Immutable.List<Coroutine<S,E,A>>) : Coroutine<S,E,Immutable.List<A>> {
-  if (ps.isEmpty()) return co_unit<S,E,Immutable.List<A>>(Immutable.List<A>())
-  let h = ps.first()
-  let t = ps.rest().toList()
-  return h.then(h_res =>
-         comm_list_coroutine(t).then(t_res =>
-         co_unit<S,E,Immutable.List<A>>(Immutable.List<A>([h_res, ...t_res.toArray()]))
-         ))
 }
 
 export let def_class = function(C_name:string, methods:Array<FunDefinition>, fields:Array<Parameter>) : Stmt {

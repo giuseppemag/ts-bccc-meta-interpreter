@@ -136,6 +136,26 @@ export let test_imp = function () {
     }
     return output
   }
+
+  export let test_parser = () => {
+    let source = `if x = 0 then
+  print x
+
+  if y = 0 then
+
+    print y
+
+  else
+
+    print w
+else
+  print z
+`
+    return CSharp.tokenize(source)
+
+  }
 }
 
-console.log(ImpLanguageWithSuspend.test_imp())
+// console.log(ImpLanguageWithSuspend.test_imp())
+
+console.log(ImpLanguageWithSuspend.test_parser())

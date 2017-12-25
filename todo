@@ -1,4 +1,4 @@
-[ ] Move comm_list_co to CCC repo
+[ ] Move ccc_aux to CCC repo
 
 [ ] IMP TYPE CHECKER
   [ ] File management
@@ -14,11 +14,29 @@
     [ ] Extension methods
     [ ] LINQ
 [ ] IMP PARSER
-  [ ] distributive laws applied to monadic combinators such as parallel/concurrent
-  [ ] Python
-  [ ] C#
+  [ ] Statements
+    [ ] Declaration
+    [ ] Assignment
+      [ ] Left-hand
+        [ ] To variable
+        [ ] To set field
+      [ ] Right-hand
+        [ ] Field get
+        [ ] Constant
+        [ ] Basic (non-recursive) arithmetic expressions
+          [ ] +
+          [ ] -
+          [ ] /
+          [ ] *
+        [ ] Constructor
+        [ ] Method call
+  [ ] Functions
+    [ ] Def
+    [ ] Call
+  [ ] Classes
+    [ ] Def
+    [ ] Method call
 
-[ ] Canvas/electron playground
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
