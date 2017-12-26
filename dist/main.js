@@ -72,11 +72,46 @@ var ImpLanguageWithSuspend;
         var source = "if x = 0 then\n  print x\n\n  if y = 0 then\n\n    print y\n\n  else\n\n    print w\nelse\n  print z\n";
         return CSharp.GrammarBasics.tokenize(source);
     };
+    ImpLanguageWithSuspend.ast_to_type_checker = function (n) {
+        return n.kind == "int" ? CSharp.int(n.value)
+            : n.kind == ";" ? CSharp.semicolon(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
+                : n.kind == "*" ? CSharp.times(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
+                    : n.kind == "+" ? CSharp.plus(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
+                        : n.kind == "id" ? CSharp.get_v(n.value)
+                            : n.kind == "." && n.r.kind == "id" ? CSharp.field_get(ImpLanguageWithSuspend.ast_to_type_checker(n.l), n.r.value)
+                                : n.kind == "=" && n.l.kind == "id" ? CSharp.set_v(n.l.value, ImpLanguageWithSuspend.ast_to_type_checker(n.r))
+                                    : n.kind == "decl" && n.l.kind == "id" && n.r.kind == "id" ?
+                                        n.l.value == "int" ? CSharp.decl_v(n.r.value, CSharp.int_type)
+                                            : CSharp.decl_v(n.r.value, CSharp.ref_type(n.l.value))
+                                        : CSharp.done;
+    }; // should give an error
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "int x ; x = 0 ; x = x + 1 ;";
+        var source = "int x ; x = 0 ; x = x + 2 ; x = x * 3 ;";
         var tokens = Immutable.List(CSharp.GrammarBasics.tokenize(source));
         var res = CSharp.program().run.f(tokens);
-        return JSON.stringify(res);
+        console.log(JSON.stringify(res));
+        if (res.kind != "right" || res.value.kind != "right")
+            return "Parse error";
+        var hrstart = process.hrtime();
+        var p = ImpLanguageWithSuspend.ast_to_type_checker(res.value.value.fst);
+        var output = "";
+        var log = function (s, x) {
+            output = output + s + JSON.stringify(x) + "\n\n";
+        };
+        var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
+        if (compiler_res.kind == "left") {
+            var hrdiff = process.hrtime(hrstart);
+            var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
+            log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
+        }
+        else {
+            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
+            var hrdiff = process.hrtime(hrstart);
+            var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
+            log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
+            log("Runtime result: ", JSON.stringify(runtime_res));
+        }
+        return output;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())

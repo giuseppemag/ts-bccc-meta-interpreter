@@ -155,11 +155,50 @@ else
 
   }
 
+  export let ast_to_type_checker : (_:CSharp.Node) => CSharp.Stmt = n =>
+    n.kind == "int" ? CSharp.int(n.value)
+    : n.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
+    : n.kind == "*" ? CSharp.times(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
+    : n.kind == "+" ? CSharp.plus(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
+    : n.kind == "id" ? CSharp.get_v(n.value)
+    : n.kind == "." && n.r.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.l), n.r.value)
+    : n.kind == "=" && n.l.kind == "id" ? CSharp.set_v(n.l.value, ast_to_type_checker(n.r))
+    : n.kind == "decl" && n.l.kind == "id" && n.r.kind == "id" ?
+      n.l.value == "int" ? CSharp.decl_v(n.r.value, CSharp.int_type)
+      : CSharp.decl_v(n.r.value, CSharp.ref_type(n.l.value))
+    : CSharp.done // should give an error
+
+
+
   export let test_parser = () => {
-    let source = `int x ; x = 0 ; x = x + 1 ;`
+    let source = `int x ; x = 0 ; x = x + 2 ; x = x * 3 ;`
     let tokens = Immutable.List<CSharp.Token>(CSharp.GrammarBasics.tokenize(source))
     let res = CSharp.program().run.f(tokens)
-    return JSON.stringify(res)
+    console.log(JSON.stringify(res))
+    if (res.kind != "right" || res.value.kind != "right") return "Parse error"
+
+    let hrstart = process.hrtime()
+    let p = ast_to_type_checker(res.value.value.fst)
+
+    let output = ""
+    let log = function(s:string,x:any) {
+      output = output + s + JSON.stringify(x) + "\n\n"
+    }
+
+    let compiler_res = apply((constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
+    if (compiler_res.kind == "left") {
+      let hrdiff = process.hrtime(hrstart)
+      let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
+      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
+
+    } else {
+      let runtime_res = apply((constant<Unit,Py.Stmt>(compiler_res.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory))).then(run_to_end()), {})
+      let hrdiff = process.hrtime(hrstart)
+      let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
+      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
+      log(`Runtime result: `, JSON.stringify(runtime_res))
+    }
+    return output
 
   }
 }

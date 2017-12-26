@@ -1,3 +1,4 @@
+import * as CSharp from "./CSharpTypeChecker/csharp";
 export declare module ImpLanguageWithSuspend {
     let test_imp: () => string;
     let test_lexer: () => ({
@@ -36,5 +37,6 @@ export declare module ImpLanguageWithSuspend {
     } | {
         kind: ")";
     })[];
+    let ast_to_type_checker: (_: CSharp.Node) => CSharp.Stmt;
     let test_parser: () => string;
 }
