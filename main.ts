@@ -137,7 +137,7 @@ export let test_imp = function () {
     return output
   }
 
-  export let test_parser = () => {
+  export let test_lexer = () => {
     let source = `if x = 0 then
   print x
 
@@ -151,7 +151,15 @@ export let test_imp = function () {
 else
   print z
 `
-    return CSharp.tokenize(source)
+    return CSharp.GrammarBasics.tokenize(source)
+
+  }
+
+  export let test_parser = () => {
+    let source = `int x ; x = 0 ; x = x + 1 ;`
+    let tokens = Immutable.List<CSharp.Token>(CSharp.GrammarBasics.tokenize(source))
+    let res = CSharp.program().run.f(tokens)
+    return JSON.stringify(res)
 
   }
 }

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
@@ -67,9 +68,15 @@ var ImpLanguageWithSuspend;
         }
         return output;
     };
-    ImpLanguageWithSuspend.test_parser = function () {
+    ImpLanguageWithSuspend.test_lexer = function () {
         var source = "if x = 0 then\n  print x\n\n  if y = 0 then\n\n    print y\n\n  else\n\n    print w\nelse\n  print z\n";
-        return CSharp.tokenize(source);
+        return CSharp.GrammarBasics.tokenize(source);
+    };
+    ImpLanguageWithSuspend.test_parser = function () {
+        var source = "int x ; x = 0 ; x = x + 1 ;";
+        var tokens = Immutable.List(CSharp.GrammarBasics.tokenize(source));
+        var res = CSharp.program().run.f(tokens);
+        return JSON.stringify(res);
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())

@@ -1,7 +1,6 @@
-import { Unit, Sum } from "ts-bccc";
 export declare module ImpLanguageWithSuspend {
     let test_imp: () => string;
-    let test_parser: () => Sum<({
+    let test_lexer: () => ({
         kind: "Newline";
     } | {
         kind: "Indent";
@@ -20,9 +19,22 @@ export declare module ImpLanguageWithSuspend {
     } | {
         kind: "else";
     } | {
-        kind: "identifier";
+        kind: "id";
         v: string;
     } | {
         kind: "=";
-    })[], Unit>;
+    } | {
+        kind: "+";
+    } | {
+        kind: "*";
+    } | {
+        kind: ";";
+    } | {
+        kind: ".";
+    } | {
+        kind: "(";
+    } | {
+        kind: ")";
+    })[];
+    let test_parser: () => string;
 }

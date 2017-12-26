@@ -15,14 +15,15 @@
     [ ] LINQ
 [ ] IMP PARSER
   [ ] Statements
-    [ ] Declaration
-    [ ] Assignment
+    [/] Declaration
+    [/] Assignment
       [ ] Left-hand
-        [ ] To variable
+        [/] To variable
         [ ] To set field
       [ ] Right-hand
         [ ] Field get
-        [ ] Constant
+        [/] Constant
+        [ ] Variable
         [ ] Basic (non-recursive) arithmetic expressions
           [ ] +
           [ ] -
@@ -36,6 +37,9 @@
   [ ] Classes
     [ ] Def
     [ ] Method call
+  [ ] Fundamental, but not needed for basic implementation
+    [ ] Tokens can be separated by more than just space or newline
+    [ ] Proper (recursive) expressions
 
 
 [ ] Required for basic quality but not basic functionality
