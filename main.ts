@@ -171,9 +171,14 @@ else
 
 
   export let test_parser = () => {
-    let source = `int x ; x = 0 ; x = x + 2 ; x = x * 3 ;`
+    let source = `
+int x;
+x = 0;
+x = x + 2;
+x = x * 3;
+`
     let tokens = Immutable.List<CSharp.Token>(CSharp.GrammarBasics.tokenize(source))
-    let res = CSharp.program().run.f(tokens)
+    let res = CSharp.program().run.f(tokens.filter(t => t != undefined && t.kind != "\n" && t.kind != " ").toList())
     console.log(JSON.stringify(res))
     if (res.kind != "right" || res.value.kind != "right") return "Parse error"
 
@@ -199,7 +204,6 @@ else
       log(`Runtime result: `, JSON.stringify(runtime_res))
     }
     return output
-
   }
 }
 

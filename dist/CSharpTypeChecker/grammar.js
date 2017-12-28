@@ -1,29 +1,42 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
-var Lexer = require("../lexer");
 var ccc_aux_1 = require("../ccc_aux");
 var GrammarBasics;
 (function (GrammarBasics) {
-    var newline = ({ kind: "Newline" });
-    var indent = ({ kind: "Indent" });
-    var deindent = ({ kind: "Deindent" });
-    var semicolon = function (s) { return !/;$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: ";" }); };
-    var plus = function (s) { return !/\+$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "+" }); };
-    var times = function (s) { return !/\*$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "*" }); };
-    var dot = function (s) { return !/\.$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "." }); };
-    var lbr = function (s) { return !/\($/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "(" }); };
-    var rbr = function (s) { return !/\)$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: ")" }); };
-    var int = function (s) { return !/^[0-9]+$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "int", v: parseInt(s) }); };
-    var float = function (s) { return !/^[0-9]+.[0-9]+$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "float", v: parseFloat(s) }); };
-    var _if = function (s) { return !/^if$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "if" }); };
-    var _eq = function (s) { return !/^=$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "=" }); };
-    var _then = function (s) { return !/^then$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "then" }); };
-    var _else = function (s) { return !/^else$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "else" }); };
-    var id = function (s) { return !/^[a-zA-Z][a-zA-Z0-9]*$/.test(s) ? ccc_aux_1.none().f({}) : ccc_aux_1.some().f({ kind: "id", v: s }); };
+    var parse_prefix_regex = function (r, t) { return ts_bccc_1.mk_coroutine(ts_bccc_1.fun(function (s) {
+        var m = s.match(r);
+        if (m == null || m.length == 0) {
+            return ts_bccc_1.apply(ts_bccc_1.inl(), "No match");
+        }
+        else {
+            var rest = s.split(r)[1];
+            var f = (ts_bccc_1.constant(t(m[0])).times(ts_bccc_1.constant(rest || "")));
+            var g = f.then(ts_bccc_1.inr());
+            var h = g.then(ts_bccc_1.inr());
+            return ts_bccc_1.apply(h, {});
+        }
+    })); };
+    var eof = parse_prefix_regex(/^$/, function (s) { return ({ kind: "eof" }); });
+    var newline = parse_prefix_regex(/^\n/, function (s) { return ({ kind: "\n" }); });
+    var whitespace = parse_prefix_regex(/^\s+/, function (s) { return ({ kind: " " }); });
+    var semicolon = parse_prefix_regex(/^;/, function (s) { return ({ kind: ";" }); });
+    var plus = parse_prefix_regex(/^\+/, function (s) { return ({ kind: "+" }); });
+    var times = parse_prefix_regex(/^\*/, function (s) { return ({ kind: "*" }); });
+    var dot = parse_prefix_regex(/^\./, function (s) { return ({ kind: "." }); });
+    var lbr = parse_prefix_regex(/^\(/, function (s) { return ({ kind: "(" }); });
+    var rbr = parse_prefix_regex(/^\)/, function (s) { return ({ kind: ")" }); });
+    var int = parse_prefix_regex(/^[0-9]+/, function (s) { return ({ kind: "int", v: parseInt(s) }); });
+    var float = parse_prefix_regex(/^[0-9]+.[0-9]+/, function (s) { return ({ kind: "float", v: parseFloat(s) }); });
+    var _if = parse_prefix_regex(/^if/, function (s) { return ({ kind: "if" }); });
+    var _eq = parse_prefix_regex(/^=/, function (s) { return ({ kind: "=" }); });
+    var _then = parse_prefix_regex(/^then/, function (s) { return ({ kind: "then" }); });
+    var _else = parse_prefix_regex(/^else/, function (s) { return ({ kind: "else" }); });
+    var identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, function (s) { return ({ kind: "id", v: s }); });
+    var token = ccc_aux_1.co_catch(semicolon)(ccc_aux_1.co_catch(plus)(ccc_aux_1.co_catch(times)(ccc_aux_1.co_catch(dot)(ccc_aux_1.co_catch(lbr)(ccc_aux_1.co_catch(rbr)(ccc_aux_1.co_catch(int)(ccc_aux_1.co_catch(float)(ccc_aux_1.co_catch(_if)(ccc_aux_1.co_catch(_eq)(ccc_aux_1.co_catch(_then)(ccc_aux_1.co_catch(_else)(ccc_aux_1.co_catch(int)(ccc_aux_1.co_catch(identifier)(ccc_aux_1.co_catch(newline)(whitespace)))))))))))))));
     GrammarBasics.tokenize = function (source) {
-        var res = Lexer.tokenize(Lexer.pre_process_indentation(source), function (_) { return newline; }, function (_) { return indent; }, function (_) { return deindent; }, ts_bccc_1.defun(ccc_aux_1.option_plus(ts_bccc_1.fun(semicolon), ccc_aux_1.option_plus(ts_bccc_1.fun(dot), ccc_aux_1.option_plus(ts_bccc_1.fun(plus), ccc_aux_1.option_plus(ts_bccc_1.fun(times), ccc_aux_1.option_plus(ts_bccc_1.fun(int), ccc_aux_1.option_plus(ts_bccc_1.fun(lbr), ccc_aux_1.option_plus(ts_bccc_1.fun(rbr), ccc_aux_1.option_plus(ts_bccc_1.fun(float), ccc_aux_1.option_plus(ts_bccc_1.fun(_if), ccc_aux_1.option_plus(ts_bccc_1.fun(_eq), ccc_aux_1.option_plus(ts_bccc_1.fun(_then), ccc_aux_1.option_plus(ts_bccc_1.fun(_else), ts_bccc_1.fun(id)))))))))))))));
-        return res.kind == "right" ? Array() : res.value;
+        var res = ccc_aux_1.co_run_to_end(ccc_aux_1.co_repeat(token).then(function (ts) { return eof.then(function (_) { return ts_bccc_1.co_unit(ts); }); }), source);
+        return res.kind == "left" ? [] : res.value.fst;
     };
 })(GrammarBasics = exports.GrammarBasics || (exports.GrammarBasics = {}));
 var mk_decl = function (l, r) { return ({ kind: "decl", l: l, r: r }); };

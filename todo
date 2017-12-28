@@ -15,6 +15,8 @@
     [ ] LINQ
 [ ] IMP PARSER
   [ ] Statements
+    [ ] Debugger
+    [ ] Typechecker debugger
     [/] Declaration
     [/] Assignment
       [ ] Left-hand
@@ -23,12 +25,12 @@
       [ ] Right-hand
         [ ] Field get
         [/] Constant
-        [ ] Variable
+        [/] Variable
         [ ] Basic (non-recursive) arithmetic expressions
-          [ ] +
+          [/] +
           [ ] -
           [ ] /
-          [ ] *
+          [/] *
         [ ] Constructor
         [ ] Method call
   [ ] Functions
@@ -38,14 +40,18 @@
     [ ] Def
     [ ] Method call
   [ ] Fundamental, but not needed for basic implementation
-    [ ] Tokens can be separated by more than just space or newline
+    [ ] Ignore whitespace everywhere (in grammar instead of as post-processing of lexer)
+    [ ] Proper (recursive) field lookups
     [ ] Proper (recursive) expressions
+    [ ] Error messages and error management!
+  [ ] Electron playground
 
 
 [ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] lambda arguments in lambda type-checking errors
   [ ] breakpoint right after return (`ret_break?`)
+  [ ] PERFORMANCE HAZARD: split input string by white-space and then run coroutine many times, joining the results
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`

@@ -15,6 +15,21 @@ exports.option_plus = function (p, q) {
     var f = (ts_bccc_1.id().times(p)).then(ts_bccc_1.distribute_sum_prod()).then((ts_bccc_1.snd().then(exports.some())).plus(ts_bccc_1.fst().then(q)));
     return ts_bccc_1.fun(function (c) { return ts_bccc_1.apply(f, c); });
 };
+exports.co_run_to_end = function (p, s) {
+    var run_rec = ts_bccc_1.fun2(function (p, s) { return exports.co_run_to_end(p, s); });
+    var j1 = run_rec.plus(ts_bccc_1.inr());
+    var j = ts_bccc_1.inl().plus(j1);
+    var i = ts_bccc_1.apply(p.run.then(j), s);
+    return i;
+};
+exports.co_repeat = function (p) {
+    return exports.co_catch(p.then(function (x) {
+        return console.log(x) ||
+            exports.co_repeat(p).then(function (xs) {
+                return ts_bccc_2.co_unit([x].concat(xs));
+            });
+    }))(ts_bccc_2.co_unit(Array()));
+};
 exports.comm_list_coroutine = function (ps) {
     if (ps.isEmpty())
         return ts_bccc_2.co_unit(Immutable.List());

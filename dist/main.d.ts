@@ -36,6 +36,12 @@ export declare module ImpLanguageWithSuspend {
         kind: "(";
     } | {
         kind: ")";
+    } | {
+        kind: "eof";
+    } | {
+        kind: "\n";
+    } | {
+        kind: " ";
     })[];
     let ast_to_type_checker: (_: CSharp.Node) => CSharp.Stmt;
     let test_parser: () => string;

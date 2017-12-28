@@ -18,6 +18,22 @@ export let option_plus = function<C,A>(p:Fun<C,Option<A>>, q:Fun<C,Option<A>>) :
   return fun(c => apply(f,c))
 }
 
+export let co_run_to_end = function<S,E,A>(p:Coroutine<S,E,A>,s:S) : Sum<E,Prod<A,S>> {
+  let run_rec = fun2<Coroutine<S,E,A>, S, Sum<E,Prod<A,S>>>((p,s) => co_run_to_end(p,s))
+  let j1:Fun<Sum<CoCont<S,E,A>, CoRet<S,E,A>>, Sum<E,Prod<A,S>>> = run_rec.plus(inr())
+  let j:Fun<Sum<E, Sum<CoCont<S,E,A>, CoRet<S,E,A>>>, Sum<E,Prod<A,S>>> = inl<E,Prod<A,S>>().plus(j1)
+  let i = apply(p.run.then(j),s)
+  return i
+}
+
+export let co_repeat = function<S,E,A>(p:Coroutine<S,E,A>) : Coroutine<S,E,Array<A>> {
+  return co_catch<S,E,Array<A>>(
+    p.then(x =>
+    console.log(x) ||
+    co_repeat(p).then(xs =>
+    co_unit([x, ...xs])
+    )))(co_unit(Array<A>()))
+}
 
 export let comm_list_coroutine = function<S,E,A>(ps:Immutable.List<Coroutine<S,E,A>>) : Coroutine<S,E,Immutable.List<A>> {
   if (ps.isEmpty()) return co_unit<S,E,Immutable.List<A>>(Immutable.List<A>())

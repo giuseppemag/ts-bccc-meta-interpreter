@@ -86,9 +86,9 @@ var ImpLanguageWithSuspend;
                                         : CSharp.done;
     }; // should give an error
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "int x ; x = 0 ; x = x + 2 ; x = x * 3 ;";
+        var source = "\nint x;\nx = 0;\nx = x + 2;\nx = x * 3;\n";
         var tokens = Immutable.List(CSharp.GrammarBasics.tokenize(source));
-        var res = CSharp.program().run.f(tokens);
+        var res = CSharp.program().run.f(tokens.filter(function (t) { return t != undefined && t.kind != "\n" && t.kind != " "; }).toList());
         console.log(JSON.stringify(res));
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error";

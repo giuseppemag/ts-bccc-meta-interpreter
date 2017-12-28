@@ -35,56 +35,62 @@ export declare type Token = {
     kind: "(";
 } | {
     kind: ")";
+} | {
+    kind: "eof";
+} | {
+    kind: "\n";
+} | {
+    kind: " ";
 };
 export declare module GrammarBasics {
     let tokenize: (source: string) => Token[];
 }
-export interface int {
+export interface IntAST {
     kind: "int";
     value: number;
 }
-export interface id {
+export interface IdAST {
     kind: "id";
     value: string;
 }
-export interface decl {
+export interface DeclAST {
     kind: "decl";
     l: Node;
     r: Node;
 }
-export interface assign {
+export interface AssignAST {
     kind: "=";
     l: Node;
     r: Node;
 }
-export interface field_ref {
+export interface FieldRefAST {
     kind: ".";
     l: Node;
     r: Node;
 }
-export interface semicolon {
+export interface SemicolonAST {
     kind: ";";
     l: Node;
     r: Node;
 }
-export interface plus {
+export interface PlusAST {
     kind: "+";
     l: Node;
     r: Node;
 }
-export interface times {
+export interface TimesAST {
     kind: "*";
     l: Node;
     r: Node;
 }
-export interface fun_def {
+export interface FunDefAST {
     kind: "fun";
-    n: id;
+    n: IdAST;
     args: Array<Node>;
     body: Node;
 }
-export declare type Node = int | id | assign | field_ref | decl | semicolon | fun_def | plus | times;
+export declare type Node = IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
 export declare type Error = string;
-export declare type State = Immutable.List<Token>;
-export declare type Parser = Coroutine<State, Error, Node>;
+export declare type Tokens = Immutable.List<Token>;
+export declare type Parser = Coroutine<Tokens, Error, Node>;
 export declare let program: () => Parser;

@@ -1,10 +1,12 @@
-import { Unit, Fun, Sum } from "ts-bccc";
+import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import * as Immutable from "immutable";
 export declare let option_to_array: <A>(x: Sum<A, Unit>) => A[];
 export declare let some: <A>() => Fun<A, Sum<A, Unit>>;
 export declare let none: <A>() => Fun<Unit, Sum<A, Unit>>;
 export declare let option_plus: <C, A>(p: Fun<C, Sum<A, Unit>>, q: Fun<C, Sum<A, Unit>>) => Fun<C, Sum<A, Unit>>;
+export declare let co_run_to_end: <S, E, A>(p: Coroutine<S, E, A>, s: S) => Sum<E, Prod<A, S>>;
+export declare let co_repeat: <S, E, A>(p: Coroutine<S, E, A>) => Coroutine<S, E, A[]>;
 export declare let comm_list_coroutine: <S, E, A>(ps: Immutable.List<Coroutine<S, E, A>>) => Coroutine<S, E, Immutable.List<A>>;
 export declare let co_lookup: <S, E, A>(p: Coroutine<S, E, A>) => Coroutine<S, E, A>;
 export declare let co_not: <S, E, A>(e: E) => (p: Coroutine<S, E, A>) => Coroutine<S, E, Unit>;
