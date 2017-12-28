@@ -68,10 +68,6 @@ var ImpLanguageWithSuspend;
         }
         return output;
     };
-    ImpLanguageWithSuspend.test_lexer = function () {
-        var source = "if x = 0 then\n  print x\n\n  if y = 0 then\n\n    print y\n\n  else\n\n    print w\nelse\n  print z\n";
-        return CSharp.GrammarBasics.tokenize(source);
-    };
     ImpLanguageWithSuspend.ast_to_type_checker = function (n) {
         return n.kind == "int" ? CSharp.int(n.value)
             : n.kind == ";" ? CSharp.semicolon(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
@@ -86,10 +82,13 @@ var ImpLanguageWithSuspend;
                                         : CSharp.done;
     }; // should give an error
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 0;\nx = x + 2;\nx = x * 3;\n";
-        var tokens = Immutable.List(CSharp.GrammarBasics.tokenize(source));
-        var res = CSharp.program().run.f(tokens.filter(function (t) { return t != undefined && t.kind != "\n" && t.kind != " "; }).toList());
-        console.log(JSON.stringify(res));
+        var source = "\nint x;\nx = 0;\nx = x + 3;\nx = x * 3;\n";
+        var parse_result = CSharp.GrammarBasics.tokenize(source);
+        if (parse_result.kind == "left")
+            return parse_result.value;
+        var tokens = Immutable.List(parse_result.value);
+        var res = CSharp.program().run.f(tokens.filter(function (t) { return t != undefined && t.kind != "nl" && t.kind != " "; }).toList());
+        // console.log(tokens.toArray().map(t => JSON.stringify(t)))
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error";
         var hrstart = process.hrtime();

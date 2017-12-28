@@ -1,6 +1,7 @@
 import * as Immutable from "immutable";
-import { Coroutine } from "ts-bccc";
-export declare type Token = {
+import { Sum, Coroutine } from "ts-bccc";
+import { SourceRange } from "../source_range";
+export declare type Token = ({
     kind: "Newline";
 } | {
     kind: "Indent";
@@ -38,12 +39,14 @@ export declare type Token = {
 } | {
     kind: "eof";
 } | {
-    kind: "\n";
+    kind: "nl";
 } | {
     kind: " ";
+}) & {
+    range: SourceRange;
 };
 export declare module GrammarBasics {
-    let tokenize: (source: string) => Token[];
+    let tokenize: (source: string) => Sum<string, Token[]>;
 }
 export interface IntAST {
     kind: "int";

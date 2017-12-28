@@ -137,24 +137,6 @@ export let test_imp = function () {
     return output
   }
 
-  export let test_lexer = () => {
-    let source = `if x = 0 then
-  print x
-
-  if y = 0 then
-
-    print y
-
-  else
-
-    print w
-else
-  print z
-`
-    return CSharp.GrammarBasics.tokenize(source)
-
-  }
-
   export let ast_to_type_checker : (_:CSharp.Node) => CSharp.Stmt = n =>
     n.kind == "int" ? CSharp.int(n.value)
     : n.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
@@ -174,12 +156,15 @@ else
     let source = `
 int x;
 x = 0;
-x = x + 2;
+x = x + 3;
 x = x * 3;
 `
-    let tokens = Immutable.List<CSharp.Token>(CSharp.GrammarBasics.tokenize(source))
-    let res = CSharp.program().run.f(tokens.filter(t => t != undefined && t.kind != "\n" && t.kind != " ").toList())
-    console.log(JSON.stringify(res))
+    let parse_result = CSharp.GrammarBasics.tokenize(source)
+    if (parse_result.kind == "left") return parse_result.value
+
+    let tokens = Immutable.List<CSharp.Token>(parse_result.value)
+    let res = CSharp.program().run.f(tokens.filter(t => t != undefined && t.kind != "nl" && t.kind != " ").toList())
+    // console.log(tokens.toArray().map(t => JSON.stringify(t)))
     if (res.kind != "right" || res.value.kind != "right") return "Parse error"
 
     let hrstart = process.hrtime()

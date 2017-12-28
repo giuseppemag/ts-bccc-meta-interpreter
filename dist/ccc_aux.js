@@ -24,10 +24,9 @@ exports.co_run_to_end = function (p, s) {
 };
 exports.co_repeat = function (p) {
     return exports.co_catch(p.then(function (x) {
-        return console.log(x) ||
-            exports.co_repeat(p).then(function (xs) {
-                return ts_bccc_2.co_unit([x].concat(xs));
-            });
+        return exports.co_repeat(p).then(function (xs) {
+            return ts_bccc_2.co_unit([x].concat(xs));
+        });
     }))(ts_bccc_2.co_unit(Array()));
 };
 exports.comm_list_coroutine = function (ps) {

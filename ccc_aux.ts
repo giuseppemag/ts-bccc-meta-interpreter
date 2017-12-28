@@ -29,7 +29,6 @@ export let co_run_to_end = function<S,E,A>(p:Coroutine<S,E,A>,s:S) : Sum<E,Prod<
 export let co_repeat = function<S,E,A>(p:Coroutine<S,E,A>) : Coroutine<S,E,Array<A>> {
   return co_catch<S,E,Array<A>>(
     p.then(x =>
-    console.log(x) ||
     co_repeat(p).then(xs =>
     co_unit([x, ...xs])
     )))(co_unit(Array<A>()))
