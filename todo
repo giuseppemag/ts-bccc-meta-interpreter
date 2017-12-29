@@ -39,12 +39,9 @@
   [ ] Classes
     [ ] Def
     [ ] Method call
-  [ ] Fundamental, but not needed for basic implementation
-    [ ] Ignore whitespace everywhere (in grammar instead of as post-processing of lexer)
+  [ ] Fundamental, but not needed for first viability test
     [ ] Proper (recursive) field lookups
     [ ] Proper (recursive) expressions
-    [ ] Error messages and error management!
-      [ ] Last parsed statement vs last non-parsed statement
   [ ] Electron playground
 
 

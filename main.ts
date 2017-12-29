@@ -137,7 +137,7 @@ export let test_imp = function () {
     return output
   }
 
-  export let ast_to_type_checker : (_:CSharp.Node) => CSharp.Stmt = n =>
+  export let ast_to_type_checker : (_:CSharp.ParserRes) => CSharp.Stmt = n =>
     n.kind == "int" ? CSharp.int(n.value)
     : n.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
     : n.kind == "*" ? CSharp.times(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
@@ -163,9 +163,8 @@ x = x * 3;
     if (parse_result.kind == "left") return parse_result.value
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    let res = CSharp.program().run.f(tokens.filter(t => t != undefined && t.kind != "nl" && t.kind != " ").toList())
-    // console.log(tokens.toArray().map(t => JSON.stringify(t)))
-    if (res.kind != "right" || res.value.kind != "right") return "Parse error"
+    let res = CSharp.program().run.f(tokens)
+    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)

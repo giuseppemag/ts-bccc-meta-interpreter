@@ -87,10 +87,9 @@ var ImpLanguageWithSuspend;
         if (parse_result.kind == "left")
             return parse_result.value;
         var tokens = Immutable.List(parse_result.value);
-        var res = CSharp.program().run.f(tokens.filter(function (t) { return t != undefined && t.kind != "nl" && t.kind != " "; }).toList());
-        // console.log(tokens.toArray().map(t => JSON.stringify(t)))
+        var res = CSharp.program().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
-            return "Parse error";
+            return "Parse error: " + res.value;
         var hrstart = process.hrtime();
         var p = ImpLanguageWithSuspend.ast_to_type_checker(res.value.value.fst);
         var output = "";

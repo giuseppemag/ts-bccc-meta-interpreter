@@ -23,7 +23,7 @@ exports.co_run_to_end = function (p, s) {
     return i;
 };
 exports.co_repeat = function (p) {
-    return exports.co_catch(p.then(function (x) {
+    return exports.co_catch(function (e1, e2) { return e1; })(p.then(function (x) {
         return exports.co_repeat(p).then(function (xs) {
             return ts_bccc_2.co_unit([x].concat(xs));
         });
@@ -63,19 +63,40 @@ exports.co_not = function (e) { return function (p) {
         return ts_bccc_1.inl().f(e);
     }));
 }; };
-exports.co_catch = function (p) { return function (on_err) {
+exports.co_catch = function (merge_errors) { return function (p) { return function (on_err) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
         var res = p.run.f(s);
         if (res.kind == "left") {
-            return on_err.run.f(s);
+            var e1_1 = res.value;
+            var k = exports.co_map_error(function (e2) { return merge_errors(e1_1, e2); })(on_err);
+            return k.run.f(s);
         }
         if (res.value.kind == "left") {
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
-            var k1 = exports.co_catch(k)(ts_bccc_1.co_set_state(s).then(function (_) { return on_err; }));
+            var k1 = exports.co_catch(merge_errors)(k)(ts_bccc_1.co_set_state(s).then(function (_) { return on_err; }));
             var res1 = k1.run.f(s1);
             return res1;
         }
         return res;
+    }));
+}; }; };
+exports.co_map_error = function (f) { return function (p) {
+    return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
+        var res = p.run.f(s);
+        if (res.kind == "left") {
+            var g = ts_bccc_1.apply(ts_bccc_1.inl(), f(res.value));
+            return g;
+        }
+        if (res.value.kind == "left") {
+            var k = res.value.value.fst;
+            var s1 = res.value.value.snd;
+            var k1 = exports.co_map_error(f)(k);
+            var res1 = k1.run.f(s1);
+            return res1;
+        }
+        var actual_res = res.value.value;
+        var h = ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inr()), actual_res);
+        return h;
     }));
 }; };

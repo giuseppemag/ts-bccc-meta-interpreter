@@ -2,12 +2,6 @@ import * as Immutable from "immutable";
 import { Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 export declare type Token = ({
-    kind: "Newline";
-} | {
-    kind: "Indent";
-} | {
-    kind: "Deindent";
-} | {
     kind: "int";
     v: number;
 } | {
@@ -58,42 +52,42 @@ export interface IdAST {
 }
 export interface DeclAST {
     kind: "decl";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface AssignAST {
     kind: "=";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface FieldRefAST {
     kind: ".";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface SemicolonAST {
     kind: ";";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface PlusAST {
     kind: "+";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface TimesAST {
     kind: "*";
-    l: Node;
-    r: Node;
+    l: ParserRes;
+    r: ParserRes;
 }
 export interface FunDefAST {
     kind: "fun";
     n: IdAST;
-    args: Array<Node>;
-    body: Node;
+    args: Array<ParserRes>;
+    body: ParserRes;
 }
-export declare type Node = IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
-export declare type Error = string;
-export declare type Tokens = Immutable.List<Token>;
-export declare type Parser = Coroutine<Tokens, Error, Node>;
+export declare type ParserRes = IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
+export declare type ParserError = string;
+export declare type ParserState = Immutable.List<Token>;
+export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;
 export declare let program: () => Parser;

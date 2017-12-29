@@ -27,7 +27,7 @@ export let co_run_to_end = function<S,E,A>(p:Coroutine<S,E,A>,s:S) : Sum<E,Prod<
 }
 
 export let co_repeat = function<S,E,A>(p:Coroutine<S,E,A>) : Coroutine<S,E,Array<A>> {
-  return co_catch<S,E,Array<A>>(
+  return co_catch<S,E,Array<A>>((e1,e2)=>e1)(
     p.then(x =>
     co_repeat(p).then(xs =>
     co_unit([x, ...xs])
@@ -67,18 +67,40 @@ export let co_not = <S, E, A>(e:E) => (p: Coroutine<S, E, A>) : Coroutine<S, E, 
     return inl<E,CoRes<S,E,Unit>>().f(e)
   }))
 
-export let co_catch = <S, E, A>(p: Coroutine<S, E, A>) => (on_err:Coroutine<S,E,A>) : Coroutine<S, E, A> =>
+export let co_catch = <S, E, A>(merge_errors:(e1:E,e2:E)=>E) => (p: Coroutine<S, E, A>) => (on_err:Coroutine<S,E,A>) : Coroutine<S, E, A> =>
   mk_coroutine<S,E,A>(fun(s => {
     let res = p.run.f(s)
     if (res.kind == "left") { // error case
-      return on_err.run.f(s)
+      let e1 = res.value
+      let k = co_map_error<S,E,E,A>(e2 => merge_errors(e1,e2))(on_err)
+      return k.run.f(s)
     }
     if (res.value.kind == "left") { // continuation case
       let k = res.value.value.fst
       let s1 = res.value.value.snd
-      let k1 = co_catch<S,E,A>(k)(co_set_state<S,E>(s).then(_ => on_err))
+      let k1 = co_catch<S,E,A>(merge_errors)(k)(co_set_state<S,E>(s).then(_ => on_err))
       let res1 = k1.run.f(s1)
       return res1
     }
     return res
+  }))
+
+export let co_map_error = <S, E, E1, A>(f:(_:E) => E1) => (p:Coroutine<S,E,A>) : Coroutine<S, E1, A> =>
+  mk_coroutine<S,E1,A>(fun(
+    s => {
+    let res = p.run.f(s)
+    if (res.kind == "left") { // error case
+      let g:CoPreRes<S,E1,A> = apply(inl<E1, CoRes<S,E1,A>>(), f(res.value))
+      return g
+    }
+    if (res.value.kind == "left") { // continuation case
+      let k = res.value.value.fst
+      let s1 = res.value.value.snd
+      let k1:Coroutine<S,E1,A> = co_map_error<S,E,E1,A>(f)(k)
+      let res1:CoPreRes<S,E1,A> = k1.run.f(s1)
+      return res1
+    }
+    let actual_res = res.value.value
+    let h:CoPreRes<S,E1,A> = apply(inr<E1,CoRes<S,E1,A>>().after(inr<CoCont<S,E1,A>,CoRet<S,E1,A>>()), actual_res)
+    return h
   }))
