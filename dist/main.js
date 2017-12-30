@@ -16,7 +16,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.test_imp = function () {
         var loop_test = CSharp.semicolon(CSharp.decl_v("s", CSharp.string_type), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10))(CSharp.done), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("s", CSharp.str("")), CSharp.semicolon(CSharp.set_v("i", CSharp.int(20)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 10, 10))(CSharp.done), CSharp.while_do(CSharp.gt(CSharp.get_v("i"), CSharp.int(0)), CSharp.semicolon(CSharp.set_v("i", CSharp.minus(CSharp.get_v("i"), CSharp.int(1))), CSharp.semicolon(CSharp.set_v("s", CSharp.plus(CSharp.get_v("s"), CSharp.str("*"))), CSharp.breakpoint(source_range_1.mk_range(0, 0, 10, 10))(CSharp.done))))))))));
-        var arr_test = CSharp.semicolon(CSharp.decl_v("a", CSharp.arr_type(CSharp.int_type)), CSharp.semicolon(CSharp.set_v("a", CSharp.new_array(CSharp.int_type, CSharp.int(10))), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("i", CSharp.int(0)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 0, 0))(CSharp.done), CSharp.while_do(CSharp.lt(CSharp.get_v("i"), CSharp.get_arr_len(CSharp.get_v("a"))), CSharp.semicolon(CSharp.set_arr_el(CSharp.get_v("a"), CSharp.get_v("i"), CSharp.times(CSharp.get_v("i"), CSharp.int(2))), CSharp.semicolon(CSharp.set_v("i", CSharp.plus(CSharp.get_v("i"), CSharp.int(1))), 
+        var arr_test = CSharp.semicolon(CSharp.decl_v("a", CSharp.arr_type(CSharp.int_type)), CSharp.semicolon(CSharp.set_v("a", CSharp.new_array(CSharp.int_type, CSharp.int(10))), CSharp.semicolon(CSharp.decl_v("i", CSharp.int_type), CSharp.semicolon(CSharp.set_v("i", CSharp.int(0)), CSharp.semicolon(CSharp.typechecker_breakpoint(source_range_1.mk_range(0, 0, 0, 0))(CSharp.done), CSharp.while_do(CSharp.lt(CSharp.get_v("i"), CSharp.get_arr_len(CSharp.get_v("a"))), CSharp.semicolon(CSharp.set_arr_el(CSharp.get_v("a"), CSharp.get_v("i"), CSharp.times(CSharp.get_v("i"), CSharp.int(2), source_range_1.zero_range)), CSharp.semicolon(CSharp.set_v("i", CSharp.plus(CSharp.get_v("i"), CSharp.int(1))), 
         //CSharp.breakpoint(mk_range(1,1,1,1))(
         CSharp.done
         //)
@@ -30,7 +30,7 @@ var ImpLanguageWithSuspend;
             body: (CSharp.ret(CSharp.plus(CSharp.get_v("i"), CSharp.get_v("x")))),
             parameters: [CSharp.mk_param("i", CSharp.int_type)],
             return_t: CSharp.int_type }, ["x"]), CSharp.semicolon(CSharp.def_fun({ name: "g",
-            body: (CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x")))),
+            body: (CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x"), source_range_1.zero_range))),
             parameters: [CSharp.mk_param("j", CSharp.int_type)],
             return_t: CSharp.int_type }, ["x"]), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(3, 0, 4, 0))(CSharp.done), CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(4, 0, 5, 0))(CSharp.done), CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")])))))))))));
         var class_test = CSharp.semicolon(CSharp.def_class("Vector2", [{
@@ -42,7 +42,7 @@ var ImpLanguageWithSuspend;
             },
             {
                 name: "Scale",
-                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"))), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"))), CSharp.done)),
+                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
                 parameters: [{ name: "k", type: CSharp.int_type }],
                 return_t: CSharp.unit_type
             }], [{ name: "X", type: CSharp.int_type },
@@ -69,20 +69,21 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.ast_to_type_checker = function (n) {
-        return n.kind == "int" ? CSharp.int(n.value)
-            : n.kind == ";" ? CSharp.semicolon(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
-                : n.kind == "*" ? CSharp.times(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
-                    : n.kind == "+" ? CSharp.plus(ImpLanguageWithSuspend.ast_to_type_checker(n.l), ImpLanguageWithSuspend.ast_to_type_checker(n.r))
-                        : n.kind == "id" ? CSharp.get_v(n.value)
-                            : n.kind == "." && n.r.kind == "id" ? CSharp.field_get(ImpLanguageWithSuspend.ast_to_type_checker(n.l), n.r.value)
-                                : n.kind == "=" && n.l.kind == "id" ? CSharp.set_v(n.l.value, ImpLanguageWithSuspend.ast_to_type_checker(n.r))
-                                    : n.kind == "decl" && n.l.kind == "id" && n.r.kind == "id" ?
-                                        n.l.value == "int" ? CSharp.decl_v(n.r.value, CSharp.int_type)
-                                            : CSharp.decl_v(n.r.value, CSharp.ref_type(n.l.value))
-                                        : CSharp.done;
+        return n.ast.kind == "int" ? CSharp.int(n.ast.value)
+            : n.ast.kind == "string" ? CSharp.str(n.ast.value)
+                : n.ast.kind == ";" ? CSharp.semicolon(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
+                    : n.ast.kind == "*" ? CSharp.times(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r), n.range)
+                        : n.ast.kind == "+" ? CSharp.plus(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
+                            : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
+                                : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
+                                    : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
+                                        : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
+                                            n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+                                                : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+                                            : CSharp.done;
     }; // should give an error
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 0;\nx = x + 3;\nx = x * 3;\n";
+        var source = "\nint x;\nx = 0;\nx = x + 2;\nx = x * \"3\";\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

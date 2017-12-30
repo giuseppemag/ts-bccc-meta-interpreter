@@ -2,6 +2,9 @@ import * as Immutable from "immutable";
 import { Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 export declare type Token = ({
+    kind: "string";
+    v: string;
+} | {
     kind: "int";
     v: number;
 } | {
@@ -41,6 +44,10 @@ export declare type Token = ({
 };
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
+}
+export interface StringAST {
+    kind: "string";
+    value: string;
 }
 export interface IntAST {
     kind: "int";
@@ -83,10 +90,14 @@ export interface TimesAST {
 export interface FunDefAST {
     kind: "fun";
     n: IdAST;
-    args: Array<ParserRes>;
-    body: ParserRes;
+    args: Array<AST>;
+    body: AST;
 }
-export declare type ParserRes = IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
+export declare type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
+export interface ParserRes {
+    range: SourceRange;
+    ast: AST;
+}
 export declare type ParserError = string;
 export declare type ParserState = Immutable.List<Token>;
 export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;

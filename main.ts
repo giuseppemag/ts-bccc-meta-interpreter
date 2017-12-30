@@ -5,7 +5,7 @@ import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { mk_range } from "./source_range";
+import { mk_range, zero_range } from "./source_range";
 
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
@@ -42,7 +42,7 @@ export let test_imp = function () {
       CSharp.semicolon(CSharp.set_v("i", CSharp.int(0)),
       CSharp.semicolon(CSharp.typechecker_breakpoint(mk_range(0,0,0,0))(CSharp.done),
       CSharp.while_do(CSharp.lt(CSharp.get_v("i"), CSharp.get_arr_len(CSharp.get_v("a"))),
-        CSharp.semicolon(CSharp.set_arr_el(CSharp.get_v("a"), CSharp.get_v("i"), CSharp.times(CSharp.get_v("i"), CSharp.int(2))),
+        CSharp.semicolon(CSharp.set_arr_el(CSharp.get_v("a"), CSharp.get_v("i"), CSharp.times(CSharp.get_v("i"), CSharp.int(2), zero_range)),
         CSharp.semicolon(CSharp.set_v("i", CSharp.plus(CSharp.get_v("i"), CSharp.int(1))),
         //CSharp.breakpoint(mk_range(1,1,1,1))(
           CSharp.done
@@ -78,7 +78,7 @@ export let test_imp = function () {
         parameters:[CSharp.mk_param("i", CSharp.int_type)],
         return_t:CSharp.int_type }, ["x"]),
       CSharp.semicolon(CSharp.def_fun({ name:"g",
-        body:(CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x")))),
+        body:(CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x"), zero_range))),
         parameters:[CSharp.mk_param("j", CSharp.int_type)],
         return_t:CSharp.int_type }, ["x"]),
       CSharp.semicolon(CSharp.breakpoint(mk_range(3,0,4,0))(CSharp.done),
@@ -100,8 +100,8 @@ export let test_imp = function () {
           },
           {
             name:"Scale",
-            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"))),
-                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"))),
+            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
+                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
                  CSharp.done)),
             parameters:[{ name:"k", type:CSharp.int_type}],
             return_t:CSharp.unit_type
@@ -138,16 +138,17 @@ export let test_imp = function () {
   }
 
   export let ast_to_type_checker : (_:CSharp.ParserRes) => CSharp.Stmt = n =>
-    n.kind == "int" ? CSharp.int(n.value)
-    : n.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
-    : n.kind == "*" ? CSharp.times(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
-    : n.kind == "+" ? CSharp.plus(ast_to_type_checker(n.l), ast_to_type_checker(n.r))
-    : n.kind == "id" ? CSharp.get_v(n.value)
-    : n.kind == "." && n.r.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.l), n.r.value)
-    : n.kind == "=" && n.l.kind == "id" ? CSharp.set_v(n.l.value, ast_to_type_checker(n.r))
-    : n.kind == "decl" && n.l.kind == "id" && n.r.kind == "id" ?
-      n.l.value == "int" ? CSharp.decl_v(n.r.value, CSharp.int_type)
-      : CSharp.decl_v(n.r.value, CSharp.ref_type(n.l.value))
+    n.ast.kind == "int" ? CSharp.int(n.ast.value)
+    : n.ast.kind == "string" ? CSharp.str(n.ast.value)
+    : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+    : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r), n.range)
+    : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+    : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
+    : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
+    : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
+    : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
+      n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+      : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
     : CSharp.done // should give an error
 
 
@@ -156,8 +157,8 @@ export let test_imp = function () {
     let source = `
 int x;
 x = 0;
-x = x + 3;
-x = x * 3;
+x = x + 2;
+x = x * "3";
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

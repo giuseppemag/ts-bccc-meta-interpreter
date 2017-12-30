@@ -14,6 +14,10 @@
     [ ] Extension methods
     [ ] LINQ
 [ ] IMP PARSER
+  [ ] Functions
+    [ ] Def
+    [ ] Call
+    [ ] Error inside functions
   [ ] Statements
     [ ] Debugger
     [ ] Typechecker debugger
@@ -33,9 +37,6 @@
           [/] *
         [ ] Constructor
         [ ] Method call
-  [ ] Functions
-    [ ] Def
-    [ ] Call
   [ ] Classes
     [ ] Def
     [ ] Method call

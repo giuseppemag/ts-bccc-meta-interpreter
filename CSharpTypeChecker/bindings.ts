@@ -3,7 +3,7 @@ import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, in
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { SourceRange, mk_range } from "../source_range"
+import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine } from "../ccc_aux";
 
@@ -30,7 +30,7 @@ let mk_typing = (t:Type,s:Sem.Expr<Sem.Val>,is_constant?:boolean) : Typing => ({
 let mk_typing_cat = fun2(mk_typing)
 let mk_typing_cat_full = fun2<TypeInformation, Sem.Expr<Sem.Val>, Typing>((t,s) => mk_typing(t,s,t.is_constant))
 
-export let empty_state : State = { highlighting:{ start:{ row:0, column:0 }, end:{ row:0, column:0 } }, bindings:Immutable.Map<Name, TypeInformation>() }
+export let empty_state : State = { highlighting:zero_range, bindings:Immutable.Map<Name, TypeInformation>() }
 
 export let load: Fun<Prod<string, State>, Sum<Unit,TypeInformation>> = fun(x =>
   x.snd.bindings.has(x.fst) ?
@@ -171,7 +171,7 @@ export let div = function(a:Stmt, b:Stmt) : Stmt {
         ))
 }
 
-export let times = function(a:Stmt, b:Stmt) : Stmt {
+export let times = function(a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -179,8 +179,8 @@ export let times = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(int_type, Sem.int_times(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_times(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (*)!")
-          : co_error<State,Err,Typing>("Error: cannot multiply expressions of different types!")
+            : co_error<State,Err,Typing>(`Error (${sr.to_string()}): unsupported types for operator (*)!`)
+          : co_error<State,Err,Typing>(`Error (${sr.to_string()}): cannot multiply expressions of incompatible types!`)
         ))
 }
 

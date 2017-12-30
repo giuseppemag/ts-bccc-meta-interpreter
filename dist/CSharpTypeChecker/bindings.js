@@ -12,6 +12,7 @@ var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var Co = require("ts-bccc");
+var source_range_1 = require("../source_range");
 var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
 exports.unit_type = { kind: "unit" };
@@ -26,7 +27,7 @@ exports.ref_type = function (C_name) { return ({ kind: "ref", C_name: C_name });
 var mk_typing = function (t, s, is_constant) { return ({ type: __assign({}, t, { is_constant: is_constant == undefined ? false : is_constant }), sem: s }); };
 var mk_typing_cat = ts_bccc_1.fun2(mk_typing);
 var mk_typing_cat_full = ts_bccc_1.fun2(function (t, s) { return mk_typing(t, s, t.is_constant); });
-exports.empty_state = { highlighting: { start: { row: 0, column: 0 }, end: { row: 0, column: 0 } }, bindings: Immutable.Map() };
+exports.empty_state = { highlighting: source_range_1.zero_range, bindings: Immutable.Map() };
 exports.load = ts_bccc_1.fun(function (x) {
     return x.snd.bindings.has(x.fst) ?
         ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.bindings.get(x.fst))
@@ -160,7 +161,7 @@ exports.div = function (a, b) {
         });
     });
 };
-exports.times = function (a, b) {
+exports.times = function (a, b, sr) {
     return a.then(function (a_t) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
@@ -168,8 +169,8 @@ exports.times = function (a, b) {
                     ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_times(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
                         ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_times(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error("Error: unsupported types for operator (*)!")
-                : ts_bccc_2.co_error("Error: cannot multiply expressions of different types!");
+                        : ts_bccc_2.co_error("Error (" + sr.to_string() + "): unsupported types for operator (*)!")
+                : ts_bccc_2.co_error("Error (" + sr.to_string() + "): cannot multiply expressions of incompatible types!");
         });
     });
 };

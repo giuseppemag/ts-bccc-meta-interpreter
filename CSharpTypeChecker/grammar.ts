@@ -1,11 +1,11 @@
 import * as Immutable from "immutable"
 import { Prod, apply, curry, inl, inr, unit, Option, Sum, Unit, Fun, distribute_sum_prod, swap_prod, snd, fst, defun, Coroutine, co_get_state, co_error, co_set_state, co_unit, constant, State, CoCont, CoRet, mk_coroutine, Co, fun, CoPreRes, CoRes } from "ts-bccc"
 import * as CCC from "ts-bccc"
-import { SourceRange } from "../source_range";
+import { SourceRange, join_source_ranges, mk_range } from "../source_range";
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end } from "../ccc_aux"
 
-export type Token = ({ kind:"int", v:number } | { kind:"float", v:number }
+export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number }
   | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:"+" } | { kind:"*" }
@@ -23,12 +23,15 @@ export module GrammarBasics {
   = (r,t) => mk_coroutine<LexerState,LexerError,Token>(fun(s => {
     let m = s.buffer.match(r)
     if (m == null || m.length == 0) {
-      return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), "No match")
+      return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), `Syntax error: cannot match token at (${s.line_index}, ${s.column_index}), ${s.buffer.substr(0, Math.min(s.buffer.length, 5))}...`)
     } else {
       let rest = s.buffer.split(r)[1]
+      // console.log("Lexing", r, s.buffer)
+      // console.log("Match", m)
+      // console.log("Rest", rest)
       let new_line_index = s.line_index
       let new_column_index = s.column_index + m[0].length
-      let f = (constant<Unit,Token>(t(m[0], { start:{row:s.line_index, column:s.column_index}, end:{row:new_line_index, column:new_column_index} })).times(constant<Unit,LexerState>({buffer:rest || "", line_index:new_line_index, column_index:new_column_index})))
+      let f = (constant<Unit,Token>(t(m[0], mk_range(s.line_index, s.column_index, new_line_index, new_column_index))).times(constant<Unit,LexerState>({buffer:rest || "", line_index:new_line_index, column_index:new_column_index})))
       let g = f.then(inr<CoCont<LexerState,LexerError,Token>, CoRet<LexerState,LexerError,Token>>())
       let h = g.then(inr<LexerError, CoRes<LexerState,LexerError,Token>>())
       return apply(h, {})
@@ -44,6 +47,7 @@ export module GrammarBasics {
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
   let lbr = parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("}))
   let rbr = parse_prefix_regex(/^\)/, (s,r) => ({range:r, kind:")"}))
+  let string = parse_prefix_regex(/^".*"/, (s,r) => ({range:r,  kind:"string", v:s }))
   let int = parse_prefix_regex(/^[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) }))
   let float = parse_prefix_regex(/^[0-9]+.[0-9]+/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) }))
   let _if = parse_prefix_regex(/^if/, (s,r) => ({range:r, kind:"if"}))
@@ -62,6 +66,7 @@ export module GrammarBasics {
               lex_catch(lbr)(
               lex_catch(rbr)(
               lex_catch(int)(
+              lex_catch(string)(
               lex_catch(float)(
               lex_catch(_if)(
               lex_catch(_eq)(
@@ -70,12 +75,10 @@ export module GrammarBasics {
               lex_catch(int)(
               lex_catch(identifier)(
               whitespace
-              ))))))))))))))
+              )))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
-    // console.log(lines)
-    // process.exit()
     let tokens = Immutable.List<Token>()
     let line_index = 0
     while (line_index < lines.length) {
@@ -83,30 +86,36 @@ export module GrammarBasics {
       let line_tokens = co_run_to_end(co_repeat(token).then(ts => eof.then(_ => co_unit(ts))), { buffer:line, line_index:line_index, column_index:0})
       if (line_tokens.kind == "left") return line_tokens
       tokens = tokens.push(...line_tokens.value.fst)
-      tokens = tokens.push({kind:"nl", range:{ start:{row:line_index, column:line.length}, end:{row:line_index, column:line.length+1} }})
+      tokens = tokens.push({kind:"nl", range:mk_range(line_index, line.length, line_index, line.length+1)})
       line_index = line_index + 1
     }
     return apply(inr<LexerError,Token[]>(), tokens.toArray())
   }
 }
 
+export interface StringAST { kind: "string", value:string }
 export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
 export interface DeclAST { kind: "decl", l:ParserRes, r:ParserRes }
-let mk_decl = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: "decl", l:l, r:r })
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
-let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: "=", l:l, r:r })
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
-let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: ".", l:l, r:r })
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
-let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: ";", l:l, r:r })
 export interface PlusAST { kind: "+", l:ParserRes, r:ParserRes }
-let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: "+", l:l, r:r })
 export interface TimesAST { kind: "*", l:ParserRes, r:ParserRes }
-let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ kind: "*", l:l, r:r })
-export interface FunDefAST { kind: "fun", n:IdAST, args:Array<ParserRes>, body:ParserRes }
-export type ParserRes = IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST
-// interface AST { range:SourceRange, node:Node }
+export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
+export type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST
+export interface ParserRes { range:SourceRange, ast:AST }
+
+let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
+let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
+let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
+let mk_decl = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "decl", l:l, r:r }})
+let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
+let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
+let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
+let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "+", l:l, r:r }})
+let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "*", l:l, r:r }})
+
 
 export type ParserError = string
 export type ParserState = Immutable.List<Token>
@@ -138,16 +147,27 @@ let snd_err = (e:ParserError, _:ParserError) => e
 let both_errors = (e1:ParserError, e2:ParserError) => `${e1}, or ${e2}`
 
 let whitespace = () =>
-  co_repeat(co_catch<ParserState,ParserError,Unit>(fst_err)(newline_sign)(whitespace_sign)) //.then(_ => co_unit({}))
+  co_repeat(co_catch<ParserState,ParserError,Unit>(fst_err)(newline_sign)(whitespace_sign)).then(_ => co_unit({}))
 
 let ignore_whitespace = function<a>(p:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> { return whitespace().then(_ => p.then(p_res => whitespace().then(_ => co_unit(p_res)))) }
+
+let string: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected number")
+  let i = s.first()
+  if (i.kind == "string") {
+    let res = mk_string(i.v, i.range)
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
+  }
+  else return co_error("expected int")
+}))
 
 let int: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected number")
   let i = s.first()
   if (i.kind == "int") {
-    let res: ParserRes = { kind: "int", value: i.v }
+    let res = mk_int(i.v, i.range)
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
   }
   else return co_error("expected int")
@@ -158,7 +178,7 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
     return co_error("found empty state, expected identifier")
   let i = s.first()
   if (i.kind == "id") {
-    let res: ParserRes = { kind: "id", value: i.v }
+    let res = mk_identifier(i.v, i.range)
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
   }
   else return co_error(`expected identifier but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
@@ -181,7 +201,7 @@ let semicolon_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(
   if (i.kind == ";") {
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
   }
-  else return co_error("expected ';'")
+  else return co_error(`expected ';' at (${i.range.start.to_string()})`)
 }))
 
 let left_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
@@ -248,11 +268,12 @@ let field_ref:  () => Parser = () => identifier.then(l =>
 let term : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(int)(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(string)(
   left_bracket.then(_ =>
   expr().then(e =>
   right_bracket.then(_ =>
   co_unit(e)
-  )))))
+  ))))))
 
 let expr : () => Parser = () =>
   term().then(l =>
