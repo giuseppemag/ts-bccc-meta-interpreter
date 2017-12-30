@@ -37,18 +37,29 @@
           [/] *
         [ ] Constructor
         [ ] Method call
+    [ ] While
+    [ ] If
+    [ ] For
   [ ] Classes
     [ ] Def
     [ ] Method call
-  [ ] Fundamental, but not needed for first viability test
+  [ ] Left out for first viability test
     [ ] Proper (recursive) field lookups
     [ ] Proper (recursive) expressions
-  [ ] Electron playground
-
-
-[ ] Required for basic quality but not basic functionality
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] lambda arguments in lambda type-checking errors
+
+[ ] Electron playground
+  [ ] Basic rendering of states as (nested) tables
+  [ ] Graphics buffer and instructions
+    [ ] EmptyGrid g
+    [ ] g = EmptyGrid(res_x, res_y, w, h)
+    [ ] g = g + Pixel(on_off, x, y)
+    [ ] Semantics stores pixels in double map
+    [ ] Renderer with canvas
+  [ ] Basic highlighting of current step
+
+[ ] Required for basic quality but not basic functionality
   [ ] breakpoint right after return (`ret_break?`)
 
 [ ] Performance optimisations

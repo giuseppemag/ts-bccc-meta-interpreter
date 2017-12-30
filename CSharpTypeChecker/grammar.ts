@@ -10,6 +10,7 @@ export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { 
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:"+" } | { kind:"*" }
   | { kind:";" } | { kind:"." }
+  | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
   | { kind:"eof" } | { kind:"nl" }
   | { kind:" " }) & { range:SourceRange }
@@ -38,6 +39,8 @@ export module GrammarBasics {
     }
   }))
 
+  let dbg = parse_prefix_regex(/^debugger/, (s,r) => ({range:r, kind:"dbg"}))
+  let dbg_tc = parse_prefix_regex(/^typechecker-debugger/, (s,r) => ({range:r, kind:"tc-dbg"}))
   let eof = parse_prefix_regex(/^$/, (s,r) => ({range:r, kind:"eof"}))
   let newline = parse_prefix_regex(/^\n/, (s,r) => ({range:r, kind:"nl"}))
   let whitespace = parse_prefix_regex(/^\s+/, (s,r) => ({range:r, kind:" "}))
@@ -65,6 +68,8 @@ export module GrammarBasics {
               lex_catch(dot)(
               lex_catch(lbr)(
               lex_catch(rbr)(
+              lex_catch(dbg)(
+              lex_catch(dbg_tc)(
               lex_catch(int)(
               lex_catch(string)(
               lex_catch(float)(
@@ -75,7 +80,7 @@ export module GrammarBasics {
               lex_catch(int)(
               lex_catch(identifier)(
               whitespace
-              )))))))))))))))
+              )))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -93,6 +98,8 @@ export module GrammarBasics {
   }
 }
 
+export interface DebuggerAST { kind: "dbg" }
+export interface TCDebuggerAST { kind: "tc-dbg" }
 export interface StringAST { kind: "string", value:string }
 export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
@@ -103,7 +110,7 @@ export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface PlusAST { kind: "+", l:ParserRes, r:ParserRes }
 export interface TimesAST { kind: "*", l:ParserRes, r:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
-export type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST
+export type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
@@ -115,6 +122,8 @@ let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
 let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "+", l:l, r:r }})
 let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "*", l:l, r:r }})
+let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
+let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
 
 
 export type ParserError = string
@@ -150,6 +159,28 @@ let whitespace = () =>
   co_repeat(co_catch<ParserState,ParserError,Unit>(fst_err)(newline_sign)(whitespace_sign)).then(_ => co_unit({}))
 
 let ignore_whitespace = function<a>(p:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> { return whitespace().then(_ => p.then(p_res => whitespace().then(_ => co_unit(p_res)))) }
+
+let dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected identifier")
+  let i = s.first()
+  if (i.kind == "dbg") {
+    let res = mk_dbg(i.range)
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
+  }
+  else return co_error(`expected debugger but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
+}))
+
+let tc_dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected identifier")
+  let i = s.first()
+  if (i.kind == "tc-dbg") {
+    let res = mk_dbg(i.range)
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
+  }
+  else return co_error(`expected typecheker debugger but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
+}))
 
 let string: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -295,11 +326,13 @@ let decl : () => Parser = () =>
   co_unit(mk_decl(l, r))))
 
 let outer_statement : () => Parser = () =>
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(decl())(assign()).then(l => whitespace().then(_ => semicolon_sign.then(_ => whitespace().then(_ => co_unit(l)))))
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(decl())
+  (co_catch<ParserState,ParserError,ParserRes>(both_errors)(assign())((co_catch<ParserState,ParserError,ParserRes>(both_errors)(dbg)(tc_dbg))))
+  .then(l => whitespace().then(_ => semicolon_sign.then(_ => whitespace().then(_ => co_unit(l)))))
 
-export let program : () => Parser = () =>
+export let parse_program : () => Parser = () =>
   outer_statement().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(program().then(r =>
+  co_catch<ParserState,ParserError,ParserRes>(snd_err)(parse_program().then(r =>
   co_unit(mk_semicolon(l, r))
   ))(
     co_catch<ParserState,ParserError,ParserRes>(snd_err)(eof.then(_ => co_unit(l)))(co_error("gnegne")))

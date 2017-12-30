@@ -33,8 +33,8 @@ exports.int_plus = function (a, b) {
 exports.int_minus = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst - ab_val.snd); }, "(-)");
 };
-exports.int_times = function (a, b) {
-    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst * ab_val.snd); }, "(*)");
+exports.int_times = function (a, b, sr) {
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst * ab_val.snd); }, "(*) at " + sr.to_string());
 };
 exports.int_div = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(Math.floor(ab_val.fst / ab_val.snd)); }, "(/)");
@@ -66,8 +66,8 @@ exports.float_plus = function (a, b) {
 exports.float_minus = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "f" || ab.snd.k != "f" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.float(ab_val.fst - ab_val.snd); }, "(-)");
 };
-exports.float_times = function (a, b) {
-    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "f" || ab.snd.k != "f" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.float(ab_val.fst * ab_val.snd); }, "(*)");
+exports.float_times = function (a, b, sr) {
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "f" || ab.snd.k != "f" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.float(ab_val.fst * ab_val.snd); }, "(*) at " + sr.to_string());
 };
 exports.float_div = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "f" || ab.snd.k != "f" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.float(ab_val.fst / ab_val.snd); }, "(/)");

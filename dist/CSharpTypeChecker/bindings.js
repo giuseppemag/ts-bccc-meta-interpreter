@@ -166,9 +166,9 @@ exports.times = function (a, b, sr) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_times(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_times(a_t.sem, b_t.sem, sr)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_times(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_times(a_t.sem, b_t.sem, sr)))
                         : ts_bccc_2.co_error("Error (" + sr.to_string() + "): unsupported types for operator (*)!")
                 : ts_bccc_2.co_error("Error (" + sr.to_string() + "): cannot multiply expressions of incompatible types!");
         });

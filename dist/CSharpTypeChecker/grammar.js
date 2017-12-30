@@ -24,6 +24,8 @@ var GrammarBasics;
             return ts_bccc_1.apply(h, {});
         }
     })); };
+    var dbg = parse_prefix_regex(/^debugger/, function (s, r) { return ({ range: r, kind: "dbg" }); });
+    var dbg_tc = parse_prefix_regex(/^typechecker-debugger/, function (s, r) { return ({ range: r, kind: "tc-dbg" }); });
     var eof = parse_prefix_regex(/^$/, function (s, r) { return ({ range: r, kind: "eof" }); });
     var newline = parse_prefix_regex(/^\n/, function (s, r) { return ({ range: r, kind: "nl" }); });
     var whitespace = parse_prefix_regex(/^\s+/, function (s, r) { return ({ range: r, kind: " " }); });
@@ -43,7 +45,7 @@ var GrammarBasics;
     var identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, function (s, r) { return ({ range: r, kind: "id", v: s }); });
     var fst_err = function (x, y) { return x; };
     var lex_catch = ccc_aux_1.co_catch(fst_err);
-    var token = lex_catch(semicolon)(lex_catch(plus)(lex_catch(times)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(int)(lex_catch(string)(lex_catch(float)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_then)(lex_catch(_else)(lex_catch(int)(lex_catch(identifier)(whitespace)))))))))))))));
+    var token = lex_catch(semicolon)(lex_catch(plus)(lex_catch(times)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(int)(lex_catch(string)(lex_catch(float)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_then)(lex_catch(_else)(lex_catch(int)(lex_catch(identifier)(whitespace)))))))))))))))));
     GrammarBasics.tokenize = function (source) {
         var lines = source.split("\n");
         var tokens = Immutable.List();
@@ -69,6 +71,8 @@ var mk_field_ref = function (l, r) { return ({ range: source_range_1.join_source
 var mk_semicolon = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: ";", l: l, r: r } }); };
 var mk_plus = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "+", l: l, r: r } }); };
 var mk_times = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "*", l: l, r: r } }); };
+var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
+var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
 var newline_sign = ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_error("found empty state, expected newline");
@@ -96,13 +100,35 @@ var whitespace = function () {
     return ccc_aux_1.co_repeat(ccc_aux_1.co_catch(fst_err)(newline_sign)(whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
 };
 var ignore_whitespace = function (p) { return whitespace().then(function (_) { return p.then(function (p_res) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); }); };
+var dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected identifier");
+    var i = s.first();
+    if (i.kind == "dbg") {
+        var res_1 = mk_dbg(i.range);
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_1); });
+    }
+    else
+        return ts_bccc_1.co_error("expected debugger but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+}));
+var tc_dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected identifier");
+    var i = s.first();
+    if (i.kind == "tc-dbg") {
+        var res_2 = mk_dbg(i.range);
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_2); });
+    }
+    else
+        return ts_bccc_1.co_error("expected typecheker debugger but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+}));
 var string = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_error("found empty state, expected number");
     var i = s.first();
     if (i.kind == "string") {
-        var res_1 = mk_string(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_1); });
+        var res_3 = mk_string(i.v, i.range);
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_3); });
     }
     else
         return ts_bccc_1.co_error("expected int");
@@ -112,8 +138,8 @@ var int = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_error("found empty state, expected number");
     var i = s.first();
     if (i.kind == "int") {
-        var res_2 = mk_int(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_2); });
+        var res_4 = mk_int(i.v, i.range);
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_4); });
     }
     else
         return ts_bccc_1.co_error("expected int");
@@ -123,8 +149,8 @@ var identifier = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_error("found empty state, expected identifier");
     var i = s.first();
     if (i.kind == "id") {
-        var res_3 = mk_identifier(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_3); });
+        var res_5 = mk_identifier(i.v, i.range);
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_5); });
     }
     else
         return ts_bccc_1.co_error("expected identifier but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
@@ -242,11 +268,12 @@ var decl = function () {
     });
 };
 var outer_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(decl())(assign()).then(function (l) { return whitespace().then(function (_) { return semicolon_sign.then(function (_) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(l); }); }); }); });
+    return ccc_aux_1.co_catch(both_errors)(decl())(ccc_aux_1.co_catch(both_errors)(assign())((ccc_aux_1.co_catch(both_errors)(dbg)(tc_dbg))))
+        .then(function (l) { return whitespace().then(function (_) { return semicolon_sign.then(function (_) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(l); }); }); }); });
 };
-exports.program = function () {
+exports.parse_program = function () {
     return outer_statement().then(function (l) {
-        return ccc_aux_1.co_catch(snd_err)(exports.program().then(function (r) {
+        return ccc_aux_1.co_catch(snd_err)(exports.parse_program().then(function (r) {
             return ts_bccc_1.co_unit(mk_semicolon(l, r));
         }))(ccc_aux_1.co_catch(snd_err)(eof.then(function (_) { return ts_bccc_1.co_unit(l); }))(ts_bccc_1.co_error("gnegne")));
     });

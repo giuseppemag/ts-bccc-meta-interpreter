@@ -30,6 +30,10 @@ export declare type Token = ({
 } | {
     kind: ".";
 } | {
+    kind: "dbg";
+} | {
+    kind: "tc-dbg";
+} | {
     kind: "(";
 } | {
     kind: ")";
@@ -44,6 +48,12 @@ export declare type Token = ({
 };
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
+}
+export interface DebuggerAST {
+    kind: "dbg";
+}
+export interface TCDebuggerAST {
+    kind: "tc-dbg";
 }
 export interface StringAST {
     kind: "string";
@@ -93,7 +103,7 @@ export interface FunDefAST {
     args: Array<AST>;
     body: AST;
 }
-export declare type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST;
+export declare type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -101,4 +111,4 @@ export interface ParserRes {
 export declare type ParserError = string;
 export declare type ParserState = Immutable.List<Token>;
 export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;
-export declare let program: () => Parser;
+export declare let parse_program: () => Parser;

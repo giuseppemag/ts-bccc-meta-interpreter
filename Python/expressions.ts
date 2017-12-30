@@ -17,6 +17,7 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
   store, store_class_def, store_fun_def, store_heap, str,
   unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
   get_heap_v, get_v, pop_scope, push_scope } from "./memory"
+import { SourceRange } from "../source_range";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
 export let FalseCat:BoolCat = unit<Unit>().then(inl<Unit,Unit>())
@@ -59,10 +60,10 @@ export let int_minus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => int(ab_val.fst - ab_val.snd), "(-)")
 }
-export let int_times = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+export let int_times = function (a: Expr<Val>, b:Expr<Val>, sr:SourceRange): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
-          ab_val => int(ab_val.fst * ab_val.snd), "(*)")
+          ab_val => int(ab_val.fst * ab_val.snd), `(*) at ${sr.to_string()}`)
 }
 export let int_div = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
@@ -114,10 +115,10 @@ export let float_minus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
           ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => float(ab_val.fst - ab_val.snd), "(-)")
 }
-export let float_times = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+export let float_times = function (a: Expr<Val>, b:Expr<Val>, sr:SourceRange): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
           ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
-          ab_val => float(ab_val.fst * ab_val.snd), "(*)")
+          ab_val => float(ab_val.fst * ab_val.snd), `(*) at ${sr.to_string()}`)
 }
 export let float_div = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,

@@ -7,28 +7,101 @@
   <style>
     .code {
       font-family: monospace;
-      font-size: x-large;
       text-shadow: 0 1px #fff;
       direction: ltr;
       text-align: left;
       word-spacing: normal;
       word-break: normal;
       word-wrap: normal;
-      line-height: 2;
+      width:45%;
+      height:600px;
+      overflow-y: scroll;
+      float:left
     }
   </style>
 </head>
 
 <body>
-  <h1>Electron Hello World!</h1>
-  <div class="code">
-    <!-- <blockquote>
-      <pre><code> -->
-    <script>
-      let sharedObject = require('electron').remote.getGlobal('sharedObject')
-      document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
-    </script>
+  <h1>Giuseppe's little meta-playground</h1>
+  <textarea id="code" class="code">
+int x;
+x = 0;
+debugger;
+x = x + 2;
+debugger;
+x = x * 3;
+  </textarea>
+  <div id="state" style="width:50%; float:right">
+
   </div>
+  <button id="step-fwd" style="position:absolute; bottom:20px">
+    Next
+  </button>
+
+  <button id="reload" style="position:absolute; bottom:20px; left:150px">
+    Reload code
+  </button>
+
+  <script>
+    let sharedObject = require('electron').remote.getGlobal('sharedObject')
+    // document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
+    let code = document.getElementById("code")
+    let state = document.getElementById("state")
+    let clear_state = () => { while (state.hasChildNodes()) state.removeChild(state.lastChild) }
+    let debugger_stream = sharedObject.language.ImpLanguageWithSuspend.get_stream(code.value)
+
+    let reload = document.getElementById("reload")
+    reload.onclick = () => {
+      debugger_stream = sharedObject.language.ImpLanguageWithSuspend.get_stream(code.value)
+      clear_state()
+    }
+    document.getElementById("step-fwd").onclick = () => {
+      clear_state()
+
+      let to_table = (content) => {
+        if (content == undefined) return document.createElement("div")
+        let values_table = document.createElement("table")
+
+        let keys_to_try = ["bindings", "globals"]
+
+        keys_to_try.forEach(k => {
+          if (k in content) {
+            let v = content[k]
+            let row = document.createElement("tr")
+            let col = document.createElement("td")
+            col.innerText = k
+            row.appendChild(col)
+            col = document.createElement("td")
+
+            let inner_table = document.createElement("table")
+            v.forEach((v,k) => {
+              let row = document.createElement("tr")
+              let col = document.createElement("td")
+              col.innerText = k
+              row.appendChild(col)
+              col = document.createElement("td")
+              col.innerText = v.v
+              row.appendChild(col)
+              inner_table.appendChild(row)
+            })
+            col.appendChild(inner_table)
+
+            row.appendChild(col)
+            values_table.appendChild(row)
+          }
+        })
+
+        return values_table
+      }
+
+      let state_to_show = debugger_stream.show()
+      // console.log(JSON.stringify(state_to_show))
+      state.appendChild(to_table(state_to_show))
+
+      if (debugger_stream.kind == "step")
+        debugger_stream = debugger_stream.next()
+    }
+  </script>
 </body>
 
 </html>

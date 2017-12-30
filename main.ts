@@ -9,6 +9,7 @@ import { mk_range, zero_range } from "./source_range";
 
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
+import { co_run_to_end } from "./ccc_aux";
 
 export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -149,22 +150,87 @@ export let test_imp = function () {
     : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
       n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
       : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+    : n.ast.kind == "dbg" ?
+      CSharp.breakpoint(n.range)(CSharp.done)
+    : n.ast.kind == "tc-dbg" ?
+      CSharp.typechecker_breakpoint(n.range)(CSharp.done)
     : CSharp.done // should give an error
 
 
+
+  export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => any }
+  export let get_stream = (source:string) : DebuggerStream => {
+    let parse_result = CSharp.GrammarBasics.tokenize(source)
+    if (parse_result.kind == "left") {
+      let error = parse_result.value
+      return { kind:"error", show:() => error }
+    }
+
+    let tokens = Immutable.List<CSharp.Token>(parse_result.value)
+    let res = co_run_to_end(CSharp.parse_program(), tokens)
+    if (res.kind != "right") {
+      let error = res.value
+      return { kind:"error", show:() => error }
+    }
+
+    let p = ast_to_type_checker(res.value.fst)
+
+    let runtime_stream = (state:Prod<Py.Stmt,Py.Mem>) : DebuggerStream => ({
+      kind:"step",
+      next:() => {
+        let p = state.fst
+        let s = state.snd
+        let k = apply(p.run, s)
+        if (k.kind == "left") {
+          let error = k.value
+          return { kind:"error", show:() => error }
+        }
+        if (k.value.kind == "left") {
+          return runtime_stream(k.value.value)
+        }
+        s = k.value.value.snd
+        return { kind:"done", show:() => s }
+      },
+      show:() => state.snd
+    })
+
+    let typechecker_stream = (state:Prod<CSharp.Stmt,CSharp.State>) : DebuggerStream => ({
+      kind:"step",
+      next:() => {
+        let p = state.fst
+        let s = state.snd
+        let k = apply(p.run, s)
+        if (k.kind == "left") {
+          let error = k.value
+          return { kind:"error", show:() => error }
+        }
+        if (k.value.kind == "left") {
+          return typechecker_stream(k.value.value)
+        }
+        let initial_runtime_state = apply(constant<Unit,Py.Stmt>(k.value.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory)), {})
+        return runtime_stream(initial_runtime_state)
+      },
+      show:() => state.snd
+    })
+
+    let initial_compiler_state = apply(constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
+    return typechecker_stream(initial_compiler_state)
+  }
 
   export let test_parser = () => {
     let source = `
 int x;
 x = 0;
 x = x + 2;
-x = x * "3";
+debugger;
+x = x * 3;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    let res = CSharp.program().run.f(tokens)
+    console.log(JSON.stringify(tokens.toArray()))
+    let res = CSharp.parse_program().run.f(tokens)
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
     let hrstart = process.hrtime()
@@ -190,8 +256,8 @@ x = x * "3";
     }
     return output
   }
+
 }
 
 // console.log(ImpLanguageWithSuspend.test_imp())
-
-console.log(ImpLanguageWithSuspend.test_parser())
+// console.log(ImpLanguageWithSuspend.test_parser())

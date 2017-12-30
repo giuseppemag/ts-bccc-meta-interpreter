@@ -1,6 +1,7 @@
 import { Unit, Fun, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { Expr, Mem, Val, Lambda, Bool, ArrayVal, Scope } from "./memory";
+import { SourceRange } from "../source_range";
 export interface BoolCat extends Fun<Unit, Sum<Unit, Unit>> {
 }
 export declare let FalseCat: BoolCat;
@@ -20,7 +21,7 @@ export declare let bool_times: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let bool_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_minus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
-export declare let int_times: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
+export declare let int_times: (a: Expr<Val>, b: Expr<Val>, sr: SourceRange) => Expr<Val>;
 export declare let int_div: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_mod: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_gt: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
@@ -31,7 +32,7 @@ export declare let int_eq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_neq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_minus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
-export declare let float_times: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
+export declare let float_times: (a: Expr<Val>, b: Expr<Val>, sr: SourceRange) => Expr<Val>;
 export declare let float_div: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_gt: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_lt: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;

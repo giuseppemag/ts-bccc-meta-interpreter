@@ -7,6 +7,7 @@ var ts_bccc_2 = require("ts-bccc");
 var source_range_1 = require("./source_range");
 var Py = require("./Python/python");
 var CSharp = require("./CSharpTypeChecker/csharp");
+var ccc_aux_1 = require("./ccc_aux");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function () {
@@ -80,15 +81,72 @@ var ImpLanguageWithSuspend;
                                         : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
                                             n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
                                                 : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
-                                            : CSharp.done;
+                                            : n.ast.kind == "dbg" ?
+                                                CSharp.breakpoint(n.range)(CSharp.done)
+                                                : n.ast.kind == "tc-dbg" ?
+                                                    CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                    : CSharp.done;
     }; // should give an error
+    ImpLanguageWithSuspend.get_stream = function (source) {
+        var parse_result = CSharp.GrammarBasics.tokenize(source);
+        if (parse_result.kind == "left") {
+            var error_1 = parse_result.value;
+            return { kind: "error", show: function () { return error_1; } };
+        }
+        var tokens = Immutable.List(parse_result.value);
+        var res = ccc_aux_1.co_run_to_end(CSharp.parse_program(), tokens);
+        if (res.kind != "right") {
+            var error_2 = res.value;
+            return { kind: "error", show: function () { return error_2; } };
+        }
+        var p = ImpLanguageWithSuspend.ast_to_type_checker(res.value.fst);
+        var runtime_stream = function (state) { return ({
+            kind: "step",
+            next: function () {
+                var p = state.fst;
+                var s = state.snd;
+                var k = ts_bccc_1.apply(p.run, s);
+                if (k.kind == "left") {
+                    var error_3 = k.value;
+                    return { kind: "error", show: function () { return error_3; } };
+                }
+                if (k.value.kind == "left") {
+                    return runtime_stream(k.value.value);
+                }
+                s = k.value.value.snd;
+                return { kind: "done", show: function () { return s; } };
+            },
+            show: function () { return state.snd; }
+        }); };
+        var typechecker_stream = function (state) { return ({
+            kind: "step",
+            next: function () {
+                var p = state.fst;
+                var s = state.snd;
+                var k = ts_bccc_1.apply(p.run, s);
+                if (k.kind == "left") {
+                    var error_4 = k.value;
+                    return { kind: "error", show: function () { return error_4; } };
+                }
+                if (k.value.kind == "left") {
+                    return typechecker_stream(k.value.value);
+                }
+                var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory)), {});
+                return runtime_stream(initial_runtime_state);
+            },
+            show: function () { return state.snd; }
+        }); };
+        var initial_compiler_state = ts_bccc_1.apply(ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state)), {});
+        return typechecker_stream(initial_compiler_state);
+    };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 0;\nx = x + 2;\nx = x * \"3\";\n";
+        var source = "\nint x;\nx = 0;\nx = x + 2;\ndebugger;\nx = x * 3;\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
         var tokens = Immutable.List(parse_result.value);
-        var res = CSharp.program().run.f(tokens);
+        console.log(JSON.stringify(tokens.toArray()));
+        var res = CSharp.parse_program().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + res.value;
         var hrstart = process.hrtime();
@@ -114,4 +172,4 @@ var ImpLanguageWithSuspend;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())
-console.log(ImpLanguageWithSuspend.test_parser());
+// console.log(ImpLanguageWithSuspend.test_parser())

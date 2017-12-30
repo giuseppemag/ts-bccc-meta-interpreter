@@ -176,9 +176,9 @@ export let times = function(a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_times(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_times(a_t.sem, b_t.sem, sr)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_times(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_times(a_t.sem, b_t.sem, sr)))
             : co_error<State,Err,Typing>(`Error (${sr.to_string()}): unsupported types for operator (*)!`)
           : co_error<State,Err,Typing>(`Error (${sr.to_string()}): cannot multiply expressions of incompatible types!`)
         ))
