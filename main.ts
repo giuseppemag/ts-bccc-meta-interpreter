@@ -149,13 +149,18 @@ export let test_imp = function () {
     : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
     : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
       n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+      : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
+      : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
       : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
     : n.ast.kind == "dbg" ?
       CSharp.breakpoint(n.range)(CSharp.done)
     : n.ast.kind == "tc-dbg" ?
       CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-    : CSharp.done // should give an error
-
+    : n.ast.kind == "mk-empty-render-grid" ?
+      CSharp.mk_empty_render_grid(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h))
+    : n.ast.kind == "mk-render-grid-pixel" ?
+      CSharp.mk_render_grid_pixel(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h), ast_to_type_checker(n.ast.status))
+    : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)})()
 
 
   export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => any }
@@ -167,7 +172,7 @@ export let test_imp = function () {
     }
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    let res = co_run_to_end(CSharp.parse_program(), tokens)
+    let res = co_run_to_end(CSharp.program_prs(), tokens)
     if (res.kind != "right") {
       let error = res.value
       return { kind:"error", show:() => error }
@@ -219,18 +224,23 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
+RenderGrid g;
+g = empty_render_grid 16 16;
+typechecker_debugger;
 int x;
 x = 0;
+debugger;
 x = x + 2;
 debugger;
 x = x * 3;
+g = g + pixel 5 5 1;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    console.log(JSON.stringify(tokens.toArray()))
-    let res = CSharp.parse_program().run.f(tokens)
+    // console.log(JSON.stringify(tokens.toArray()))
+    let res = CSharp.program_prs().run.f(tokens)
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
     let hrstart = process.hrtime()
@@ -260,4 +270,4 @@ x = x * 3;
 }
 
 // console.log(ImpLanguageWithSuspend.test_imp())
-// console.log(ImpLanguageWithSuspend.test_parser())
+console.log(ImpLanguageWithSuspend.test_parser())

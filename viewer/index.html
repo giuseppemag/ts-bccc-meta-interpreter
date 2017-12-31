@@ -24,7 +24,9 @@
 <body>
   <h1>Giuseppe's little meta-playground</h1>
   <textarea id="code" class="code">
+typechecker_debugger;
 int x;
+typechecker_debugger;
 x = 0;
 debugger;
 x = x + 2;
@@ -80,7 +82,12 @@ x = x * 3;
               col.innerText = k
               row.appendChild(col)
               col = document.createElement("td")
-              col.innerText = v.v
+              if (v.k == "i")
+                col.innerText = v.v
+              else if (v.kind == "int")
+                col.innerText = "int"
+              else
+                col.innerText = JSON.stringify(v)
               row.appendChild(col)
               inner_table.appendChild(row)
             })

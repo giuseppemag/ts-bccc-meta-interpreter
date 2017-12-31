@@ -50,12 +50,8 @@
     [ ] lambda arguments in lambda type-checking errors
 
 [ ] Electron playground
-  [ ] Basic rendering of states as (nested) tables
   [ ] Graphics buffer and instructions
-    [ ] EmptyGrid g
-    [ ] g = EmptyGrid(res_x, res_y, w, h)
-    [ ] g = g + Pixel(on_off, x, y)
-    [ ] Semantics stores pixels in double map
+    [ ] Add booleans to parser and integrate in render grid
     [ ] Renderer with canvas
   [ ] Basic highlighting of current step
 

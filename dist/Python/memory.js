@@ -26,6 +26,8 @@ exports.bool = function (v) { return ({ v: v, k: "b" }); };
 exports.lambda = function (l) { return ({ v: l, k: "lambda" }); };
 exports.obj = function (o) { return ({ v: o, k: "obj" }); };
 exports.ref = function (r) { return ({ v: r, k: "ref" }); };
+exports.render_grid = function (r) { return ({ v: r, k: "render-grid" }); };
+exports.render_grid_pixel = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
 exports.highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.load = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?

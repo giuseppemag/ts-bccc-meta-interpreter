@@ -80,13 +80,19 @@ var ImpLanguageWithSuspend;
                                     : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
                                         : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
                                             n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
-                                                : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+                                                : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
+                                                    : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
+                                                        : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
                                             : n.ast.kind == "dbg" ?
                                                 CSharp.breakpoint(n.range)(CSharp.done)
                                                 : n.ast.kind == "tc-dbg" ?
                                                     CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                    : CSharp.done;
-    }; // should give an error
+                                                    : n.ast.kind == "mk-empty-render-grid" ?
+                                                        CSharp.mk_empty_render_grid(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.w), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.h))
+                                                        : n.ast.kind == "mk-render-grid-pixel" ?
+                                                            CSharp.mk_render_grid_pixel(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.w), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.h), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.status))
+                                                            : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+    };
     ImpLanguageWithSuspend.get_stream = function (source) {
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left") {
@@ -94,7 +100,7 @@ var ImpLanguageWithSuspend;
             return { kind: "error", show: function () { return error_1; } };
         }
         var tokens = Immutable.List(parse_result.value);
-        var res = ccc_aux_1.co_run_to_end(CSharp.parse_program(), tokens);
+        var res = ccc_aux_1.co_run_to_end(CSharp.program_prs(), tokens);
         if (res.kind != "right") {
             var error_2 = res.value;
             return { kind: "error", show: function () { return error_2; } };
@@ -140,13 +146,13 @@ var ImpLanguageWithSuspend;
         return typechecker_stream(initial_compiler_state);
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 0;\nx = x + 2;\ndebugger;\nx = x * 3;\n";
+        var source = "\nRenderGrid g;\ng = empty_render_grid 16 16;\ntypechecker_debugger;\nint x;\nx = 0;\ndebugger;\nx = x + 2;\ndebugger;\nx = x * 3;\ng = g + pixel 5 5 1;\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
         var tokens = Immutable.List(parse_result.value);
-        console.log(JSON.stringify(tokens.toArray()));
-        var res = CSharp.parse_program().run.f(tokens);
+        // console.log(JSON.stringify(tokens.toArray()))
+        var res = CSharp.program_prs().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + res.value;
         var hrstart = process.hrtime();
@@ -172,4 +178,4 @@ var ImpLanguageWithSuspend;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())
-// console.log(ImpLanguageWithSuspend.test_parser())
+console.log(ImpLanguageWithSuspend.test_parser());

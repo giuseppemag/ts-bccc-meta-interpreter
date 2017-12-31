@@ -11,8 +11,10 @@ import { comm_list_coroutine } from "../ccc_aux";
 
 export type Name = string
 export type Err = string
-export type Type = { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", methods:Immutable.Map<Name, Typing>, fields:Immutable.Map<Name, Type> }
+export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", methods:Immutable.Map<Name, Typing>, fields:Immutable.Map<Name, Type> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
+export let render_grid_type : Type = { kind:"render-grid" }
+export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let string_type : Type = { kind:"string" }
@@ -130,6 +132,25 @@ export let lt = function(a:Stmt, b:Stmt) : Stmt {
         ))
 }
 
+export let mk_empty_render_grid = function(w:Stmt, h:Stmt) : Stmt {
+  return w.then(w_t =>
+         h.then(h_t =>
+          type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) ?
+            co_unit(mk_typing(render_grid_type, Sem.mk_empty_render_grid(w_t.sem, h_t.sem)))
+          : co_error<State,Err,Typing>("Error: unsupported types for empty grid creation.")
+         ))
+}
+
+export let mk_render_grid_pixel = function(w:Stmt, h:Stmt, st:Stmt) : Stmt {
+  return w.then(w_t =>
+         h.then(h_t =>
+         st.then(st_t =>
+          type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) && type_equals(st_t.type, int_type) ?
+            co_unit(mk_typing(render_grid_pixel_type, Sem.mk_render_grid_pixel(w_t.sem, h_t.sem, st_t.sem)))
+          : co_error<State,Err,Typing>("Error: unsupported types for empty grid creation.")
+         )))
+}
+
 export let plus = function(a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
@@ -141,7 +162,9 @@ export let plus = function(a:Stmt, b:Stmt) : Stmt {
             : type_equals(a_t.type, string_type) ?
              co_unit(mk_typing(string_type, Sem.string_plus(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (+)!")
-          : co_error<State,Err,Typing>("Error: cannot sum expressions of different types!")
+          : type_equals(a_t.type, render_grid_type) && type_equals(b_t.type, render_grid_pixel_type) ?
+            co_unit(mk_typing(render_grid_type, Sem.render_grid_plus(a_t.sem, b_t.sem)))
+          : co_error<State,Err,Typing>("Error: cannot sum expressions of non-compatible types!")
         ))
 }
 
@@ -265,14 +288,14 @@ export let breakpoint = function(r:SourceRange) : (_:Stmt) => Stmt {
   return p => semicolon(co_unit(mk_typing(unit_type, Sem.dbg(r)(Sem.unt))), p)
 }
 
+export let typechecker_breakpoint = function(range:SourceRange) : (_:Stmt) => Stmt {
+  return p => semicolon(semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done)))), p)
+}
+
 export let highlight : Fun<Prod<SourceRange, State>, State> = fun(x => ({...x.snd, highlighting:x.fst }))
 export let set_highlighting = function(r:SourceRange) : Stmt {
   return mk_coroutine(constant<State, SourceRange>(r).times(id<State>()).then(highlight).then(
     constant<State,Typing>(mk_typing(unit_type,Sem.done)).times(id<State>())).then(Co.value<State, Err, Typing>().then(Co.result<State, Err, Typing>().then(Co.no_error<State, Err, Typing>()))))
-}
-
-export let typechecker_breakpoint = function(range:SourceRange) : (_:Stmt) => Stmt {
-  return p => semicolon(semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done)))), p)
 }
 
 // Control flow statements

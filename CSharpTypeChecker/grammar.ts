@@ -13,7 +13,9 @@ export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { 
   | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
   | { kind:"eof" } | { kind:"nl" }
-  | { kind:" " }) & { range:SourceRange }
+  | { kind:" " }
+  | { kind:"RenderGrid", v:number } | { kind:"mk_empty_render_grid" } | { kind:"pixel" }
+  ) & { range:SourceRange }
 
 export module GrammarBasics {
   type LexerError = string
@@ -39,8 +41,10 @@ export module GrammarBasics {
     }
   }))
 
+  let empty_render_grid = parse_prefix_regex(/^empty_render_grid/, (s,r) => ({range:r, kind:"mk_empty_render_grid"}))
+  let pixel = parse_prefix_regex(/^pixel/, (s,r) => ({range:r, kind:"pixel"}))
   let dbg = parse_prefix_regex(/^debugger/, (s,r) => ({range:r, kind:"dbg"}))
-  let dbg_tc = parse_prefix_regex(/^typechecker-debugger/, (s,r) => ({range:r, kind:"tc-dbg"}))
+  let dbg_tc = parse_prefix_regex(/^typechecker_debugger/, (s,r) => ({range:r, kind:"tc-dbg"}))
   let eof = parse_prefix_regex(/^$/, (s,r) => ({range:r, kind:"eof"}))
   let newline = parse_prefix_regex(/^\n/, (s,r) => ({range:r, kind:"nl"}))
   let whitespace = parse_prefix_regex(/^\s+/, (s,r) => ({range:r, kind:" "}))
@@ -78,9 +82,11 @@ export module GrammarBasics {
               lex_catch(_then)(
               lex_catch(_else)(
               lex_catch(int)(
+              lex_catch(empty_render_grid)(
+              lex_catch(pixel)(
               lex_catch(identifier)(
               whitespace
-              )))))))))))))))))
+              )))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -110,7 +116,13 @@ export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface PlusAST { kind: "+", l:ParserRes, r:ParserRes }
 export interface TimesAST { kind: "*", l:ParserRes, r:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
-export type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST
+export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
+export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
+export type AST = StringAST | IntAST | IdAST | FieldRefAST
+                | AssignAST | DeclAST | SemicolonAST | FunDefAST
+                | PlusAST | TimesAST
+                | DebuggerAST | TCDebuggerAST
+                | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
@@ -124,12 +136,33 @@ let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_rang
 let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "*", l:l, r:r }})
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
+let mk_empty_render_grid = (w:ParserRes, h:ParserRes) : ParserRes => ({ range:join_source_ranges(w.range, h.range), ast:{ kind: "mk-empty-render-grid", w:w, h:h }})
+let mk_render_grid_pixel = (w:ParserRes, h:ParserRes, status:ParserRes) : ParserRes => ({ range:join_source_ranges(w.range, join_source_ranges(h.range, status.range)), ast:{ kind: "mk-render-grid-pixel", w:w, h:h, status:status }})
 
 
 export type ParserError = string
 export type ParserState = Immutable.List<Token>
 export type Parser = Coroutine<ParserState, ParserError, ParserRes>
 
+let mk_empty_render_grid_sign: Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected empty_render_grid")
+  let i = s.first()
+  if (i.kind == "mk_empty_render_grid") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected empty_render_grid")
+})
+
+let mk_render_grid_pixel_sign: Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected pixel")
+  let i = s.first()
+  if (i.kind == "pixel") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected pixel")
+})
 
 let newline_sign: Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -176,7 +209,7 @@ let tc_dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().
     return co_error("found empty state, expected identifier")
   let i = s.first()
   if (i.kind == "tc-dbg") {
-    let res = mk_dbg(i.range)
+    let res = mk_tc_dbg(i.range)
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
   }
   else return co_error(`expected typecheker debugger but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
@@ -296,7 +329,25 @@ let field_ref:  () => Parser = () => identifier.then(l =>
   co_catch<ParserState,ParserError,ParserRes>(snd_err)(field_ref())(identifier).then(r =>
   co_unit(mk_field_ref(l,r)))))
 
+let mk_empty_render_grid_prs : () => Parser = () =>
+  mk_empty_render_grid_sign.then(_ =>
+  expr().then(l =>
+  expr().then(r =>
+  co_unit(mk_empty_render_grid(l,r))
+  )))
+
+let render_grid_pixel_prs : () => Parser = () =>
+  mk_render_grid_pixel_sign.then(_ =>
+  expr().then(l =>
+  expr().then(r =>
+  expr().then(st =>
+  co_unit(mk_render_grid_pixel(l,r,st))
+  ))))
+
+
 let term : () => Parser = () =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(mk_empty_render_grid_prs())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(render_grid_pixel_prs())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(int)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(string)(
@@ -304,7 +355,7 @@ let term : () => Parser = () =>
   expr().then(e =>
   right_bracket.then(_ =>
   co_unit(e)
-  ))))))
+  ))))))))
 
 let expr : () => Parser = () =>
   term().then(l =>
@@ -330,9 +381,9 @@ let outer_statement : () => Parser = () =>
   (co_catch<ParserState,ParserError,ParserRes>(both_errors)(assign())((co_catch<ParserState,ParserError,ParserRes>(both_errors)(dbg)(tc_dbg))))
   .then(l => whitespace().then(_ => semicolon_sign.then(_ => whitespace().then(_ => co_unit(l)))))
 
-export let parse_program : () => Parser = () =>
+export let program_prs : () => Parser = () =>
   outer_statement().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(parse_program().then(r =>
+  co_catch<ParserState,ParserError,ParserRes>(snd_err)(program_prs().then(r =>
   co_unit(mk_semicolon(l, r))
   ))(
     co_catch<ParserState,ParserError,ParserRes>(snd_err)(eof.then(_ => co_unit(l)))(co_error("gnegne")))

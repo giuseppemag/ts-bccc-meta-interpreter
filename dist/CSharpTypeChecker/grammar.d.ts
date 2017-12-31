@@ -43,6 +43,13 @@ export declare type Token = ({
     kind: "nl";
 } | {
     kind: " ";
+} | {
+    kind: "RenderGrid";
+    v: number;
+} | {
+    kind: "mk_empty_render_grid";
+} | {
+    kind: "pixel";
 }) & {
     range: SourceRange;
 };
@@ -103,7 +110,18 @@ export interface FunDefAST {
     args: Array<AST>;
     body: AST;
 }
-export declare type AST = StringAST | IntAST | IdAST | AssignAST | FieldRefAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST;
+export interface MkEmptyRenderGrid {
+    kind: "mk-empty-render-grid";
+    w: ParserRes;
+    h: ParserRes;
+}
+export interface MkRenderGridPixel {
+    kind: "mk-render-grid-pixel";
+    w: ParserRes;
+    h: ParserRes;
+    status: ParserRes;
+}
+export declare type AST = StringAST | IntAST | IdAST | FieldRefAST | AssignAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -111,4 +129,4 @@ export interface ParserRes {
 export declare type ParserError = string;
 export declare type ParserState = Immutable.List<Token>;
 export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;
-export declare let parse_program: () => Parser;
+export declare let program_prs: () => Parser;

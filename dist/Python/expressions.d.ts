@@ -2,6 +2,7 @@ import { Unit, Fun, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { Expr, Mem, Val, Lambda, Bool, ArrayVal, Scope } from "./memory";
 import { SourceRange } from "../source_range";
+import { RenderGrid, RenderGridPixel } from "./python";
 export interface BoolCat extends Fun<Unit, Sum<Unit, Unit>> {
 }
 export declare let FalseCat: BoolCat;
@@ -17,6 +18,11 @@ export declare let lambda_expr: (l: Lambda) => Coroutine<Mem, string, Val>;
 export declare let obj_expr: (o: Scope) => Coroutine<Mem, string, Val>;
 export declare let ref_expr: (r: string) => Coroutine<Mem, string, Val>;
 export declare let val_expr: (v: Val) => Coroutine<Mem, string, Val>;
+export declare let render_grid_expr: (v: RenderGrid) => Coroutine<Mem, string, Val>;
+export declare let render_grid_pixel_expr: (v: RenderGridPixel) => Coroutine<Mem, string, Val>;
+export declare let mk_empty_render_grid: (width: Expr<Val>, height: Expr<Val>) => Expr<Val>;
+export declare let mk_render_grid_pixel: (x: Expr<Val>, y: Expr<Val>, status: Expr<Val>) => Expr<Val>;
+export declare let render_grid_plus: (r: Expr<Val>, p: Expr<Val>) => Expr<Val>;
 export declare let bool_times: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let bool_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;

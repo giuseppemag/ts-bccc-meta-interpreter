@@ -18,6 +18,7 @@ import { Stmt, Expr, Interface, Mem, Err, Val, Lambda, Bool,
   unt, get_arr_len, get_arr_el, get_class_def, get_fun_def,
   get_heap_v, get_v, pop_scope, push_scope } from "./memory"
 import { SourceRange } from "../source_range";
+import { RenderGrid, render_grid, render_grid_pixel, RenderGridPixel } from "./python";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
 export let FalseCat:BoolCat = unit<Unit>().then(inl<Unit,Unit>())
@@ -34,12 +35,50 @@ export let lambda_expr = (l:Lambda) => (co_unit<Mem,Err,Val>(lambda(l)))
 export let obj_expr = (o:Scope) => (co_unit<Mem,Err,Val>(obj(o)))
 export let ref_expr = (r:Name) => (co_unit<Mem,Err,Val>(ref(r)))
 export let val_expr = (v:Val) => (co_unit<Mem,Err,Val>(v))
+export let render_grid_expr = (v:RenderGrid) => (co_unit<Mem,Err,Val>(render_grid(v)))
+export let render_grid_pixel_expr = (v:RenderGridPixel) => (co_unit<Mem,Err,Val>(render_grid_pixel(v)))
 
 let lift_binary_operation = function<a,b> (a: Expr<Val>, b:Expr<Val>, check_types:(ab:Prod<Val,Val>) => Sum<Prod<a,b>, Unit>, actual_operation:(_:Prod<a,b>)=>Val, operator_name?:string): Expr<Val> {
   return a.then(a_val => b.then(b_val =>
     apply(fun(check_types).then((fun(actual_operation).then(fun<Val, Expr<Val>>(co_unit))).plus(
       constant<Unit,Expr<Val>>(runtime_error(`Type error: cannot perform ${operator_name} on ${a_val.v} and ${b_val.v}.`)))), { fst:a_val, snd:b_val })))
 }
+export let mk_empty_render_grid = function (width: Expr<Val>, height:Expr<Val>): Expr<Val> {
+  return width.then(w => height.then(h =>
+    w.k == "i" && h.k == "i" ?render_grid_expr({ width:w.v, height:h.v, pixels:Immutable.Map<number, Immutable.Set<number>>() })
+    : runtime_error(`Type error: cannot create empty render grid with width and height ${w.v} and ${h.v}.`)
+  ))
+}
+export let mk_render_grid_pixel = function (x: Expr<Val>, y:Expr<Val>, status:Expr<Val>): Expr<Val> {
+  return x.then(x_val => y.then(y_val => status.then(status_val =>
+    x_val.k == "i" && y_val.k == "i" && status_val.k == "i" ?
+      render_grid_pixel_expr({ x:x_val.v, y:y_val.v, status:status_val.v != 0 })
+    : runtime_error(`Type error: cannot create render grid pixel with x,y, and status ${x_val.v}, ${y_val.v}, and ${status_val.v}.`)
+  )))
+}
+export let render_grid_plus = function (r: Expr<Val>, p:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<RenderGrid,RenderGridPixel>(r, p,
+          ab => ab.fst.k != "render-grid" || ab.snd.k != "render-grid-pixel" ? inr<Prod<RenderGrid,RenderGridPixel>, Unit>().f({}) : inl<Prod<RenderGrid,RenderGridPixel>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => {
+            let rg = ab_val.fst
+            let p = ab_val.snd
+            let pixels = rg.pixels
+            if (p.status) {
+              if (!pixels.has(p.x)) pixels = pixels.set(p.x, Immutable.Set<number>().add(p.y))
+              else pixels = pixels.set(p.x, pixels.get(p.x).add(p.y))
+            } else {
+              if (pixels.has(p.x)) {
+                let new_row = pixels.get(p.x).remove(p.y)
+                if (new_row.isEmpty())
+                  pixels = pixels.remove(p.x)
+                else
+                  pixels = pixels.set(p.x, new_row)
+              }
+            }
+            return render_grid({...rg, pixels: pixels })
+          }, "(+)")
+}
+
 export let bool_times = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<boolean,boolean>(a, b,
           ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),

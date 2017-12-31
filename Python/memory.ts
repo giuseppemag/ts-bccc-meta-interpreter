@@ -11,10 +11,12 @@ export type Bool = boolean
 export interface Lambda { body:Expr<Val>, parameters:Array<Name>, closure: Scope }
 export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
+export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }
+export interface RenderGridPixel { x:number, y:number, status:boolean }
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, unt])), length:len })
 
 export type Name = string
-export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef
+export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
 export interface Scope extends Immutable.Map<Name, Val> {}
 export interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<Name, Stmt> }
 export let empty_scope = Immutable.Map<Name, Val>()
@@ -27,6 +29,8 @@ export let bool : (_:boolean) => Val = v => ({ v:v, k:"b" })
 export let lambda : (_:Lambda) => Val = l => ({ v:l, k:"lambda" })
 export let obj : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let ref : (_:Name) => Val = r => ({ v:r, k:"ref" })
+export let render_grid : (_:RenderGrid) => Val = r => ({ v:r, k:"render-grid" })
+export let render_grid_pixel : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
 
 export type Err = string
 export interface Mem { highlighting:SourceRange, globals:Scope, heap:Scope, functions:Immutable.Map<Name,Lambda>, classes:Immutable.Map<Name, Interface>, stack:Immutable.Map<number, Scope> }

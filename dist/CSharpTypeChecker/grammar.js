@@ -24,8 +24,10 @@ var GrammarBasics;
             return ts_bccc_1.apply(h, {});
         }
     })); };
+    var empty_render_grid = parse_prefix_regex(/^empty_render_grid/, function (s, r) { return ({ range: r, kind: "mk_empty_render_grid" }); });
+    var pixel = parse_prefix_regex(/^pixel/, function (s, r) { return ({ range: r, kind: "pixel" }); });
     var dbg = parse_prefix_regex(/^debugger/, function (s, r) { return ({ range: r, kind: "dbg" }); });
-    var dbg_tc = parse_prefix_regex(/^typechecker-debugger/, function (s, r) { return ({ range: r, kind: "tc-dbg" }); });
+    var dbg_tc = parse_prefix_regex(/^typechecker_debugger/, function (s, r) { return ({ range: r, kind: "tc-dbg" }); });
     var eof = parse_prefix_regex(/^$/, function (s, r) { return ({ range: r, kind: "eof" }); });
     var newline = parse_prefix_regex(/^\n/, function (s, r) { return ({ range: r, kind: "nl" }); });
     var whitespace = parse_prefix_regex(/^\s+/, function (s, r) { return ({ range: r, kind: " " }); });
@@ -45,7 +47,7 @@ var GrammarBasics;
     var identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, function (s, r) { return ({ range: r, kind: "id", v: s }); });
     var fst_err = function (x, y) { return x; };
     var lex_catch = ccc_aux_1.co_catch(fst_err);
-    var token = lex_catch(semicolon)(lex_catch(plus)(lex_catch(times)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(int)(lex_catch(string)(lex_catch(float)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_then)(lex_catch(_else)(lex_catch(int)(lex_catch(identifier)(whitespace)))))))))))))))));
+    var token = lex_catch(semicolon)(lex_catch(plus)(lex_catch(times)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(int)(lex_catch(string)(lex_catch(float)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_then)(lex_catch(_else)(lex_catch(int)(lex_catch(empty_render_grid)(lex_catch(pixel)(lex_catch(identifier)(whitespace)))))))))))))))))));
     GrammarBasics.tokenize = function (source) {
         var lines = source.split("\n");
         var tokens = Immutable.List();
@@ -73,6 +75,28 @@ var mk_plus = function (l, r) { return ({ range: source_range_1.join_source_rang
 var mk_times = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "*", l: l, r: r } }); };
 var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
 var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
+var mk_empty_render_grid = function (w, h) { return ({ range: source_range_1.join_source_ranges(w.range, h.range), ast: { kind: "mk-empty-render-grid", w: w, h: h } }); };
+var mk_render_grid_pixel = function (w, h, status) { return ({ range: source_range_1.join_source_ranges(w.range, source_range_1.join_source_ranges(h.range, status.range)), ast: { kind: "mk-render-grid-pixel", w: w, h: h, status: status } }); };
+var mk_empty_render_grid_sign = ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected empty_render_grid");
+    var i = s.first();
+    if (i.kind == "mk_empty_render_grid") {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+    }
+    else
+        return ts_bccc_1.co_error("expected empty_render_grid");
+});
+var mk_render_grid_pixel_sign = ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected pixel");
+    var i = s.first();
+    if (i.kind == "pixel") {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+    }
+    else
+        return ts_bccc_1.co_error("expected pixel");
+});
 var newline_sign = ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_error("found empty state, expected newline");
@@ -116,7 +140,7 @@ var tc_dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_error("found empty state, expected identifier");
     var i = s.first();
     if (i.kind == "tc-dbg") {
-        var res_2 = mk_dbg(i.range);
+        var res_2 = mk_tc_dbg(i.range);
         return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_2); });
     }
     else
@@ -237,14 +261,34 @@ var field_ref = function () { return identifier.then(function (l) {
         });
     });
 }); };
+var mk_empty_render_grid_prs = function () {
+    return mk_empty_render_grid_sign.then(function (_) {
+        return expr().then(function (l) {
+            return expr().then(function (r) {
+                return ts_bccc_1.co_unit(mk_empty_render_grid(l, r));
+            });
+        });
+    });
+};
+var render_grid_pixel_prs = function () {
+    return mk_render_grid_pixel_sign.then(function (_) {
+        return expr().then(function (l) {
+            return expr().then(function (r) {
+                return expr().then(function (st) {
+                    return ts_bccc_1.co_unit(mk_render_grid_pixel(l, r, st));
+                });
+            });
+        });
+    });
+};
 var term = function () {
-    return ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(left_bracket.then(function (_) {
+    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
             });
         });
-    }))));
+    }))))));
 };
 var expr = function () {
     return term().then(function (l) {
@@ -271,9 +315,9 @@ var outer_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(decl())(ccc_aux_1.co_catch(both_errors)(assign())((ccc_aux_1.co_catch(both_errors)(dbg)(tc_dbg))))
         .then(function (l) { return whitespace().then(function (_) { return semicolon_sign.then(function (_) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(l); }); }); }); });
 };
-exports.parse_program = function () {
+exports.program_prs = function () {
     return outer_statement().then(function (l) {
-        return ccc_aux_1.co_catch(snd_err)(exports.parse_program().then(function (r) {
+        return ccc_aux_1.co_catch(snd_err)(exports.program_prs().then(function (r) {
             return ts_bccc_1.co_unit(mk_semicolon(l, r));
         }))(ccc_aux_1.co_catch(snd_err)(eof.then(function (_) { return ts_bccc_1.co_unit(l); }))(ts_bccc_1.co_error("gnegne")));
     });

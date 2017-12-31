@@ -15,6 +15,8 @@ var Co = require("ts-bccc");
 var source_range_1 = require("../source_range");
 var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
+exports.render_grid_type = { kind: "render-grid" };
+exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
 exports.string_type = { kind: "string" };
@@ -120,6 +122,26 @@ exports.lt = function (a, b) {
         });
     });
 };
+exports.mk_empty_render_grid = function (w, h) {
+    return w.then(function (w_t) {
+        return h.then(function (h_t) {
+            return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) ?
+                ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.mk_empty_render_grid(w_t.sem, h_t.sem)))
+                : ts_bccc_2.co_error("Error: unsupported types for empty grid creation.");
+        });
+    });
+};
+exports.mk_render_grid_pixel = function (w, h, st) {
+    return w.then(function (w_t) {
+        return h.then(function (h_t) {
+            return st.then(function (st_t) {
+                return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(st_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_pixel_type, Sem.mk_render_grid_pixel(w_t.sem, h_t.sem, st_t.sem)))
+                    : ts_bccc_2.co_error("Error: unsupported types for empty grid creation.");
+            });
+        });
+    });
+};
 exports.plus = function (a, b) {
     return a.then(function (a_t) {
         return b.then(function (b_t) {
@@ -131,7 +153,9 @@ exports.plus = function (a, b) {
                         : type_equals(a_t.type, exports.string_type) ?
                             ts_bccc_2.co_unit(mk_typing(exports.string_type, Sem.string_plus(a_t.sem, b_t.sem)))
                             : ts_bccc_2.co_error("Error: unsupported types for operator (+)!")
-                : ts_bccc_2.co_error("Error: cannot sum expressions of different types!");
+                : type_equals(a_t.type, exports.render_grid_type) && type_equals(b_t.type, exports.render_grid_pixel_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.render_grid_plus(a_t.sem, b_t.sem)))
+                    : ts_bccc_2.co_error("Error: cannot sum expressions of non-compatible types!");
         });
     });
 };
@@ -252,12 +276,12 @@ exports.set_index = function (a, i, e) {
 exports.breakpoint = function (r) {
     return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg(r)(Sem.unt))), p); };
 };
+exports.typechecker_breakpoint = function (range) {
+    return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done)); })), p); };
+};
 exports.highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.set_highlighting = function (r) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(exports.highlight).then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
-};
-exports.typechecker_breakpoint = function (range) {
-    return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done)); })), p); };
 };
 // Control flow statements
 exports.done = ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done));

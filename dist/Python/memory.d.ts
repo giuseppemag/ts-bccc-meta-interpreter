@@ -17,6 +17,16 @@ export interface ArrayVal {
     elements: Immutable.Map<number, Val>;
     length: number;
 }
+export interface RenderGrid {
+    pixels: Immutable.Map<number, Immutable.Set<number>>;
+    width: number;
+    height: number;
+}
+export interface RenderGridPixel {
+    x: number;
+    y: number;
+    status: boolean;
+}
 export declare let init_array_val: (_: number) => ArrayVal;
 export declare type Name = string;
 export declare type Val = {
@@ -43,7 +53,13 @@ export declare type Val = {
 } | {
     v: Lambda;
     k: "lambda";
-} | HeapRef;
+} | HeapRef | {
+    v: RenderGrid;
+    k: "render-grid";
+} | {
+    v: RenderGridPixel;
+    k: "render-grid-pixel";
+};
 export interface Scope extends Immutable.Map<Name, Val> {
 }
 export interface Interface {
@@ -60,6 +76,8 @@ export declare let bool: (_: boolean) => Val;
 export declare let lambda: (_: Lambda) => Val;
 export declare let obj: (_: Scope) => Val;
 export declare let ref: (_: Name) => Val;
+export declare let render_grid: (_: RenderGrid) => Val;
+export declare let render_grid_pixel: (_: RenderGridPixel) => Val;
 export declare type Err = string;
 export interface Mem {
     highlighting: SourceRange;

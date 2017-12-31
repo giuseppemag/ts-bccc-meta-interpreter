@@ -6,6 +6,10 @@ import * as Sem from "../Python/python";
 export declare type Name = string;
 export declare type Err = string;
 export declare type Type = {
+    kind: "render-grid-pixel";
+} | {
+    kind: "render-grid";
+} | {
     kind: "unit";
 } | {
     kind: "bool";
@@ -33,6 +37,8 @@ export declare type Type = {
     kind: "tuple";
     args: Array<Type>;
 };
+export declare let render_grid_type: Type;
+export declare let render_grid_pixel_type: Type;
 export declare let unit_type: Type;
 export declare let int_type: Type;
 export declare let string_type: Type;
@@ -68,6 +74,8 @@ export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
 export declare let gt: (a: Stmt, b: Stmt) => Stmt;
 export declare let lt: (a: Stmt, b: Stmt) => Stmt;
+export declare let mk_empty_render_grid: (w: Stmt, h: Stmt) => Stmt;
+export declare let mk_render_grid_pixel: (w: Stmt, h: Stmt, st: Stmt) => Stmt;
 export declare let plus: (a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (a: Stmt, b: Stmt) => Stmt;
 export declare let div: (a: Stmt, b: Stmt) => Stmt;
@@ -81,9 +89,9 @@ export declare let length: (a: Stmt) => Stmt;
 export declare let get_index: (a: Stmt, i: Stmt) => Stmt;
 export declare let set_index: (a: Stmt, i: Stmt, e: Stmt) => Stmt;
 export declare let breakpoint: (r: SourceRange) => (_: Stmt) => Stmt;
+export declare let typechecker_breakpoint: (range: SourceRange) => (_: Stmt) => Stmt;
 export declare let highlight: Fun<Prod<SourceRange, State>, State>;
 export declare let set_highlighting: (r: SourceRange) => Stmt;
-export declare let typechecker_breakpoint: (range: SourceRange) => (_: Stmt) => Stmt;
 export declare let done: Stmt;
 export declare let if_then_else: (c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (c: Stmt, b: Stmt) => Stmt;
