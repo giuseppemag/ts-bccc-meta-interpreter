@@ -137,6 +137,58 @@ export let lt = function(a:Stmt, b:Stmt) : Stmt {
         ))
 }
 
+export let geq = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_geq(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_geq(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (>=)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
+export let leq = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_leq(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_leq(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (<=)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
+export let eq = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_eq(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_eq(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (==)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
+export let neq = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, int_type) ?
+             co_unit(mk_typing(bool_type, Sem.int_neq(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, float_type) ?
+             co_unit(mk_typing(float_type, Sem.float_neq(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (!=)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
 export let mk_empty_render_grid = function(w:Stmt, h:Stmt) : Stmt {
   return w.then(w_t =>
          h.then(h_t =>
@@ -150,7 +202,7 @@ export let mk_render_grid_pixel = function(w:Stmt, h:Stmt, st:Stmt) : Stmt {
   return w.then(w_t =>
          h.then(h_t =>
          st.then(st_t =>
-          type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) && type_equals(st_t.type, int_type) ?
+          type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) && type_equals(st_t.type, bool_type) ?
             co_unit(mk_typing(render_grid_pixel_type, Sem.mk_render_grid_pixel(w_t.sem, h_t.sem, st_t.sem)))
           : co_error<State,Err,Typing>("Error: unsupported types for empty grid creation.")
          )))
@@ -238,7 +290,7 @@ export let or = function(a:Stmt, b:Stmt) : Stmt {
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_plus(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (&&)!")
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (||)!")
         ))
 }
 

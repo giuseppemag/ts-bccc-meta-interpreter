@@ -1,6 +1,8 @@
 import * as Immutable from "immutable";
-import { Sum, Coroutine } from "ts-bccc";
+import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
+import * as CSharp from "./csharp";
+export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||";
 export declare type Token = ({
     kind: "string";
     v: string;
@@ -27,11 +29,7 @@ export declare type Token = ({
 } | {
     kind: "=";
 } | {
-    kind: "+";
-} | {
-    kind: "*";
-} | {
-    kind: "<";
+    kind: BinOpKind;
 } | {
     kind: ";";
 } | {
@@ -94,6 +92,12 @@ export interface WhileAST {
     c: ParserRes;
     b: ParserRes;
 }
+export interface IfAST {
+    kind: "if";
+    c: ParserRes;
+    t: ParserRes;
+    e: Option<ParserRes>;
+}
 export interface DeclAST {
     kind: "decl";
     l: ParserRes;
@@ -114,18 +118,8 @@ export interface SemicolonAST {
     l: ParserRes;
     r: ParserRes;
 }
-export interface LtAST {
-    kind: "<";
-    l: ParserRes;
-    r: ParserRes;
-}
-export interface PlusAST {
-    kind: "+";
-    l: ParserRes;
-    r: ParserRes;
-}
-export interface TimesAST {
-    kind: "*";
+export interface BinOpAST {
+    kind: BinOpKind;
     l: ParserRes;
     r: ParserRes;
 }
@@ -146,7 +140,7 @@ export interface MkRenderGridPixel {
     h: ParserRes;
     status: ParserRes;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | WhileAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | LtAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | BinOpAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -155,3 +149,4 @@ export declare type ParserError = string;
 export declare type ParserState = Immutable.List<Token>;
 export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;
 export declare let program_prs: () => Parser;
+export declare let ast_to_type_checker: (_: ParserRes) => CSharp.Stmt;

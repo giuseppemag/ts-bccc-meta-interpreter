@@ -8,6 +8,7 @@ var source_range_1 = require("./source_range");
 var Py = require("./Python/python");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
+var csharp_1 = require("./CSharpTypeChecker/csharp");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function () {
@@ -69,34 +70,6 @@ var ImpLanguageWithSuspend;
         }
         return output;
     };
-    ImpLanguageWithSuspend.ast_to_type_checker = function (n) {
-        return n.ast.kind == "int" ? CSharp.int(n.ast.value)
-            : n.ast.kind == "string" ? CSharp.str(n.ast.value)
-                : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
-                    : n.ast.kind == ";" ? CSharp.semicolon(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
-                        : n.ast.kind == "while" ? CSharp.while_do(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.c), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.b))
-                            : n.ast.kind == "*" ? CSharp.times(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r), n.range)
-                                : n.ast.kind == "+" ? CSharp.plus(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
-                                    : n.ast.kind == "<" ? CSharp.lt(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
-                                        : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
-                                            : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
-                                                : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ImpLanguageWithSuspend.ast_to_type_checker(n.ast.r))
-                                                    : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
-                                                        n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
-                                                            : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
-                                                                : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
-                                                                    : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
-                                                                        : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
-                                                        : n.ast.kind == "dbg" ?
-                                                            CSharp.breakpoint(n.range)(CSharp.done)
-                                                            : n.ast.kind == "tc-dbg" ?
-                                                                CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                : n.ast.kind == "mk-empty-render-grid" ?
-                                                                    CSharp.mk_empty_render_grid(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.w), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.h))
-                                                                    : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                        CSharp.mk_render_grid_pixel(ImpLanguageWithSuspend.ast_to_type_checker(n.ast.w), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.h), ImpLanguageWithSuspend.ast_to_type_checker(n.ast.status))
-                                                                        : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
-    };
     ImpLanguageWithSuspend.get_stream = function (source) {
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left") {
@@ -109,7 +82,7 @@ var ImpLanguageWithSuspend;
             var error_2 = res.value;
             return { kind: "error", show: function () { return error_2; } };
         }
-        var p = ImpLanguageWithSuspend.ast_to_type_checker(res.value.fst);
+        var p = csharp_1.ast_to_type_checker(res.value.fst);
         var runtime_stream = function (state) { return ({
             kind: "step",
             next: function () {
@@ -150,7 +123,7 @@ var ImpLanguageWithSuspend;
         return typechecker_stream(initial_compiler_state);
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 0;\nwhile (x < 10) {\n  x = x + 1;\n}\n";
+        var source = "\nRenderGrid g;\nint x;\nint y;\ntypechecker_debugger;\ng = empty_render_grid 16 16;\nx = 0;\nwhile (x < 16) {\n  y = 0;\n  while (y <= 16) {\n    if (((x + (y * 16)) % 2) == 0) {\n      g = g + pixel x y true;\n    }\n    y = y + 1;\n  }\n  x = x + 1;\n}\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -161,7 +134,7 @@ var ImpLanguageWithSuspend;
             return "Parse error: " + res.value;
         // console.log(JSON.stringify(res.value.value.fst))
         var hrstart = process.hrtime();
-        var p = ImpLanguageWithSuspend.ast_to_type_checker(res.value.value.fst);
+        var p = csharp_1.ast_to_type_checker(res.value.value.fst);
         var output = "";
         var log = function (s, x) {
             output = output + s + JSON.stringify(x) + "\n\n";
@@ -183,4 +156,4 @@ var ImpLanguageWithSuspend;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())
-console.log(ImpLanguageWithSuspend.test_parser());
+// console.log(ImpLanguageWithSuspend.test_parser())

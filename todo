@@ -1,5 +1,3 @@
-[ ] Move ccc_aux to CCC repo
-
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
@@ -17,10 +15,8 @@
   [ ] Functions
     [ ] Def
     [ ] Call
-    [ ] Error inside functions
+    [ ] Lambda's (requires Func and generics in type-checker)
   [ ] Statements
-    [ ] Debugger
-    [ ] Typechecker debugger
     [/] Declaration
     [/] Assignment
       [ ] Left-hand
@@ -28,18 +24,12 @@
         [ ] To set field
       [ ] Right-hand
         [ ] Field get
-        [/] Constant
-        [/] Variable
         [ ] Basic (non-recursive) arithmetic expressions
-          [/] +
-          [ ] -
-          [ ] /
-          [/] *
+          [ ] ^^ (xor)
+          [ ] !
+          [ ] - (unary)
         [ ] Constructor
         [ ] Method call
-      [ ] Add booleans to parser and integrate in render grid
-    [ ] While
-    [ ] If
     [ ] For
   [ ] Classes
     [ ] Def
@@ -48,7 +38,8 @@
     [ ] Proper (recursive) field lookups
     [ ] Proper (recursive) expressions
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
-    [ ] lambda arguments in lambda type-checking errors
+    [ ] Are lambda arguments properly checked at both run-time and compile-time
+    [ ] How are nested errors managed (for example, the errors inside the body of a while or inside the body of a function)?
 
 [ ] Electron playground
   [ ] Basic highlighting of current step
@@ -62,6 +53,7 @@
   [ ] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
   [ ] Invoke statically typed semantics
 [ ] Cleanup/whishlist
+  [ ] Move ccc_aux to CCC repo
   [ ] parser: operator handling is very repetitive
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint

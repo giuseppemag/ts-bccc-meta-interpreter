@@ -125,6 +125,58 @@ exports.lt = function (a, b) {
         });
     });
 };
+exports.geq = function (a, b) {
+    return a.then(function (a_t) {
+        return b.then(function (b_t) {
+            return type_equals(a_t.type, b_t.type) ?
+                type_equals(a_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_geq(a_t.sem, b_t.sem)))
+                    : type_equals(a_t.type, exports.float_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_geq(a_t.sem, b_t.sem)))
+                        : ts_bccc_2.co_error("Error: unsupported types for operator (>=)!")
+                : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
+        });
+    });
+};
+exports.leq = function (a, b) {
+    return a.then(function (a_t) {
+        return b.then(function (b_t) {
+            return type_equals(a_t.type, b_t.type) ?
+                type_equals(a_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_leq(a_t.sem, b_t.sem)))
+                    : type_equals(a_t.type, exports.float_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_leq(a_t.sem, b_t.sem)))
+                        : ts_bccc_2.co_error("Error: unsupported types for operator (<=)!")
+                : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
+        });
+    });
+};
+exports.eq = function (a, b) {
+    return a.then(function (a_t) {
+        return b.then(function (b_t) {
+            return type_equals(a_t.type, b_t.type) ?
+                type_equals(a_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_eq(a_t.sem, b_t.sem)))
+                    : type_equals(a_t.type, exports.float_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_eq(a_t.sem, b_t.sem)))
+                        : ts_bccc_2.co_error("Error: unsupported types for operator (==)!")
+                : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
+        });
+    });
+};
+exports.neq = function (a, b) {
+    return a.then(function (a_t) {
+        return b.then(function (b_t) {
+            return type_equals(a_t.type, b_t.type) ?
+                type_equals(a_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_neq(a_t.sem, b_t.sem)))
+                    : type_equals(a_t.type, exports.float_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_neq(a_t.sem, b_t.sem)))
+                        : ts_bccc_2.co_error("Error: unsupported types for operator (!=)!")
+                : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
+        });
+    });
+};
 exports.mk_empty_render_grid = function (w, h) {
     return w.then(function (w_t) {
         return h.then(function (h_t) {
@@ -138,7 +190,7 @@ exports.mk_render_grid_pixel = function (w, h, st) {
     return w.then(function (w_t) {
         return h.then(function (h_t) {
             return st.then(function (st_t) {
-                return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(st_t.type, exports.int_type) ?
+                return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(st_t.type, exports.bool_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.render_grid_pixel_type, Sem.mk_render_grid_pixel(w_t.sem, h_t.sem, st_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for empty grid creation.");
             });
@@ -226,7 +278,7 @@ exports.or = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) && type_equals(a_t.type, exports.bool_type) ?
                 ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_plus(a_t.sem, b_t.sem)))
-                : ts_bccc_2.co_error("Error: unsupported types for operator (&&)!");
+                : ts_bccc_2.co_error("Error: unsupported types for operator (||)!");
         });
     });
 };

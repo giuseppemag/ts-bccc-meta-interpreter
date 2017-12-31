@@ -51,8 +51,8 @@ export let mk_empty_render_grid = function (width: Expr<Val>, height:Expr<Val>):
 }
 export let mk_render_grid_pixel = function (x: Expr<Val>, y:Expr<Val>, status:Expr<Val>): Expr<Val> {
   return x.then(x_val => y.then(y_val => status.then(status_val =>
-    x_val.k == "i" && y_val.k == "i" && status_val.k == "i" ?
-      render_grid_pixel_expr({ x:x_val.v, y:y_val.v, status:status_val.v != 0 })
+    x_val.k == "i" && y_val.k == "i" && status_val.k == "b" ?
+      render_grid_pixel_expr({ x:x_val.v, y:y_val.v, status:status_val.v })
     : runtime_error(`Type error: cannot create render grid pixel with x,y, and status ${x_val.v}, ${y_val.v}, and ${status_val.v}.`)
   )))
 }

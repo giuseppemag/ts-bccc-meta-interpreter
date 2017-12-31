@@ -21,7 +21,7 @@
   </style>
 </head>
 
-<body>
+<body id="app">
   <h1>Giuseppe's little meta-playground</h1>
   <textarea id="code" class="code">
 RenderGrid g;
@@ -32,14 +32,16 @@ g = empty_render_grid 16 16;
 x = 0;
 while (x < 16) {
   y = 0;
-  while (y < x) {
-    g = g + pixel x y 1;
+  while (y <= x) {
+    if (((y + x) % 2) == 1) {
+      g = g + pixel x y true;
+      debugger;
+    }
     y = y + 1;
   }
   x = x + 1;
-  debugger;
 }
-    </textarea>
+  </textarea>
   <div id="state" style="width:50%; float:right">
 
   </div>
@@ -48,23 +50,27 @@ while (x < 16) {
   </button>
 
   <button id="reload" style="position:absolute; bottom:20px; left:150px">
-    Reload code
+    Reset
   </button>
 
   <script>
     let sharedObject = require('electron').remote.getGlobal('sharedObject')
     // document.write(sharedObject.language.ImpLanguageWithSuspend.test_imp())
+    let app = document.getElementById("app")
+
     let code = document.getElementById("code")
     let state = document.getElementById("state")
     let clear_state = () => { while (state.hasChildNodes()) state.removeChild(state.lastChild) }
     let debugger_stream = sharedObject.language.ImpLanguageWithSuspend.get_stream(code.value)
 
-    let reload = document.getElementById("reload")
-    reload.onclick = () => {
+    let reset_state = () => {
       debugger_stream = sharedObject.language.ImpLanguageWithSuspend.get_stream(code.value)
       clear_state()
     }
-    document.getElementById("step-fwd").onclick = () => {
+    let reload = document.getElementById("reload")
+    code.onchange = reset_state
+    reload.onclick = reset_state
+    let next_step = () => {
       clear_state()
 
       let to_table = (content) => {
@@ -130,6 +136,14 @@ while (x < 16) {
 
       if (debugger_stream.kind == "step")
         debugger_stream = debugger_stream.next()
+    }
+    document.getElementById("step-fwd").onclick = next_step
+    app.onkeypress = (k) => {
+      // console.log(k.keyCode)
+      if (k.keyCode == 14 && k.ctrlKey == true)
+        next_step()
+      if (k.keyCode == 19 && k.ctrlKey == true)
+        reset_state()
     }
   </script>
 </body>

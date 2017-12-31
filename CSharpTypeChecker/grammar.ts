@@ -4,11 +4,14 @@ import * as CCC from "ts-bccc"
 import { SourceRange, join_source_ranges, mk_range } from "../source_range";
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end } from "../ccc_aux"
+import * as CSharp from "./csharp"
+
+export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"id", v:string }
-  | { kind:"=" } | { kind:"+" } | { kind:"*" } | { kind:"<" }
+  | { kind:"=" } | { kind:BinOpKind }
   | { kind:";" } | { kind:"." }
   | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
@@ -29,7 +32,7 @@ export module GrammarBasics {
     if (m == null || m.length == 0) {
       return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), `Syntax error: cannot match token at (${s.line_index}, ${s.column_index}), ${s.buffer.substr(0, Math.min(s.buffer.length, 5))}...`)
     } else {
-      let rest = s.buffer.split(r)[1]
+      let rest = s.buffer.replace(r, "")
       // console.log("Lexing", r, s.buffer)
       // console.log("Match", m)
       // console.log("Rest", rest)
@@ -51,8 +54,18 @@ export module GrammarBasics {
   let whitespace = parse_prefix_regex(/^\s+/, (s,r) => ({range:r, kind:" "}))
   let semicolon = parse_prefix_regex(/^;/, (s,r) => ({range:r, kind:";"}))
   let plus = parse_prefix_regex(/^\+/, (s,r) => ({range:r, kind:"+"}))
-  let lt = parse_prefix_regex(/^</, (s,r) => ({range:r, kind:"<"}))
   let times = parse_prefix_regex(/^\*/, (s,r) => ({range:r, kind:"*"}))
+  let minus = parse_prefix_regex(/^\-/, (s,r) => ({range:r, kind:"-"}))
+  let div = parse_prefix_regex(/^\//, (s,r) => ({range:r, kind:"/"}))
+  let mod = parse_prefix_regex(/^%/, (s,r) => ({range:r, kind:"%"}))
+  let lt = parse_prefix_regex(/^</, (s,r) => ({range:r, kind:"<"}))
+  let gt = parse_prefix_regex(/^>/, (s,r) => ({range:r, kind:">"}))
+  let leq = parse_prefix_regex(/^<=/, (s,r) => ({range:r, kind:"<="}))
+  let geq = parse_prefix_regex(/^>=/, (s,r) => ({range:r, kind:"<="}))
+  let eq = parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="}))
+  let neq = parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="}))
+  let and = parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"}))
+  let or = parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"}))
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
   let lbr = parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("}))
   let rbr = parse_prefix_regex(/^\)/, (s,r) => ({range:r, kind:")"}))
@@ -60,12 +73,11 @@ export module GrammarBasics {
   let rcbr = parse_prefix_regex(/^}/, (s,r) => ({range:r, kind:"}"}))
   let string = parse_prefix_regex(/^".*"/, (s,r) => ({range:r,  kind:"string", v:s }))
   let int = parse_prefix_regex(/^[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) }))
-  let bool = parse_prefix_regex(/^(true)|(false)/, (s,r) => ({range:r,  kind:"bool", v:(s == "true") }))
+  let bool = parse_prefix_regex(/^((true)|(false))/, (s,r) => ({range:r,  kind:"bool", v:(s == "true") }))
   let float = parse_prefix_regex(/^[0-9]+.[0-9]+/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) }))
   let _while = parse_prefix_regex(/^while/, (s,r) => ({range:r, kind:"while"}))
   let _if = parse_prefix_regex(/^if/, (s,r) => ({range:r, kind:"if"}))
   let _eq = parse_prefix_regex(/^=/, (s,r) => ({range:r, kind:"="}))
-  let _then = parse_prefix_regex(/^then/, (s,r) => ({range:r, kind:"then"}))
   let _else = parse_prefix_regex(/^else/, (s,r) => ({range:r, kind:"else"}))
   let identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, (s,r) => ({range:r,  kind:"id", v:s }))
 
@@ -73,9 +85,19 @@ export module GrammarBasics {
   let lex_catch = co_catch<LexerState,LexerError,Token>(fst_err)
 
   let token = lex_catch(semicolon)(
+              lex_catch(and)(
+              lex_catch(or)(
+              lex_catch(leq)(
+              lex_catch(geq)(
               lex_catch(lt)(
+              lex_catch(gt)(
+              lex_catch(eq)(
+              lex_catch(neq)(
               lex_catch(plus)(
               lex_catch(times)(
+              lex_catch(minus)(
+              lex_catch(div)(
+              lex_catch(mod)(
               lex_catch(dot)(
               lex_catch(lbr)(
               lex_catch(rbr)(
@@ -90,14 +112,13 @@ export module GrammarBasics {
               lex_catch(_while)(
               lex_catch(_if)(
               lex_catch(_eq)(
-              lex_catch(_then)(
               lex_catch(_else)(
               lex_catch(int)(
               lex_catch(empty_render_grid)(
               lex_catch(pixel)(
               lex_catch(identifier)(
               whitespace
-              ))))))))))))))))))))))))
+              )))))))))))))))))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -122,19 +143,19 @@ export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
+export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
 export interface DeclAST { kind: "decl", l:ParserRes, r:ParserRes }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
-export interface LtAST { kind: "<", l:ParserRes, r:ParserRes }
-export interface PlusAST { kind: "+", l:ParserRes, r:ParserRes }
-export interface TimesAST { kind: "*", l:ParserRes, r:ParserRes }
+
+export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
-                | AssignAST | DeclAST | WhileAST | SemicolonAST | FunDefAST
-                | PlusAST | TimesAST | LtAST
+                | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST
+                | BinOpAST
                 | DebuggerAST | TCDebuggerAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
@@ -146,11 +167,26 @@ let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{
 let mk_decl = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "decl", l:l, r:r }})
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
 let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
+let mk_if_then = (c:ParserRes,t:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
+let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
 let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
-let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "+", l:l, r:r }})
-let mk_lt = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "<", l:l, r:r }})
-let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "*", l:l, r:r }})
+
+let mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
+let mk_plus = mk_bin_op("+")
+let mk_minus = mk_bin_op("-")
+let mk_times = mk_bin_op("*")
+let mk_div = mk_bin_op("/")
+let mk_mod = mk_bin_op("%")
+let mk_lt = mk_bin_op("<")
+let mk_gt = mk_bin_op(">")
+let mk_leq = mk_bin_op("<=")
+let mk_geq = mk_bin_op(">=")
+let mk_eq = mk_bin_op("==")
+let mk_neq = mk_bin_op("!=")
+let mk_and = mk_bin_op("&&")
+let mk_or = mk_bin_op("||")
+
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
 let mk_empty_render_grid = (w:ParserRes, h:ParserRes) : ParserRes => ({ range:join_source_ranges(w.range, h.range), ast:{ kind: "mk-empty-render-grid", w:w, h:h }})
@@ -286,6 +322,26 @@ let while_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(c
   else return co_error("expected keyword 'while'")
 }))
 
+let if_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected if")
+  let i = s.first()
+  if (i.kind == "if") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected keyword 'if'")
+}))
+
+let else_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected else")
+  let i = s.first()
+  if (i.kind == "else") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected keyword 'else'")
+}))
+
 let equal_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected equal")
@@ -356,36 +412,31 @@ let dot_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get
   else return co_error("expected '.'")
 }))
 
-let lt_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
-    return co_error("found empty state, expected <")
+    return co_error(`found empty state, expected ${k}`)
   let i = s.first()
-  if (i.kind == "<") {
+  if (i.kind == k) {
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
   }
-  else return co_error("expected '<'")
+  else return co_error(`expected '${k}'`)
 }))
 
 
-let plus_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected dot")
-  let i = s.first()
-  if (i.kind == "+") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '+'")
-}))
+let plus_op = binop_sign("+")
+let minus_op = binop_sign("-")
+let times_op = binop_sign("*")
+let div_op = binop_sign("/")
+let mod_op = binop_sign("%")
 
-let times_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected dot")
-  let i = s.first()
-  if (i.kind == "*") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '*'")
-}))
+let lt_op = binop_sign("<")
+let gt_op = binop_sign(">")
+let leq_op = binop_sign("<=")
+let geq_op = binop_sign(">=")
+let eq_op = binop_sign("==")
+let neq_op = binop_sign("!=")
+let and_op = binop_sign("&&")
+let or_op = binop_sign("||")
 
 let eof: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -417,22 +468,33 @@ let render_grid_pixel_prs : () => Parser = () =>
 let term : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(mk_empty_render_grid_prs())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(render_grid_pixel_prs())(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(bool)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(int)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(string)(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
   left_bracket.then(_ =>
   expr().then(e =>
   right_bracket.then(_ =>
   co_unit(e)
-  ))))))))
+  )))))))))
 
 let expr : () => Parser = () =>
   term().then(l =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(plus_op.then(_ => expr().then(r => co_unit(mk_plus(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(minus_op.then(_ => expr().then(r => co_unit(mk_minus(l,r)))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(times_op.then(_ => expr().then(r => co_unit(mk_times(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(div_op.then(_ => expr().then(r => co_unit(mk_div(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(mod_op.then(_ => expr().then(r => co_unit(mk_mod(l,r)))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(lt_op.then(_ => expr().then(r => co_unit(mk_lt(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(gt_op.then(_ => expr().then(r => co_unit(mk_gt(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(leq_op.then(_ => expr().then(r => co_unit(mk_leq(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(geq_op.then(_ => expr().then(r => co_unit(mk_geq(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(eq_op.then(_ => expr().then(r => co_unit(mk_eq(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(neq_op.then(_ => expr().then(r => co_unit(mk_neq(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(and_op.then(_ => expr().then(r => co_unit(mk_and(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(or_op.then(_ => expr().then(r => co_unit(mk_or(l,r)))))(
   co_unit(l)
-  ))))
+  ))))))))))))))
 
 let semicolon = ignore_whitespace(semicolon_sign)
 let with_semicolon = (p:Parser) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
@@ -449,7 +511,18 @@ let decl : () => Parser = () =>
   identifier.then(r =>
   co_unit(mk_decl(l, r))))
 
-let while_loop : () => Parser = () =>
+let if_conditional : () => Parser = () =>
+  if_keyword.then(_ =>
+  expr().then(c =>
+  outer_statement().then(t =>
+  co_catch<ParserState,ParserError,ParserRes>(fst_err)(
+    else_keyword.then(_ =>
+    outer_statement().then(e =>
+    co_unit(mk_if_then_else(c, t, e))
+  )))
+  (co_unit(mk_if_then(c, t))))))
+
+  let while_loop : () => Parser = () =>
   while_keyword.then(_ =>
   expr().then(c =>
   outer_statement().then(b =>
@@ -464,10 +537,11 @@ let bracketized_statement = () =>
 let outer_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(bracketized_statement())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(while_loop())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(if_conditional())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl()))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(assign()))((
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(dbg))(
-  with_semicolon(tc_dbg)))))))
+  with_semicolon(tc_dbg))))))))
 
 let outer_statements : () => Parser = () =>
   outer_statement().then(l =>
@@ -480,3 +554,45 @@ let outer_statements : () => Parser = () =>
 export let program_prs : () => Parser = () =>
   outer_statements().then(s =>
   eof.then(_ => co_unit(s)))
+
+
+export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
+  n.ast.kind == "int" ? CSharp.int(n.ast.value)
+  : n.ast.kind == "string" ? CSharp.str(n.ast.value)
+  : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
+  : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "while" ? CSharp.while_do(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.b))
+  : n.ast.kind == "if" ? CSharp.if_then_else(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.t),
+                            n.ast.e.kind == "right" ? CSharp.done : ast_to_type_checker(n.ast.e.value))
+  : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "-" ? CSharp.minus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r), n.range)
+  : n.ast.kind == "/" ? CSharp.div(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "%" ? CSharp.mod(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "<" ? CSharp.lt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == ">" ? CSharp.gt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "<=" ? CSharp.leq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == ">=" ? CSharp.geq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "==" ? CSharp.eq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "!=" ? CSharp.neq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
+  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
+    n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+    : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
+    : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
+    : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
+    : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+  : n.ast.kind == "dbg" ?
+    CSharp.breakpoint(n.range)(CSharp.done)
+  : n.ast.kind == "tc-dbg" ?
+    CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+  : n.ast.kind == "mk-empty-render-grid" ?
+    CSharp.mk_empty_render_grid(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h))
+  : n.ast.kind == "mk-render-grid-pixel" ?
+    CSharp.mk_render_grid_pixel(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h), ast_to_type_checker(n.ast.status))
+  : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)})()
+

@@ -10,6 +10,7 @@ import { mk_range, zero_range } from "./source_range";
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
+import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 
 export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -138,35 +139,6 @@ export let test_imp = function () {
     return output
   }
 
-  export let ast_to_type_checker : (_:CSharp.ParserRes) => CSharp.Stmt = n =>
-    n.ast.kind == "int" ? CSharp.int(n.ast.value)
-    : n.ast.kind == "string" ? CSharp.str(n.ast.value)
-    : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
-    : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-    : n.ast.kind == "while" ? CSharp.while_do(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.b))
-    : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r), n.range)
-    : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-    : n.ast.kind == "<" ? CSharp.lt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-    : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
-    : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
-    : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
-    : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
-      n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
-      : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
-      : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
-      : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
-      : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
-    : n.ast.kind == "dbg" ?
-      CSharp.breakpoint(n.range)(CSharp.done)
-    : n.ast.kind == "tc-dbg" ?
-      CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-    : n.ast.kind == "mk-empty-render-grid" ?
-      CSharp.mk_empty_render_grid(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h))
-    : n.ast.kind == "mk-render-grid-pixel" ?
-      CSharp.mk_render_grid_pixel(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h), ast_to_type_checker(n.ast.status))
-    : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)})()
-
-
   export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => any }
   export let get_stream = (source:string) : DebuggerStream => {
     let parse_result = CSharp.GrammarBasics.tokenize(source)
@@ -228,9 +200,20 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
+RenderGrid g;
 int x;
+int y;
+typechecker_debugger;
+g = empty_render_grid 16 16;
 x = 0;
-while (x < 10) {
+while (x < 16) {
+  y = 0;
+  while (y <= 16) {
+    if (((x + (y * 16)) % 2) == 0) {
+      g = g + pixel x y true;
+    }
+    y = y + 1;
+  }
   x = x + 1;
 }
 `
@@ -270,4 +253,4 @@ while (x < 10) {
 }
 
 // console.log(ImpLanguageWithSuspend.test_imp())
-console.log(ImpLanguageWithSuspend.test_parser())
+// console.log(ImpLanguageWithSuspend.test_parser())

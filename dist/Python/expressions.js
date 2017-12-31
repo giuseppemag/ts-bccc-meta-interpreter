@@ -41,8 +41,8 @@ exports.mk_empty_render_grid = function (width, height) {
 };
 exports.mk_render_grid_pixel = function (x, y, status) {
     return x.then(function (x_val) { return y.then(function (y_val) { return status.then(function (status_val) {
-        return x_val.k == "i" && y_val.k == "i" && status_val.k == "i" ?
-            exports.render_grid_pixel_expr({ x: x_val.v, y: y_val.v, status: status_val.v != 0 })
+        return x_val.k == "i" && y_val.k == "i" && status_val.k == "b" ?
+            exports.render_grid_pixel_expr({ x: x_val.v, y: y_val.v, status: status_val.v })
             : memory_1.runtime_error("Type error: cannot create render grid pixel with x,y, and status " + x_val.v + ", " + y_val.v + ", and " + status_val.v + ".");
     }); }); });
 };
