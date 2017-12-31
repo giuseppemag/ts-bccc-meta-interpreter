@@ -24,14 +24,34 @@
 <body>
   <h1>Giuseppe's little meta-playground</h1>
   <textarea id="code" class="code">
+RenderGrid g;
+g = empty_render_grid 16 16;
 typechecker_debugger;
 int x;
-typechecker_debugger;
 x = 0;
+g = g + pixel x x 1;
 debugger;
-x = x + 2;
+x = x + 1;
+g = g + pixel x x x;
 debugger;
-x = x * 3;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
+x = x + 1;
+g = g + pixel x x x;
+debugger;
   </textarea>
   <div id="state" style="width:50%; float:right">
 
@@ -84,7 +104,23 @@ x = x * 3;
               col = document.createElement("td")
               if (v.k == "i")
                 col.innerText = v.v
-              else if (v.kind == "int")
+              else if (v.k == "render-grid") {
+                let canvas = document.createElement("canvas")
+                canvas.width = 256
+                canvas.height = 256
+                let ctx = canvas.getContext("2d")
+                let w = v.v.width
+                let h = v.v.height
+                let cell_w = canvas.width / w
+                let cell_h = canvas.height / h
+                let pixels = v.v.pixels
+                pixels.forEach((col,x) => {
+                  col.forEach(y => {
+                    ctx.fillRect(x*cell_w,y*cell_h, cell_w,cell_h)
+                  })
+                })
+                col.appendChild(canvas)
+              } else if (v.kind == "int")
                 col.innerText = "int"
               else
                 col.innerText = JSON.stringify(v)

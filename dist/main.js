@@ -146,7 +146,7 @@ var ImpLanguageWithSuspend;
         return typechecker_stream(initial_compiler_state);
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nRenderGrid g;\ng = empty_render_grid 16 16;\ntypechecker_debugger;\nint x;\nx = 0;\ndebugger;\nx = x + 2;\ndebugger;\nx = x * 3;\ng = g + pixel 5 5 1;\n";
+        var source = "\nRenderGrid g;\ng = empty_render_grid 16 16;\ntypechecker_debugger;\nint x;\nx = 0;\nx = x + 2;\ndebugger;\nx = x * 3;\ng = g + pixel 5 5 1;\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -178,4 +178,4 @@ var ImpLanguageWithSuspend;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())
-console.log(ImpLanguageWithSuspend.test_parser());
+// console.log(ImpLanguageWithSuspend.test_parser())

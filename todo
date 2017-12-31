@@ -37,6 +37,7 @@
           [/] *
         [ ] Constructor
         [ ] Method call
+      [ ] Add booleans to parser and integrate in render grid
     [ ] While
     [ ] If
     [ ] For
@@ -51,9 +52,9 @@
 
 [ ] Electron playground
   [ ] Graphics buffer and instructions
-    [ ] Add booleans to parser and integrate in render grid
     [ ] Renderer with canvas
   [ ] Basic highlighting of current step
+  [ ] Let student integrate webpack
 
 [ ] Required for basic quality but not basic functionality
   [ ] breakpoint right after return (`ret_break?`)

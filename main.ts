@@ -229,7 +229,6 @@ g = empty_render_grid 16 16;
 typechecker_debugger;
 int x;
 x = 0;
-debugger;
 x = x + 2;
 debugger;
 x = x * 3;
@@ -270,4 +269,4 @@ g = g + pixel 5 5 1;
 }
 
 // console.log(ImpLanguageWithSuspend.test_imp())
-console.log(ImpLanguageWithSuspend.test_parser())
+// console.log(ImpLanguageWithSuspend.test_parser())
