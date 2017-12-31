@@ -141,14 +141,18 @@ export let test_imp = function () {
   export let ast_to_type_checker : (_:CSharp.ParserRes) => CSharp.Stmt = n =>
     n.ast.kind == "int" ? CSharp.int(n.ast.value)
     : n.ast.kind == "string" ? CSharp.str(n.ast.value)
+    : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
     : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+    : n.ast.kind == "while" ? CSharp.while_do(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.b))
     : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r), n.range)
     : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+    : n.ast.kind == "<" ? CSharp.lt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
     : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
     : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
     : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
     : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
       n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+      : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
       : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
       : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
       : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
@@ -224,15 +228,11 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-RenderGrid g;
-g = empty_render_grid 16 16;
-typechecker_debugger;
 int x;
 x = 0;
-x = x + 2;
-debugger;
-x = x * 3;
-g = g + pixel 5 5 1;
+while (x < 10) {
+  x = x + 1;
+}
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -242,6 +242,7 @@ g = g + pixel 5 5 1;
     let res = CSharp.program_prs().run.f(tokens)
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
+    // console.log(JSON.stringify(res.value.value.fst))
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)
 
@@ -269,4 +270,4 @@ g = g + pixel 5 5 1;
 }
 
 // console.log(ImpLanguageWithSuspend.test_imp())
-// console.log(ImpLanguageWithSuspend.test_parser())
+console.log(ImpLanguageWithSuspend.test_parser())

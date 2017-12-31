@@ -5,13 +5,14 @@ import { SourceRange, join_source_ranges, mk_range } from "../source_range";
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end } from "../ccc_aux"
 
-export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number }
-  | { kind:"if" } | { kind:"then" } | { kind:"else" }
+export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
+  | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"id", v:string }
-  | { kind:"=" } | { kind:"+" } | { kind:"*" }
+  | { kind:"=" } | { kind:"+" } | { kind:"*" } | { kind:"<" }
   | { kind:";" } | { kind:"." }
   | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
+  | { kind:"{" } | { kind:"}" }
   | { kind:"eof" } | { kind:"nl" }
   | { kind:" " }
   | { kind:"RenderGrid", v:number } | { kind:"mk_empty_render_grid" } | { kind:"pixel" }
@@ -50,13 +51,18 @@ export module GrammarBasics {
   let whitespace = parse_prefix_regex(/^\s+/, (s,r) => ({range:r, kind:" "}))
   let semicolon = parse_prefix_regex(/^;/, (s,r) => ({range:r, kind:";"}))
   let plus = parse_prefix_regex(/^\+/, (s,r) => ({range:r, kind:"+"}))
+  let lt = parse_prefix_regex(/^</, (s,r) => ({range:r, kind:"<"}))
   let times = parse_prefix_regex(/^\*/, (s,r) => ({range:r, kind:"*"}))
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
   let lbr = parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("}))
   let rbr = parse_prefix_regex(/^\)/, (s,r) => ({range:r, kind:")"}))
+  let lcbr = parse_prefix_regex(/^{/, (s,r) => ({range:r, kind:"{"}))
+  let rcbr = parse_prefix_regex(/^}/, (s,r) => ({range:r, kind:"}"}))
   let string = parse_prefix_regex(/^".*"/, (s,r) => ({range:r,  kind:"string", v:s }))
   let int = parse_prefix_regex(/^[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) }))
+  let bool = parse_prefix_regex(/^(true)|(false)/, (s,r) => ({range:r,  kind:"bool", v:(s == "true") }))
   let float = parse_prefix_regex(/^[0-9]+.[0-9]+/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) }))
+  let _while = parse_prefix_regex(/^while/, (s,r) => ({range:r, kind:"while"}))
   let _if = parse_prefix_regex(/^if/, (s,r) => ({range:r, kind:"if"}))
   let _eq = parse_prefix_regex(/^=/, (s,r) => ({range:r, kind:"="}))
   let _then = parse_prefix_regex(/^then/, (s,r) => ({range:r, kind:"then"}))
@@ -67,16 +73,21 @@ export module GrammarBasics {
   let lex_catch = co_catch<LexerState,LexerError,Token>(fst_err)
 
   let token = lex_catch(semicolon)(
+              lex_catch(lt)(
               lex_catch(plus)(
               lex_catch(times)(
               lex_catch(dot)(
               lex_catch(lbr)(
               lex_catch(rbr)(
+              lex_catch(lcbr)(
+              lex_catch(rcbr)(
               lex_catch(dbg)(
               lex_catch(dbg_tc)(
+              lex_catch(bool)(
               lex_catch(int)(
               lex_catch(string)(
               lex_catch(float)(
+              lex_catch(_while)(
               lex_catch(_if)(
               lex_catch(_eq)(
               lex_catch(_then)(
@@ -86,7 +97,7 @@ export module GrammarBasics {
               lex_catch(pixel)(
               lex_catch(identifier)(
               whitespace
-              )))))))))))))))))))
+              ))))))))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -107,32 +118,38 @@ export module GrammarBasics {
 export interface DebuggerAST { kind: "dbg" }
 export interface TCDebuggerAST { kind: "tc-dbg" }
 export interface StringAST { kind: "string", value:string }
+export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
+export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface DeclAST { kind: "decl", l:ParserRes, r:ParserRes }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
+export interface LtAST { kind: "<", l:ParserRes, r:ParserRes }
 export interface PlusAST { kind: "+", l:ParserRes, r:ParserRes }
 export interface TimesAST { kind: "*", l:ParserRes, r:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
-export type AST = StringAST | IntAST | IdAST | FieldRefAST
-                | AssignAST | DeclAST | SemicolonAST | FunDefAST
-                | PlusAST | TimesAST
+export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
+                | AssignAST | DeclAST | WhileAST | SemicolonAST | FunDefAST
+                | PlusAST | TimesAST | LtAST
                 | DebuggerAST | TCDebuggerAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
+let mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "bool", value:v }})
 let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
 let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
 let mk_decl = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "decl", l:l, r:r }})
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
+let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
 let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
 let mk_plus = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "+", l:l, r:r }})
+let mk_lt = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "<", l:l, r:r }})
 let mk_times = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "*", l:l, r:r }})
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
@@ -226,6 +243,17 @@ let string: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().
   else return co_error("expected int")
 }))
 
+let bool: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected boolean")
+  let i = s.first()
+  if (i.kind == "bool") {
+    let res = mk_bool(i.v, i.range)
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
+  }
+  else return co_error("expected boolean")
+}))
+
 let int: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected number")
@@ -246,6 +274,16 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(res))
   }
   else return co_error(`expected identifier but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
+}))
+
+let while_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected while")
+  let i = s.first()
+  if (i.kind == "while") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected keyword 'while'")
 }))
 
 let equal_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
@@ -288,6 +326,26 @@ let right_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(c
   else return co_error("expected ')'")
 }))
 
+let left_curly_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected {")
+  let i = s.first()
+  if (i.kind == "{") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected '{'")
+}))
+
+let right_curly_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected }")
+  let i = s.first()
+  if (i.kind == "}") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected '}'")
+}))
+
 let dot_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected dot")
@@ -297,6 +355,17 @@ let dot_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get
   }
   else return co_error("expected '.'")
 }))
+
+let lt_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected <")
+  let i = s.first()
+  if (i.kind == "<") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error("expected '<'")
+}))
+
 
 let plus_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -321,7 +390,7 @@ let times_op: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get
 let eof: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_unit({})
-  return co_error("expected eof")
+  return co_error(`expected eof, found ${JSON.stringify(s.first())}`)
 }))
 
 let field_ref:  () => Parser = () => identifier.then(l =>
@@ -361,8 +430,12 @@ let expr : () => Parser = () =>
   term().then(l =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(plus_op.then(_ => expr().then(r => co_unit(mk_plus(l,r)))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(times_op.then(_ => expr().then(r => co_unit(mk_times(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(lt_op.then(_ => expr().then(r => co_unit(mk_lt(l,r)))))(
   co_unit(l)
-  )))
+  ))))
+
+let semicolon = ignore_whitespace(semicolon_sign)
+let with_semicolon = (p:Parser) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
 let assign : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(snd_err)(field_ref())(identifier).then(l =>
@@ -376,15 +449,34 @@ let decl : () => Parser = () =>
   identifier.then(r =>
   co_unit(mk_decl(l, r))))
 
-let outer_statement : () => Parser = () =>
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(decl())
-  (co_catch<ParserState,ParserError,ParserRes>(both_errors)(assign())((co_catch<ParserState,ParserError,ParserRes>(both_errors)(dbg)(tc_dbg))))
-  .then(l => whitespace().then(_ => semicolon_sign.then(_ => whitespace().then(_ => co_unit(l)))))
+let while_loop : () => Parser = () =>
+  while_keyword.then(_ =>
+  expr().then(c =>
+  outer_statement().then(b =>
+  co_unit(mk_while(c, b)))))
 
-export let program_prs : () => Parser = () =>
+let bracketized_statement = () =>
+  left_curly_bracket.then(_ =>
+  outer_statements().then(s =>
+  right_curly_bracket.then(_ =>
+  co_unit(s))))
+
+let outer_statement : () => Parser = () =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(bracketized_statement())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(while_loop())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl()))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(assign()))((
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(dbg))(
+  with_semicolon(tc_dbg)))))))
+
+let outer_statements : () => Parser = () =>
   outer_statement().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(program_prs().then(r =>
+  co_catch<ParserState,ParserError,ParserRes>(snd_err)(outer_statements().then(r =>
   co_unit(mk_semicolon(l, r))
   ))(
-    co_catch<ParserState,ParserError,ParserRes>(snd_err)(eof.then(_ => co_unit(l)))(co_error("gnegne")))
-  )
+    co_unit(l)
+  ))
+
+export let program_prs : () => Parser = () =>
+  outer_statements().then(s =>
+  eof.then(_ => co_unit(s)))

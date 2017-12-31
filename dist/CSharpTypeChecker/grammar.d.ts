@@ -11,6 +11,11 @@ export declare type Token = ({
     kind: "float";
     v: number;
 } | {
+    kind: "bool";
+    v: boolean;
+} | {
+    kind: "while";
+} | {
     kind: "if";
 } | {
     kind: "then";
@@ -26,6 +31,8 @@ export declare type Token = ({
 } | {
     kind: "*";
 } | {
+    kind: "<";
+} | {
     kind: ";";
 } | {
     kind: ".";
@@ -37,6 +44,10 @@ export declare type Token = ({
     kind: "(";
 } | {
     kind: ")";
+} | {
+    kind: "{";
+} | {
+    kind: "}";
 } | {
     kind: "eof";
 } | {
@@ -66,6 +77,10 @@ export interface StringAST {
     kind: "string";
     value: string;
 }
+export interface BoolAST {
+    kind: "bool";
+    value: boolean;
+}
 export interface IntAST {
     kind: "int";
     value: number;
@@ -73,6 +88,11 @@ export interface IntAST {
 export interface IdAST {
     kind: "id";
     value: string;
+}
+export interface WhileAST {
+    kind: "while";
+    c: ParserRes;
+    b: ParserRes;
 }
 export interface DeclAST {
     kind: "decl";
@@ -91,6 +111,11 @@ export interface FieldRefAST {
 }
 export interface SemicolonAST {
     kind: ";";
+    l: ParserRes;
+    r: ParserRes;
+}
+export interface LtAST {
+    kind: "<";
     l: ParserRes;
     r: ParserRes;
 }
@@ -121,7 +146,7 @@ export interface MkRenderGridPixel {
     h: ParserRes;
     status: ParserRes;
 }
-export declare type AST = StringAST | IntAST | IdAST | FieldRefAST | AssignAST | DeclAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | WhileAST | SemicolonAST | FunDefAST | PlusAST | TimesAST | LtAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

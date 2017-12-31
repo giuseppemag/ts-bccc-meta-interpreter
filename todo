@@ -51,10 +51,8 @@
     [ ] lambda arguments in lambda type-checking errors
 
 [ ] Electron playground
-  [ ] Graphics buffer and instructions
-    [ ] Renderer with canvas
   [ ] Basic highlighting of current step
-  [ ] Let student integrate webpack
+  [ ] Let intern integrate webpack
 
 [ ] Required for basic quality but not basic functionality
   [ ] breakpoint right after return (`ret_break?`)
@@ -64,6 +62,7 @@
   [ ] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
   [ ] Invoke statically typed semantics
 [ ] Cleanup/whishlist
+  [ ] parser: operator handling is very repetitive
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>

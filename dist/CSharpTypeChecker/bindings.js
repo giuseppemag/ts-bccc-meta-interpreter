@@ -90,6 +90,9 @@ exports.set_v = function (v, e) {
         });
     });
 };
+exports.bool = function (b) {
+    return ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_expr(b)));
+};
 exports.str = function (s) {
     return ts_bccc_2.co_unit(mk_typing(exports.string_type, Sem.str_expr(s)));
 };

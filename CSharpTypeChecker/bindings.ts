@@ -98,6 +98,11 @@ export let set_v = function(v:Name, e:Stmt) : Stmt {
          : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}`)
          ))
 }
+
+export let bool = function(b:boolean) : Stmt {
+  return co_unit(mk_typing(bool_type, Sem.bool_expr(b)))
+}
+
 export let str = function(s:string) : Stmt {
   return co_unit(mk_typing(string_type, Sem.str_expr(s)))
 }

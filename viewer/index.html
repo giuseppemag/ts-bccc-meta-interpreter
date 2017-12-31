@@ -25,34 +25,21 @@
   <h1>Giuseppe's little meta-playground</h1>
   <textarea id="code" class="code">
 RenderGrid g;
-g = empty_render_grid 16 16;
-typechecker_debugger;
 int x;
+int y;
+typechecker_debugger;
+g = empty_render_grid 16 16;
 x = 0;
-g = g + pixel x x 1;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-x = x + 1;
-g = g + pixel x x x;
-debugger;
-  </textarea>
+while (x < 16) {
+  y = 0;
+  while (y < x) {
+    g = g + pixel x y 1;
+    y = y + 1;
+  }
+  x = x + 1;
+  debugger;
+}
+    </textarea>
   <div id="state" style="width:50%; float:right">
 
   </div>
@@ -106,8 +93,8 @@ debugger;
                 col.innerText = v.v
               else if (v.k == "render-grid") {
                 let canvas = document.createElement("canvas")
-                canvas.width = 256
-                canvas.height = 256
+                canvas.width = 128
+                canvas.height = 128
                 let ctx = canvas.getContext("2d")
                 let w = v.v.width
                 let h = v.v.height

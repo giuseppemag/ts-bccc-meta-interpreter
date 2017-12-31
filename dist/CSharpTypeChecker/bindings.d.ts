@@ -70,6 +70,7 @@ export declare let get_v: (v: string) => Stmt;
 export declare let decl_v: (v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_const: (c: string, t: Type, e: Stmt) => Stmt;
 export declare let set_v: (v: string, e: Stmt) => Stmt;
+export declare let bool: (b: boolean) => Stmt;
 export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
 export declare let gt: (a: Stmt, b: Stmt) => Stmt;
