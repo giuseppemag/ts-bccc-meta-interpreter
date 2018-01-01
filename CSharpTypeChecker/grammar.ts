@@ -19,7 +19,8 @@ export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { 
   | { kind:"{" } | { kind:"}" }
   | { kind:"eof" } | { kind:"nl" }
   | { kind:" " }
-  | { kind:"RenderGrid", v:number } | { kind:"mk_empty_render_grid" } | { kind:"pixel" }
+  | { kind:"," }
+  | { kind:"RenderGrid", v:number } | { kind:"mk_empty_render_grid" } | { kind:"pixel" } | {kind:"return"}
   ) & { range:SourceRange }
 
 export module GrammarBasics {
@@ -69,6 +70,7 @@ export module GrammarBasics {
   let xor = parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"}))
   let not = parse_prefix_regex(/^!/, (s,r) => ({range:r, kind:"not"}))
   let or = parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"}))
+  let ret = parse_prefix_regex(/^return/, (s,r) => ({range:r, kind:"return"}))
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
   let lbr = parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("}))
   let rbr = parse_prefix_regex(/^\)/, (s,r) => ({range:r, kind:")"}))
@@ -121,9 +123,10 @@ export module GrammarBasics {
               lex_catch(int)(
               lex_catch(empty_render_grid)(
               lex_catch(pixel)(
+              lex_catch(ret)(
               lex_catch(identifier)(
               whitespace
-              )))))))))))))))))))))))))))))))))))
+              ))))))))))))))))))))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -153,15 +156,19 @@ export interface DeclAST { kind: "decl", l:ParserRes, r:ParserRes }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
+export interface ReturnAST { kind: "return", value:ParserRes }
+export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
+export interface FunctionDeclarationAST { kind:"func_decl", name:ParserRes, return_type:ParserRes, arg_decls:ParserRes, body:ParserRes }
+
 export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
-                | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST
-                | BinOpAST | UnaryOpAST
+                | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | ReturnAST | ArgsAST
+                | BinOpAST | UnaryOpAST | FunctionDeclarationAST
                 | DebuggerAST | TCDebuggerAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
@@ -170,13 +177,16 @@ let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kin
 let mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "bool", value:v }})
 let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
 let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
-let mk_decl = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "decl", l:l, r:r }})
+let mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
+let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
+let mk_decl = (l:ParserRes,r:ParserRes) : DeclAST => ({ kind: "decl", l:l, r:r })
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
 let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
 let mk_if_then = (c:ParserRes,t:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
 let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
 let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
+
 
 let mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
 let mk_plus = mk_bin_op("+")
@@ -196,6 +206,11 @@ let mk_xor = mk_bin_op("xor")
 
 let mk_unary_op = (k:UnaryOpKind) => (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: k, e:e }})
 let mk_not = mk_unary_op("not")
+
+let mk_function_declaration = (return_type:ParserRes, function_name:ParserRes, arg_decls:ParserRes, body:ParserRes) : ParserRes => 
+  ({  range: join_source_ranges(return_type.range, body.range), 
+      ast: {kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body} })
+
 
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
@@ -322,6 +337,16 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
   else return co_error(`expected identifier but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
 }))
 
+let return_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected return")
+  let i = s.first()
+  if (i.kind == "return") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error(`expected return but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
+}))
+
 let while_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected while")
@@ -370,6 +395,16 @@ let semicolon_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(
     return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
   }
   else return co_error(`expected ';' at (${i.range.start.to_string()})`)
+}))
+
+let comma_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected equal")
+  let i = s.first()
+  if (i.kind == ",") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error(`expected ',' at (${i.range.start.to_string()})`)
 }))
 
 let left_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
@@ -527,7 +562,10 @@ let expr : () => Parser = () =>
   co_unit(l)
   )))))))))))))))
 
+
+  
 let semicolon = ignore_whitespace(semicolon_sign)
+let comma = ignore_whitespace(comma_sign)
 let with_semicolon = (p:Parser) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
 let assign : () => Parser = () =>
@@ -537,10 +575,25 @@ let assign : () => Parser = () =>
   co_unit(mk_assign(l,r))
   )))
 
-let decl : () => Parser = () =>
+let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   identifier.then(l =>
   identifier.then(r =>
   co_unit(mk_decl(l, r))))
+
+let arg_decls = () : Coroutine<Immutable.List<Token>, string, Array<DeclAST>> =>
+  co_catch<ParserState,ParserError,Array<DeclAST>>(both_errors)(
+    decl().then(d => 
+      co_catch<ParserState,ParserError,Array<DeclAST>>(both_errors)
+        (comma.then(_ =>
+         arg_decls().then(ds =>
+         co_unit([d, ...ds]))))
+        (co_unit([d]))))
+    (co_unit(Array<DeclAST>()))
+
+let return_statement : () => Parser = () =>
+  return_sign.then(_ =>
+  expr().then(e =>
+  co_unit(mk_return(e))))
 
 let if_conditional : () => Parser = () =>
   if_keyword.then(_ =>
@@ -553,7 +606,7 @@ let if_conditional : () => Parser = () =>
   )))
   (co_unit(mk_if_then(c, t))))))
 
-  let while_loop : () => Parser = () =>
+let while_loop : () => Parser = () =>
   while_keyword.then(_ =>
   expr().then(c =>
   outer_statement().then(b =>
@@ -565,27 +618,61 @@ let bracketized_statement = () =>
   right_curly_bracket.then(_ =>
   co_unit(s))))
 
+let function_declaration = () =>
+  identifier.then(return_type =>
+  identifier.then(function_name =>
+  left_bracket.then(_ =>
+  arg_decls().then(arg_decls =>
+  right_bracket.then(_ =>
+  left_curly_bracket.then(_ => 
+  function_statements().then(body => 
+  right_curly_bracket.then(_ => 
+  co_unit(mk_function_declaration(return_type, 
+                                  function_name, 
+                                  {range:[function_name.range, ...arg_decls.map(d => d.r.range)].reduce(join_source_ranges), 
+                                   ast:{kind:"args", value:Immutable.List<DeclAST>(arg_decls)}}, 
+                                  body))))))))))
+    
+
 let outer_statement : () => Parser = () =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(function_declaration())(inner_statement())
+
+let inner_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(bracketized_statement())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(while_loop())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(if_conditional())(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl()))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl().then(d => co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(assign()))((
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(dbg))(
   with_semicolon(tc_dbg))))))))
 
-let outer_statements : () => Parser = () =>
-  outer_statement().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(outer_statements().then(r =>
-  co_unit(mk_semicolon(l, r))
-  ))(
-    co_unit(l)
-  ))
+let function_statement : () => Parser = () =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(return_statement()))(inner_statement())
+
+let generic_statements = (stmt: () => Coroutine<Immutable.List<Token>, string, ParserRes>) : Parser =>
+    stmt().then(l =>
+    co_catch<ParserState,ParserError,ParserRes>(snd_err)(generic_statements(stmt).then(r =>
+    co_unit(mk_semicolon(l, r))
+    ))(
+      co_unit(l)
+    ))                          
+
+let function_statements : () => Parser = () => generic_statements (function_statement)
+let inner_statements : () => Parser = () => generic_statements (inner_statement)
+let outer_statements : () => Parser = () => generic_statements (outer_statement)
+
 
 export let program_prs : () => Parser = () =>
   outer_statements().then(s =>
   eof.then(_ => co_unit(s)))
 
+
+let string_to_csharp_type : (_:string) => CSharp.Type = s => 
+  s == "int" ? CSharp.int_type
+  : s == "bool" ? CSharp.bool_type
+  : s == "RenderGrid" ? CSharp.render_grid_type
+  : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+  : CSharp.ref_type(s)
 
 export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
@@ -611,14 +698,25 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
+  : n.ast.kind == "return" ? CSharp.ret(ast_to_type_checker(n.ast.value))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
+  //def:FunDefinition, closure_parameters:Array<Name>
+  // export interface Parameter { name:Name, type:Type }
+  // export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
+  // export interface FunDefinition extends LambdaDefinition { name:string }
+  // { name:string, return_t:Type, parameters:Array<{ name:Name, type:Type }>, body:Stmt }
+  : n.ast.kind == "func_decl" && 
+    n.ast.return_type.ast.kind == "id" && 
+    n.ast.name.ast.kind == "id" &&
+    n.ast.arg_decls.ast.kind == "args" &&
+    !n.ast.arg_decls.ast.value.some(d => d == undefined || d.l.ast.kind != "id" || d.r.ast.kind != "id") ? 
+    CSharp.def_fun({ name:n.ast.name.ast.value, 
+                     return_t:string_to_csharp_type(n.ast.return_type.ast.value), 
+                     parameters:n.ast.arg_decls.ast.value.toArray().map(d => ({name:(d.l.ast as IdAST).value, type:string_to_csharp_type((d.r.ast as IdAST).value)})), 
+                     body:ast_to_type_checker(n.ast.body) },[])
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
-    n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
-    : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
-    : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
-    : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
-    : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+    CSharp.decl_v(n.ast.l.ast.value, string_to_csharp_type(n.ast.r.ast.value))
   : n.ast.kind == "dbg" ?
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?

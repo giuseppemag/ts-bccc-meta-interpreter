@@ -56,12 +56,16 @@ export declare type Token = ({
 } | {
     kind: " ";
 } | {
+    kind: ",";
+} | {
     kind: "RenderGrid";
     v: number;
 } | {
     kind: "mk_empty_render_grid";
 } | {
     kind: "pixel";
+} | {
+    kind: "return";
 }) & {
     range: SourceRange;
 };
@@ -121,6 +125,14 @@ export interface SemicolonAST {
     l: ParserRes;
     r: ParserRes;
 }
+export interface ReturnAST {
+    kind: "return";
+    value: ParserRes;
+}
+export interface ArgsAST {
+    kind: "args";
+    value: Immutable.List<DeclAST>;
+}
 export interface BinOpAST {
     kind: BinOpKind;
     l: ParserRes;
@@ -147,7 +159,14 @@ export interface MkRenderGridPixel {
     h: ParserRes;
     status: ParserRes;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | BinOpAST | UnaryOpAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export interface FunctionDeclarationAST {
+    kind: "func_decl";
+    name: ParserRes;
+    return_type: ParserRes;
+    arg_decls: ParserRes;
+    body: ParserRes;
+}
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

@@ -144,8 +144,9 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-    bool x;
-    x = false ^ false;
+    bool test(){
+      return true;
+    }
    
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)

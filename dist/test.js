@@ -72,7 +72,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    bool x;\n    x = false ^ false;\n   \n";
+        var source = "\n    bool test(){\n      return true;\n    }\n   \n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
