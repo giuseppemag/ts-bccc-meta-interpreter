@@ -7,11 +7,12 @@ import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_r
 import * as CSharp from "./csharp"
 
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"
+export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"id", v:string }
-  | { kind:"=" } | { kind:BinOpKind }
+  | { kind:"=" } | { kind:BinOpKind } | {kind:UnaryOpKind}
   | { kind:";" } | { kind:"." }
   | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
@@ -65,6 +66,7 @@ export module GrammarBasics {
   let eq = parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="}))
   let neq = parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="}))
   let and = parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"}))
+  let not = parse_prefix_regex(/^!/, (s,r) => ({range:r, kind:"not"}))
   let or = parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"}))
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
   let lbr = parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("}))
@@ -85,6 +87,7 @@ export module GrammarBasics {
   let lex_catch = co_catch<LexerState,LexerError,Token>(fst_err)
 
   let token = lex_catch(semicolon)(
+              lex_catch(not)(
               lex_catch(and)(
               lex_catch(or)(
               lex_catch(leq)(
@@ -118,7 +121,7 @@ export module GrammarBasics {
               lex_catch(pixel)(
               lex_catch(identifier)(
               whitespace
-              )))))))))))))))))))))))))))))))))
+              ))))))))))))))))))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -150,12 +153,13 @@ export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
+export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
 export interface FunDefAST { kind: "fun", n:IdAST, args:Array<AST>, body:AST }
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST
-                | BinOpAST
+                | BinOpAST | UnaryOpAST
                 | DebuggerAST | TCDebuggerAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
@@ -186,6 +190,9 @@ let mk_eq = mk_bin_op("==")
 let mk_neq = mk_bin_op("!=")
 let mk_and = mk_bin_op("&&")
 let mk_or = mk_bin_op("||")
+
+let mk_unary_op = (k:UnaryOpKind) => (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: k, e:e }})
+let mk_not = mk_unary_op("not")
 
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
@@ -422,6 +429,16 @@ let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,Unit> = k => 
   else return co_error(`expected '${k}'`)
 }))
 
+let unaryop_sign: (_:UnaryOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error(`found empty state, expected ${k}`)
+  let i = s.first()
+  if (i.kind == k) {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error(`expected '${k}'`)
+}))
+
 
 let plus_op = binop_sign("+")
 let minus_op = binop_sign("-")
@@ -437,6 +454,8 @@ let eq_op = binop_sign("==")
 let neq_op = binop_sign("!=")
 let and_op = binop_sign("&&")
 let or_op = binop_sign("||")
+
+let not_op = unaryop_sign("not")
 
 let eof: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -472,11 +491,18 @@ let term : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(int)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(string)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(unary_expr())(
   left_bracket.then(_ =>
-  expr().then(e =>
-  right_bracket.then(_ =>
-  co_unit(e)
-  )))))))))
+      expr().then(e =>
+      right_bracket.then(_ =>
+      co_unit(e)))
+    ))))))))
+
+let unary_expr : () => Parser = () =>
+  not_op.then(_ =>
+    expr().then(e => co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
+    
+    
 
 let expr : () => Parser = () =>
   term().then(l =>
@@ -575,6 +601,7 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   : n.ast.kind == ">=" ? CSharp.geq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "==" ? CSharp.eq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "!=" ? CSharp.neq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "not" ? CSharp.not(ast_to_type_checker(n.ast.e))
   : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)

@@ -72,16 +72,16 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nRenderGrid g;\nint x;\nint y;\ntypechecker_debugger;\ng = empty_render_grid 16 16;\nx = 0;\nwhile (x < 16) {\n  y = 0;\n  while (y <= 16) {\n    if (((x + (y * 16)) % 2) == 0) {\n      g = g + pixel x y true;\n      debugger;\n    }\n    y = y + 1;\n  }\n  x = x + 1;\n}\n";
+        var source = "\n    RenderGrid g;\n    int x;\n    int y;\n    typechecker_debugger;\n    g = empty_render_grid 16 16;\n    x = 0;\n    while (x < 16) {\n      y = 0;\n      while (y <= 16) {\n        if (((x + (y * 16)) % 2) == 0) {\n          g = g + pixel x y true;\n          debugger;\n        }\n        y = y + 1;\n      }\n      x = x + 1;\n    }\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
         var tokens = Immutable.List(parse_result.value);
-        // console.log(JSON.stringify(tokens.toArray()))
+        console.log(JSON.stringify(tokens.toArray())); // tokens
         var res = CSharp.program_prs().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + res.value;
-        // console.log(JSON.stringify(res.value.value.fst))
+        console.log(JSON.stringify(res.value.value.fst)); // ast
         var hrstart = process.hrtime();
         var p = csharp_1.ast_to_type_checker(res.value.value.fst);
         var output = "";
@@ -106,4 +106,4 @@ var ImpLanguageWithSuspend;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
 // console.log(ImpLanguageWithSuspend.test_imp())
-// console.log(ImpLanguageWithSuspend.test_parser())
+console.log(ImpLanguageWithSuspend.test_parser());

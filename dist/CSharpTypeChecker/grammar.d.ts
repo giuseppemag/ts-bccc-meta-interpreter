@@ -3,6 +3,7 @@ import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as CSharp from "./csharp";
 export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||";
+export declare type UnaryOpKind = "not";
 export declare type Token = ({
     kind: "string";
     v: string;
@@ -30,6 +31,8 @@ export declare type Token = ({
     kind: "=";
 } | {
     kind: BinOpKind;
+} | {
+    kind: UnaryOpKind;
 } | {
     kind: ";";
 } | {
@@ -123,6 +126,10 @@ export interface BinOpAST {
     l: ParserRes;
     r: ParserRes;
 }
+export interface UnaryOpAST {
+    kind: UnaryOpKind;
+    e: ParserRes;
+}
 export interface FunDefAST {
     kind: "fun";
     n: IdAST;
@@ -140,7 +147,7 @@ export interface MkRenderGridPixel {
     h: ParserRes;
     status: ParserRes;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | BinOpAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | BinOpAST | UnaryOpAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

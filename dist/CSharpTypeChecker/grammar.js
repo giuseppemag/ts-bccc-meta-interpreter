@@ -45,6 +45,7 @@ var GrammarBasics;
     var eq = parse_prefix_regex(/^==/, function (s, r) { return ({ range: r, kind: "==" }); });
     var neq = parse_prefix_regex(/^!=/, function (s, r) { return ({ range: r, kind: "!=" }); });
     var and = parse_prefix_regex(/^&&/, function (s, r) { return ({ range: r, kind: "&&" }); });
+    var not = parse_prefix_regex(/^!/, function (s, r) { return ({ range: r, kind: "not" }); });
     var or = parse_prefix_regex(/^\|\|/, function (s, r) { return ({ range: r, kind: "||" }); });
     var dot = parse_prefix_regex(/^\./, function (s, r) { return ({ range: r, kind: "." }); });
     var lbr = parse_prefix_regex(/^\(/, function (s, r) { return ({ range: r, kind: "(" }); });
@@ -62,7 +63,7 @@ var GrammarBasics;
     var identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, function (s, r) { return ({ range: r, kind: "id", v: s }); });
     var fst_err = function (x, y) { return x; };
     var lex_catch = ccc_aux_1.co_catch(fst_err);
-    var token = lex_catch(semicolon)(lex_catch(and)(lex_catch(or)(lex_catch(leq)(lex_catch(geq)(lex_catch(lt)(lex_catch(gt)(lex_catch(eq)(lex_catch(neq)(lex_catch(plus)(lex_catch(times)(lex_catch(int)(lex_catch(minus)(lex_catch(div)(lex_catch(mod)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(lcbr)(lex_catch(rcbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(bool)(lex_catch(string)(lex_catch(float)(lex_catch(_while)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_else)(lex_catch(int)(lex_catch(empty_render_grid)(lex_catch(pixel)(lex_catch(identifier)(whitespace)))))))))))))))))))))))))))))))));
+    var token = lex_catch(semicolon)(lex_catch(not)(lex_catch(and)(lex_catch(or)(lex_catch(leq)(lex_catch(geq)(lex_catch(lt)(lex_catch(gt)(lex_catch(eq)(lex_catch(neq)(lex_catch(plus)(lex_catch(times)(lex_catch(int)(lex_catch(minus)(lex_catch(div)(lex_catch(mod)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(lcbr)(lex_catch(rcbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(bool)(lex_catch(string)(lex_catch(float)(lex_catch(_while)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_else)(lex_catch(int)(lex_catch(empty_render_grid)(lex_catch(pixel)(lex_catch(identifier)(whitespace))))))))))))))))))))))))))))))))));
     GrammarBasics.tokenize = function (source) {
         var lines = source.split("\n");
         var tokens = Immutable.List();
@@ -104,6 +105,8 @@ var mk_eq = mk_bin_op("==");
 var mk_neq = mk_bin_op("!=");
 var mk_and = mk_bin_op("&&");
 var mk_or = mk_bin_op("||");
+var mk_unary_op = function (k) { return function (e) { return ({ range: e.range, ast: { kind: k, e: e } }); }; };
+var mk_not = mk_unary_op("not");
 var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
 var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
 var mk_empty_render_grid = function (w, h) { return ({ range: source_range_1.join_source_ranges(w.range, h.range), ast: { kind: "mk-empty-render-grid", w: w, h: h } }); };
@@ -331,6 +334,16 @@ var binop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state(
     else
         return ts_bccc_1.co_error("expected '" + k + "'");
 })); };
+var unaryop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected " + k);
+    var i = s.first();
+    if (i.kind == k) {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+    }
+    else
+        return ts_bccc_1.co_error("expected '" + k + "'");
+})); };
 var plus_op = binop_sign("+");
 var minus_op = binop_sign("-");
 var times_op = binop_sign("*");
@@ -344,6 +357,7 @@ var eq_op = binop_sign("==");
 var neq_op = binop_sign("!=");
 var and_op = binop_sign("&&");
 var or_op = binop_sign("||");
+var not_op = unaryop_sign("not");
 var eof = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_unit({});
@@ -377,13 +391,18 @@ var render_grid_pixel_prs = function () {
     });
 };
 var term = function () {
-    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(identifier)(left_bracket.then(function (_) {
+    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
             });
         });
-    })))))));
+    }))))))));
+};
+var unary_expr = function () {
+    return not_op.then(function (_) {
+        return expr().then(function (e) { return ts_bccc_1.co_unit(mk_not(e)); });
+    });
 };
 var expr = function () {
     return term().then(function (l) {
@@ -472,24 +491,25 @@ exports.ast_to_type_checker = function (n) {
                                                             : n.ast.kind == ">=" ? CSharp.geq(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
                                                                 : n.ast.kind == "==" ? CSharp.eq(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
                                                                     : n.ast.kind == "!=" ? CSharp.neq(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
-                                                                        : n.ast.kind == "&&" ? CSharp.and(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
-                                                                            : n.ast.kind == "||" ? CSharp.or(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
-                                                                                : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
-                                                                                    : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(exports.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
-                                                                                        : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r))
-                                                                                            : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
-                                                                                                n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
-                                                                                                    : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
-                                                                                                        : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
-                                                                                                            : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
-                                                                                                                : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
-                                                                                                : n.ast.kind == "dbg" ?
-                                                                                                    CSharp.breakpoint(n.range)(CSharp.done)
-                                                                                                    : n.ast.kind == "tc-dbg" ?
-                                                                                                        CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                        : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                            CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
-                                                                                                            : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
-                                                                                                                : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                        : n.ast.kind == "not" ? CSharp.not(exports.ast_to_type_checker(n.ast.e))
+                                                                            : n.ast.kind == "&&" ? CSharp.and(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
+                                                                                : n.ast.kind == "||" ? CSharp.or(exports.ast_to_type_checker(n.ast.l), exports.ast_to_type_checker(n.ast.r))
+                                                                                    : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
+                                                                                        : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(exports.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
+                                                                                            : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r))
+                                                                                                : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
+                                                                                                    n.ast.l.ast.value == "int" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.int_type)
+                                                                                                        : n.ast.l.ast.value == "bool" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.bool_type)
+                                                                                                            : n.ast.l.ast.value == "RenderGrid" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_type)
+                                                                                                                : n.ast.l.ast.value == "RenderGridPixel" ? CSharp.decl_v(n.ast.r.ast.value, CSharp.render_grid_pixel_type)
+                                                                                                                    : CSharp.decl_v(n.ast.r.ast.value, CSharp.ref_type(n.ast.l.ast.value))
+                                                                                                    : n.ast.kind == "dbg" ?
+                                                                                                        CSharp.breakpoint(n.range)(CSharp.done)
+                                                                                                        : n.ast.kind == "tc-dbg" ?
+                                                                                                            CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
+                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                    CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
+                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 };
