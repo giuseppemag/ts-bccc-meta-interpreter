@@ -36,6 +36,7 @@ export declare let int_geq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_leq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_eq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let int_neq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
+export declare let bool_neq: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_plus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_minus: (a: Expr<Val>, b: Expr<Val>) => Expr<Val>;
 export declare let float_times: (a: Expr<Val>, b: Expr<Val>, sr: SourceRange) => Expr<Val>;

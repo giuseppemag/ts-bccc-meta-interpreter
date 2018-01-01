@@ -144,23 +144,9 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-    RenderGrid g;
-    int x;
-    int y;
-    typechecker_debugger;
-    g = empty_render_grid 16 16;
-    x = 0;
-    while (x < 16) {
-      y = 0;
-      while (y <= 16) {
-        if (((x + (y * 16)) % 2) == 0) {
-          g = g + pixel x y true;
-          debugger;
-        }
-        y = y + 1;
-      }
-      x = x + 1;
-    }
+    bool x;
+    x = false ^ false;
+   
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

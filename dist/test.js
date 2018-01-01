@@ -72,7 +72,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    RenderGrid g;\n    int x;\n    int y;\n    typechecker_debugger;\n    g = empty_render_grid 16 16;\n    x = 0;\n    while (x < 16) {\n      y = 0;\n      while (y <= 16) {\n        if (((x + (y * 16)) % 2) == 0) {\n          g = g + pixel x y true;\n          debugger;\n        }\n        y = y + 1;\n      }\n      x = x + 1;\n    }\n";
+        var source = "\n    bool x;\n    x = false ^ false;\n   \n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

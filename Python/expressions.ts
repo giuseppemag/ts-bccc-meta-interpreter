@@ -144,6 +144,11 @@ export let int_neq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => bool(ab_val.fst != ab_val.snd), "(!=)")
 }
+export let bool_neq = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
+  return lift_binary_operation<boolean,boolean>(a, b,
+          ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => bool(ab_val.fst != ab_val.snd), "(!=)")
+}
 export let float_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
           ab => ab.fst.k != "f" || ab.snd.k != "f" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),

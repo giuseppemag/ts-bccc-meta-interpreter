@@ -177,6 +177,17 @@ exports.neq = function (a, b) {
         });
     });
 };
+exports.xor = function (a, b) {
+    return a.then(function (a_t) {
+        return b.then(function (b_t) {
+            return type_equals(a_t.type, b_t.type) ?
+                type_equals(a_t.type, exports.bool_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_neq(a_t.sem, b_t.sem)))
+                    : ts_bccc_2.co_error("Error: unsupported types for operator (^)!")
+                : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
+        });
+    });
+};
 exports.mk_empty_render_grid = function (w, h) {
     return w.then(function (w_t) {
         return h.then(function (h_t) {

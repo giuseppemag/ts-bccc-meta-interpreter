@@ -79,6 +79,7 @@ export declare let geq: (a: Stmt, b: Stmt) => Stmt;
 export declare let leq: (a: Stmt, b: Stmt) => Stmt;
 export declare let eq: (a: Stmt, b: Stmt) => Stmt;
 export declare let neq: (a: Stmt, b: Stmt) => Stmt;
+export declare let xor: (a: Stmt, b: Stmt) => Stmt;
 export declare let mk_empty_render_grid: (w: Stmt, h: Stmt) => Stmt;
 export declare let mk_render_grid_pixel: (w: Stmt, h: Stmt, st: Stmt) => Stmt;
 export declare let plus: (a: Stmt, b: Stmt) => Stmt;

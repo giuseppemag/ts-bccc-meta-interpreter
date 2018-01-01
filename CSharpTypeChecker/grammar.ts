@@ -6,7 +6,7 @@ import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end } from "../ccc_aux"
 import * as CSharp from "./csharp"
 
-export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"
+export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||" | "xor"
 export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
@@ -66,6 +66,7 @@ export module GrammarBasics {
   let eq = parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="}))
   let neq = parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="}))
   let and = parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"}))
+  let xor = parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"}))
   let not = parse_prefix_regex(/^!/, (s,r) => ({range:r, kind:"not"}))
   let or = parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"}))
   let dot = parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."}))
@@ -90,6 +91,7 @@ export module GrammarBasics {
               lex_catch(not)(
               lex_catch(and)(
               lex_catch(or)(
+              lex_catch(xor)(
               lex_catch(leq)(
               lex_catch(geq)(
               lex_catch(lt)(
@@ -121,7 +123,7 @@ export module GrammarBasics {
               lex_catch(pixel)(
               lex_catch(identifier)(
               whitespace
-              ))))))))))))))))))))))))))))))))))
+              )))))))))))))))))))))))))))))))))))
 
   export let tokenize = (source:string) : Sum<LexerError,Token[]> => {
     let lines = source.split("\n")
@@ -190,6 +192,7 @@ let mk_eq = mk_bin_op("==")
 let mk_neq = mk_bin_op("!=")
 let mk_and = mk_bin_op("&&")
 let mk_or = mk_bin_op("||")
+let mk_xor = mk_bin_op("xor")
 
 let mk_unary_op = (k:UnaryOpKind) => (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: k, e:e }})
 let mk_not = mk_unary_op("not")
@@ -454,6 +457,7 @@ let eq_op = binop_sign("==")
 let neq_op = binop_sign("!=")
 let and_op = binop_sign("&&")
 let or_op = binop_sign("||")
+let xor_op = binop_sign("xor")
 
 let not_op = unaryop_sign("not")
 
@@ -519,8 +523,9 @@ let expr : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(neq_op.then(_ => expr().then(r => co_unit(mk_neq(l,r)))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(and_op.then(_ => expr().then(r => co_unit(mk_and(l,r)))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(or_op.then(_ => expr().then(r => co_unit(mk_or(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(xor_op.then(_ => expr().then(r => co_unit(mk_xor(l,r)))))(
   co_unit(l)
-  ))))))))))))))
+  )))))))))))))))
 
 let semicolon = ignore_whitespace(semicolon_sign)
 let with_semicolon = (p:Parser) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
@@ -601,6 +606,7 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   : n.ast.kind == ">=" ? CSharp.geq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "==" ? CSharp.eq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "!=" ? CSharp.neq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "xor" ? CSharp.xor(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "not" ? CSharp.not(ast_to_type_checker(n.ast.e))
   : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
   : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))

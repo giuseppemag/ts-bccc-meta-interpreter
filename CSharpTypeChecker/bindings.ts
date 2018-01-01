@@ -189,6 +189,17 @@ export let neq = function(a:Stmt, b:Stmt) : Stmt {
         ))
 }
 
+export let xor = function(a:Stmt, b:Stmt) : Stmt {
+  return a.then(a_t =>
+         b.then(b_t =>
+          type_equals(a_t.type, b_t.type) ?
+            type_equals(a_t.type, bool_type) ?
+             co_unit(mk_typing(bool_type, Sem.bool_neq(a_t.sem, b_t.sem)))
+            : co_error<State,Err,Typing>("Error: unsupported types for operator (^)!")
+          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+        ))
+}
+
 export let mk_empty_render_grid = function(w:Stmt, h:Stmt) : Stmt {
   return w.then(w_t =>
          h.then(h_t =>

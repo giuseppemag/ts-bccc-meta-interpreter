@@ -2,7 +2,7 @@ import * as Immutable from "immutable";
 import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as CSharp from "./csharp";
-export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||";
+export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor";
 export declare type UnaryOpKind = "not";
 export declare type Token = ({
     kind: "string";
