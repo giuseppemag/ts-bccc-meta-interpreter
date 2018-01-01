@@ -51731,26 +51731,37 @@ let render_render_grid = (grid) => {
     return React.createElement("canvas", { width: 128, height: 128, ref: canvas => {
             if (canvas == null)
                 return;
-            let ctx = canvas.getContext("2d");
+            let maybe_ctx = canvas.getContext("2d");
+            if (maybe_ctx == null)
+                return;
+            let ctx = maybe_ctx;
             let w = grid.width;
             let h = grid.height;
             let cell_w = canvas.width / w;
             let cell_h = canvas.height / h;
             let pixels = grid.pixels;
             pixels.forEach((col, x) => {
+                if (col == undefined || x == undefined)
+                    return;
                 col.forEach(y => {
+                    if (y == undefined)
+                        return;
                     ctx.fillRect(x * cell_w, y * cell_h, cell_w, cell_h);
                 });
             });
         } });
 };
 let render_scope = (scope) => {
-    return scope.map((v, k) => React.createElement("tr", { key: k },
-        React.createElement("td", null, k),
-        React.createElement("td", null, v.k == "u" ? "()" :
-            v.k == "i" ? v.v :
-                v.k == "render-grid" ? render_render_grid(v.v) :
-                    JSON.stringify(v.v)))).toArray();
+    return scope.map((v, k) => {
+        if (v == undefined || k == undefined)
+            return React.createElement("tr", null);
+        return React.createElement("tr", { key: k },
+            React.createElement("td", null, k),
+            React.createElement("td", null, v.k == "u" ? "()" :
+                v.k == "i" ? v.v :
+                    v.k == "render-grid" ? render_render_grid(v.v) :
+                        JSON.stringify(v.v)));
+    }).toArray();
 };
 let render_debugger_stream = (stream) => {
     let state = stream.show();
