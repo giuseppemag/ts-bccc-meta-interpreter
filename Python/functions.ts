@@ -32,8 +32,7 @@ export let def_fun = function(n:Name, body:Expr<Val>, parameters:Array<Name>, cl
 }
 
 export let ret = function (e: Expr<Val>): Expr<Val> {
-  return co_get_state<Mem, Err>().then(s => 
-         console.log("recursive call with state", s) || e.then(e_val => console.log("returning", e_val) || set_v("return", e_val).then(_ => co_unit(e_val))))
+  return e.then(e_val => set_v("return", e_val).then(_ => co_unit(e_val)))
 }
 
 export let call_by_name = function(f_n:Name, args:Array<Expr<Val>>) : Expr<Val> {

@@ -23,9 +23,7 @@ exports.def_fun = function (n, body, parameters, closure_parameters) {
     return build_closure(closure_parameters)(0, python_1.empty_scope).then(function (closure) { return memory_1.set_fun_def(n, { body: body, parameters: parameters, closure: closure }); });
 };
 exports.ret = function (e) {
-    return ts_bccc_1.co_get_state().then(function (s) {
-        return console.log("recursive call with state", s) || e.then(function (e_val) { return console.log("returning", e_val) || memory_1.set_v("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });
-    });
+    return e.then(function (e_val) { return memory_1.set_v("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });
 };
 exports.call_by_name = function (f_n, args) {
     return memory_1.get_fun_def(f_n).then(function (f) {

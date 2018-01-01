@@ -79,7 +79,7 @@ exports.int_plus = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst + ab_val.snd); }, "(+)");
 };
 exports.int_minus = function (a, b) {
-    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return console.log("int_minus", ab_val) || memory_1.int(ab_val.fst - ab_val.snd); }, "(-)");
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst - ab_val.snd); }, "(-)");
 };
 exports.int_times = function (a, b, sr) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.int(ab_val.fst * ab_val.snd); }, "(*) at " + sr.to_string());
