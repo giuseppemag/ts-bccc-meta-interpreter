@@ -95,6 +95,7 @@ export module GrammarBasics {
               lex_catch(neq)(
               lex_catch(plus)(
               lex_catch(times)(
+              lex_catch(int)(
               lex_catch(minus)(
               lex_catch(div)(
               lex_catch(mod)(
@@ -106,7 +107,6 @@ export module GrammarBasics {
               lex_catch(dbg)(
               lex_catch(dbg_tc)(
               lex_catch(bool)(
-              lex_catch(int)(
               lex_catch(string)(
               lex_catch(float)(
               lex_catch(_while)(

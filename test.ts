@@ -155,6 +155,7 @@ while (x < 16) {
   while (y <= 16) {
     if (((x + (y * 16)) % 2) == 0) {
       g = g + pixel x y true;
+      debugger;
     }
     y = y + 1;
   }
@@ -188,8 +189,9 @@ while (x < 16) {
       let runtime_res = apply((constant<Unit,Py.Stmt>(compiler_res.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory))).then(run_to_end()), {})
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
+      log(`Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
       log(`Runtime result: `, JSON.stringify(runtime_res))
+      log(`Timer: ${time_in_ns / 1000000}ms\n `, "")
     }
     return output
   }

@@ -72,7 +72,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nRenderGrid g;\nint x;\nint y;\ntypechecker_debugger;\ng = empty_render_grid 16 16;\nx = 0;\nwhile (x < 16) {\n  y = 0;\n  while (y <= 16) {\n    if (((x + (y * 16)) % 2) == 0) {\n      g = g + pixel x y true;\n    }\n    y = y + 1;\n  }\n  x = x + 1;\n}\n";
+        var source = "\nRenderGrid g;\nint x;\nint y;\ntypechecker_debugger;\ng = empty_render_grid 16 16;\nx = 0;\nwhile (x < 16) {\n  y = 0;\n  while (y <= 16) {\n    if (((x + (y * 16)) % 2) == 0) {\n      g = g + pixel x y true;\n      debugger;\n    }\n    y = y + 1;\n  }\n  x = x + 1;\n}\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -98,8 +98,9 @@ var ImpLanguageWithSuspend;
             var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
-            log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
+            log("Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
             log("Runtime result: ", JSON.stringify(runtime_res));
+            log("Timer: " + time_in_ns / 1000000 + "ms\n ", "");
         }
         return output;
     };
