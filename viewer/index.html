@@ -24,6 +24,18 @@
 <body id="app">
   <h1>Giuseppe's little meta-playground</h1>
   <textarea id="code" class="code">
+int fibonacci(int n) {
+  debugger;
+  if (n <= 1) {
+    return n;
+  } else {
+    return fibonacci((n-1)) + fibonacci((n-2));
+  }
+}
+
+int x;
+x = fibonacci(5);
+
 RenderGrid g;
 int x;
 int y;
@@ -73,6 +85,42 @@ while (x < 16) {
     let next_step = () => {
       clear_state()
 
+      let make_inner_table = (v) => {
+        let inner_table = document.createElement("table")
+        v.forEach((v,k) => {
+          let row = document.createElement("tr")
+          let col = document.createElement("td")
+          col.innerText = k
+          row.appendChild(col)
+          col = document.createElement("td")
+          if (v.k == "i")
+            col.innerText = v.v
+            else if (v.k == "render-grid") {
+            let canvas = document.createElement("canvas")
+            canvas.width = 128
+            canvas.height = 128
+            let ctx = canvas.getContext("2d")
+            let w = v.v.width
+            let h = v.v.height
+            let cell_w = canvas.width / w
+            let cell_h = canvas.height / h
+            let pixels = v.v.pixels
+            pixels.forEach((col,x) => {
+              col.forEach(y => {
+                ctx.fillRect(x*cell_w,y*cell_h, cell_w,cell_h)
+              })
+            })
+            col.appendChild(canvas)
+          } else if (v.kind == "int")
+          col.innerText = "int"
+          else
+          col.innerText = JSON.stringify(v)
+          row.appendChild(col)
+          inner_table.appendChild(row)
+        })
+        return inner_table
+      }
+
       let to_table = (content) => {
         if (content == undefined) return document.createElement("div")
         let values_table = document.createElement("table")
@@ -87,45 +135,29 @@ while (x < 16) {
             col.innerText = k
             row.appendChild(col)
             col = document.createElement("td")
-
-            let inner_table = document.createElement("table")
-            v.forEach((v,k) => {
-              let row = document.createElement("tr")
-              let col = document.createElement("td")
-              col.innerText = k
-              row.appendChild(col)
-              col = document.createElement("td")
-              if (v.k == "i")
-                col.innerText = v.v
-              else if (v.k == "render-grid") {
-                let canvas = document.createElement("canvas")
-                canvas.width = 128
-                canvas.height = 128
-                let ctx = canvas.getContext("2d")
-                let w = v.v.width
-                let h = v.v.height
-                let cell_w = canvas.width / w
-                let cell_h = canvas.height / h
-                let pixels = v.v.pixels
-                pixels.forEach((col,x) => {
-                  col.forEach(y => {
-                    ctx.fillRect(x*cell_w,y*cell_h, cell_w,cell_h)
-                  })
-                })
-                col.appendChild(canvas)
-              } else if (v.kind == "int")
-                col.innerText = "int"
-              else
-                col.innerText = JSON.stringify(v)
-              row.appendChild(col)
-              inner_table.appendChild(row)
-            })
-            col.appendChild(inner_table)
+            col.appendChild(make_inner_table(v))
 
             row.appendChild(col)
             values_table.appendChild(row)
           }
         })
+
+        if ("stack" in content) {
+        let stack_row = document.createElement("tr")
+        values_table.appendChild(stack_row)
+        let stack_col = document.createElement("td")
+        stack_col.innerText = "stack"
+        stack_row.appendChild(stack_col)
+        stack_col = document.createElement("td")
+        stack_row.appendChild(stack_col)
+        content["stack"].forEach((v,k) => {
+            let row = document.createElement("tr")
+            let col = document.createElement("td")
+            col.appendChild(make_inner_table(v))
+            row.appendChild(col)
+            stack_col.appendChild(row)
+          })
+        }
 
         return values_table
       }

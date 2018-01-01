@@ -154,7 +154,7 @@ int fibonacci(int n) {
 
 int x;
 x = fibonacci(20);
-   
+
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
