@@ -6,6 +6,15 @@ export declare type DebuggerStream = ({
     kind: "step";
     next: () => DebuggerStream;
 }) & {
-    show: () => Py.Mem | CSharp.State | string;
+    show: () => {
+        kind: "memory";
+        memory: Py.Mem;
+    } | {
+        kind: "bindings";
+        state: CSharp.State;
+    } | {
+        kind: "message";
+        message: string;
+    };
 };
 export declare let get_stream: (source: string) => DebuggerStream;

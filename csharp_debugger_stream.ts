@@ -12,19 +12,19 @@ import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 
-export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => Py.Mem | CSharp.State | string }
+export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => { kind:"memory", memory:Py.Mem } | { kind:"bindings", state:CSharp.State } | { kind:"message", message:string } }
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
   if (parse_result.kind == "left") {
     let error = parse_result.value
-    return { kind:"error", show:() => error }
+    return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
 
   let tokens = Immutable.List<CSharp.Token>(parse_result.value)
   let res = co_run_to_end(CSharp.program_prs(), tokens)
   if (res.kind != "right") {
     let error = res.value
-    return { kind:"error", show:() => error }
+    return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
 
   let p = ast_to_type_checker(res.value.fst)
@@ -37,15 +37,15 @@ export let get_stream = (source:string) : DebuggerStream => {
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value
-        return { kind:"error", show:() => error }
+        return { kind:"error", show:() => ({ kind:"message", message:error }) }
       }
       if (k.value.kind == "left") {
         return runtime_stream(k.value.value)
       }
       s = k.value.value.snd
-      return { kind:"done", show:() => s }
+      return { kind:"done", show:() => ({ kind:"memory", memory:s}) }
     },
-    show:() => state.snd
+    show:() => ({ kind:"memory", memory:state.snd })
   })
 
   let typechecker_stream = (state:Prod<CSharp.Stmt,CSharp.State>) : DebuggerStream => ({
@@ -56,7 +56,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value
-        return { kind:"error", show:() => error }
+        return { kind:"error", show:() => ({ kind:"message", message:error }) }
       }
       if (k.value.kind == "left") {
         return typechecker_stream(k.value.value)
@@ -64,7 +64,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       let initial_runtime_state = apply(constant<Unit,Py.Stmt>(k.value.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory)), {})
       return runtime_stream(initial_runtime_state)
     },
-    show:() => state.snd
+    show:() => ({ kind:"bindings", state:state.snd })
   })
 
   let initial_compiler_state = apply(constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})

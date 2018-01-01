@@ -1,0 +1,22 @@
+{
+    "compileOnSave": false,
+    "compilerOptions": {
+        "outDir": "./obj/js",
+        "sourceMap": true,
+        "skipLibCheck": true,
+        "skipDefaultLibCheck": true,
+        "noImplicitAny": false,
+        "module": "commonjs",
+        "target": "es6",
+        "jsx": "react",
+        "strict": true
+    },
+     "include": [
+      "./Client/**/*.ts",
+      "./Client/**/*.tsx",
+      "./Client/**/*.jsx"
+    ],
+   "exclude": [
+      "/**/node_modules/*"
+    ]
+}

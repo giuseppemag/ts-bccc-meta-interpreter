@@ -22,39 +22,6 @@
 </head>
 
 <body id="app">
-  <h1>Giuseppe's little meta-playground</h1>
-  <textarea id="code" class="code">
-int fibonacci(int n) {
-  debugger;
-  if (n <= 1) {
-    return n;
-  } else {
-    return fibonacci((n-1)) + fibonacci((n-2));
-  }
-}
-
-int x;
-x = fibonacci(5);
-
-RenderGrid g;
-int x;
-int y;
-typechecker_debugger;
-g = empty_render_grid 16 16;
-x = 0;
-while (x < 16) {
-  y = 0;
-  while (y <= x) {
-    if (((y + x) % 2) == 1) {
-      g = g + pixel x y true;
-      debugger;
-    }
-    y = y + 1;
-  }
-  x = x + 1;
-}
-  </textarea>
-  <div id="state" style="width:50%; float:right">
 
   </div>
   <button id="step-fwd" style="position:absolute; bottom:20px">
