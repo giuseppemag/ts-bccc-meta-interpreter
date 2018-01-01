@@ -13,11 +13,13 @@
     [ ] LINQ
 [ ] IMP PARSER
   [ ] Functions
-    [/] Def
-    [ ] Call
     [ ] Lambda's (requires Func and generics in type-checker)
+    [ ] Inner, outer, function statements
+    [ ] Type of branches in if-then-else vs return type for function
+    [ ] closure
+    [ ] unreachable statements
   [ ] Statements
-    [/] Declaration
+    [ ] Full declaration and assignment (`int x = 10;`)
     [/] Assignment
       [ ] Left-hand
         [/] To variable
@@ -25,8 +27,6 @@
       [ ] Right-hand
         [ ] Field get
         [ ] Basic (non-recursive) arithmetic expressions
-          [X] ^ (xor)
-          [X] !
           [ ] - (unary)
         [ ] Constructor
         [ ] Method call

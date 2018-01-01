@@ -72,16 +72,16 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    bool test(){\n      return true;\n    }\n   \n";
+        var source = "\nint fact(int n) {\n  if (n < 1) {\n    return 1;\n  } else {\n    return n * fact((n-1));\n  }\n}\n\nint x;\nx = fact(4);\n   \n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
         var tokens = Immutable.List(parse_result.value);
-        console.log(JSON.stringify(tokens.toArray())); // tokens
+        // console.log(JSON.stringify(tokens.toArray())) // tokens
         var res = CSharp.program_prs().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + res.value;
-        console.log(JSON.stringify(res.value.value.fst)); // ast
+        // console.log(JSON.stringify(res.value.value.fst)) // ast
         var hrstart = process.hrtime();
         var p = csharp_1.ast_to_type_checker(res.value.value.fst);
         var output = "";

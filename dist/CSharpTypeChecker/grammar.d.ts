@@ -166,7 +166,12 @@ export interface FunctionDeclarationAST {
     arg_decls: ParserRes;
     body: ParserRes;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export interface FunctionCallAST {
+    kind: "func_call";
+    name: ParserRes;
+    actuals: Array<ParserRes>;
+}
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

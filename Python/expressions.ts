@@ -97,7 +97,7 @@ export let int_plus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
 export let int_minus = function (a: Expr<Val>, b:Expr<Val>): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
-          ab_val => int(ab_val.fst - ab_val.snd), "(-)")
+          ab_val => console.log("int_minus", ab_val) || int(ab_val.fst - ab_val.snd), "(-)")
 }
 export let int_times = function (a: Expr<Val>, b:Expr<Val>, sr:SourceRange): Expr<Val> {
   return lift_binary_operation<number,number>(a, b,

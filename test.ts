@@ -144,20 +144,27 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-    bool test(){
-      return true;
-    }
+int fact(int n) {
+  if (n < 1) {
+    return 1;
+  } else {
+    return n * fact((n-1));
+  }
+}
+
+int x;
+x = fact(4);
    
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    console.log(JSON.stringify(tokens.toArray())) // tokens
+    // console.log(JSON.stringify(tokens.toArray())) // tokens
     let res = CSharp.program_prs().run.f(tokens)
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
-    console.log(JSON.stringify(res.value.value.fst)) // ast
+    // console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)
 

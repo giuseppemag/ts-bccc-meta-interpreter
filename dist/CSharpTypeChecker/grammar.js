@@ -47,6 +47,7 @@ var GrammarBasics;
     var and = parse_prefix_regex(/^&&/, function (s, r) { return ({ range: r, kind: "&&" }); });
     var xor = parse_prefix_regex(/^\^/, function (s, r) { return ({ range: r, kind: "xor" }); });
     var not = parse_prefix_regex(/^!/, function (s, r) { return ({ range: r, kind: "not" }); });
+    var comma = parse_prefix_regex(/^,/, function (s, r) { return ({ range: r, kind: "," }); });
     var or = parse_prefix_regex(/^\|\|/, function (s, r) { return ({ range: r, kind: "||" }); });
     var ret = parse_prefix_regex(/^return/, function (s, r) { return ({ range: r, kind: "return" }); });
     var dot = parse_prefix_regex(/^\./, function (s, r) { return ({ range: r, kind: "." }); });
@@ -65,7 +66,7 @@ var GrammarBasics;
     var identifier = parse_prefix_regex(/^[a-zA-Z][a-zA-Z0-9]*/, function (s, r) { return ({ range: r, kind: "id", v: s }); });
     var fst_err = function (x, y) { return x; };
     var lex_catch = ccc_aux_1.co_catch(fst_err);
-    var token = lex_catch(semicolon)(lex_catch(not)(lex_catch(and)(lex_catch(or)(lex_catch(xor)(lex_catch(leq)(lex_catch(geq)(lex_catch(lt)(lex_catch(gt)(lex_catch(eq)(lex_catch(neq)(lex_catch(plus)(lex_catch(times)(lex_catch(int)(lex_catch(minus)(lex_catch(div)(lex_catch(mod)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(lcbr)(lex_catch(rcbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(bool)(lex_catch(string)(lex_catch(float)(lex_catch(_while)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_else)(lex_catch(int)(lex_catch(empty_render_grid)(lex_catch(pixel)(lex_catch(ret)(lex_catch(identifier)(whitespace))))))))))))))))))))))))))))))))))));
+    var token = lex_catch(semicolon)(lex_catch(comma)(lex_catch(not)(lex_catch(and)(lex_catch(or)(lex_catch(xor)(lex_catch(leq)(lex_catch(geq)(lex_catch(lt)(lex_catch(gt)(lex_catch(eq)(lex_catch(neq)(lex_catch(plus)(lex_catch(times)(lex_catch(int)(lex_catch(minus)(lex_catch(div)(lex_catch(mod)(lex_catch(dot)(lex_catch(lbr)(lex_catch(rbr)(lex_catch(lcbr)(lex_catch(rcbr)(lex_catch(dbg)(lex_catch(dbg_tc)(lex_catch(bool)(lex_catch(string)(lex_catch(float)(lex_catch(_while)(lex_catch(_if)(lex_catch(_eq)(lex_catch(_else)(lex_catch(int)(lex_catch(empty_render_grid)(lex_catch(pixel)(lex_catch(ret)(lex_catch(identifier)(whitespace)))))))))))))))))))))))))))))))))))));
     GrammarBasics.tokenize = function (source) {
         var lines = source.split("\n");
         var tokens = Immutable.List();
@@ -112,6 +113,10 @@ var mk_or = mk_bin_op("||");
 var mk_xor = mk_bin_op("xor");
 var mk_unary_op = function (k) { return function (e) { return ({ range: e.range, ast: { kind: k, e: e } }); }; };
 var mk_not = mk_unary_op("not");
+var mk_call = function (f_name, actuals) {
+    return ({ range: f_name.range,
+        ast: { kind: "func_call", name: f_name, actuals: actuals } });
+};
 var mk_function_declaration = function (return_type, function_name, arg_decls, body) {
     return ({ range: source_range_1.join_source_ranges(return_type.range, body.range),
         ast: { kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body } });
@@ -421,17 +426,28 @@ var render_grid_pixel_prs = function () {
     });
 };
 var term = function () {
-    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
+    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(call())(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
             });
         });
-    }))))))));
+    })))))))));
 };
 var unary_expr = function () {
     return not_op.then(function (_) {
         return expr().then(function (e) { return ts_bccc_1.co_unit(mk_not(e)); });
+    });
+};
+var call = function () {
+    return identifier.then(function (f_name) {
+        return left_bracket.then(function (_) {
+            return actuals().then(function (actuals) {
+                return right_bracket.then(function (_) {
+                    return ts_bccc_1.co_unit(mk_call(f_name, actuals));
+                });
+            });
+        });
     });
 };
 var expr = function () {
@@ -458,6 +474,15 @@ var decl = function () {
         });
     });
 };
+var actuals = function () {
+    return ccc_aux_1.co_catch(both_errors)(term().then(function (a) {
+        return ccc_aux_1.co_catch(both_errors)(comma.then(function (_) {
+            return actuals().then(function (as) {
+                return ts_bccc_1.co_unit([a].concat(as));
+            });
+        }))(ts_bccc_1.co_unit([a]));
+    }))(ts_bccc_1.co_unit(Array()));
+};
 var arg_decls = function () {
     return ccc_aux_1.co_catch(both_errors)(decl().then(function (d) {
         return ccc_aux_1.co_catch(both_errors)(comma.then(function (_) {
@@ -474,12 +499,12 @@ var return_statement = function () {
         });
     });
 };
-var if_conditional = function () {
+var if_conditional = function (stmt) {
     return if_keyword.then(function (_) {
         return expr().then(function (c) {
-            return outer_statement().then(function (t) {
+            return stmt().then(function (t) {
                 return ccc_aux_1.co_catch(fst_err)(else_keyword.then(function (_) {
-                    return outer_statement().then(function (e) {
+                    return stmt().then(function (e) {
                         return ts_bccc_1.co_unit(mk_if_then_else(c, t, e));
                     });
                 }))(ts_bccc_1.co_unit(mk_if_then(c, t)));
@@ -487,10 +512,10 @@ var if_conditional = function () {
         });
     });
 };
-var while_loop = function () {
+var while_loop = function (stmt) {
     return while_keyword.then(function (_) {
         return expr().then(function (c) {
-            return outer_statement().then(function (b) {
+            return stmt().then(function (b) {
                 return ts_bccc_1.co_unit(mk_while(c, b));
             });
         });
@@ -498,7 +523,7 @@ var while_loop = function () {
 };
 var bracketized_statement = function () {
     return left_curly_bracket.then(function (_) {
-        return outer_statements().then(function (s) {
+        return function_statements().then(function (s) {
             return right_curly_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(s);
             });
@@ -529,7 +554,7 @@ var outer_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(function_declaration())(inner_statement());
 };
 var inner_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop())(ccc_aux_1.co_catch(both_errors)(if_conditional())(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) { return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d }); })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg))))))));
+    return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop(function_statement))(ccc_aux_1.co_catch(both_errors)(if_conditional(function_statement))(ccc_aux_1.co_catch(both_errors)(with_semicolon(call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) { return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d }); })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg)))))))));
 };
 var function_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(with_semicolon(return_statement()))(inner_statement());
@@ -542,7 +567,7 @@ var generic_statements = function (stmt) {
     });
 };
 var function_statements = function () { return generic_statements(function_statement); };
-var inner_statements = function () { return generic_statements(inner_statement); };
+var inner_statements = function () { return generic_statements(function () { return inner_statement(); }); };
 var outer_statements = function () { return generic_statements(outer_statement); };
 exports.program_prs = function () {
     return outer_statements().then(function (s) {
@@ -582,29 +607,27 @@ exports.ast_to_type_checker = function (n) {
                                                                                             : n.ast.kind == "return" ? CSharp.ret(exports.ast_to_type_checker(n.ast.value))
                                                                                                 : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(exports.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
                                                                                                     : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r))
-                                                                                                        //def:FunDefinition, closure_parameters:Array<Name>
-                                                                                                        // export interface Parameter { name:Name, type:Type }
-                                                                                                        // export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
-                                                                                                        // export interface FunDefinition extends LambdaDefinition { name:string }
-                                                                                                        // { name:string, return_t:Type, parameters:Array<{ name:Name, type:Type }>, body:Stmt }
-                                                                                                        : n.ast.kind == "func_decl" &&
-                                                                                                            n.ast.return_type.ast.kind == "id" &&
-                                                                                                            n.ast.name.ast.kind == "id" &&
-                                                                                                            n.ast.arg_decls.ast.kind == "args" &&
-                                                                                                            !n.ast.arg_decls.ast.value.some(function (d) { return d == undefined || d.l.ast.kind != "id" || d.r.ast.kind != "id"; }) ?
-                                                                                                            CSharp.def_fun({ name: n.ast.name.ast.value,
-                                                                                                                return_t: string_to_csharp_type(n.ast.return_type.ast.value),
-                                                                                                                parameters: n.ast.arg_decls.ast.value.toArray().map(function (d) { return ({ name: d.l.ast.value, type: string_to_csharp_type(d.r.ast.value) }); }),
-                                                                                                                body: exports.ast_to_type_checker(n.ast.body) }, [])
-                                                                                                            : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
-                                                                                                                CSharp.decl_v(n.ast.l.ast.value, string_to_csharp_type(n.ast.r.ast.value))
-                                                                                                                : n.ast.kind == "dbg" ?
-                                                                                                                    CSharp.breakpoint(n.range)(CSharp.done)
-                                                                                                                    : n.ast.kind == "tc-dbg" ?
-                                                                                                                        CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                                        : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                                            CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
-                                                                                                                            : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                                CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
-                                                                                                                                : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                                                        : n.ast.kind == "func_call" &&
+                                                                                                            n.ast.name.ast.kind == "id" ?
+                                                                                                            CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
+                                                                                                            : n.ast.kind == "func_decl" &&
+                                                                                                                n.ast.return_type.ast.kind == "id" &&
+                                                                                                                n.ast.name.ast.kind == "id" &&
+                                                                                                                n.ast.arg_decls.ast.kind == "args" &&
+                                                                                                                !n.ast.arg_decls.ast.value.some(function (d) { return d == undefined || d.l.ast.kind != "id" || d.r.ast.kind != "id"; }) ?
+                                                                                                                CSharp.def_fun({ name: n.ast.name.ast.value,
+                                                                                                                    return_t: string_to_csharp_type(n.ast.return_type.ast.value),
+                                                                                                                    parameters: n.ast.arg_decls.ast.value.toArray().map(function (d) { return ({ name: d.r.ast.value, type: string_to_csharp_type(d.l.ast.value) }); }),
+                                                                                                                    body: exports.ast_to_type_checker(n.ast.body) }, [])
+                                                                                                                : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
+                                                                                                                    CSharp.decl_v(n.ast.r.ast.value, string_to_csharp_type(n.ast.l.ast.value))
+                                                                                                                    : n.ast.kind == "dbg" ?
+                                                                                                                        CSharp.breakpoint(n.range)(CSharp.done)
+                                                                                                                        : n.ast.kind == "tc-dbg" ?
+                                                                                                                            CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                                CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
+                                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                                    CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
+                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 };

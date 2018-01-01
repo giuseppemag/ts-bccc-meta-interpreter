@@ -374,9 +374,9 @@ export let if_then_else = function(c:Stmt, t:Stmt, e:Stmt) : Stmt {
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
          t.then(t_t =>
          e.then(e_t =>
-         type_equals(t_t.type, unit_type) && type_equals(e_t.type, unit_type) ?
+         type_equals(t_t.type, e_t.type) ?
            co_unit(mk_typing(t_t.type,Sem.if_then_else(c_t.sem, t_t.sem, e_t.sem)))
-         : co_error<State,Err,Typing>("Error: the branches of a conditional should be of type unit!"))))
+         : co_error<State,Err,Typing>("Error: the branches of a conditional should be of the same type!"))))
 }
 
 export let while_do = function(c:Stmt, b:Stmt) : Stmt {
@@ -418,10 +418,15 @@ export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<N
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))
 }
-
+// export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
+// export interface State { highlighting:SourceRange, bindings:Bindings }
 export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
-  return mk_lambda(def, closure_parameters).then(l =>
-         decl_const(def.name, l.type, co_unit(l)))
+  return co_get_state<State, Err>().then(s => 
+         co_set_state<State, Err>({...s, bindings:s.bindings.set(def.name, {...fun_type(tuple_type(def.parameters.map(p => p.type)), def.return_t), is_constant:true})}).then(_ =>
+         mk_lambda(def, closure_parameters).then(l =>
+         co_set_state<State, Err>(s).then(_ => 
+         decl_const(def.name, l.type, co_unit(l))))))
+
 }
 
 export let def_method = function(C_name:string, def:FunDefinition) : Stmt {

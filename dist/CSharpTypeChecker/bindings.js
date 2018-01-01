@@ -356,9 +356,9 @@ exports.if_then_else = function (c, t, e) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
             t.then(function (t_t) {
                 return e.then(function (e_t) {
-                    return type_equals(t_t.type, exports.unit_type) && type_equals(e_t.type, exports.unit_type) ?
+                    return type_equals(t_t.type, e_t.type) ?
                         ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.if_then_else(c_t.sem, t_t.sem, e_t.sem)))
-                        : ts_bccc_2.co_error("Error: the branches of a conditional should be of type unit!");
+                        : ts_bccc_2.co_error("Error: the branches of a conditional should be of the same type!");
                 });
             });
     });
@@ -401,9 +401,17 @@ exports.mk_lambda = function (def, closure_parameters) {
         });
     });
 };
+// export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
+// export interface State { highlighting:SourceRange, bindings:Bindings }
 exports.def_fun = function (def, closure_parameters) {
-    return exports.mk_lambda(def, closure_parameters).then(function (l) {
-        return exports.decl_const(def.name, l.type, ts_bccc_2.co_unit(l));
+    return ts_bccc_1.co_get_state().then(function (s) {
+        return ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(def.name, __assign({}, exports.fun_type(exports.tuple_type(def.parameters.map(function (p) { return p.type; })), def.return_t), { is_constant: true })) })).then(function (_) {
+            return exports.mk_lambda(def, closure_parameters).then(function (l) {
+                return ts_bccc_1.co_set_state(s).then(function (_) {
+                    return exports.decl_const(def.name, l.type, ts_bccc_2.co_unit(l));
+                });
+            });
+        });
     });
 };
 exports.def_method = function (C_name, def) {
