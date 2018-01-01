@@ -4,7 +4,7 @@ const app = electron.app
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow
 
-const language_main = require('../dist/main')
+const language_main = require('../dist/test')
 
 global.sharedObject = {
   language: language_main
