@@ -13,7 +13,7 @@
     [ ] LINQ
 [ ] IMP PARSER
   [ ] Functions
-    [ ] Def
+    [/] Def
     [ ] Call
     [ ] Lambda's (requires Func and generics in type-checker)
   [ ] Statements
@@ -25,7 +25,7 @@
       [ ] Right-hand
         [ ] Field get
         [ ] Basic (non-recursive) arithmetic expressions
-          [ ] ^ (xor)
+          [X] ^ (xor)
           [X] !
           [ ] - (unary)
         [ ] Constructor
