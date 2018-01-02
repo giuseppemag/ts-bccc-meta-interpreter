@@ -50,7 +50,7 @@ exports.get_stream = function (source) {
             if (k.value.kind == "left") {
                 return typechecker_stream(k.value.value);
             }
-            var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory)), {});
+            var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt)), {});
             return runtime_stream(initial_runtime_state);
         },
         show: function () { return ({ kind: "bindings", state: state.snd }); }

@@ -4,7 +4,7 @@ import {List, Map, Set, Range} from "immutable"
 import * as Immutable from "immutable"
 import * as Moment from 'moment'
 import * as i18next from 'i18next'
-import { DebuggerStream, get_stream } from 'ts-bccc-meta-interpreter'
+import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range } from 'ts-bccc-meta-interpreter'
 
 import {UrlTemplate, application, get_context, Route, Url, make_url, fallback_url, link_to_route,
 Option, C, Mode, unit, bind, string, number, bool, button, selector, multi_selector, label, h1, h2, div, form, image, link, file, overlay,
@@ -13,11 +13,9 @@ simple_menu, mk_menu_entry, mk_submenu_entry, MenuEntry, MenuEntryValue, MenuEnt
 rich_text, paginate, Page, list, editable_list, simple_application} from 'monadic_react'
 
 import * as MonadicReact from 'monadic_react'
-import { Scope, RenderGrid } from "ts-bccc-meta-interpreter/dist/Python/python";
-import { mk_range } from "ts-bccc-meta-interpreter/dist/source_range";
-import { highlight } from "ts-bccc-meta-interpreter/dist/CSharpTypeChecker/csharp";
 
-let default_program = `int fibonacci(int n) {
+let default_program = `
+int fibonacci(int n) {
   if (n <= 1) {
     debugger;
     return n;

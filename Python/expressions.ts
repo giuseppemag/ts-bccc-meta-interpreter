@@ -7,15 +7,15 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 
 import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
-  Name, HeapRef,
+  ValueName, HeapRef,
   set_arr_el_rt, set_arr_el_expr_rt, set_class_def_rt, set_fun_def_rt, set_heap_v_rt, set_v_rt, set_v_expr_rt, set_highlighting_rt,
   runtime_error,
   mk_bool_val, mk_int_val, mk_float_val, mk_lambda_val, new_arr_rt, new_obj_rt, mk_arr_val,
-  ArrayVal, empty_memory, empty_scope_val,
+  ArrayVal, empty_memory_rt, empty_scope_val,
   mk_obj_val, mk_ref_val, Scope,
   mk_string_val,
   mk_unit_val, get_arr_len_rt, get_arr_el_rt, get_class_def_rt, get_fun_def_rt,
-  get_heap_v_rt, get_v_rt, pop_scope, push_scope } from "./memory"
+  get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt } from "./memory"
 import { SourceRange } from "../source_range";
 import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel } from "./python";
 
@@ -32,7 +32,7 @@ export let arr_expr = (a:ArrayVal) => (co_unit<MemRt,ErrVal,Val>(mk_arr_val(a)))
 export let bool_expr = (s:boolean) => (co_unit<MemRt,ErrVal,Val>(mk_bool_val(s)))
 export let lambda_expr = (l:Lambda) => (co_unit<MemRt,ErrVal,Val>(mk_lambda_val(l)))
 export let obj_expr = (o:Scope) => (co_unit<MemRt,ErrVal,Val>(mk_obj_val(o)))
-export let ref_expr = (r:Name) => (co_unit<MemRt,ErrVal,Val>(mk_ref_val(r)))
+export let ref_expr = (r:ValueName) => (co_unit<MemRt,ErrVal,Val>(mk_ref_val(r)))
 export let val_expr = (v:Val) => (co_unit<MemRt,ErrVal,Val>(v))
 export let render_grid_expr = (v:RenderGrid) => (co_unit<MemRt,ErrVal,Val>(mk_render_grid_val(v)))
 export let render_grid_pixel_expr = (v:RenderGridPixel) => (co_unit<MemRt,ErrVal,Val>(mk_render_grid_pixel_val(v)))

@@ -4,3 +4,6 @@ function __export(m) {
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./csharp_debugger_stream"));
+__export(require("./Python/python"));
+__export(require("./CSharpTypeChecker/bindings"));
+__export(require("./source_range"));

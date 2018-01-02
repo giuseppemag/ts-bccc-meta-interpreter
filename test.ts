@@ -133,7 +133,7 @@ export let test_imp = function () {
       log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
     } else {
-      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory))).then(run_to_end()), {})
+      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt))).then(run_to_end()), {})
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
       log(`Timer: ${time_in_ns / 1000000}ms\n Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
@@ -180,7 +180,7 @@ x = fibonacci(20);
       log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
     } else {
-      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory))).then(run_to_end()), {})
+      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt))).then(run_to_end()), {})
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
       log(`Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))

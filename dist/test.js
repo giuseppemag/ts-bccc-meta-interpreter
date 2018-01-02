@@ -63,7 +63,7 @@ var ImpLanguageWithSuspend;
             log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
         }
         else {
-            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
+            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt))).then(run_to_end()), {});
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
             log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));
@@ -95,7 +95,7 @@ var ImpLanguageWithSuspend;
             log("Timer: " + time_in_ns / 1000000 + "ms\n Compiler error: ", JSON.stringify(compiler_res.value));
         }
         else {
-            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory))).then(run_to_end()), {});
+            var runtime_res = ts_bccc_1.apply((ts_bccc_1.constant(compiler_res.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt))).then(run_to_end()), {});
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];
             log("Compiler result: ", JSON.stringify(compiler_res.value.snd.bindings));

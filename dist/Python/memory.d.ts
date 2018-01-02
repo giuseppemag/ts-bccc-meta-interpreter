@@ -6,7 +6,7 @@ export declare let runtime_error: (e: string) => ExprRt<Val>;
 export declare type Bool = boolean;
 export interface Lambda {
     body: ExprRt<Val>;
-    parameters: Array<Name>;
+    parameters: Array<ValueName>;
     closure: Scope;
 }
 export interface HeapRef {
@@ -28,7 +28,7 @@ export interface RenderGridPixel {
     status: boolean;
 }
 export declare let init_array_val: (_: number) => ArrayVal;
-export declare type Name = string;
+export declare type ValueName = string;
 export declare type Val = {
     v: Unit;
     k: "u";
@@ -60,11 +60,11 @@ export declare type Val = {
     v: RenderGridPixel;
     k: "render-grid-pixel";
 };
-export interface Scope extends Immutable.Map<Name, Val> {
+export interface Scope extends Immutable.Map<ValueName, Val> {
 }
 export interface Interface {
     base: Sum<Interface, Unit>;
-    methods: Immutable.Map<Name, StmtRt>;
+    methods: Immutable.Map<ValueName, StmtRt>;
 }
 export declare let empty_scope_val: Immutable.Map<string, Val>;
 export declare let mk_unit_val: Val;
@@ -75,7 +75,7 @@ export declare let mk_arr_val: (_: ArrayVal) => Val;
 export declare let mk_bool_val: (_: boolean) => Val;
 export declare let mk_lambda_val: (_: Lambda) => Val;
 export declare let mk_obj_val: (_: Scope) => Val;
-export declare let mk_ref_val: (_: Name) => Val;
+export declare let mk_ref_val: (_: ValueName) => Val;
 export declare let mk_render_grid_val: (_: RenderGrid) => Val;
 export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
 export declare type ErrVal = string;
@@ -83,25 +83,25 @@ export interface MemRt {
     highlighting: SourceRange;
     globals: Scope;
     heap: Scope;
-    functions: Immutable.Map<Name, Lambda>;
-    classes: Immutable.Map<Name, Interface>;
+    functions: Immutable.Map<ValueName, Lambda>;
+    classes: Immutable.Map<ValueName, Interface>;
     stack: Immutable.Map<number, Scope>;
 }
-export declare let load: Fun<Prod<string, MemRt>, Sum<Unit, Val>>;
-export declare let store: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;
-export declare let load_class_def: Fun<Prod<Name, MemRt>, Sum<Unit, Interface>>;
-export declare let store_class_def: Fun<Prod<Prod<Name, Interface>, MemRt>, MemRt>;
-export declare let load_fun_def: Fun<Prod<Name, MemRt>, Sum<Unit, Lambda>>;
-export declare let store_fun_def: Fun<Prod<Prod<Name, Lambda>, MemRt>, MemRt>;
-export declare let load_heap: Fun<Prod<Name, MemRt>, Sum<Unit, Val>>;
-export declare let store_heap: Fun<Prod<Prod<Name, Val>, MemRt>, MemRt>;
-export declare let heap_alloc: Fun<Prod<Val, MemRt>, Prod<Val, MemRt>>;
-export declare let push_scope: Fun<Scope, Fun<MemRt, MemRt>>;
-export declare let pop_scope: Fun<MemRt, Sum<Unit, MemRt>>;
+export declare let load_rt: Fun<Prod<string, MemRt>, Sum<Unit, Val>>;
+export declare let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;
+export declare let load_class_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Interface>>;
+export declare let store_class_def_rt: Fun<Prod<Prod<ValueName, Interface>, MemRt>, MemRt>;
+export declare let load_fun_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Lambda>>;
+export declare let store_fun_def_rt: Fun<Prod<Prod<ValueName, Lambda>, MemRt>, MemRt>;
+export declare let load_heap_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Val>>;
+export declare let store_heap_rt: Fun<Prod<Prod<ValueName, Val>, MemRt>, MemRt>;
+export declare let heap_alloc_rt: Fun<Prod<Val, MemRt>, Prod<Val, MemRt>>;
+export declare let push_scope_rt: Fun<Scope, Fun<MemRt, MemRt>>;
+export declare let pop_scope_rt: Fun<MemRt, Sum<Unit, MemRt>>;
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {
 }
 export declare type StmtRt = ExprRt<Val>;
-export declare let empty_memory: MemRt;
+export declare let empty_memory_rt: MemRt;
 export declare let set_highlighting_rt: (r: SourceRange) => ExprRt<Val>;
 export declare let set_v_expr_rt: (v: string, e: ExprRt<Val>) => ExprRt<Val>;
 export declare let set_v_rt: (v: string, val: Val) => ExprRt<Val>;

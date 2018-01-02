@@ -61,7 +61,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       if (k.value.kind == "left") {
         return typechecker_stream(k.value.value)
       }
-      let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory)), {})
+      let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt)), {})
       return runtime_stream(initial_runtime_state)
     },
     show:() => ({ kind:"bindings", state:state.snd })

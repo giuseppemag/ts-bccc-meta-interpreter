@@ -44,10 +44,10 @@ exports.call_lambda_rt = function (lambda, arg_expressions) {
     var set_args = function (arg_values) { return lambda.parameters.map(function (n, i) { return ({ fst: n, snd: arg_values[i] }); }).reduce(function (sets, arg_value) {
         return memory_1.set_v_rt(arg_value.fst, arg_value.snd).then(function (_) { return sets; });
     }, basic_statements_1.done_rt); };
-    var init = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.push_scope, lambda.closure).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var init = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.push_scope_rt, lambda.closure).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     var pop_success = (ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error())));
     var pop_failure = ts_bccc_1.constant("Internal error: cannot pop an empty stack.").then(Co.error());
-    var cleanup = ts_bccc_2.mk_coroutine(memory_1.pop_scope.then(pop_failure.plus(pop_success)));
+    var cleanup = ts_bccc_2.mk_coroutine(memory_1.pop_scope_rt.then(pop_failure.plus(pop_success)));
     return eval_args.then(function (arg_values) {
         return init.then(function (_) {
             return set_args(arg_values.toArray()).then(function (_) {

@@ -393,7 +393,7 @@ exports.mk_lambda = function (def, closure_parameters) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters)));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters)));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -426,7 +426,7 @@ exports.def_method = function (C_name, def) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(function (p) { return p.name; }), [])));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [])));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -451,7 +451,7 @@ exports.call_lambda = function (lambda, arg_values) {
                         !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
                     ts_bccc_2.co_error("Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type))
                     :
-                        ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                        ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
             })
             : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type));
     });
@@ -461,7 +461,7 @@ exports.call_by_name = function (f_n, args) {
 };
 exports.ret = function (p) {
     return p.then(function (p_t) {
-        return ts_bccc_2.co_unit(mk_typing(p_t.type, Sem.ret(p_t.sem)));
+        return ts_bccc_2.co_unit(mk_typing(p_t.type, Sem.return_rt(p_t.sem)));
     });
 };
 exports.new_array = function (type, len) {

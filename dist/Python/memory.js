@@ -29,46 +29,46 @@ exports.mk_ref_val = function (r) { return ({ v: r, k: "ref" }); };
 exports.mk_render_grid_val = function (r) { return ({ v: r, k: "render-grid" }); };
 exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
 var highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
-exports.load = ts_bccc_1.fun(function (x) {
+exports.load_rt = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?
         ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst))
         : x.snd.globals.has(x.fst) ?
             ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.globals.get(x.fst))
             : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.store = ts_bccc_1.fun(function (x) {
+exports.store_rt = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() ?
         (__assign({}, x.snd, { stack: x.snd.stack.set(x.snd.stack.count() - 1, x.snd.stack.get(x.snd.stack.count() - 1).set(x.fst.fst, x.fst.snd)) }))
         :
             (__assign({}, x.snd, { globals: x.snd.globals.set(x.fst.fst, x.fst.snd) }));
 });
-exports.load_class_def = ts_bccc_1.fun(function (x) {
+exports.load_class_def_rt = ts_bccc_1.fun(function (x) {
     return x.snd.classes.has(x.fst) ? ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.classes.get(x.fst)) : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.store_class_def = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { classes: x.snd.classes.set(x.fst.fst, x.fst.snd) })); });
-exports.load_fun_def = ts_bccc_1.fun(function (x) {
+exports.store_class_def_rt = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { classes: x.snd.classes.set(x.fst.fst, x.fst.snd) })); });
+exports.load_fun_def_rt = ts_bccc_1.fun(function (x) {
     return x.snd.functions.has(x.fst) ?
         ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.functions.get(x.fst))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.store_fun_def = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { functions: x.snd.functions.set(x.fst.fst, x.fst.snd) })); });
-exports.load_heap = ts_bccc_1.fun(function (x) {
+exports.store_fun_def_rt = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { functions: x.snd.functions.set(x.fst.fst, x.fst.snd) })); });
+exports.load_heap_rt = ts_bccc_1.fun(function (x) {
     return x.snd.heap.has(x.fst) ?
         ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.heap.get(x.fst))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.store_heap = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) })); });
-exports.heap_alloc = ts_bccc_1.fun(function (x) {
+exports.store_heap_rt = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) })); });
+exports.heap_alloc_rt = ts_bccc_1.fun(function (x) {
     var new_ref = "ref_" + x.snd.heap.count();
     return ({ fst: exports.mk_ref_val(new_ref), snd: __assign({}, x.snd, { heap: x.snd.heap.set(new_ref, x.fst) }) });
 });
-exports.push_scope = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) { return (__assign({}, m, { stack: m.stack.set(m.stack.count(), s) })); }));
-exports.pop_scope = ts_bccc_1.fun(function (x) {
+exports.push_scope_rt = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) { return (__assign({}, m, { stack: m.stack.set(m.stack.count(), s) })); }));
+exports.pop_scope_rt = ts_bccc_1.fun(function (x) {
     return !x.stack.isEmpty() ?
         ts_bccc_1.apply(ts_bccc_1.inr(), (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.empty_memory = { highlighting: source_range_1.mk_range(0, 0, 0, 0), globals: exports.empty_scope_val, heap: exports.empty_scope_val, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
+exports.empty_memory_rt = { highlighting: source_range_1.mk_range(0, 0, 0, 0), globals: exports.empty_scope_val, heap: exports.empty_scope_val, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
 exports.set_highlighting_rt = function (r) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
@@ -79,23 +79,23 @@ exports.set_v_expr_rt = function (v, e) {
     });
 };
 exports.set_v_rt = function (v, val) {
-    var store_co = exports.store.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_v_rt = function (v) {
-    var f = ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load).times(ts_bccc_1.id()).then(CCC.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.id()));
+    var f = ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_rt).times(ts_bccc_1.id()).then(CCC.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.id()));
     var g_err = ts_bccc_1.constant("Error: variable " + v + " cannot be found.").then(Co.error());
     var g_res = ts_bccc_1.swap_prod().then(Co.value()).then(Co.result()).then(Co.no_error());
     var g = g_err.plus(g_res);
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.new_obj_rt = function () {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_rt = function (len) {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_expr_rt = function (len) {
@@ -143,36 +143,36 @@ exports.set_arr_el_expr_rt = function (a, i, e) {
     });
 };
 exports.set_heap_v_rt = function (v, val) {
-    var store_co = exports.store_heap.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_heap_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_heap_v_rt = function (v) {
-    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
+    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
     var g1 = ts_bccc_1.constant("Cannot find heap entry " + v + ".").then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_class_def_rt = function (v, int) {
-    var store_co = exports.store_class_def.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_class_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(int))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_class_def_rt = function (v) {
-    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_class_def)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
+    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_class_def_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
     var g1 = ts_bccc_1.constant("Cannot find class " + v + ".").then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_fun_def_rt = function (v, l) {
-    var store_co = exports.store_fun_def.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_fun_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(l))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_fun_def_rt = function (v) {
-    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_fun_def)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
+    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_fun_def_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
     var g1 = ts_bccc_1.constant("Cannot find function definition " + v + ".").then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
