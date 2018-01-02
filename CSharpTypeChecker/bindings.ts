@@ -413,7 +413,7 @@ export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<N
           body.then(body_t =>
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), closure_parameters))))
+            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters))))
           :
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))
@@ -443,7 +443,7 @@ export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
-                              Sem.mk_lambda(body_t.sem, parameters.map(p => p.name), []))))
+                              Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), []))))
           :
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))
@@ -466,7 +466,7 @@ export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
                                   !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
           co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`)
         :
-          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
       )
     : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
     )
@@ -478,7 +478,7 @@ export let call_by_name = function(f_n:Name, args:Array<Stmt>) : Stmt {
 
 export let ret = function(p:Stmt) : Stmt {
   return p.then(p_t =>
-         co_unit(mk_typing(p_t.type, Sem.ret(p_t.sem))
+         co_unit(mk_typing(p_t.type, Sem.return_rt(p_t.sem))
          ))
 }
 
