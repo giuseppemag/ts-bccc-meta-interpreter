@@ -16,8 +16,8 @@
     [ ] Lambda's (requires Func and generics in type-checker)
     [ ] Inner, outer, function statements
     [ ] Type of branches in if-then-else vs return type for function
-    [ ] closure
-    [ ] unreachable statements
+    [ ] Closure
+    [ ] Unreachable statements (return x; ...)
   [ ] Statements
     [ ] Full declaration and assignment (`int x = 10;`)
     [/] Assignment
@@ -39,11 +39,12 @@
     [ ] Proper (recursive) expressions
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] Are lambda arguments properly checked at both run-time and compile-time
-    [ ] How are nested errors managed (for example, the errors inside the body of a while or inside the body of a function)?
+    [ ] How are nested errors propagated (for example, the errors inside the body of a while or inside the body of a function)?
 
-[ ] Electron playground
-  [ ] Basic highlighting of current step
-  [ ] Let intern integrate webpack
+[ ] Highlighting
+  [ ] Use both start and end
+  [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value
+  [ ] `mk_lambda` must also accept the range for rendering in the state
 
 [ ] Required for basic quality but not basic functionality
   [ ] breakpoint right after return (`ret_break?`)

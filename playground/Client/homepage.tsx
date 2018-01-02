@@ -14,6 +14,39 @@ rich_text, paginate, Page, list, editable_list, simple_application} from 'monadi
 
 import * as MonadicReact from 'monadic_react'
 import { Scope, RenderGrid } from "ts-bccc-meta-interpreter/dist/Python/python";
+import { mk_range } from "ts-bccc-meta-interpreter/dist/source_range";
+import { highlight } from "ts-bccc-meta-interpreter/dist/CSharpTypeChecker/csharp";
+
+let default_program = `int fibonacci(int n) {
+  if (n <= 1) {
+    debugger;
+    return n;
+  } else {
+    return fibonacci((n-1)) + fibonacci((n-2));
+  }
+}
+
+int x;
+x = fibonacci(5);
+
+RenderGrid g;
+int x;
+int y;
+typechecker_debugger;
+g = empty_render_grid 16 16;
+x = 0;
+while (x < 16) {
+  y = 0;
+  while (y <= x) {
+    if (((y + x) % 2) == 1) {
+      g = g + pixel x y true;
+      debugger;
+    }
+    y = y + 1;
+  }
+  x = x + 1;
+}`
+
 
 let render_render_grid = (grid:RenderGrid) : JSX.Element => {
   return <canvas width={128} height={128} ref={canvas => {
@@ -79,62 +112,71 @@ let render_debugger_stream = (stream:DebuggerStream) : JSX.Element => {
          </table>
         </div>
 }
-  // <textarea  value={JSON.stringify(s.show())} />
+
+let render_code = (code:string, stream:DebuggerStream) : JSX.Element => {
+  let state = stream.show()
+  let highlighting = state.kind == "memory" ? state.memory.highlighting
+                   : state.kind == "bindings" ? state.state.highlighting
+                   : mk_range(-10,0,0,0)
+  return <div style={{ fontFamily: "monospace", width:"45%", height:"600px", overflowY:"scroll", float:"left" }}>
+           <canvas ref={canvas => {
+              if (!canvas) return
+              let raw_ctx = canvas.getContext("2d")
+              if (!raw_ctx) return
+              let ctx = raw_ctx
+
+              canvas.width = window.innerWidth * 40 / 100
+              canvas.height = 2000
+              ctx.translate(0.5, 0.5)
+              ctx.imageSmoothingEnabled = false
+
+              let font_size = 18
+              ctx.font = `${font_size}px monospace`
+
+              let offset_x = 15
+              let offset_y = 15
+              let lines = code.split("\n")
+              let char_width = ctx.measureText(" ").width
+
+              lines.forEach((line, line_index) => {
+                ctx.fillText(line, offset_x, (font_size * 110 / 100) * line_index + offset_y)
+              })
+
+              ctx.fillStyle = 'rgba(205, 205, 255, 0.5)'
+              console.log("???", lines[highlighting.start.row], (font_size * 110 / 100) * highlighting.start.row + offset_y, highlighting.start.row, offset_y)
+              ctx.fillRect(offset_x, (font_size * 110 / 100) * (highlighting.start.row - 1) + offset_y + (font_size * 25) / 100,
+                  ctx.measureText(lines[highlighting.start.row]).width, font_size * 110 / 100)
+           } } />
+         </div>
+}
 
 export function HomePage() : JSX.Element {
-  let default_program = `int fibonacci(int n) {
-    if (n <= 1) {
-      debugger;
-      return n;
-    } else {
-      return fibonacci((n-1)) + fibonacci((n-2));
-    }
-  }
-
-  int x;
-  x = fibonacci(5);
-
-  RenderGrid g;
-  int x;
-  int y;
-  typechecker_debugger;
-  g = empty_render_grid 16 16;
-  x = 0;
-  while (x < 16) {
-    y = 0;
-    while (y <= x) {
-      if (((y + x) % 2) == 1) {
-        g = g + pixel x y true;
-        debugger;
-      }
-      y = y + 1;
-    }
-    x = x + 1;
-  }`
-
-  type AppState = { code:string, stream:DebuggerStream, step_index:number }
+  type AppState = { code:string, stream:DebuggerStream, step_index:number, editing:boolean }
   return <div>
     <h1>Giuseppe's little meta-playground</h1>
 
     {simple_application(
       repeat<AppState>("main-repeat")(
         any<AppState, AppState>("main-any")([
-          retract<AppState,string>("source-editor-retract")(s => s.code, s => c => ({...s, code:c}),
-            c => custom<string>("source-editor-textarea")(
-            _ => k =>
-              <textarea value={c}
-                        onChange={e => k(() => {})(e.currentTarget.value)}
-                        style={{ fontFamily: "monospace", width:"45%", height:"600px", overflowY:"scroll", float:"left" }} />
-          )),
+          s => s.editing ? retract<AppState,string>("source-editor-retract")(s => s.code, s => c => ({...s, code:c}),
+                  c => custom<string>("source-editor-textarea")(
+                  _ => k =>
+                    <textarea value={c}
+                              onChange={e => k(() => {})(e.currentTarget.value)}
+                              style={{ fontFamily: "monospace", width:"45%", height:"600px", overflowY:"scroll", float:"left" }} />
+                ))(s)
+              : custom<{}>("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
           s => custom<AppState>(`source-editor-state-step-${s.step_index}`)(
             _ => k => render_debugger_stream(s.stream)
-          ).never(),
+          ).never("source-editor-state-step-never"),
           s => button<{}>("Next", s.stream.kind != "step")({}).then("state-next-button", _ =>
                unit({...s, stream:s.stream.kind == "step" ? s.stream.next() : s.stream, step_index:s.step_index+1})),
           s => button<{}>("Reload")({}).then("state-reset-button", _ =>
-               unit({...s, stream:get_stream(s.code), step_index:0}))
+               unit({...s, stream:get_stream(s.code), step_index:0})),
+          retract<AppState,boolean>("source-editor-toggle-editing-retract")(s => s.editing, s => e => ({...s, editing:e}),
+               e => button<boolean>("Toggle editing")(!e))
         ])
-      )({ code:default_program, stream:get_stream(default_program), step_index:0 }),
+      )({ code:default_program, stream:get_stream(default_program), step_index:0, editing:false }),
       _ => {}
     )}
   </div>

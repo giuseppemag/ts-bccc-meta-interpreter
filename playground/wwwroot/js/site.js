@@ -51727,6 +51727,36 @@ const React = __webpack_require__(21);
 const ReactDOM = __webpack_require__(79);
 const ts_bccc_meta_interpreter_1 = __webpack_require__(772);
 const monadic_react_1 = __webpack_require__(672);
+const source_range_1 = __webpack_require__(186);
+let default_program = `int fibonacci(int n) {
+  if (n <= 1) {
+    debugger;
+    return n;
+  } else {
+    return fibonacci((n-1)) + fibonacci((n-2));
+  }
+}
+
+int x;
+x = fibonacci(5);
+
+RenderGrid g;
+int x;
+int y;
+typechecker_debugger;
+g = empty_render_grid 16 16;
+x = 0;
+while (x < 16) {
+  y = 0;
+  while (y <= x) {
+    if (((y + x) % 2) == 1) {
+      g = g + pixel x y true;
+      debugger;
+    }
+    y = y + 1;
+  }
+  x = x + 1;
+}`;
 let render_render_grid = (grid) => {
     return React.createElement("canvas", { width: 128, height: 128, ref: canvas => {
             if (canvas == null)
@@ -51784,45 +51814,48 @@ let render_debugger_stream = (stream) => {
                         React.createElement("table", null,
                             React.createElement("tbody", null, render_scope(stack_frame)))))))));
 };
-// <textarea  value={JSON.stringify(s.show())} />
+let render_code = (code, stream) => {
+    let state = stream.show();
+    let highlighting = state.kind == "memory" ? state.memory.highlighting
+        : state.kind == "bindings" ? state.state.highlighting
+            : source_range_1.mk_range(-10, 0, 0, 0);
+    return React.createElement("div", { style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } },
+        React.createElement("canvas", { ref: canvas => {
+                if (!canvas)
+                    return;
+                let raw_ctx = canvas.getContext("2d");
+                if (!raw_ctx)
+                    return;
+                let ctx = raw_ctx;
+                canvas.width = window.innerWidth * 40 / 100;
+                canvas.height = 2000;
+                ctx.translate(0.5, 0.5);
+                ctx.imageSmoothingEnabled = false;
+                let font_size = 18;
+                ctx.font = `${font_size}px monospace`;
+                let offset_x = 15;
+                let offset_y = 15;
+                let lines = code.split("\n");
+                let char_width = ctx.measureText(" ").width;
+                lines.forEach((line, line_index) => {
+                    ctx.fillText(line, offset_x, (font_size * 110 / 100) * line_index + offset_y);
+                });
+                ctx.fillStyle = 'rgba(205, 205, 255, 0.5)';
+                console.log("???", lines[highlighting.start.row], (font_size * 110 / 100) * highlighting.start.row + offset_y, highlighting.start.row, offset_y);
+                ctx.fillRect(offset_x, (font_size * 110 / 100) * (highlighting.start.row - 1) + offset_y + (font_size * 25) / 100, ctx.measureText(lines[highlighting.start.row]).width, font_size * 110 / 100);
+            } }));
+};
 function HomePage() {
-    let default_program = `int fibonacci(int n) {
-    if (n <= 1) {
-      debugger;
-      return n;
-    } else {
-      return fibonacci((n-1)) + fibonacci((n-2));
-    }
-  }
-
-  int x;
-  x = fibonacci(5);
-
-  RenderGrid g;
-  int x;
-  int y;
-  typechecker_debugger;
-  g = empty_render_grid 16 16;
-  x = 0;
-  while (x < 16) {
-    y = 0;
-    while (y <= x) {
-      if (((y + x) % 2) == 1) {
-        g = g + pixel x y true;
-        debugger;
-      }
-      y = y + 1;
-    }
-    x = x + 1;
-  }`;
     return React.createElement("div", null,
         React.createElement("h1", null, "Giuseppe's little meta-playground"),
         monadic_react_1.simple_application(monadic_react_1.repeat("main-repeat")(monadic_react_1.any("main-any")([
-            monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } }))),
-                s => monadic_react_1.custom(`source-editor-state-step-${s.step_index}`)(_ => k => render_debugger_stream(s.stream)).never(),
+                s => s.editing ? monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } })))(s)
+                : monadic_react_1.custom("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
+                s => monadic_react_1.custom(`source-editor-state-step-${s.step_index}`)(_ => k => render_debugger_stream(s.stream)).never("source-editor-state-step-never"),
                 s => monadic_react_1.button("Next", s.stream.kind != "step")({}).then("state-next-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1 }))),
-                s => monadic_react_1.button("Reload")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: ts_bccc_meta_interpreter_1.get_stream(s.code), step_index: 0 })))
-        ]))({ code: default_program, stream: ts_bccc_meta_interpreter_1.get_stream(default_program), step_index: 0 }), _ => { }));
+                s => monadic_react_1.button("Reload")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: ts_bccc_meta_interpreter_1.get_stream(s.code), step_index: 0 }))),
+            monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e })), e => monadic_react_1.button("Toggle editing")(!e))
+        ]))({ code: default_program, stream: ts_bccc_meta_interpreter_1.get_stream(default_program), step_index: 0, editing: false }), _ => { }));
 }
 exports.HomePage = HomePage;
 exports.HomePage_to = (target_element_id) => {
