@@ -51,20 +51,20 @@ var type_equals = function (t1, t2) {
 var wrap_co_res = Co.value().then(Co.result());
 var wrap_co = wrap_co_res.then(Co.no_error());
 exports.get_v = function (v) {
-    var f = exports.load.then(ts_bccc_1.constant("Error: variable " + v + " does not exist.").map_plus((ts_bccc_1.id().times(ts_bccc_1.constant(Sem.get_v(v)))).then(mk_typing_cat_full)));
+    var f = exports.load.then(ts_bccc_1.constant("Error: variable " + v + " does not exist.").map_plus((ts_bccc_1.id().times(ts_bccc_1.constant(Sem.get_v_rt(v)))).then(mk_typing_cat_full)));
     var g = ts_bccc_1.snd().times(f).then(ts_bccc_1.distribute_sum_prod());
     var g1 = g.then((ts_bccc_1.snd()).map_plus((ts_bccc_1.swap_prod().then(wrap_co_res))));
     var h = ts_bccc_1.apply(ts_bccc_1.curry(g1), v);
     return ts_bccc_2.mk_coroutine(h);
 };
 exports.decl_v = function (v, t, is_constant) {
-    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done)).times(ts_bccc_1.id())).then(wrap_co);
+    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done_rt)).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
 };
 exports.decl_const = function (c, t, e) {
-    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done)).times(ts_bccc_1.id())).then(wrap_co);
+    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done_rt)).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(c).times(ts_bccc_1.constant(__assign({}, t, { is_constant: true }))), {});
     return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)).then(function (_) {
@@ -72,7 +72,7 @@ exports.decl_const = function (c, t, e) {
             return exports.get_v(c).then(function (c_val) {
                 // console.log(`Initialising constant ${v} (${JSON.stringify(v_val.type)})`) ||
                 return type_equals(e_val.type, c_val.type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr(c, e_val.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr_rt(c, e_val.sem)))
                     : ts_bccc_2.co_error("Error: cannot assign " + JSON.stringify(c) + " to " + JSON.stringify(e) + ": type " + JSON.stringify(c_val.type) + " does not match " + JSON.stringify(e_val.type));
             });
         });
@@ -83,7 +83,7 @@ exports.set_v = function (v, e) {
         return exports.get_v(v).then(function (v_val) {
             // console.log(`Assigning ${v} (${JSON.stringify(v_val.type)})`) ||
             return type_equals(e_val.type, v_val.type) && !v_val.type.is_constant ?
-                ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr(v, e_val.sem)))
+                ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
                 : v_val.type.is_constant ?
                     ts_bccc_2.co_error("Error: cannot assign anything to " + v + ": it is a constant.")
                     : ts_bccc_2.co_error("Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e) + ": type " + JSON.stringify(v_val.type) + " does not match " + JSON.stringify(e_val.type));
@@ -104,9 +104,9 @@ exports.gt = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_gt(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_gt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (>)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -117,9 +117,9 @@ exports.lt = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_lt(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_lt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (<)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -130,9 +130,9 @@ exports.geq = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_geq(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_geq(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (>=)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -143,9 +143,9 @@ exports.leq = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_leq(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_leq(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (<=)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -156,9 +156,9 @@ exports.eq = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_eq(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_eq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_eq(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_eq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (==)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -169,9 +169,9 @@ exports.neq = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_neq(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_neq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_neq(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_neq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (!=)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -182,7 +182,7 @@ exports.xor = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.bool_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_neq(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for operator (^)!")
                 : ts_bccc_2.co_error("Error: cannot compare expressions of different types!");
         });
@@ -192,7 +192,7 @@ exports.mk_empty_render_grid = function (w, h) {
     return w.then(function (w_t) {
         return h.then(function (h_t) {
             return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) ?
-                ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.mk_empty_render_grid(w_t.sem, h_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.mk_empty_render_grid_rt(w_t.sem, h_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported types for empty grid creation.");
         });
     });
@@ -202,7 +202,7 @@ exports.mk_render_grid_pixel = function (w, h, st) {
         return h.then(function (h_t) {
             return st.then(function (st_t) {
                 return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(st_t.type, exports.bool_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_pixel_type, Sem.mk_render_grid_pixel(w_t.sem, h_t.sem, st_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_pixel_type, Sem.mk_render_grid_pixel_rt(w_t.sem, h_t.sem, st_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for empty grid creation.");
             });
         });
@@ -213,14 +213,14 @@ exports.plus = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_plus(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_plus_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.float_plus(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.float_plus_rt(a_t.sem, b_t.sem)))
                         : type_equals(a_t.type, exports.string_type) ?
-                            ts_bccc_2.co_unit(mk_typing(exports.string_type, Sem.string_plus(a_t.sem, b_t.sem)))
+                            ts_bccc_2.co_unit(mk_typing(exports.string_type, Sem.string_plus_rt(a_t.sem, b_t.sem)))
                             : ts_bccc_2.co_error("Error: unsupported types for operator (+)!")
                 : type_equals(a_t.type, exports.render_grid_type) && type_equals(b_t.type, exports.render_grid_pixel_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.render_grid_plus(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.render_grid_plus_rt(a_t.sem, b_t.sem)))
                     : ts_bccc_2.co_error("Error: cannot sum expressions of non-compatible types!");
         });
     });
@@ -230,9 +230,9 @@ exports.minus = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_minus(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_minus_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_minus(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_minus_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (-)!")
                 : ts_bccc_2.co_error("Error: cannot subtract expressions of different types!");
         });
@@ -243,9 +243,9 @@ exports.div = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_div(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_div(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_div_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error("Error: unsupported types for operator (/)!")
                 : ts_bccc_2.co_error("Error: cannot divide expressions of different types!");
         });
@@ -256,9 +256,9 @@ exports.times = function (a, b, sr) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_times(a_t.sem, b_t.sem, sr)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_times_rt(a_t.sem, b_t.sem, sr)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_times(a_t.sem, b_t.sem, sr)))
+                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_times_rt(a_t.sem, b_t.sem, sr)))
                         : ts_bccc_2.co_error("Error (" + sr.to_string() + "): unsupported types for operator (*)!")
                 : ts_bccc_2.co_error("Error (" + sr.to_string() + "): cannot multiply expressions of incompatible types!");
         });
@@ -269,7 +269,7 @@ exports.mod = function (a, b) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_mod(a_t.sem, b_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_mod_rt(a_t.sem, b_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for operator (-)!")
                 : ts_bccc_2.co_error("Error: cannot mod expressions of different types!");
         });
@@ -278,9 +278,9 @@ exports.mod = function (a, b) {
 exports.minus_unary = function (a) {
     return a.then(function (a_t) {
         return type_equals(a_t.type, exports.int_type) ?
-            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_minus_unary(a_t.sem)))
+            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_minus_unary_rt(a_t.sem)))
             : type_equals(a_t.type, exports.float_type) ?
-                ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_minus_unary(a_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_minus_unary_rt(a_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported type for unary operator (-)!");
     });
 };
@@ -288,7 +288,7 @@ exports.or = function (a, b) {
     return a.then(function (a_t) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) && type_equals(a_t.type, exports.bool_type) ?
-                ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_plus(a_t.sem, b_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_plus_rt(a_t.sem, b_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported types for operator (||)!");
         });
     });
@@ -297,7 +297,7 @@ exports.and = function (a, b) {
     return a.then(function (a_t) {
         return b.then(function (b_t) {
             return type_equals(a_t.type, b_t.type) && type_equals(a_t.type, exports.bool_type) ?
-                ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_times(a_t.sem, b_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_times_rt(a_t.sem, b_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported types for operator (&&)!");
         });
     });
@@ -305,16 +305,16 @@ exports.and = function (a, b) {
 exports.not = function (a) {
     return a.then(function (a_t) {
         return type_equals(a_t.type, exports.bool_type) ?
-            ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_not(a_t.sem)))
+            ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_not_rt(a_t.sem)))
             : ts_bccc_2.co_error("Error: unsupported type for unary operator (!)!");
     });
 };
 exports.length = function (a) {
     return a.then(function (a_t) {
         return type_equals(a_t.type, exports.string_type) ?
-            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.string_length(a_t.sem)))
+            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.string_length_rt(a_t.sem)))
             : a_t.type.kind == "arr" ?
-                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len(a_val); })))
+                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val); })))
                 : ts_bccc_2.co_error("Error: unsupported type for unary operator (-)!");
     });
 };
@@ -322,7 +322,7 @@ exports.get_index = function (a, i) {
     return a.then(function (a_t) {
         return i.then(function (i_t) {
             return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) ?
-                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr(a_t.sem, i_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
                 : ts_bccc_2.co_error("Error: unsupported types for array lookup!");
         });
     });
@@ -332,7 +332,7 @@ exports.set_index = function (a, i, e) {
         return i.then(function (i_t) {
             return e.then(function (e_t) {
                 return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
-                    ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
                     : ts_bccc_2.co_error("Error: unsupported types for writing in an array!");
             });
         });
@@ -340,24 +340,24 @@ exports.set_index = function (a, i, e) {
 };
 // Debugger statements
 exports.breakpoint = function (r) {
-    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg(r)(Sem.unt))), p); };
+    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg_rt(r)(Sem.mk_unit_val))), p); };
 };
 exports.typechecker_breakpoint = function (range) {
-    return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done)); })), p); };
+    return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt)); })), p); };
 };
 exports.highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.set_highlighting = function (r) {
-    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(exports.highlight).then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(exports.highlight).then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done_rt)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
 // Control flow statements
-exports.done = ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done));
+exports.done = ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt));
 exports.if_then_else = function (c, t, e) {
     return c.then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
             t.then(function (t_t) {
                 return e.then(function (e_t) {
                     return type_equals(t_t.type, e_t.type) ?
-                        ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.if_then_else(c_t.sem, t_t.sem, e_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem)))
                         : ts_bccc_2.co_error("Error: the branches of a conditional should be of the same type!");
                 });
             });
@@ -368,7 +368,7 @@ exports.while_do = function (c, b) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
             b.then(function (t_t) {
                 return type_equals(t_t.type, exports.unit_type) ?
-                    ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do(c_t.sem, t_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem)))
                     : ts_bccc_2.co_error("Error: the body of a loop should be of type unit, instead it has type " + JSON.stringify(t_t.type));
             });
     });
@@ -467,14 +467,14 @@ exports.ret = function (p) {
 exports.new_array = function (type, len) {
     return len.then(function (len_t) {
         return type_equals(len_t.type, exports.int_type) ?
-            ts_bccc_2.co_unit(mk_typing(exports.arr_type(type), Sem.new_arr_ex(len_t.sem)))
+            ts_bccc_2.co_unit(mk_typing(exports.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
             : ts_bccc_2.co_error("Error: argument of array constructor must be of type int");
     });
 };
 exports.get_arr_len = function (a) {
     return a.then(function (a_t) {
         return a_t.type.kind == "arr" ?
-            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.get_arr_len_expr(a_t.sem)))
+            ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
             : ts_bccc_2.co_error("Error: array length requires an array");
     });
 };
@@ -482,7 +482,7 @@ exports.get_arr_el = function (a, i) {
     return a.then(function (a_t) {
         return i.then(function (i_t) {
             return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) ?
-                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr(a_t.sem, i_t.sem)))
+                ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
                 : ts_bccc_2.co_error("Error: array getter requires an array and an integer as arguments");
         });
     });
@@ -492,7 +492,7 @@ exports.set_arr_el = function (a, i, e) {
         return i.then(function (i_t) {
             return e.then(function (e_t) {
                 return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
-                    ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_arr_el_expr(a_t.sem, i_t.sem, e_t.sem)))
+                    ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
                     : ts_bccc_2.co_error("Error: array setter requires an array and an integer as arguments");
             });
         });
@@ -501,7 +501,7 @@ exports.set_arr_el = function (a, i, e) {
 exports.def_class = function (C_name, methods, fields) {
     var C_type_placeholder = {
         kind: "obj",
-        methods: Immutable.Map(methods.map(function (m) { return [m.name, mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)].concat(m.parameters.map(function (p) { return p.type; }))), m.return_t), Sem.done)]; })),
+        methods: Immutable.Map(methods.map(function (m) { return [m.name, mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)].concat(m.parameters.map(function (p) { return p.type; }))), m.return_t), Sem.done_rt)]; })),
         fields: Immutable.Map(fields.map(function (f) { return [f.name, f.type]; }))
     };
     return ts_bccc_1.co_get_state().then(function (initial_bindings) {
@@ -524,7 +524,7 @@ exports.def_class = function (C_name, methods, fields) {
                     }))
                 };
                 return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type, { is_constant: true })) })).then(function (_) {
-                    return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.declare_class(C_name, C_int)));
+                    return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.declare_class_rt(C_name, C_int)));
                 });
             });
         });
@@ -543,7 +543,7 @@ exports.field_get = function (this_ref, F_name) {
             if (!C_def.fields.has(F_name))
                 return ts_bccc_2.co_error("Error: class " + this_ref_t.type.C_name + " does not contain field " + F_name);
             var F_def = C_def.fields.get(F_name);
-            return ts_bccc_2.co_unit(mk_typing(F_def, Sem.field_get_expr(F_name, this_ref_t.sem)));
+            return ts_bccc_2.co_unit(mk_typing(F_def, Sem.field_get_expr_rt(F_name, this_ref_t.sem)));
         });
     });
 };
@@ -563,7 +563,7 @@ exports.field_set = function (this_ref, F_name, new_value) {
                 var F_def = C_def.fields.get(F_name);
                 if (!type_equals(F_def, new_value_t.type))
                     return ts_bccc_2.co_error("Error: field " + this_ref_t.type.C_name + "::" + F_name + " cannot be assigned to value of type " + JSON.stringify(new_value_t.type));
-                return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.field_set_expr(F_name, new_value_t.sem, this_ref_t.sem)));
+                return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)));
             });
         });
     });
@@ -593,7 +593,7 @@ exports.call_cons = function (C_name, arg_values) {
                         !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
                     ts_bccc_2.co_error("Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) + " with arguments " + JSON.stringify(args_t))
                     :
-                        ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_cons(C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                        ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
             })
             : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type));
     });
@@ -627,7 +627,7 @@ exports.call_method = function (this_ref, M_name, arg_values) {
                             !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
                         ts_bccc_2.co_error("Error: parameter type mismatch when calling method " + JSON.stringify(lambda_t.type) + " with arguments " + JSON.stringify(args_t))
                         :
-                            ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_method_expr(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                            ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
                 })
                 : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type));
         });

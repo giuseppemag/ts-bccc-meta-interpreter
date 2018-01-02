@@ -2,10 +2,10 @@ import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
-export declare let runtime_error: (e: string) => Expr<Val>;
+export declare let runtime_error: (e: string) => ExprRt<Val>;
 export declare type Bool = boolean;
 export interface Lambda {
-    body: Expr<Val>;
+    body: ExprRt<Val>;
     parameters: Array<Name>;
     closure: Scope;
 }
@@ -64,22 +64,22 @@ export interface Scope extends Immutable.Map<Name, Val> {
 }
 export interface Interface {
     base: Sum<Interface, Unit>;
-    methods: Immutable.Map<Name, Stmt>;
+    methods: Immutable.Map<Name, StmtRt>;
 }
-export declare let empty_scope: Immutable.Map<string, Val>;
-export declare let unt: Val;
-export declare let str: (_: string) => Val;
-export declare let int: (_: number) => Val;
-export declare let float: (_: number) => Val;
-export declare let arr: (_: ArrayVal) => Val;
-export declare let bool: (_: boolean) => Val;
-export declare let lambda: (_: Lambda) => Val;
-export declare let obj: (_: Scope) => Val;
-export declare let ref: (_: Name) => Val;
-export declare let render_grid: (_: RenderGrid) => Val;
-export declare let render_grid_pixel: (_: RenderGridPixel) => Val;
-export declare type Err = string;
-export interface Mem {
+export declare let empty_scope_val: Immutable.Map<string, Val>;
+export declare let mk_unit_val: Val;
+export declare let mk_string_val: (_: string) => Val;
+export declare let mk_int_val: (_: number) => Val;
+export declare let mk_float_val: (_: number) => Val;
+export declare let mk_arr_val: (_: ArrayVal) => Val;
+export declare let mk_bool_val: (_: boolean) => Val;
+export declare let mk_lambda_val: (_: Lambda) => Val;
+export declare let mk_obj_val: (_: Scope) => Val;
+export declare let mk_ref_val: (_: Name) => Val;
+export declare let mk_render_grid_val: (_: RenderGrid) => Val;
+export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
+export declare type ErrVal = string;
+export interface MemRt {
     highlighting: SourceRange;
     globals: Scope;
     heap: Scope;
@@ -87,38 +87,37 @@ export interface Mem {
     classes: Immutable.Map<Name, Interface>;
     stack: Immutable.Map<number, Scope>;
 }
-export declare let highlight: Fun<Prod<SourceRange, Mem>, Mem>;
-export declare let load: Fun<Prod<string, Mem>, Sum<Unit, Val>>;
-export declare let store: Fun<Prod<Prod<string, Val>, Mem>, Mem>;
-export declare let load_class_def: Fun<Prod<Name, Mem>, Sum<Unit, Interface>>;
-export declare let store_class_def: Fun<Prod<Prod<Name, Interface>, Mem>, Mem>;
-export declare let load_fun_def: Fun<Prod<Name, Mem>, Sum<Unit, Lambda>>;
-export declare let store_fun_def: Fun<Prod<Prod<Name, Lambda>, Mem>, Mem>;
-export declare let load_heap: Fun<Prod<Name, Mem>, Sum<Unit, Val>>;
-export declare let store_heap: Fun<Prod<Prod<Name, Val>, Mem>, Mem>;
-export declare let heap_alloc: Fun<Prod<Val, Mem>, Prod<Val, Mem>>;
-export declare let push_scope: Fun<Scope, Fun<Mem, Mem>>;
-export declare let pop_scope: Fun<Mem, Sum<Unit, Mem>>;
-export interface Expr<A> extends Coroutine<Mem, Err, A> {
+export declare let load: Fun<Prod<string, MemRt>, Sum<Unit, Val>>;
+export declare let store: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;
+export declare let load_class_def: Fun<Prod<Name, MemRt>, Sum<Unit, Interface>>;
+export declare let store_class_def: Fun<Prod<Prod<Name, Interface>, MemRt>, MemRt>;
+export declare let load_fun_def: Fun<Prod<Name, MemRt>, Sum<Unit, Lambda>>;
+export declare let store_fun_def: Fun<Prod<Prod<Name, Lambda>, MemRt>, MemRt>;
+export declare let load_heap: Fun<Prod<Name, MemRt>, Sum<Unit, Val>>;
+export declare let store_heap: Fun<Prod<Prod<Name, Val>, MemRt>, MemRt>;
+export declare let heap_alloc: Fun<Prod<Val, MemRt>, Prod<Val, MemRt>>;
+export declare let push_scope: Fun<Scope, Fun<MemRt, MemRt>>;
+export declare let pop_scope: Fun<MemRt, Sum<Unit, MemRt>>;
+export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {
 }
-export declare type Stmt = Expr<Val>;
-export declare let empty_memory: Mem;
-export declare let set_highlighting: (r: SourceRange) => Expr<Val>;
-export declare let set_v_expr: (v: string, e: Expr<Val>) => Expr<Val>;
-export declare let set_v: (v: string, val: Val) => Expr<Val>;
-export declare let get_v: (v: string) => Expr<Val>;
-export declare let new_obj: () => Expr<Val>;
-export declare let new_arr: (len: number) => Expr<Val>;
-export declare let new_arr_ex: (len: Expr<Val>) => Expr<Val>;
-export declare let get_arr_len: (a_ref: Val) => Expr<Val>;
-export declare let get_arr_len_expr: (a: Expr<Val>) => Expr<Val>;
-export declare let get_arr_el: (a_ref: Val, i: number) => Expr<Val>;
-export declare let get_arr_el_expr: (a: Expr<Val>, i: Expr<Val>) => Expr<Val>;
-export declare let set_arr_el: (a_ref: Val, i: number, v: Val) => Expr<Val>;
-export declare let set_arr_el_expr: (a: Expr<Val>, i: Expr<Val>, e: Expr<Val>) => Expr<Val>;
-export declare let set_heap_v: (v: string, val: Val) => Expr<Val>;
-export declare let get_heap_v: (v: string) => Expr<Val>;
-export declare let set_class_def: (v: string, int: Interface) => Expr<Val>;
-export declare let get_class_def: (v: string) => Expr<Interface>;
-export declare let set_fun_def: (v: string, l: Lambda) => Expr<Val>;
-export declare let get_fun_def: (v: string) => Expr<Lambda>;
+export declare type StmtRt = ExprRt<Val>;
+export declare let empty_memory: MemRt;
+export declare let set_highlighting_rt: (r: SourceRange) => ExprRt<Val>;
+export declare let set_v_expr_rt: (v: string, e: ExprRt<Val>) => ExprRt<Val>;
+export declare let set_v_rt: (v: string, val: Val) => ExprRt<Val>;
+export declare let get_v_rt: (v: string) => ExprRt<Val>;
+export declare let new_obj_rt: () => ExprRt<Val>;
+export declare let new_arr_rt: (len: number) => ExprRt<Val>;
+export declare let new_arr_expr_rt: (len: ExprRt<Val>) => ExprRt<Val>;
+export declare let get_arr_len_rt: (a_ref: Val) => ExprRt<Val>;
+export declare let get_arr_len_expr_rt: (a: ExprRt<Val>) => ExprRt<Val>;
+export declare let get_arr_el_rt: (a_ref: Val, i: number) => ExprRt<Val>;
+export declare let get_arr_el_expr_rt: (a: ExprRt<Val>, i: ExprRt<Val>) => ExprRt<Val>;
+export declare let set_arr_el_rt: (a_ref: Val, i: number, v: Val) => ExprRt<Val>;
+export declare let set_arr_el_expr_rt: (a: ExprRt<Val>, i: ExprRt<Val>, e: ExprRt<Val>) => ExprRt<Val>;
+export declare let set_heap_v_rt: (v: string, val: Val) => ExprRt<Val>;
+export declare let get_heap_v_rt: (v: string) => ExprRt<Val>;
+export declare let set_class_def_rt: (v: string, int: Interface) => ExprRt<Val>;
+export declare let get_class_def_rt: (v: string) => ExprRt<Interface>;
+export declare let set_fun_def_rt: (v: string, l: Lambda) => ExprRt<Val>;
+export declare let get_fun_def_rt: (v: string) => ExprRt<Lambda>;

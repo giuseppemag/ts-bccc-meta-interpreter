@@ -12,7 +12,7 @@ import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 
-export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => { kind:"memory", memory:Py.Mem } | { kind:"bindings", state:CSharp.State } | { kind:"message", message:string } }
+export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => { kind:"memory", memory:Py.MemRt } | { kind:"bindings", state:CSharp.State } | { kind:"message", message:string } }
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
   if (parse_result.kind == "left") {
@@ -29,7 +29,7 @@ export let get_stream = (source:string) : DebuggerStream => {
 
   let p = ast_to_type_checker(res.value.fst)
 
-  let runtime_stream = (state:Prod<Py.Stmt,Py.Mem>) : DebuggerStream => ({
+  let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
     kind:"step",
     next:() => {
       let p = state.fst
@@ -61,7 +61,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       if (k.value.kind == "left") {
         return typechecker_stream(k.value.value)
       }
-      let initial_runtime_state = apply(constant<Unit,Py.Stmt>(k.value.value.fst.sem).times(constant<Unit,Py.Mem>(Py.empty_memory)), {})
+      let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory)), {})
       return runtime_stream(initial_runtime_state)
     },
     show:() => ({ kind:"bindings", state:state.snd })

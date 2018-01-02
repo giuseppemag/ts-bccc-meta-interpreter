@@ -59,7 +59,7 @@ export interface State {
 }
 export interface Typing {
     type: TypeInformation;
-    sem: Sem.Expr<Sem.Val>;
+    sem: Sem.ExprRt<Sem.Val>;
 }
 export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;

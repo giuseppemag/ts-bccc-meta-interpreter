@@ -8,7 +8,7 @@ export declare type DebuggerStream = ({
 }) & {
     show: () => {
         kind: "memory";
-        memory: Py.Mem;
+        memory: Py.MemRt;
     } | {
         kind: "bindings";
         state: CSharp.State;
