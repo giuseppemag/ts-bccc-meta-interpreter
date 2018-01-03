@@ -42,6 +42,7 @@
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] Are lambda arguments properly checked at both run-time and compile-time
     [ ] How are nested errors propagated (for example, the errors inside the body of a while or inside the body of a function)?
+  [ ] variable scope inside if's and while's
 
 [ ] Highlighting
   [ ] Use both start and end
