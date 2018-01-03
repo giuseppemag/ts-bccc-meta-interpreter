@@ -1,6 +1,8 @@
 [ ] IMP TYPE CHECKER
   [ ] File management
     [ ] Split into multiple files
+      [ ] Bindings.ts becomes a whole directory of files
+      [ ] Grammar.ts becomes a whole directory of files
   [ ] Classes
     [ ] Generics
     [ ] Polymorphism

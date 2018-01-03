@@ -141,7 +141,6 @@ let render_code = (code:string, stream:DebuggerStream) : JSX.Element => {
               })
 
               ctx.fillStyle = 'rgba(205, 205, 255, 0.5)'
-              console.log("???", lines[highlighting.start.row], (font_size * 110 / 100) * highlighting.start.row + offset_y, highlighting.start.row, offset_y)
               ctx.fillRect(offset_x, (font_size * 110 / 100) * (highlighting.start.row - 1) + offset_y + (font_size * 25) / 100,
                   ctx.measureText(lines[highlighting.start.row]).width, font_size * 110 / 100)
            } } />
