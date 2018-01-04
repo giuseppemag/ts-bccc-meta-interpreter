@@ -16,11 +16,11 @@ var build_closure = function (closure_parameters) { return function (i, closure)
             return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val));
         });
 }; };
-exports.mk_lambda_rt = function (body, parameters, closure_parameters) {
-    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return python_1.lambda_expr({ body: body, parameters: parameters, closure: closure }); });
+exports.mk_lambda_rt = function (body, parameters, closure_parameters, range) {
+    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return python_1.lambda_expr({ body: body, parameters: parameters, closure: closure, range: range }); });
 };
-exports.def_fun_rt = function (n, body, parameters, closure_parameters) {
-    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure }); });
+exports.def_fun_rt = function (n, body, parameters, closure_parameters, range) {
+    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure, range: range }); });
 };
 exports.return_rt = function (e) {
     return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });

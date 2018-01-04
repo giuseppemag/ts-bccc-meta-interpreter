@@ -13,6 +13,7 @@
   "dependencies": {
     "electron": "^1.7.10",
     "monadic_react": "^1.0.54",
+    "ts-bccc-meta-compiler": "file:..",
     "ts-bccc-meta-interpreter": "file:.."
   },
   "devDependencies": {

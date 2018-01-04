@@ -4,7 +4,7 @@ import {List, Map, Set, Range} from "immutable"
 import * as Immutable from "immutable"
 import * as Moment from 'moment'
 import * as i18next from 'i18next'
-import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range } from 'ts-bccc-meta-interpreter'
+import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range, SourceRange, Bindings, TypeInformation, Type } from 'ts-bccc-meta-interpreter'
 
 import {UrlTemplate, application, get_context, Route, Url, make_url, fallback_url, link_to_route,
 Option, C, Mode, unit, bind, string, number, bool, button, selector, multi_selector, label, h1, h2, div, form, image, link, file, overlay,
@@ -67,91 +67,115 @@ let render_render_grid = (grid:RenderGrid) : JSX.Element => {
   }} />
 }
 
-let render_scope = (scope:Scope) : JSX.Element[] => {
+let find_start_line_from_range = (source:string, range:SourceRange) : string => {
+  let rows = source.split("\n")
+  if(range.start.row >= rows.length ){
+    return "Range out of bound. [" + JSON.stringify(range) + "]"
+  }
+  return rows[range.start.row];
+}
+
+
+let render_scope = (scope:Scope, source:string) : JSX.Element[] => {
   return scope.map((v,k) => {
           if (v == undefined || k == undefined) return <tr/>
-          return <tr key={k}>
-            <td>{k}</td>
-            <td>{v.k == "u" ? "()" :
+          return <tr className="debugger__row" key={k}>
+            <td className="debugger__cell debugger__cell--variable">{k}</td>
+            <td className="debugger__cell debugger__cell--value">{v.k == "u" ? "()" :
                  v.k == "i" ? v.v :
                  v.k == "render-grid" ? render_render_grid(v.v) :
+                 v.k == "lambda" ? find_start_line_from_range(source, v.v.range).trim().replace("{", "") + "{ ... }" :
+                 
                  JSON.stringify(v.v) }</td>
           </tr>
          }).toArray()
 }
 
-let render_debugger_stream = (stream:DebuggerStream) : JSX.Element => {
+
+let binding_to_string = (binding_type: Type):string => {
+  switch(binding_type.kind){
+      case "render-grid-pixel":
+      case "render-grid":
+      case "unit":
+      case "bool":
+      case "int":
+      case "float":
+      case "string":
+        return binding_type.kind
+      case "obj":
+        return binding_type.kind
+      case "fun":
+      return binding_to_string(binding_type.in) + " => " + 
+             binding_to_string(binding_type.out)
+      case  "ref":
+        return binding_type.kind + "(" + binding_type.C_name +")"
+      case "arr":
+        return binding_to_string(binding_type.arg) + "[]"
+      case "tuple":        
+        return "(" + binding_type.args.map(binding_to_string).join(",") + ")"
+      default:
+        return JSON.stringify(binding_type)
+  }
+}
+
+
+let render_bindings = (bindings:Bindings, select_code:(_:SourceRange)=>void) : JSX.Element[] => {
+  return bindings.map((b, name) => b == undefined || name == undefined ? <div/> : 
+                                   <div onMouseOver={() => {
+                                     //todo push the range of the declaration for text highliting
+                                   }}> {name} : {binding_to_string(b)} </div>).toArray()
+}
+
+
+let render_debugger_stream = (stream:DebuggerStream, source:string, select_code:(_:SourceRange)=>void) : JSX.Element => {
   let state = stream.show()
-  let style={width:"50%", height:"610px", float:"right"}
+  let style={width:"50%", height:"610px", float:"right", color:"white"}
   if (state.kind == "message") {
+    console.log("render_debugger_stream-message", state.message)
     return <div style={style}>{state.message}</div>
   } else if (state.kind == "bindings") {
-    return <div style={style}>{JSON.stringify(state.state)}</div>
+    console.log("render_debugger_stream-bindings", state.state)
+    return <div style={style}>{render_bindings(state.state.bindings, select_code)}</div>
   }
+
+  console.log("render_debugger_stream-memory..", state.memory)  
   return <div style={style}>
           <table>
             <tbody>
-              { render_scope(state.memory.globals) }
-              {
-                state.memory.stack.toArray().map((stack_frame, i) =>
-                  <tr key={i}>
-                    <td>Stack frame {i}</td>
-                    <td>
-                      <table>
-                        <tbody>
-                          { render_scope(stack_frame) }
-                        </tbody>
-                      </table>
-                    </td>
-                  </tr>
-                )
-              }
+              { render_scope(state.memory.globals, source) }
+              <tr className="debugger__row">
+              <td className="debugger__cell debugger__cell--variable">Stack </td>
+                <td className="debugger__cell debugger__cell--value">
+                  {state.memory.stack.toArray().map((stack_frame, i) =>
+                        <table key={i} className="debugger__table debugger__table--inception">
+                          <tbody>
+                            { render_scope(stack_frame, source) }
+                          </tbody>
+                        </table>
+                  )}
+              </td>
+              </tr>
             </tbody>
          </table>
         </div>
 }
-
 let render_code = (code:string, stream:DebuggerStream) : JSX.Element => {
   let state = stream.show()
   let highlighting = state.kind == "memory" ? state.memory.highlighting
                    : state.kind == "bindings" ? state.state.highlighting
                    : mk_range(-10,0,0,0)
-  return <div style={{ fontFamily: "monospace", width:"45%", height:"600px", overflowY:"scroll", float:"left" }}>
-           <canvas ref={canvas => {
-              if (!canvas) return
-              let raw_ctx = canvas.getContext("2d")
-              if (!raw_ctx) return
-              let ctx = raw_ctx
+  let lines = code.split("\n")
+  return <div style={{fontFamily: "monospace",width:"48%", float:"left", whiteSpace: "pre-wrap"}}>
+        {
 
-              canvas.width = window.innerWidth * 40 / 100
-              canvas.height = 2000
-              ctx.translate(0.5, 0.5)
-              ctx.imageSmoothingEnabled = false
-
-              let font_size = 18
-              ctx.font = `${font_size}px monospace`
-
-              let offset_x = 15
-              let offset_y = 15
-              let lines = code.split("\n")
-              let char_width = ctx.measureText(" ").width
-
-              lines.forEach((line, line_index) => {
-                ctx.fillText(line, offset_x, (font_size * 110 / 100) * line_index + offset_y)
-              })
-
-              ctx.fillStyle = 'rgba(205, 205, 255, 0.5)'
-              ctx.fillRect(offset_x, (font_size * 110 / 100) * (highlighting.start.row - 1) + offset_y + (font_size * 25) / 100,
-                  ctx.measureText(lines[highlighting.start.row]).width, font_size * 110 / 100)
-           } } />
-         </div>
+          lines.map((line, line_index) => <div style={{color:highlighting.start.row == line_index ? "black" : "white", 
+                                                       background:highlighting.start.row == line_index ? 'rgb(255,255,153)' : 'none'}} >{line}</div>)
+        }
+      </div>
 }
-
 export function HomePage() : JSX.Element {
   type AppState = { code:string, stream:DebuggerStream, step_index:number, editing:boolean }
-  return <div>
-    <h1>Giuseppe's little meta-playground</h1>
-
+  return <div style={{background:"linear-gradient(rgb(33, 22, 110), rgb(59, 54, 181))"}}>
     {simple_application(
       repeat<AppState>("main-repeat")(
         any<AppState, AppState>("main-any")([
@@ -164,7 +188,7 @@ export function HomePage() : JSX.Element {
                 ))(s)
               : custom<{}>("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
           s => custom<AppState>(`source-editor-state-step-${s.step_index}`)(
-            _ => k => render_debugger_stream(s.stream)
+            _ => k => render_debugger_stream(s.stream, s.code, (range:SourceRange) => {})
           ).never("source-editor-state-step-never"),
           s => button<{}>("Next", s.stream.kind != "step")({}).then("state-next-button", _ =>
                unit({...s, stream:s.stream.kind == "step" ? s.stream.next() : s.stream, step_index:s.step_index+1})),

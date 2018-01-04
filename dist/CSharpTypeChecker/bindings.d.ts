@@ -113,12 +113,13 @@ export interface LambdaDefinition {
 }
 export interface FunDefinition extends LambdaDefinition {
     name: string;
+    range: SourceRange;
 }
 export declare let mk_param: (name: string, type: Type) => {
     name: string;
     type: Type;
 };
-export declare let mk_lambda: (def: LambdaDefinition, closure_parameters: string[]) => Stmt;
+export declare let mk_lambda: (def: LambdaDefinition, closure_parameters: string[], range: SourceRange) => Stmt;
 export declare let def_fun: (def: FunDefinition, closure_parameters: string[]) => Stmt;
 export declare let def_method: (C_name: string, def: FunDefinition) => Stmt;
 export declare let call_lambda: (lambda: Stmt, arg_values: Stmt[]) => Stmt;

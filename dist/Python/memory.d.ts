@@ -8,6 +8,7 @@ export interface Lambda {
     body: ExprRt<Val>;
     parameters: Array<ValueName>;
     closure: Scope;
+    range: SourceRange;
 }
 export interface HeapRef {
     v: string;

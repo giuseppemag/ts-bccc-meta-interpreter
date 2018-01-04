@@ -696,11 +696,11 @@ let string_to_csharp_type : (_:string) => CSharp.Type = s =>
   s == "int" ? CSharp.int_type
   : s == "bool" ? CSharp.bool_type
   : s == "RenderGrid" ? CSharp.render_grid_type
-  : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+  : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type 
   : CSharp.ref_type(s)
 
 export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
-  n.ast.kind == "int" ? CSharp.int(n.ast.value)
+  n.ast.kind == "int" ? CSharp.int(n.ast.value) 
   : n.ast.kind == "string" ? CSharp.str(n.ast.value)
   : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
   : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
@@ -737,7 +737,9 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
     CSharp.def_fun({ name:n.ast.name.ast.value, 
                      return_t:string_to_csharp_type(n.ast.return_type.ast.value), 
                      parameters:n.ast.arg_decls.ast.value.toArray().map(d => ({name:(d.r.ast as IdAST).value, type:string_to_csharp_type((d.l.ast as IdAST).value)})), 
-                     body:ast_to_type_checker(n.ast.body) },[])
+                     body:ast_to_type_checker(n.ast.body),
+                     range:n.range },
+                     [])
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
     CSharp.decl_v(n.ast.r.ast.value, string_to_csharp_type(n.ast.l.ast.value))
   : n.ast.kind == "dbg" ?

@@ -2,6 +2,7 @@ import * as Immutable from "immutable"
 import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, co_get_state } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
+import { SourceRange, mk_range } from "../source_range"
 import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
          runtime_error,
          ValueName,
@@ -23,12 +24,12 @@ let build_closure = (closure_parameters:Array<ValueName>) => function(i:number, 
            )
 }
 
-export let mk_lambda_rt = function(body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>) : ExprRt<Val> {
-  return build_closure(closure_parameters)(0, empty_scope_val).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure }))
+export let mk_lambda_rt = function(body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : ExprRt<Val> {
+  return build_closure(closure_parameters)(0, empty_scope_val).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure, range:range }))
 }
 
-export let def_fun_rt = function(n:ValueName, body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>) : StmtRt {
-  return build_closure(closure_parameters)(0, empty_scope_val).then(closure => set_fun_def_rt(n, { body:body, parameters:parameters, closure:closure }))
+export let def_fun_rt = function(n:ValueName, body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : StmtRt {
+  return build_closure(closure_parameters)(0, empty_scope_val).then(closure => set_fun_def_rt(n, { body:body, parameters:parameters, closure:closure, range:range }))
 }
 
 export let return_rt = function (e: ExprRt<Val>): ExprRt<Val> {

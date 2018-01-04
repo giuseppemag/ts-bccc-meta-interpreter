@@ -398,11 +398,11 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
 
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
-export interface FunDefinition extends LambdaDefinition { name:string }
+export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
 export let mk_param = function(name:Name, type:Type) {
   return { name:name, type:type }
 }
-export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<Name>) : Stmt {
+export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<Name>, range:SourceRange) : Stmt {
   let parameters = def.parameters
   let return_t = def.return_t
   let body = def.body
@@ -413,7 +413,7 @@ export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<N
           body.then(body_t =>
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters))))
+            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
           :
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))
@@ -423,7 +423,7 @@ export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<N
 export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
   return co_get_state<State, Err>().then(s =>
          co_set_state<State, Err>({...s, bindings:s.bindings.set(def.name, {...fun_type(tuple_type(def.parameters.map(p => p.type)), def.return_t), is_constant:true})}).then(_ =>
-         mk_lambda(def, closure_parameters).then(l =>
+         mk_lambda(def, closure_parameters, def.range).then(l =>
          co_set_state<State, Err>(s).then(_ =>
          decl_const(def.name, l.type, co_unit(l))))))
 
@@ -443,7 +443,7 @@ export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
-                              Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), []))))
+                              Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range))))
           :
             co_error<State,Err,Typing>(`Error: return type does not match declaration`)
           )))

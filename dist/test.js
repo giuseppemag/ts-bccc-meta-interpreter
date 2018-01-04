@@ -28,17 +28,20 @@ var ImpLanguageWithSuspend;
             body: CSharp.breakpoint(source_range_1.mk_range(1, 1, 1, 1))(CSharp.ret(CSharp.plus(CSharp.get_v("i"), CSharp.get_v("x")))),
             parameters: [CSharp.mk_param("i", CSharp.int_type)],
             return_t: CSharp.int_type
-        }, ["x"])), [CSharp.int(5)])), CSharp.done))))));
+        }, ["x"], source_range_1.mk_range(1, 1, 1, 1))), [CSharp.int(5)])), CSharp.done))))));
         var fun_test = CSharp.semicolon(CSharp.decl_v("x", CSharp.int_type), CSharp.semicolon(CSharp.decl_v("y", CSharp.int_type), CSharp.semicolon(CSharp.set_v("x", CSharp.int(2)), CSharp.semicolon(CSharp.set_v("y", CSharp.int(5)), CSharp.semicolon(CSharp.def_fun({ name: "f",
             body: (CSharp.ret(CSharp.plus(CSharp.get_v("i"), CSharp.get_v("x")))),
             parameters: [CSharp.mk_param("i", CSharp.int_type)],
-            return_t: CSharp.int_type }, ["x"]), CSharp.semicolon(CSharp.def_fun({ name: "g",
+            return_t: CSharp.int_type,
+            range: source_range_1.mk_range(1, 1, 1, 1) }, ["x"]), CSharp.semicolon(CSharp.def_fun({ name: "g",
             body: (CSharp.ret(CSharp.times(CSharp.get_v("j"), CSharp.get_v("x"), source_range_1.zero_range))),
             parameters: [CSharp.mk_param("j", CSharp.int_type)],
-            return_t: CSharp.int_type }, ["x"]), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(3, 0, 4, 0))(CSharp.done), CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(4, 0, 5, 0))(CSharp.done), CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")])))))))))));
+            return_t: CSharp.int_type,
+            range: source_range_1.mk_range(1, 1, 1, 1) }, ["x"]), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(3, 0, 4, 0))(CSharp.done), CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(4, 0, 5, 0))(CSharp.done), CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")])))))))))));
         var class_test = CSharp.semicolon(CSharp.def_class("Vector2", [{
                 name: "Vector2",
                 body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.get_v("x")), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.get_v("y")), CSharp.done)),
+                range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "x", type: CSharp.int_type },
                     { name: "y", type: CSharp.int_type }],
                 return_t: CSharp.unit_type
@@ -46,6 +49,7 @@ var ImpLanguageWithSuspend;
             {
                 name: "Scale",
                 body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
+                range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "k", type: CSharp.int_type }],
                 return_t: CSharp.unit_type
             }], [{ name: "X", type: CSharp.int_type },

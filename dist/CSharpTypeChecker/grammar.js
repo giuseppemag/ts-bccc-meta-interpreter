@@ -618,7 +618,8 @@ exports.ast_to_type_checker = function (n) {
                                                                                                                 CSharp.def_fun({ name: n.ast.name.ast.value,
                                                                                                                     return_t: string_to_csharp_type(n.ast.return_type.ast.value),
                                                                                                                     parameters: n.ast.arg_decls.ast.value.toArray().map(function (d) { return ({ name: d.r.ast.value, type: string_to_csharp_type(d.l.ast.value) }); }),
-                                                                                                                    body: exports.ast_to_type_checker(n.ast.body) }, [])
+                                                                                                                    body: exports.ast_to_type_checker(n.ast.body),
+                                                                                                                    range: n.range }, [])
                                                                                                                 : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
                                                                                                                     CSharp.decl_v(n.ast.r.ast.value, string_to_csharp_type(n.ast.l.ast.value))
                                                                                                                     : n.ast.kind == "dbg" ?

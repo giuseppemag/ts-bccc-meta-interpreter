@@ -383,7 +383,7 @@ exports.semicolon = function (p, q) {
 exports.mk_param = function (name, type) {
     return { name: name, type: type };
 };
-exports.mk_lambda = function (def, closure_parameters) {
+exports.mk_lambda = function (def, closure_parameters, range) {
     var parameters = def.parameters;
     var return_t = def.return_t;
     var body = def.body;
@@ -393,7 +393,7 @@ exports.mk_lambda = function (def, closure_parameters) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters)));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -406,7 +406,7 @@ exports.mk_lambda = function (def, closure_parameters) {
 exports.def_fun = function (def, closure_parameters) {
     return ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(def.name, __assign({}, exports.fun_type(exports.tuple_type(def.parameters.map(function (p) { return p.type; })), def.return_t), { is_constant: true })) })).then(function (_) {
-            return exports.mk_lambda(def, closure_parameters).then(function (l) {
+            return exports.mk_lambda(def, closure_parameters, def.range).then(function (l) {
                 return ts_bccc_1.co_set_state(s).then(function (_) {
                     return exports.decl_const(def.name, l.type, ts_bccc_2.co_unit(l));
                 });
@@ -426,7 +426,7 @@ exports.def_method = function (C_name, def) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [])));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");

@@ -8,7 +8,7 @@ import { SourceRange, mk_range } from "../source_range"
 export let runtime_error = function(e:ErrVal) : ExprRt<Val> { return co_error<MemRt, ErrVal, Val>(e) }
 export type Bool = boolean
 
-export interface Lambda { body:ExprRt<Val>, parameters:Array<ValueName>, closure: Scope }
+export interface Lambda { body:ExprRt<Val>, parameters:Array<ValueName>, closure: Scope, range:SourceRange }
 export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
 export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }

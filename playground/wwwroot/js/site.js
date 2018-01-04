@@ -11883,7 +11883,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var React = __webpack_require__(21);
-var combinators_1 = __webpack_require__(95);
+var combinators_1 = __webpack_require__(94);
 function make_C(comp) {
     return {
         comp: comp,
@@ -21236,6 +21236,821 @@ function escape(data) {
 /* 94 */
 /***/ (function(module, exports, __webpack_require__) {
 
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var React = __webpack_require__(21);
+var Immutable = __webpack_require__(96);
+var i18next = __webpack_require__(671);
+var core_1 = __webpack_require__(39);
+var html_1 = __webpack_require__(95);
+var primitives_1 = __webpack_require__(120);
+var Repeat = (function (_super) {
+    __extends(Repeat, _super);
+    function Repeat(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { current_value: props.value, frame_index: 1 };
+        return _this;
+    }
+    Repeat.prototype.render = function () {
+        var _this = this;
+        this.props.debug_info && console.log("Render:", this.props.debug_info(), this.state.current_value);
+        return this.props.p(this.state.current_value).comp(this.props.context)(function (callback) { return function (new_value) {
+            return _this.setState(__assign({}, _this.state, { frame_index: _this.state.frame_index + 1, current_value: new_value }), function () {
+                return _this.props.cont(callback)(new_value);
+            });
+        }; });
+    };
+    return Repeat;
+}(React.Component));
+exports.repeat = function (key, dbg) {
+    return function (p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Repeat, ({ kind: "repeat", debug_info: dbg, p: p, value: initial_value, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+};
+var Any = (function (_super) {
+    __extends(Any, _super);
+    function Any(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { ps: "creating" };
+        return _this;
+    }
+    Any.prototype.componentWillReceiveProps = function (new_props) {
+        this.setState(__assign({}, this.state, { ps: new_props.ps.map(function (p) {
+                return p(new_props.value).comp(new_props.context)(function (callback) { return function (new_value) {
+                    return new_props.cont(callback)(new_value);
+                }; });
+            }) }));
+    };
+    Any.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { ps: this.props.ps.map(function (p) {
+                return p(_this.props.value).comp(_this.props.context)(function (callback) { return function (new_value) {
+                    return _this.props.cont(callback)(new_value);
+                }; });
+            }) }));
+    };
+    Any.prototype.render = function () {
+        return React.createElement("div", { className: this.props.className },
+            " ",
+            this.state.ps != "creating" ? this.state.ps : null,
+            " ");
+    };
+    return Any;
+}(React.Component));
+exports.any = function (key, className, dbg) {
+    return function (ps) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Any, { kind: "any", debug_info: dbg, ps: ps, value: initial_value, context: ctxt, cont: cont, key: key, className: className });
+    }; }); }; };
+};
+var Never = (function (_super) {
+    __extends(Never, _super);
+    function Never(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "loading" };
+        return _this;
+    }
+    Never.prototype.componentWillReceiveProps = function (new_props) {
+        this.setState(__assign({}, this.state, { p: new_props.p.comp(new_props.context)(function (callback) { return function (new_value) { }; }) }));
+    };
+    Never.prototype.componentWillMount = function () {
+        this.setState(__assign({}, this.state, { p: this.props.p.comp(this.props.context)(function (callback) { return function (new_value) { }; }) }));
+    };
+    Never.prototype.render = function () {
+        return this.state.p != "loading" ? this.state.p : null;
+    };
+    return Never;
+}(React.Component));
+exports.never = function (p, key) {
+    return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Never, { kind: "never", p: p, context: ctxt, cont: cont, key: key, debug_info: undefined });
+    }; });
+};
+var All = (function (_super) {
+    __extends(All, _super);
+    function All(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { results: Immutable.Map(), ps: "creating" };
+        return _this;
+    }
+    All.prototype.componentWillReceiveProps = function (new_props) {
+        var _this = this;
+        this.setState(__assign({}, this.state, { ps: new_props.ps.map(function (p, p_i) {
+                return p.comp(new_props.context)(function (callback) { return function (result) {
+                    return _this.setState(__assign({}, _this.state, { results: _this.state.results.set(p_i, result) }), function () {
+                        if (_this.state.results.keySeq().toSet().equals(Immutable.Range(0, new_props.ps.length).toSet())) {
+                            var results_1 = _this.state.results.sortBy(function (r, r_i) { return r_i; }).toArray();
+                            _this.setState(__assign({}, _this.state, { results: Immutable.Map() }), function () {
+                                return new_props.cont(callback)(results_1);
+                            });
+                        }
+                    });
+                }; });
+            }) }));
+    };
+    All.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { ps: this.props.ps.map(function (p, p_i) {
+                return p.comp(_this.props.context)(function (callback) { return function (result) {
+                    return _this.setState(__assign({}, _this.state, { results: _this.state.results.set(p_i, result) }), function () {
+                        if (_this.state.results.keySeq().toSet().equals(Immutable.Range(0, _this.props.ps.length).toSet())) {
+                            var results_2 = _this.state.results.sortBy(function (r, r_i) { return r_i; }).toArray();
+                            _this.setState(__assign({}, _this.state, { results: Immutable.Map() }), function () {
+                                return _this.props.cont(callback)(results_2);
+                            });
+                        }
+                    });
+                }; });
+            }) }));
+    };
+    All.prototype.render = function () {
+        return React.createElement("div", null,
+            " ",
+            this.state.ps != "creating" ? this.state.ps : null,
+            " ");
+    };
+    return All;
+}(React.Component));
+exports.all = function (ps, key, dbg) {
+    return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(All, { kind: "all", debug_info: dbg, ps: ps, context: ctxt, cont: cont, key: key });
+    }; });
+};
+var Retract = (function (_super) {
+    __extends(Retract, _super);
+    function Retract(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    Retract.prototype.componentWillReceiveProps = function (new_props) {
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.inb(new_props.value)).comp(new_props.context)(function (callback) { return function (new_value) {
+                return new_props.cont(callback)(new_props.out(new_props.value)(new_value));
+            }; }) }));
+    };
+    Retract.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.inb(this.props.value)).comp(this.props.context)(function (callback) { return function (new_value) {
+                return _this.props.cont(callback)(_this.props.out(_this.props.value)(new_value));
+            }; }) }));
+    };
+    Retract.prototype.render = function () {
+        return this.state.p != "creating" ? this.state.p : null;
+    };
+    return Retract;
+}(React.Component));
+exports.retract = function (key, dbg) {
+    return function (inb, out, p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Retract, { kind: "retract", debug_info: dbg, inb: inb, out: out, p: p, value: initial_value, context: ctxt, cont: cont, key: key });
+    }; }); }; };
+};
+var LiftPromise = (function (_super) {
+    __extends(LiftPromise, _super);
+    function LiftPromise(props, context) {
+        var _this = _super.call(this) || this;
+        _this.wait_time = 500;
+        _this.state = { result: "busy", input: props.value };
+        return _this;
+    }
+    LiftPromise.prototype.componentWillReceiveProps = function (new_props) {
+        var _this = this;
+        // if (this.state.result != "busy" && this.state.result != "error") {
+        //   this.props.debug_info && console.log("New props (ignored):", this.props.debug_info(), this.state.input, new_props.value)
+        //   return
+        // }
+        this.props.debug_info && console.log("New props:", this.props.debug_info(), this.state.input, new_props.value);
+        this.setState(__assign({}, this.state, { input: new_props.value }), function () {
+            return _this.load(new_props);
+        });
+    };
+    LiftPromise.prototype.load = function (props) {
+        var _this = this;
+        this.setState(__assign({}, this.state, { result: "busy" }), function () {
+            return props.p(_this.state.input).then(function (x) {
+                _this.wait_time = 500;
+                if (_this.props.debug_info)
+                    console.log("Promise done:", _this.props.debug_info());
+                _this.setState(__assign({}, _this.state, { result: x }), function () { return props.cont(function () { return null; })(x); });
+            })
+                .catch(function () {
+                if (props.retry_strategy == "never")
+                    _this.setState(__assign({}, _this.state, { result: "error" }));
+                else {
+                    _this.wait_time = Math.floor(Math.max(_this.wait_time * 1.5, 2500));
+                    setTimeout(function () { return _this.load(props); }, _this.wait_time);
+                }
+            });
+        });
+    };
+    LiftPromise.prototype.componentWillMount = function () {
+        this.props.debug_info && console.log("Mount:", this.props.debug_info());
+        this.load(this.props);
+    };
+    LiftPromise.prototype.render = function () {
+        this.props.debug_info && console.log("Render:", this.props.debug_info());
+        return this.state.result == "busy" ? React.createElement("div", { className: "busy" }, i18next.t("busy"))
+            : this.state.result == "error" ? React.createElement("div", { className: "error" }, i18next.t("error"))
+                : null; // <div className="done">{i18next.t("done")}</div>
+    };
+    return LiftPromise;
+}(React.Component));
+exports.lift_promise = function (p, retry_strategy, key, dbg) {
+    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(LiftPromise, { kind: "lift promise", debug_info: dbg, value: x, retry_strategy: retry_strategy, p: p, context: ctxt, cont: cont, key: key });
+    }; }); };
+};
+var Delay = (function (_super) {
+    __extends(Delay, _super);
+    function Delay(props, context) {
+        var _this = _super.call(this) || this;
+        _this.running = false;
+        _this.state = { status: "dirty", value: props.value, last_command: props.p(props.value).comp(props.context)(props.cont) };
+        return _this;
+    }
+    Delay.prototype.componentWillMount = function () {
+        var _this = this;
+        // console.log("starting delay thread")
+        if (this.running)
+            return;
+        this.running = true;
+        var self = this;
+        var process = function () { return setTimeout(function () {
+            // console.log("delay is ticking", self.state.status, self.state.value)
+            if (self.state.status == "dirty") {
+                // console.log("delay is submitting the data to save")
+                self.setState(__assign({}, self.state, { status: "waiting", last_command: self.props.p(self.state.value).comp(_this.props.context)(function (callback) { return function (new_value) {
+                        // console.log("calling the continuation of dirty", self.state.value)
+                        self.props.cont(callback)(new_value);
+                    }; }) }));
+                process();
+            }
+            else {
+                if (self.running)
+                    process();
+            }
+        }, self.props.dt); };
+        process();
+    };
+    Delay.prototype.componentWillUnmount = function () {
+        // console.log("stopping delay thread")
+        this.running = false;
+    };
+    Delay.prototype.componentWillReceiveProps = function (new_props) {
+        // console.log("Delay received new props and is going back to dirty")
+        this.setState(__assign({}, this.state, { value: new_props.value, status: "dirty" }));
+    };
+    Delay.prototype.render = function () {
+        return this.state.last_command;
+    };
+    return Delay;
+}(React.Component));
+exports.delay = function (dt, key, dbg) {
+    return function (p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Delay, { kind: "delay", debug_info: dbg, dt: dt, p: p, value: initial_value, context: ctxt, cont: cont, key: key });
+    }; }); }; };
+};
+exports.mk_submenu_entry = function (label, children) { return { kind: "sub menu", label: label, children: children }; };
+exports.mk_menu_entry = function (v) { return { kind: "item", value: v }; };
+exports.simple_menu = function (type, to_string, key, dbg) {
+    var content_menu_class, content_class, menu_class, entries_class, entry_class, sub_entry_class;
+    if (type == "side menu") {
+        content_menu_class = "monadic-content-with-menu";
+        content_class = "monadic-content";
+        menu_class = "monadic-content-menu";
+        entries_class = "monadic-content-menu__entries";
+        entry_class = "monadic-content-menu__entry";
+        sub_entry_class = "monadic-content-menu__sub-entry";
+    }
+    else {
+        content_menu_class = "monadic-content-with-tabs";
+        content_class = "monadic-content";
+        menu_class = "monadic-tabs";
+        entries_class = "monadic-tabs__entries";
+        entry_class = "monadic-tabs__entry";
+        sub_entry_class = "monadic-tabs__sub-entry";
+    }
+    return function (items_array, p, selected_item, selected_sub_menu) {
+        var items = Immutable.List(items_array);
+        var entries = function (s) {
+            return (type != "side menu" && s.shown_range.first > 0 ?
+                [function (s) { return html_1.div(entry_class + " monadic-prev-tab")(html_1.a("<"))(__assign({}, s, { shown_range: __assign({}, s.shown_range, { first: s.shown_range.first - 1 }) })); }]
+                :
+                    []).concat(items.map(function (item, i) {
+                return function (s) {
+                    return item.kind == "item" ?
+                        html_1.div(entry_class + " " + (s.selected.kind == "item" && item.value == s.selected.value ? " " + entry_class + "--active" : ""))(html_1.a(to_string(item.value), undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: { kind: "nothing" }, selected: item, last_action: { kind: "selection" } }))
+                        :
+                            exports.any()([
+                                function (s) { return html_1.div(entry_class + " ")(html_1.a(item.label, undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: item, last_action: { kind: "selection" } })); }
+                            ].concat((s.sub_selected.kind == "sub menu" && item.label == s.sub_selected.label) ||
+                                (s.selected.kind == "item" && item.children.some(function (c) { return s.selected.kind == "item" && c.value == s.selected.value; })) ?
+                                item.children.map(function (c) {
+                                    return function (s) { return html_1.div(sub_entry_class + " " + (s.selected.kind == "item" && c.value == s.selected.value ? " " + sub_entry_class + "--active" : ""))(html_1.a(to_string(c.value), undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: item, selected: c, last_action: { kind: "selection" } })); };
+                                })
+                                :
+                                    []))(s);
+                };
+            }).filter(function (i, i_i) { return type == "side menu" || i_i >= s.shown_range.first && (i_i - s.shown_range.first) < s.shown_range.amount; })
+                .concat(type != "side menu" && s.shown_range.first + s.shown_range.amount < items.count() ?
+                [function (s) { return html_1.div(entry_class + " monadic-next-tab")(html_1.a(">"))(__assign({}, s, { shown_range: __assign({}, s.shown_range, { first: s.shown_range.first + 1 }) })); }]
+                :
+                    [])
+                .toArray());
+        };
+        return exports.repeat()(html_1.div()(exports.any(undefined, content_menu_class)([
+            html_1.div(menu_class)(function (s) { return exports.any(undefined, entries_class)(entries(s))(s); }),
+            html_1.div(content_class)(function (s) { return s.selected.kind == "item" ?
+                p(s.selected.value).then(undefined, function (p_res) { return core_1.unit(__assign({}, s, { last_action: { kind: "p", p_res: p_res } })); })
+                :
+                    core_1.unit(s).never(); })
+        ])))({ selected: selected_item == undefined ? { kind: "nothing" } : { kind: "item", value: selected_item },
+            sub_selected: selected_sub_menu == undefined ? { kind: "nothing" } : { kind: "sub menu", label: selected_sub_menu },
+            last_action: { kind: "init" },
+            shown_range: type == "side menu" ? undefined : { first: 0, amount: type.max_tabs } })
+            .filter(function (s) { return s.last_action.kind != "p"; })
+            .map(function (s) { return s.last_action.kind == "p" && s.last_action.p_res; });
+    };
+};
+exports.custom = function (key, dbg) {
+    return function (render) { return core_1.make_C(function (ctxt) { return function (cont) { return render(ctxt)(cont); }; }); };
+};
+exports.hide = function (f_name, f) {
+    return exports.repeat()(function (visible) {
+        return primitives_1.bool("edit", "plus/minus")(visible);
+    })(false).then(f_name + " toggle", function (visible) {
+        return !visible ?
+            core_1.unit(null)
+            :
+                f.then("visible " + f_name, function (_) { return core_1.unit(null); });
+    });
+};
+
+
+/***/ }),
+/* 95 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var React = __webpack_require__(21);
+var Immutable = __webpack_require__(96);
+var core_1 = __webpack_require__(39);
+var Label = (function (_super) {
+    __extends(Label, _super);
+    function Label(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    Label.prototype.componentWillReceiveProps = function (new_props) {
+        this.props.debug_info && console.log("New props:", this.props.debug_info());
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
+                return new_props.cont(callback)(x);
+            }; }) }));
+    };
+    Label.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
+                return _this.props.cont(callback)(x);
+            }; }) }));
+    };
+    Label.prototype.render = function () {
+        var content = this.state.p == "creating" ? null : this.state.p;
+        var span = React.createElement("span", null, this.props.text);
+        return React.createElement("label", { className: this.props.className }, this.props.span_before_content ? [span, content] : [content, span]);
+    };
+    return Label;
+}(React.Component));
+function label(text, span_before_content, className, key, dbg) {
+    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return (React.createElement(Label, { kind: "label", className: className, debug_info: dbg, text: text, span_before_content: span_before_content, value: value, p: p, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+}
+exports.label = label;
+var H1 = (function (_super) {
+    __extends(H1, _super);
+    function H1(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    H1.prototype.componentWillReceiveProps = function (new_props) {
+        this.props.debug_info && console.log("New props:", this.props.debug_info());
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
+                return new_props.cont(callback)(x);
+            }; }) }));
+    };
+    H1.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
+                return _this.props.cont(callback)(x);
+            }; }) }));
+    };
+    H1.prototype.render = function () {
+        var content = this.state.p == "creating" ? null : this.state.p;
+        var span = React.createElement("span", null, this.props.text);
+        return React.createElement("div", { className: this.props.className },
+            React.createElement("h1", null, span),
+            content);
+    };
+    return H1;
+}(React.Component));
+function h1(text, className, key, dbg) {
+    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return (React.createElement(H1, { kind: "h1", className: className, debug_info: dbg, text: text, value: value, p: p, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+}
+exports.h1 = h1;
+var H2 = (function (_super) {
+    __extends(H2, _super);
+    function H2(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    H2.prototype.componentWillReceiveProps = function (new_props) {
+        this.props.debug_info && console.log("New props:", this.props.debug_info());
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
+                return new_props.cont(callback)(x);
+            }; }) }));
+    };
+    H2.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
+                return _this.props.cont(callback)(x);
+            }; }) }));
+    };
+    H2.prototype.render = function () {
+        var content = this.state.p == "creating" ? null : this.state.p;
+        var span = React.createElement("span", null, this.props.text);
+        return React.createElement("div", { className: this.props.className },
+            React.createElement("h2", null, span),
+            content);
+    };
+    return H2;
+}(React.Component));
+function h2(text, className, key, dbg) {
+    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return (React.createElement(H2, { kind: "h2", className: className, debug_info: dbg, text: text, value: value, p: p, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+}
+exports.h2 = h2;
+var Div = (function (_super) {
+    __extends(Div, _super);
+    function Div(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    Div.prototype.componentWillReceiveProps = function (new_props) {
+        this.props.debug_info && console.log("New props:", this.props.debug_info());
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
+                return new_props.cont(callback)(x);
+            }; }) }));
+    };
+    Div.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
+                return _this.props.cont(callback)(x);
+            }; }) }));
+    };
+    Div.prototype.render = function () {
+        return React.createElement("div", { className: this.props.className }, this.state.p != "creating" ? this.state.p : null);
+    };
+    return Div;
+}(React.Component));
+function div(className, key, dbg) {
+    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return (React.createElement(Div, { kind: "div", className: className, debug_info: dbg, value: value, p: p, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+}
+exports.div = div;
+function overlay(key, dbg) {
+    return function (p) { return div("overlay")(div("overlay__item")(p)); };
+}
+exports.overlay = overlay;
+var Form = (function (_super) {
+    __extends(Form, _super);
+    function Form(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { p: "creating" };
+        return _this;
+    }
+    Form.prototype.componentWillReceiveProps = function (new_props) {
+        this.props.debug_info && console.log("New props:", this.props.debug_info());
+        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
+                return new_props.cont(callback)(x);
+            }; }) }));
+    };
+    Form.prototype.componentWillMount = function () {
+        var _this = this;
+        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
+                return _this.props.cont(callback)(x);
+            }; }) }));
+    };
+    Form.prototype.render = function () {
+        return React.createElement("form", { className: this.props.className }, this.state.p != "creating" ? this.state.p : null);
+    };
+    return Form;
+}(React.Component));
+function form(className, key, dbg) {
+    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return (React.createElement(Form, { kind: "form", className: className, debug_info: dbg, value: value, p: p, context: ctxt, cont: cont, key: key }));
+    }; }); }; };
+}
+exports.form = form;
+var Selector = (function (_super) {
+    __extends(Selector, _super);
+    function Selector(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { selected: props.selected_item != undefined ? props.items.findIndex(function (i) { return props.to_string(i) == props.to_string(props.selected_item); }) : undefined };
+        return _this;
+    }
+    Selector.prototype.componentWillMount = function () {
+        if (this.props.selected_item != undefined)
+            this.props.cont(function () { return null; })(this.props.selected_item);
+    };
+    Selector.prototype.render = function () {
+        var _this = this;
+        if (this.props.type == "dropdown")
+            return React.createElement("select", { value: this.state.selected == undefined ? "-1" : this.state.selected.toString(), onChange: function (e) {
+                    if (e.currentTarget.value == "-1") {
+                        _this.setState(__assign({}, _this.state, { selected: undefined }));
+                        return;
+                    }
+                    var selected_index = parseInt(e.currentTarget.value);
+                    var selected = _this.props.items.get(selected_index);
+                    _this.setState(__assign({}, _this.state, { selected: selected_index }), function () { return _this.props.cont(function () { })(selected); });
+                } },
+                React.createElement("option", { value: "-1" }),
+                this.props.items.map(function (i, i_index) {
+                    var i_s = _this.props.to_string(i);
+                    return React.createElement("option", { key: i_s, value: i_index }, i_s);
+                }));
+        else if (this.props.type == "radio") {
+            return React.createElement("form", null, this.props.items.map(function (i, i_index) {
+                var i_s = _this.props.to_string(i);
+                return React.createElement("div", { key: i_s },
+                    React.createElement("label", null,
+                        i_s,
+                        React.createElement("input", { key: i_s, name: name, type: "radio", checked: i_index == _this.state.selected, onChange: function (e) {
+                                if (e.currentTarget.checked == false)
+                                    return;
+                                var selected = _this.props.items.get(i_index);
+                                _this.setState(__assign({}, _this.state, { selected: i_index }), function () {
+                                    return _this.props.cont(function () { })(selected);
+                                });
+                            } })));
+            }));
+        }
+        else {
+            return null;
+        }
+    };
+    return Selector;
+}(React.Component));
+exports.selector = function (type, to_string, key, dbg) {
+    return function (items, selected_item) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Selector, { kind: "selector", debug_info: dbg, items: Immutable.List(items), selected_item: selected_item, type: type, to_string: to_string, context: ctxt, cont: cont, key: key });
+    }; }); };
+};
+var MultiSelector = (function (_super) {
+    __extends(MultiSelector, _super);
+    function MultiSelector(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { selected: Immutable.Set(props.selected_items != undefined ?
+                props.items.map(function (i, i_index) { return [props.to_string(i), i_index]; })
+                    .filter(function (x) { return props.selected_items.some(function (selected) { return props.to_string(selected) == x[0]; }); })
+                    .map(function (x) { return x[1]; })
+                    .toArray()
+                :
+                    []) };
+        return _this;
+    }
+    MultiSelector.prototype.componentWillMount = function () {
+        var _this = this;
+        if (this.props.selected_items != undefined)
+            this.props.cont(function () { return null; })(this.state.selected.map(function (index) { return _this.props.items.get(index); }).toArray());
+    };
+    MultiSelector.prototype.render = function () {
+        var _this = this;
+        if (this.props.type == "list") {
+            return React.createElement("select", { value: this.state.selected.map(function (index) { return index.toString(); }).toArray(), multiple: true, onChange: function (e) {
+                    var options = e.currentTarget.options;
+                    var selection = Immutable.Set();
+                    for (var i = 0, l = options.length; i < l; i++) {
+                        if (options[i].selected) {
+                            var index = parseInt(options[i].value);
+                            selection = selection.add(index);
+                        }
+                    }
+                    _this.setState(__assign({}, _this.state, { selected: selection }), function () {
+                        return _this.props.cont(function () { })(selection.map(function (index) { return _this.props.items.get(index); }).toArray());
+                    });
+                } }, this.props.items.map(function (i, i_index) {
+                var i_s = _this.props.to_string(i);
+                return React.createElement("option", { key: i_s, value: i_index }, i_s);
+            }));
+        }
+        else if (this.props.type == "checkbox") {
+            return React.createElement("form", null, this.props.items.map(function (i, i_index) {
+                var i_s = _this.props.to_string(i);
+                return React.createElement("div", { key: i_s },
+                    React.createElement("label", null,
+                        React.createElement("input", { key: i_s, type: "checkbox", checked: _this.state.selected.has(i_index), className: "monadic-input-choices monadic-input-choices--checkbox", onChange: function (e) {
+                                var selected = _this.props.items.get(i_index);
+                                var selection = e.currentTarget.checked ? _this.state.selected.add(i_index) : _this.state.selected.remove(i_index);
+                                _this.setState(__assign({}, _this.state, { selected: selection }), function () { return _this.props.cont(function () { })(selection.map(function (index) { return _this.props.items.get(index); }).toArray()); });
+                            } }),
+                        React.createElement("span", null, i_s)));
+            }));
+        }
+        else {
+            return null;
+        }
+    };
+    return MultiSelector;
+}(React.Component));
+exports.multi_selector = function (type, to_string, key, dbg) {
+    return function (items, selected_items) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(MultiSelector, { kind: "multi selector",
+            debug_info: dbg,
+            items: Immutable.List(items),
+            selected_items: selected_items ? Immutable.List(selected_items) : Immutable.List(),
+            type: type,
+            to_string: to_string,
+            cont: cont,
+            context: ctxt,
+            key: key });
+    }; }); };
+};
+var Image = (function (_super) {
+    __extends(Image, _super);
+    function Image(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { src: props.src };
+        return _this;
+    }
+    Image.prototype.componentWillReceiveProps = function (new_props) {
+        if (new_props.src != this.state.src)
+            this.setState(__assign({}, this.state, { src: new_props.src }));
+    };
+    Image.prototype.render = function () {
+        var _this = this;
+        return React.createElement("div", null,
+            React.createElement("img", { src: this.state.src }),
+            this.props.mode == "edit" ?
+                React.createElement("div", { className: "image-controls" },
+                    React.createElement("a", { className: "user button button--delete", onClick: function () {
+                            if (confirm('Are you sure?')) {
+                                var new_value_1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=";
+                                _this.setState(__assign({}, _this.state, { src: new_value_1 }), function () {
+                                    return _this.props.cont(function () { return null; })(new_value_1);
+                                });
+                            }
+                        } }),
+                    React.createElement("input", { type: "file", accept: "image/*", onChange: function (e) {
+                            var files = e.target.files;
+                            var file_reader = new FileReader();
+                            file_reader.onload = (function (e) {
+                                var new_value = file_reader.result;
+                                _this.setState(__assign({}, _this.state, { src: new_value }), function () {
+                                    return _this.props.cont(function () { return null; })(new_value);
+                                });
+                            });
+                            file_reader.readAsDataURL(files[0]);
+                        } }))
+                :
+                    null);
+    };
+    return Image;
+}(React.Component));
+exports.image = function (mode, key, dbg) { return function (src) {
+    return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Image, { kind: "image", debug_info: dbg, mode: mode, src: src, context: ctxt, cont: cont, key: key });
+    }; });
+}; };
+var Button = (function (_super) {
+    __extends(Button, _super);
+    function Button(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = { x: props.x };
+        return _this;
+    }
+    Button.prototype.componentWillReceiveProps = function (new_props) {
+        this.setState(__assign({}, this.state, { x: new_props.x }));
+    };
+    Button.prototype.render = function () {
+        var _this = this;
+        return this.props.kind == "a" ?
+            React.createElement("a", { href: this.props.href, rel: this.props.rel || "", className: "" + (this.props.className ? this.props.className : "") + (this.props.disabled ? " disabled" : ""), onClick: function (e) {
+                    _this.props.cont(function () { })(_this.state.x);
+                    e.preventDefault();
+                    return false;
+                } }, this.props.label)
+            :
+                React.createElement("button", { type: "button", className: "button " + (this.props.className ? this.props.className : ""), disabled: this.props.disabled, onClick: function () { return _this.props.cont(function () { })(_this.state.x); } }, this.props.label);
+    };
+    return Button;
+}(React.Component));
+exports.a = function (label, href, rel, disabled, key, className, dbg) {
+    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Button, { kind: "a", debug_info: dbg, label: label, href: href || "#", rel: rel, disabled: !!disabled, x: x, context: ctxt, cont: cont, key: key, className: className });
+    }; }); };
+};
+exports.button = function (label, disabled, key, className, dbg) {
+    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Button, { kind: "button", debug_info: dbg, label: label, disabled: !!disabled, x: x, context: ctxt, cont: cont, key: key, className: className });
+    }; }); };
+};
+var Link = (function (_super) {
+    __extends(Link, _super);
+    function Link(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = {};
+        return _this;
+    }
+    Link.prototype.render = function () {
+        return React.createElement("a", { href: this.props.url, className: (this.props.className || "") + " " + (this.props.disabled ? "disabled" : "") }, this.props.label);
+    };
+    return Link;
+}(React.Component));
+exports.link = function (label, url, disabled, key, className, dbg) {
+    return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(Link, { kind: "link", debug_info: dbg, label: label, url: url, disabled: !!disabled, context: ctxt, cont: cont, key: key, className: className });
+    }; });
+};
+var FileComponent = (function (_super) {
+    __extends(FileComponent, _super);
+    function FileComponent(props, context) {
+        var _this = _super.call(this) || this;
+        _this.state = {};
+        return _this;
+    }
+    FileComponent.prototype.render = function () {
+        var _this = this;
+        return React.createElement("div", null,
+            React.createElement("span", null,
+                React.createElement("a", { href: this.props.url }, this.props.label)),
+            this.props.mode == "view" ?
+                null
+                :
+                    React.createElement("input", { disabled: this.props.disabled, type: "file", onChange: function (e) {
+                            var files = e.target.files;
+                            var f = files[0];
+                            _this.props.cont(function () { })(f);
+                        } }));
+    };
+    return FileComponent;
+}(React.Component));
+exports.file = function (mode, label, url, disabled, key, dbg) {
+    return core_1.make_C(function (ctxt) { return function (cont) {
+        return React.createElement(FileComponent, { kind: "file", mode: mode, debug_info: dbg, label: label, url: url, disabled: !!disabled, context: ctxt, cont: cont, key: key });
+    }; });
+};
+
+
+/***/ }),
+/* 96 */
+/***/ (function(module, exports, __webpack_require__) {
+
 /**
  *  Copyright (c) 2014-2015, Facebook, Inc.
  *  All rights reserved.
@@ -26217,821 +27032,6 @@ function escape(data) {
 }));
 
 /***/ }),
-/* 95 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __assign = (this && this.__assign) || Object.assign || function(t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-        s = arguments[i];
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-    }
-    return t;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var React = __webpack_require__(21);
-var Immutable = __webpack_require__(94);
-var i18next = __webpack_require__(671);
-var core_1 = __webpack_require__(39);
-var html_1 = __webpack_require__(96);
-var primitives_1 = __webpack_require__(120);
-var Repeat = (function (_super) {
-    __extends(Repeat, _super);
-    function Repeat(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { current_value: props.value, frame_index: 1 };
-        return _this;
-    }
-    Repeat.prototype.render = function () {
-        var _this = this;
-        this.props.debug_info && console.log("Render:", this.props.debug_info(), this.state.current_value);
-        return this.props.p(this.state.current_value).comp(this.props.context)(function (callback) { return function (new_value) {
-            return _this.setState(__assign({}, _this.state, { frame_index: _this.state.frame_index + 1, current_value: new_value }), function () {
-                return _this.props.cont(callback)(new_value);
-            });
-        }; });
-    };
-    return Repeat;
-}(React.Component));
-exports.repeat = function (key, dbg) {
-    return function (p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Repeat, ({ kind: "repeat", debug_info: dbg, p: p, value: initial_value, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-};
-var Any = (function (_super) {
-    __extends(Any, _super);
-    function Any(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { ps: "creating" };
-        return _this;
-    }
-    Any.prototype.componentWillReceiveProps = function (new_props) {
-        this.setState(__assign({}, this.state, { ps: new_props.ps.map(function (p) {
-                return p(new_props.value).comp(new_props.context)(function (callback) { return function (new_value) {
-                    return new_props.cont(callback)(new_value);
-                }; });
-            }) }));
-    };
-    Any.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { ps: this.props.ps.map(function (p) {
-                return p(_this.props.value).comp(_this.props.context)(function (callback) { return function (new_value) {
-                    return _this.props.cont(callback)(new_value);
-                }; });
-            }) }));
-    };
-    Any.prototype.render = function () {
-        return React.createElement("div", { className: this.props.className },
-            " ",
-            this.state.ps != "creating" ? this.state.ps : null,
-            " ");
-    };
-    return Any;
-}(React.Component));
-exports.any = function (key, className, dbg) {
-    return function (ps) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Any, { kind: "any", debug_info: dbg, ps: ps, value: initial_value, context: ctxt, cont: cont, key: key, className: className });
-    }; }); }; };
-};
-var Never = (function (_super) {
-    __extends(Never, _super);
-    function Never(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "loading" };
-        return _this;
-    }
-    Never.prototype.componentWillReceiveProps = function (new_props) {
-        this.setState(__assign({}, this.state, { p: new_props.p.comp(new_props.context)(function (callback) { return function (new_value) { }; }) }));
-    };
-    Never.prototype.componentWillMount = function () {
-        this.setState(__assign({}, this.state, { p: this.props.p.comp(this.props.context)(function (callback) { return function (new_value) { }; }) }));
-    };
-    Never.prototype.render = function () {
-        return this.state.p != "loading" ? this.state.p : null;
-    };
-    return Never;
-}(React.Component));
-exports.never = function (p, key) {
-    return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Never, { kind: "never", p: p, context: ctxt, cont: cont, key: key, debug_info: undefined });
-    }; });
-};
-var All = (function (_super) {
-    __extends(All, _super);
-    function All(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { results: Immutable.Map(), ps: "creating" };
-        return _this;
-    }
-    All.prototype.componentWillReceiveProps = function (new_props) {
-        var _this = this;
-        this.setState(__assign({}, this.state, { ps: new_props.ps.map(function (p, p_i) {
-                return p.comp(new_props.context)(function (callback) { return function (result) {
-                    return _this.setState(__assign({}, _this.state, { results: _this.state.results.set(p_i, result) }), function () {
-                        if (_this.state.results.keySeq().toSet().equals(Immutable.Range(0, new_props.ps.length).toSet())) {
-                            var results_1 = _this.state.results.sortBy(function (r, r_i) { return r_i; }).toArray();
-                            _this.setState(__assign({}, _this.state, { results: Immutable.Map() }), function () {
-                                return new_props.cont(callback)(results_1);
-                            });
-                        }
-                    });
-                }; });
-            }) }));
-    };
-    All.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { ps: this.props.ps.map(function (p, p_i) {
-                return p.comp(_this.props.context)(function (callback) { return function (result) {
-                    return _this.setState(__assign({}, _this.state, { results: _this.state.results.set(p_i, result) }), function () {
-                        if (_this.state.results.keySeq().toSet().equals(Immutable.Range(0, _this.props.ps.length).toSet())) {
-                            var results_2 = _this.state.results.sortBy(function (r, r_i) { return r_i; }).toArray();
-                            _this.setState(__assign({}, _this.state, { results: Immutable.Map() }), function () {
-                                return _this.props.cont(callback)(results_2);
-                            });
-                        }
-                    });
-                }; });
-            }) }));
-    };
-    All.prototype.render = function () {
-        return React.createElement("div", null,
-            " ",
-            this.state.ps != "creating" ? this.state.ps : null,
-            " ");
-    };
-    return All;
-}(React.Component));
-exports.all = function (ps, key, dbg) {
-    return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(All, { kind: "all", debug_info: dbg, ps: ps, context: ctxt, cont: cont, key: key });
-    }; });
-};
-var Retract = (function (_super) {
-    __extends(Retract, _super);
-    function Retract(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    Retract.prototype.componentWillReceiveProps = function (new_props) {
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.inb(new_props.value)).comp(new_props.context)(function (callback) { return function (new_value) {
-                return new_props.cont(callback)(new_props.out(new_props.value)(new_value));
-            }; }) }));
-    };
-    Retract.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.inb(this.props.value)).comp(this.props.context)(function (callback) { return function (new_value) {
-                return _this.props.cont(callback)(_this.props.out(_this.props.value)(new_value));
-            }; }) }));
-    };
-    Retract.prototype.render = function () {
-        return this.state.p != "creating" ? this.state.p : null;
-    };
-    return Retract;
-}(React.Component));
-exports.retract = function (key, dbg) {
-    return function (inb, out, p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Retract, { kind: "retract", debug_info: dbg, inb: inb, out: out, p: p, value: initial_value, context: ctxt, cont: cont, key: key });
-    }; }); }; };
-};
-var LiftPromise = (function (_super) {
-    __extends(LiftPromise, _super);
-    function LiftPromise(props, context) {
-        var _this = _super.call(this) || this;
-        _this.wait_time = 500;
-        _this.state = { result: "busy", input: props.value };
-        return _this;
-    }
-    LiftPromise.prototype.componentWillReceiveProps = function (new_props) {
-        var _this = this;
-        // if (this.state.result != "busy" && this.state.result != "error") {
-        //   this.props.debug_info && console.log("New props (ignored):", this.props.debug_info(), this.state.input, new_props.value)
-        //   return
-        // }
-        this.props.debug_info && console.log("New props:", this.props.debug_info(), this.state.input, new_props.value);
-        this.setState(__assign({}, this.state, { input: new_props.value }), function () {
-            return _this.load(new_props);
-        });
-    };
-    LiftPromise.prototype.load = function (props) {
-        var _this = this;
-        this.setState(__assign({}, this.state, { result: "busy" }), function () {
-            return props.p(_this.state.input).then(function (x) {
-                _this.wait_time = 500;
-                if (_this.props.debug_info)
-                    console.log("Promise done:", _this.props.debug_info());
-                _this.setState(__assign({}, _this.state, { result: x }), function () { return props.cont(function () { return null; })(x); });
-            })
-                .catch(function () {
-                if (props.retry_strategy == "never")
-                    _this.setState(__assign({}, _this.state, { result: "error" }));
-                else {
-                    _this.wait_time = Math.floor(Math.max(_this.wait_time * 1.5, 2500));
-                    setTimeout(function () { return _this.load(props); }, _this.wait_time);
-                }
-            });
-        });
-    };
-    LiftPromise.prototype.componentWillMount = function () {
-        this.props.debug_info && console.log("Mount:", this.props.debug_info());
-        this.load(this.props);
-    };
-    LiftPromise.prototype.render = function () {
-        this.props.debug_info && console.log("Render:", this.props.debug_info());
-        return this.state.result == "busy" ? React.createElement("div", { className: "busy" }, i18next.t("busy"))
-            : this.state.result == "error" ? React.createElement("div", { className: "error" }, i18next.t("error"))
-                : null; // <div className="done">{i18next.t("done")}</div>
-    };
-    return LiftPromise;
-}(React.Component));
-exports.lift_promise = function (p, retry_strategy, key, dbg) {
-    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(LiftPromise, { kind: "lift promise", debug_info: dbg, value: x, retry_strategy: retry_strategy, p: p, context: ctxt, cont: cont, key: key });
-    }; }); };
-};
-var Delay = (function (_super) {
-    __extends(Delay, _super);
-    function Delay(props, context) {
-        var _this = _super.call(this) || this;
-        _this.running = false;
-        _this.state = { status: "dirty", value: props.value, last_command: props.p(props.value).comp(props.context)(props.cont) };
-        return _this;
-    }
-    Delay.prototype.componentWillMount = function () {
-        var _this = this;
-        // console.log("starting delay thread")
-        if (this.running)
-            return;
-        this.running = true;
-        var self = this;
-        var process = function () { return setTimeout(function () {
-            // console.log("delay is ticking", self.state.status, self.state.value)
-            if (self.state.status == "dirty") {
-                // console.log("delay is submitting the data to save")
-                self.setState(__assign({}, self.state, { status: "waiting", last_command: self.props.p(self.state.value).comp(_this.props.context)(function (callback) { return function (new_value) {
-                        // console.log("calling the continuation of dirty", self.state.value)
-                        self.props.cont(callback)(new_value);
-                    }; }) }));
-                process();
-            }
-            else {
-                if (self.running)
-                    process();
-            }
-        }, self.props.dt); };
-        process();
-    };
-    Delay.prototype.componentWillUnmount = function () {
-        // console.log("stopping delay thread")
-        this.running = false;
-    };
-    Delay.prototype.componentWillReceiveProps = function (new_props) {
-        // console.log("Delay received new props and is going back to dirty")
-        this.setState(__assign({}, this.state, { value: new_props.value, status: "dirty" }));
-    };
-    Delay.prototype.render = function () {
-        return this.state.last_command;
-    };
-    return Delay;
-}(React.Component));
-exports.delay = function (dt, key, dbg) {
-    return function (p) { return function (initial_value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Delay, { kind: "delay", debug_info: dbg, dt: dt, p: p, value: initial_value, context: ctxt, cont: cont, key: key });
-    }; }); }; };
-};
-exports.mk_submenu_entry = function (label, children) { return { kind: "sub menu", label: label, children: children }; };
-exports.mk_menu_entry = function (v) { return { kind: "item", value: v }; };
-exports.simple_menu = function (type, to_string, key, dbg) {
-    var content_menu_class, content_class, menu_class, entries_class, entry_class, sub_entry_class;
-    if (type == "side menu") {
-        content_menu_class = "monadic-content-with-menu";
-        content_class = "monadic-content";
-        menu_class = "monadic-content-menu";
-        entries_class = "monadic-content-menu__entries";
-        entry_class = "monadic-content-menu__entry";
-        sub_entry_class = "monadic-content-menu__sub-entry";
-    }
-    else {
-        content_menu_class = "monadic-content-with-tabs";
-        content_class = "monadic-content";
-        menu_class = "monadic-tabs";
-        entries_class = "monadic-tabs__entries";
-        entry_class = "monadic-tabs__entry";
-        sub_entry_class = "monadic-tabs__sub-entry";
-    }
-    return function (items_array, p, selected_item, selected_sub_menu) {
-        var items = Immutable.List(items_array);
-        var entries = function (s) {
-            return (type != "side menu" && s.shown_range.first > 0 ?
-                [function (s) { return html_1.div(entry_class + " monadic-prev-tab")(html_1.a("<"))(__assign({}, s, { shown_range: __assign({}, s.shown_range, { first: s.shown_range.first - 1 }) })); }]
-                :
-                    []).concat(items.map(function (item, i) {
-                return function (s) {
-                    return item.kind == "item" ?
-                        html_1.div(entry_class + " " + (s.selected.kind == "item" && item.value == s.selected.value ? " " + entry_class + "--active" : ""))(html_1.a(to_string(item.value), undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: { kind: "nothing" }, selected: item, last_action: { kind: "selection" } }))
-                        :
-                            exports.any()([
-                                function (s) { return html_1.div(entry_class + " ")(html_1.a(item.label, undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: item, last_action: { kind: "selection" } })); }
-                            ].concat((s.sub_selected.kind == "sub menu" && item.label == s.sub_selected.label) ||
-                                (s.selected.kind == "item" && item.children.some(function (c) { return s.selected.kind == "item" && c.value == s.selected.value; })) ?
-                                item.children.map(function (c) {
-                                    return function (s) { return html_1.div(sub_entry_class + " " + (s.selected.kind == "item" && c.value == s.selected.value ? " " + sub_entry_class + "--active" : ""))(html_1.a(to_string(c.value), undefined, undefined, false, undefined))(__assign({}, s, { sub_selected: item, selected: c, last_action: { kind: "selection" } })); };
-                                })
-                                :
-                                    []))(s);
-                };
-            }).filter(function (i, i_i) { return type == "side menu" || i_i >= s.shown_range.first && (i_i - s.shown_range.first) < s.shown_range.amount; })
-                .concat(type != "side menu" && s.shown_range.first + s.shown_range.amount < items.count() ?
-                [function (s) { return html_1.div(entry_class + " monadic-next-tab")(html_1.a(">"))(__assign({}, s, { shown_range: __assign({}, s.shown_range, { first: s.shown_range.first + 1 }) })); }]
-                :
-                    [])
-                .toArray());
-        };
-        return exports.repeat()(html_1.div()(exports.any(undefined, content_menu_class)([
-            html_1.div(menu_class)(function (s) { return exports.any(undefined, entries_class)(entries(s))(s); }),
-            html_1.div(content_class)(function (s) { return s.selected.kind == "item" ?
-                p(s.selected.value).then(undefined, function (p_res) { return core_1.unit(__assign({}, s, { last_action: { kind: "p", p_res: p_res } })); })
-                :
-                    core_1.unit(s).never(); })
-        ])))({ selected: selected_item == undefined ? { kind: "nothing" } : { kind: "item", value: selected_item },
-            sub_selected: selected_sub_menu == undefined ? { kind: "nothing" } : { kind: "sub menu", label: selected_sub_menu },
-            last_action: { kind: "init" },
-            shown_range: type == "side menu" ? undefined : { first: 0, amount: type.max_tabs } })
-            .filter(function (s) { return s.last_action.kind != "p"; })
-            .map(function (s) { return s.last_action.kind == "p" && s.last_action.p_res; });
-    };
-};
-exports.custom = function (key, dbg) {
-    return function (render) { return core_1.make_C(function (ctxt) { return function (cont) { return render(ctxt)(cont); }; }); };
-};
-exports.hide = function (f_name, f) {
-    return exports.repeat()(function (visible) {
-        return primitives_1.bool("edit", "plus/minus")(visible);
-    })(false).then(f_name + " toggle", function (visible) {
-        return !visible ?
-            core_1.unit(null)
-            :
-                f.then("visible " + f_name, function (_) { return core_1.unit(null); });
-    });
-};
-
-
-/***/ }),
-/* 96 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __assign = (this && this.__assign) || Object.assign || function(t) {
-    for (var s, i = 1, n = arguments.length; i < n; i++) {
-        s = arguments[i];
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-            t[p] = s[p];
-    }
-    return t;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var React = __webpack_require__(21);
-var Immutable = __webpack_require__(94);
-var core_1 = __webpack_require__(39);
-var Label = (function (_super) {
-    __extends(Label, _super);
-    function Label(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    Label.prototype.componentWillReceiveProps = function (new_props) {
-        this.props.debug_info && console.log("New props:", this.props.debug_info());
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
-                return new_props.cont(callback)(x);
-            }; }) }));
-    };
-    Label.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
-                return _this.props.cont(callback)(x);
-            }; }) }));
-    };
-    Label.prototype.render = function () {
-        var content = this.state.p == "creating" ? null : this.state.p;
-        var span = React.createElement("span", null, this.props.text);
-        return React.createElement("label", { className: this.props.className }, this.props.span_before_content ? [span, content] : [content, span]);
-    };
-    return Label;
-}(React.Component));
-function label(text, span_before_content, className, key, dbg) {
-    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return (React.createElement(Label, { kind: "label", className: className, debug_info: dbg, text: text, span_before_content: span_before_content, value: value, p: p, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-}
-exports.label = label;
-var H1 = (function (_super) {
-    __extends(H1, _super);
-    function H1(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    H1.prototype.componentWillReceiveProps = function (new_props) {
-        this.props.debug_info && console.log("New props:", this.props.debug_info());
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
-                return new_props.cont(callback)(x);
-            }; }) }));
-    };
-    H1.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
-                return _this.props.cont(callback)(x);
-            }; }) }));
-    };
-    H1.prototype.render = function () {
-        var content = this.state.p == "creating" ? null : this.state.p;
-        var span = React.createElement("span", null, this.props.text);
-        return React.createElement("div", { className: this.props.className },
-            React.createElement("h1", null, span),
-            content);
-    };
-    return H1;
-}(React.Component));
-function h1(text, className, key, dbg) {
-    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return (React.createElement(H1, { kind: "h1", className: className, debug_info: dbg, text: text, value: value, p: p, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-}
-exports.h1 = h1;
-var H2 = (function (_super) {
-    __extends(H2, _super);
-    function H2(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    H2.prototype.componentWillReceiveProps = function (new_props) {
-        this.props.debug_info && console.log("New props:", this.props.debug_info());
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
-                return new_props.cont(callback)(x);
-            }; }) }));
-    };
-    H2.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
-                return _this.props.cont(callback)(x);
-            }; }) }));
-    };
-    H2.prototype.render = function () {
-        var content = this.state.p == "creating" ? null : this.state.p;
-        var span = React.createElement("span", null, this.props.text);
-        return React.createElement("div", { className: this.props.className },
-            React.createElement("h2", null, span),
-            content);
-    };
-    return H2;
-}(React.Component));
-function h2(text, className, key, dbg) {
-    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return (React.createElement(H2, { kind: "h2", className: className, debug_info: dbg, text: text, value: value, p: p, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-}
-exports.h2 = h2;
-var Div = (function (_super) {
-    __extends(Div, _super);
-    function Div(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    Div.prototype.componentWillReceiveProps = function (new_props) {
-        this.props.debug_info && console.log("New props:", this.props.debug_info());
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
-                return new_props.cont(callback)(x);
-            }; }) }));
-    };
-    Div.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
-                return _this.props.cont(callback)(x);
-            }; }) }));
-    };
-    Div.prototype.render = function () {
-        return React.createElement("div", { className: this.props.className }, this.state.p != "creating" ? this.state.p : null);
-    };
-    return Div;
-}(React.Component));
-function div(className, key, dbg) {
-    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return (React.createElement(Div, { kind: "div", className: className, debug_info: dbg, value: value, p: p, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-}
-exports.div = div;
-function overlay(key, dbg) {
-    return function (p) { return div("overlay")(div("overlay__item")(p)); };
-}
-exports.overlay = overlay;
-var Form = (function (_super) {
-    __extends(Form, _super);
-    function Form(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { p: "creating" };
-        return _this;
-    }
-    Form.prototype.componentWillReceiveProps = function (new_props) {
-        this.props.debug_info && console.log("New props:", this.props.debug_info());
-        this.setState(__assign({}, this.state, { p: new_props.p(new_props.value).comp(new_props.context)(function (callback) { return function (x) {
-                return new_props.cont(callback)(x);
-            }; }) }));
-    };
-    Form.prototype.componentWillMount = function () {
-        var _this = this;
-        this.setState(__assign({}, this.state, { p: this.props.p(this.props.value).comp(this.props.context)(function (callback) { return function (x) {
-                return _this.props.cont(callback)(x);
-            }; }) }));
-    };
-    Form.prototype.render = function () {
-        return React.createElement("form", { className: this.props.className }, this.state.p != "creating" ? this.state.p : null);
-    };
-    return Form;
-}(React.Component));
-function form(className, key, dbg) {
-    return function (p) { return function (value) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return (React.createElement(Form, { kind: "form", className: className, debug_info: dbg, value: value, p: p, context: ctxt, cont: cont, key: key }));
-    }; }); }; };
-}
-exports.form = form;
-var Selector = (function (_super) {
-    __extends(Selector, _super);
-    function Selector(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { selected: props.selected_item != undefined ? props.items.findIndex(function (i) { return props.to_string(i) == props.to_string(props.selected_item); }) : undefined };
-        return _this;
-    }
-    Selector.prototype.componentWillMount = function () {
-        if (this.props.selected_item != undefined)
-            this.props.cont(function () { return null; })(this.props.selected_item);
-    };
-    Selector.prototype.render = function () {
-        var _this = this;
-        if (this.props.type == "dropdown")
-            return React.createElement("select", { value: this.state.selected == undefined ? "-1" : this.state.selected.toString(), onChange: function (e) {
-                    if (e.currentTarget.value == "-1") {
-                        _this.setState(__assign({}, _this.state, { selected: undefined }));
-                        return;
-                    }
-                    var selected_index = parseInt(e.currentTarget.value);
-                    var selected = _this.props.items.get(selected_index);
-                    _this.setState(__assign({}, _this.state, { selected: selected_index }), function () { return _this.props.cont(function () { })(selected); });
-                } },
-                React.createElement("option", { value: "-1" }),
-                this.props.items.map(function (i, i_index) {
-                    var i_s = _this.props.to_string(i);
-                    return React.createElement("option", { key: i_s, value: i_index }, i_s);
-                }));
-        else if (this.props.type == "radio") {
-            return React.createElement("form", null, this.props.items.map(function (i, i_index) {
-                var i_s = _this.props.to_string(i);
-                return React.createElement("div", { key: i_s },
-                    React.createElement("label", null,
-                        i_s,
-                        React.createElement("input", { key: i_s, name: name, type: "radio", checked: i_index == _this.state.selected, onChange: function (e) {
-                                if (e.currentTarget.checked == false)
-                                    return;
-                                var selected = _this.props.items.get(i_index);
-                                _this.setState(__assign({}, _this.state, { selected: i_index }), function () {
-                                    return _this.props.cont(function () { })(selected);
-                                });
-                            } })));
-            }));
-        }
-        else {
-            return null;
-        }
-    };
-    return Selector;
-}(React.Component));
-exports.selector = function (type, to_string, key, dbg) {
-    return function (items, selected_item) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Selector, { kind: "selector", debug_info: dbg, items: Immutable.List(items), selected_item: selected_item, type: type, to_string: to_string, context: ctxt, cont: cont, key: key });
-    }; }); };
-};
-var MultiSelector = (function (_super) {
-    __extends(MultiSelector, _super);
-    function MultiSelector(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { selected: Immutable.Set(props.selected_items != undefined ?
-                props.items.map(function (i, i_index) { return [props.to_string(i), i_index]; })
-                    .filter(function (x) { return props.selected_items.some(function (selected) { return props.to_string(selected) == x[0]; }); })
-                    .map(function (x) { return x[1]; })
-                    .toArray()
-                :
-                    []) };
-        return _this;
-    }
-    MultiSelector.prototype.componentWillMount = function () {
-        var _this = this;
-        if (this.props.selected_items != undefined)
-            this.props.cont(function () { return null; })(this.state.selected.map(function (index) { return _this.props.items.get(index); }).toArray());
-    };
-    MultiSelector.prototype.render = function () {
-        var _this = this;
-        if (this.props.type == "list") {
-            return React.createElement("select", { value: this.state.selected.map(function (index) { return index.toString(); }).toArray(), multiple: true, onChange: function (e) {
-                    var options = e.currentTarget.options;
-                    var selection = Immutable.Set();
-                    for (var i = 0, l = options.length; i < l; i++) {
-                        if (options[i].selected) {
-                            var index = parseInt(options[i].value);
-                            selection = selection.add(index);
-                        }
-                    }
-                    _this.setState(__assign({}, _this.state, { selected: selection }), function () {
-                        return _this.props.cont(function () { })(selection.map(function (index) { return _this.props.items.get(index); }).toArray());
-                    });
-                } }, this.props.items.map(function (i, i_index) {
-                var i_s = _this.props.to_string(i);
-                return React.createElement("option", { key: i_s, value: i_index }, i_s);
-            }));
-        }
-        else if (this.props.type == "checkbox") {
-            return React.createElement("form", null, this.props.items.map(function (i, i_index) {
-                var i_s = _this.props.to_string(i);
-                return React.createElement("div", { key: i_s },
-                    React.createElement("label", null,
-                        React.createElement("input", { key: i_s, type: "checkbox", checked: _this.state.selected.has(i_index), className: "monadic-input-choices monadic-input-choices--checkbox", onChange: function (e) {
-                                var selected = _this.props.items.get(i_index);
-                                var selection = e.currentTarget.checked ? _this.state.selected.add(i_index) : _this.state.selected.remove(i_index);
-                                _this.setState(__assign({}, _this.state, { selected: selection }), function () { return _this.props.cont(function () { })(selection.map(function (index) { return _this.props.items.get(index); }).toArray()); });
-                            } }),
-                        React.createElement("span", null, i_s)));
-            }));
-        }
-        else {
-            return null;
-        }
-    };
-    return MultiSelector;
-}(React.Component));
-exports.multi_selector = function (type, to_string, key, dbg) {
-    return function (items, selected_items) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(MultiSelector, { kind: "multi selector",
-            debug_info: dbg,
-            items: Immutable.List(items),
-            selected_items: selected_items ? Immutable.List(selected_items) : Immutable.List(),
-            type: type,
-            to_string: to_string,
-            cont: cont,
-            context: ctxt,
-            key: key });
-    }; }); };
-};
-var Image = (function (_super) {
-    __extends(Image, _super);
-    function Image(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { src: props.src };
-        return _this;
-    }
-    Image.prototype.componentWillReceiveProps = function (new_props) {
-        if (new_props.src != this.state.src)
-            this.setState(__assign({}, this.state, { src: new_props.src }));
-    };
-    Image.prototype.render = function () {
-        var _this = this;
-        return React.createElement("div", null,
-            React.createElement("img", { src: this.state.src }),
-            this.props.mode == "edit" ?
-                React.createElement("div", { className: "image-controls" },
-                    React.createElement("a", { className: "user button button--delete", onClick: function () {
-                            if (confirm('Are you sure?')) {
-                                var new_value_1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAMSURBVBhXY/j//z8ABf4C/qc1gYQAAAAASUVORK5CYII=";
-                                _this.setState(__assign({}, _this.state, { src: new_value_1 }), function () {
-                                    return _this.props.cont(function () { return null; })(new_value_1);
-                                });
-                            }
-                        } }),
-                    React.createElement("input", { type: "file", accept: "image/*", onChange: function (e) {
-                            var files = e.target.files;
-                            var file_reader = new FileReader();
-                            file_reader.onload = (function (e) {
-                                var new_value = file_reader.result;
-                                _this.setState(__assign({}, _this.state, { src: new_value }), function () {
-                                    return _this.props.cont(function () { return null; })(new_value);
-                                });
-                            });
-                            file_reader.readAsDataURL(files[0]);
-                        } }))
-                :
-                    null);
-    };
-    return Image;
-}(React.Component));
-exports.image = function (mode, key, dbg) { return function (src) {
-    return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Image, { kind: "image", debug_info: dbg, mode: mode, src: src, context: ctxt, cont: cont, key: key });
-    }; });
-}; };
-var Button = (function (_super) {
-    __extends(Button, _super);
-    function Button(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = { x: props.x };
-        return _this;
-    }
-    Button.prototype.componentWillReceiveProps = function (new_props) {
-        this.setState(__assign({}, this.state, { x: new_props.x }));
-    };
-    Button.prototype.render = function () {
-        var _this = this;
-        return this.props.kind == "a" ?
-            React.createElement("a", { href: this.props.href, rel: this.props.rel || "", className: "" + (this.props.className ? this.props.className : "") + (this.props.disabled ? " disabled" : ""), onClick: function (e) {
-                    _this.props.cont(function () { })(_this.state.x);
-                    e.preventDefault();
-                    return false;
-                } }, this.props.label)
-            :
-                React.createElement("button", { type: "button", className: "button " + (this.props.className ? this.props.className : ""), disabled: this.props.disabled, onClick: function () { return _this.props.cont(function () { })(_this.state.x); } }, this.props.label);
-    };
-    return Button;
-}(React.Component));
-exports.a = function (label, href, rel, disabled, key, className, dbg) {
-    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Button, { kind: "a", debug_info: dbg, label: label, href: href || "#", rel: rel, disabled: !!disabled, x: x, context: ctxt, cont: cont, key: key, className: className });
-    }; }); };
-};
-exports.button = function (label, disabled, key, className, dbg) {
-    return function (x) { return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Button, { kind: "button", debug_info: dbg, label: label, disabled: !!disabled, x: x, context: ctxt, cont: cont, key: key, className: className });
-    }; }); };
-};
-var Link = (function (_super) {
-    __extends(Link, _super);
-    function Link(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = {};
-        return _this;
-    }
-    Link.prototype.render = function () {
-        return React.createElement("a", { href: this.props.url, className: (this.props.className || "") + " " + (this.props.disabled ? "disabled" : "") }, this.props.label);
-    };
-    return Link;
-}(React.Component));
-exports.link = function (label, url, disabled, key, className, dbg) {
-    return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(Link, { kind: "link", debug_info: dbg, label: label, url: url, disabled: !!disabled, context: ctxt, cont: cont, key: key, className: className });
-    }; });
-};
-var FileComponent = (function (_super) {
-    __extends(FileComponent, _super);
-    function FileComponent(props, context) {
-        var _this = _super.call(this) || this;
-        _this.state = {};
-        return _this;
-    }
-    FileComponent.prototype.render = function () {
-        var _this = this;
-        return React.createElement("div", null,
-            React.createElement("span", null,
-                React.createElement("a", { href: this.props.url }, this.props.label)),
-            this.props.mode == "view" ?
-                null
-                :
-                    React.createElement("input", { disabled: this.props.disabled, type: "file", onChange: function (e) {
-                            var files = e.target.files;
-                            var f = files[0];
-                            _this.props.cont(function () { })(f);
-                        } }));
-    };
-    return FileComponent;
-}(React.Component));
-exports.file = function (mode, label, url, disabled, key, dbg) {
-    return core_1.make_C(function (ctxt) { return function (cont) {
-        return React.createElement(FileComponent, { kind: "file", mode: mode, debug_info: dbg, label: label, url: url, disabled: !!disabled, context: ctxt, cont: cont, key: key });
-    }; });
-};
-
-
-/***/ }),
 /* 97 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -28718,7 +28718,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var React = __webpack_require__(21);
-var Immutable = __webpack_require__(94);
+var Immutable = __webpack_require__(96);
 var Moment = __webpack_require__(1);
 var core_1 = __webpack_require__(39);
 function format_int(num, length) {
@@ -51895,7 +51895,7 @@ exports.semicolon = function (p, q) {
 exports.mk_param = function (name, type) {
     return { name: name, type: type };
 };
-exports.mk_lambda = function (def, closure_parameters) {
+exports.mk_lambda = function (def, closure_parameters, range) {
     var parameters = def.parameters;
     var return_t = def.return_t;
     var body = def.body;
@@ -51905,7 +51905,7 @@ exports.mk_lambda = function (def, closure_parameters) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters)));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -51918,7 +51918,7 @@ exports.mk_lambda = function (def, closure_parameters) {
 exports.def_fun = function (def, closure_parameters) {
     return ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(def.name, __assign({}, exports.fun_type(exports.tuple_type(def.parameters.map(function (p) { return p.type; })), def.return_t), { is_constant: true })) })).then(function (_) {
-            return exports.mk_lambda(def, closure_parameters).then(function (l) {
+            return exports.mk_lambda(def, closure_parameters, def.range).then(function (l) {
                 return ts_bccc_1.co_set_state(s).then(function (_) {
                     return exports.decl_const(def.name, l.type, ts_bccc_2.co_unit(l));
                 });
@@ -51938,7 +51938,7 @@ exports.def_method = function (C_name, def) {
             return body.then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [])));
+                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)));
                     })
                     :
                         ts_bccc_2.co_error("Error: return type does not match declaration");
@@ -52423,80 +52423,101 @@ let render_render_grid = (grid) => {
             });
         } });
 };
-let render_scope = (scope) => {
+let find_start_line_from_range = (source, range) => {
+    let rows = source.split("\n");
+    if (range.start.row >= rows.length) {
+        return "Range out of bound. [" + JSON.stringify(range) + "]";
+    }
+    return rows[range.start.row];
+};
+let render_scope = (scope, source) => {
     return scope.map((v, k) => {
         if (v == undefined || k == undefined)
             return React.createElement("tr", null);
-        return React.createElement("tr", { key: k },
-            React.createElement("td", null, k),
-            React.createElement("td", null, v.k == "u" ? "()" :
+        return React.createElement("tr", { className: "debugger__row", key: k },
+            React.createElement("td", { className: "debugger__cell debugger__cell--variable" }, k),
+            React.createElement("td", { className: "debugger__cell debugger__cell--value" }, v.k == "u" ? "()" :
                 v.k == "i" ? v.v :
                     v.k == "render-grid" ? render_render_grid(v.v) :
-                        JSON.stringify(v.v)));
+                        v.k == "lambda" ? find_start_line_from_range(source, v.v.range).trim().replace("{", "") + "{ ... }" :
+                            JSON.stringify(v.v)));
     }).toArray();
 };
-let render_debugger_stream = (stream) => {
+let binding_to_string = (binding_type) => {
+    switch (binding_type.kind) {
+        case "render-grid-pixel":
+        case "render-grid":
+        case "unit":
+        case "bool":
+        case "int":
+        case "float":
+        case "string":
+            return binding_type.kind;
+        case "obj":
+            return binding_type.kind;
+        case "fun":
+            return binding_to_string(binding_type.in) + " => " +
+                binding_to_string(binding_type.out);
+        case "ref":
+            return binding_type.kind + "(" + binding_type.C_name + ")";
+        case "arr":
+            return binding_to_string(binding_type.arg) + "[]";
+        case "tuple":
+            return "(" + binding_type.args.map(binding_to_string).join(",") + ")";
+        default:
+            return JSON.stringify(binding_type);
+    }
+};
+let render_bindings = (bindings, select_code) => {
+    return bindings.map((b, name) => b == undefined || name == undefined ? React.createElement("div", null) :
+        React.createElement("div", { onMouseOver: () => {
+                //todo push the range of the declaration for text highliting
+            } },
+            " ",
+            name,
+            " : ",
+            binding_to_string(b),
+            " ")).toArray();
+};
+let render_debugger_stream = (stream, source, select_code) => {
     let state = stream.show();
-    let style = { width: "50%", height: "610px", float: "right" };
+    let style = { width: "50%", height: "610px", float: "right", color: "white" };
     if (state.kind == "message") {
+        console.log("render_debugger_stream-message", state.message);
         return React.createElement("div", { style: style }, state.message);
     }
     else if (state.kind == "bindings") {
-        return React.createElement("div", { style: style }, JSON.stringify(state.state));
+        console.log("render_debugger_stream-bindings", state.state);
+        return React.createElement("div", { style: style }, render_bindings(state.state.bindings, select_code));
     }
+    console.log("render_debugger_stream-memory..", state.memory);
     return React.createElement("div", { style: style },
         React.createElement("table", null,
             React.createElement("tbody", null,
-                render_scope(state.memory.globals),
-                state.memory.stack.toArray().map((stack_frame, i) => React.createElement("tr", { key: i },
-                    React.createElement("td", null,
-                        "Stack frame ",
-                        i),
-                    React.createElement("td", null,
-                        React.createElement("table", null,
-                            React.createElement("tbody", null, render_scope(stack_frame)))))))));
+                render_scope(state.memory.globals, source),
+                React.createElement("tr", { className: "debugger__row" },
+                    React.createElement("td", { className: "debugger__cell debugger__cell--variable" }, "Stack "),
+                    React.createElement("td", { className: "debugger__cell debugger__cell--value" }, state.memory.stack.toArray().map((stack_frame, i) => React.createElement("table", { key: i, className: "debugger__table debugger__table--inception" },
+                        React.createElement("tbody", null, render_scope(stack_frame, source)))))))));
 };
 let render_code = (code, stream) => {
     let state = stream.show();
     let highlighting = state.kind == "memory" ? state.memory.highlighting
         : state.kind == "bindings" ? state.state.highlighting
             : ts_bccc_meta_interpreter_1.mk_range(-10, 0, 0, 0);
-    return React.createElement("div", { style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } },
-        React.createElement("canvas", { ref: canvas => {
-                if (!canvas)
-                    return;
-                let raw_ctx = canvas.getContext("2d");
-                if (!raw_ctx)
-                    return;
-                let ctx = raw_ctx;
-                canvas.width = window.innerWidth * 40 / 100;
-                canvas.height = 2000;
-                ctx.translate(0.5, 0.5);
-                ctx.imageSmoothingEnabled = false;
-                let font_size = 18;
-                ctx.font = `${font_size}px monospace`;
-                let offset_x = 15;
-                let offset_y = 15;
-                let lines = code.split("\n");
-                let char_width = ctx.measureText(" ").width;
-                lines.forEach((line, line_index) => {
-                    ctx.fillText(line, offset_x, (font_size * 110 / 100) * line_index + offset_y);
-                });
-                ctx.fillStyle = 'rgba(205, 205, 255, 0.5)';
-                ctx.fillRect(offset_x, (font_size * 110 / 100) * (highlighting.start.row - 1) + offset_y + (font_size * 25) / 100, ctx.measureText(lines[highlighting.start.row]).width, font_size * 110 / 100);
-            } }));
+    let lines = code.split("\n");
+    return React.createElement("div", { style: { fontFamily: "monospace", width: "48%", float: "left", whiteSpace: "pre-wrap" } }, lines.map((line, line_index) => React.createElement("div", { style: { color: highlighting.start.row == line_index ? "black" : "white",
+            background: highlighting.start.row == line_index ? 'rgb(255,255,153)' : 'none' } }, line)));
 };
 function HomePage() {
-    return React.createElement("div", null,
-        React.createElement("h1", null, "Giuseppe's little meta-playground"),
-        monadic_react_1.simple_application(monadic_react_1.repeat("main-repeat")(monadic_react_1.any("main-any")([
-                s => s.editing ? monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } })))(s)
-                : monadic_react_1.custom("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
-                s => monadic_react_1.custom(`source-editor-state-step-${s.step_index}`)(_ => k => render_debugger_stream(s.stream)).never("source-editor-state-step-never"),
-                s => monadic_react_1.button("Next", s.stream.kind != "step")({}).then("state-next-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1 }))),
-                s => monadic_react_1.button("Reload")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: ts_bccc_meta_interpreter_1.get_stream(s.code), step_index: 0 }))),
-            monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e })), e => monadic_react_1.button("Toggle editing")(!e))
-        ]))({ code: default_program, stream: ts_bccc_meta_interpreter_1.get_stream(default_program), step_index: 0, editing: false }), _ => { }));
+    return React.createElement("div", { style: { background: "linear-gradient(rgb(33, 22, 110), rgb(59, 54, 181))" } }, monadic_react_1.simple_application(monadic_react_1.repeat("main-repeat")(monadic_react_1.any("main-any")([
+            s => s.editing ? monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } })))(s)
+            : monadic_react_1.custom("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
+            s => monadic_react_1.custom(`source-editor-state-step-${s.step_index}`)(_ => k => render_debugger_stream(s.stream, s.code, (range) => { })).never("source-editor-state-step-never"),
+            s => monadic_react_1.button("Next", s.stream.kind != "step")({}).then("state-next-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1 }))),
+            s => monadic_react_1.button("Reload")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: ts_bccc_meta_interpreter_1.get_stream(s.code), step_index: 0 }))),
+        monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e })), e => monadic_react_1.button("Toggle editing")(!e))
+    ]))({ code: default_program, stream: ts_bccc_meta_interpreter_1.get_stream(default_program), step_index: 0, editing: false }), _ => { }));
 }
 exports.HomePage = HomePage;
 exports.HomePage_to = (target_element_id) => {
@@ -76354,11 +76375,11 @@ function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-__export(__webpack_require__(95));
+__export(__webpack_require__(94));
 __export(__webpack_require__(39));
 __export(__webpack_require__(674));
 __export(__webpack_require__(675));
-__export(__webpack_require__(96));
+__export(__webpack_require__(95));
 __export(__webpack_require__(362));
 __export(__webpack_require__(363));
 __export(__webpack_require__(676));
@@ -76385,8 +76406,8 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = __webpack_require__(39);
 var primitives_1 = __webpack_require__(120);
-var html_1 = __webpack_require__(96);
-var combinators_1 = __webpack_require__(95);
+var html_1 = __webpack_require__(95);
+var combinators_1 = __webpack_require__(94);
 var list_1 = __webpack_require__(362);
 var perform = function (s, op) {
     return op.kind == "add" ? __assign({}, s, { items: s.items.push(op.value) }) : op.kind == "remove" ? __assign({}, s, { items: s.items.remove(op.index), selected_index: s.selected_index == op.index ? undefined : op.index > s.selected_index ? s.selected_index : s.selected_index - 1 }) : __assign({}, s, { selected_index: op.selected ? op.index : s.selected_index == op.index ? undefined : s.selected_index });
@@ -76432,11 +76453,11 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var Immutable = __webpack_require__(94);
+var Immutable = __webpack_require__(96);
 var core_1 = __webpack_require__(39);
 var primitives_1 = __webpack_require__(120);
-var html_1 = __webpack_require__(96);
-var combinators_1 = __webpack_require__(95);
+var html_1 = __webpack_require__(95);
+var combinators_1 = __webpack_require__(94);
 exports.simple_inner_form = function (mode, model_name, entries) {
     return function (c) { return combinators_1.repeat(model_name(c.model) + "_repeater")(function (c) {
         return combinators_1.any(model_name(c.model) + "_inner_form")(entries.map(function (e) {
@@ -76934,11 +76955,11 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var React = __webpack_require__(21);
-var Immutable = __webpack_require__(94);
+var Immutable = __webpack_require__(96);
 var Option = __webpack_require__(363);
 var Slugify = __webpack_require__(767);
 var core_1 = __webpack_require__(39);
-var html_1 = __webpack_require__(96);
+var html_1 = __webpack_require__(95);
 exports.parse_url = function (template) {
     return function (url) {
         var res = {};
@@ -77146,7 +77167,7 @@ exports.link_to_route = function (label, x, r, key, className) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var core_1 = __webpack_require__(39);
-var combinators_1 = __webpack_require__(95);
+var combinators_1 = __webpack_require__(94);
 exports.simple_workflow = function (workflow_name, steps, initial_model, initial_step) {
     return initial_model.then(workflow_name + "_initial_binder", function (m) {
         return combinators_1.repeat(workflow_name + "_repeater")(function (cd) {
@@ -90580,7 +90601,8 @@ exports.ast_to_type_checker = function (n) {
                                                                                                                 CSharp.def_fun({ name: n.ast.name.ast.value,
                                                                                                                     return_t: string_to_csharp_type(n.ast.return_type.ast.value),
                                                                                                                     parameters: n.ast.arg_decls.ast.value.toArray().map(function (d) { return ({ name: d.r.ast.value, type: string_to_csharp_type(d.l.ast.value) }); }),
-                                                                                                                    body: exports.ast_to_type_checker(n.ast.body) }, [])
+                                                                                                                    body: exports.ast_to_type_checker(n.ast.body),
+                                                                                                                    range: n.range }, [])
                                                                                                                 : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" && n.ast.r.ast.kind == "id" ?
                                                                                                                     CSharp.decl_v(n.ast.r.ast.value, string_to_csharp_type(n.ast.l.ast.value))
                                                                                                                     : n.ast.kind == "dbg" ?
@@ -90706,11 +90728,11 @@ var build_closure = function (closure_parameters) { return function (i, closure)
             return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val));
         });
 }; };
-exports.mk_lambda_rt = function (body, parameters, closure_parameters) {
-    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return python_1.lambda_expr({ body: body, parameters: parameters, closure: closure }); });
+exports.mk_lambda_rt = function (body, parameters, closure_parameters, range) {
+    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return python_1.lambda_expr({ body: body, parameters: parameters, closure: closure, range: range }); });
 };
-exports.def_fun_rt = function (n, body, parameters, closure_parameters) {
-    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure }); });
+exports.def_fun_rt = function (n, body, parameters, closure_parameters, range) {
+    return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure, range: range }); });
 };
 exports.return_rt = function (e) {
     return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });
