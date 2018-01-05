@@ -314,7 +314,7 @@ exports.length = function (a) {
         return type_equals(a_t.type, exports.string_type) ?
             ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.string_length_rt(a_t.sem)))
             : a_t.type.kind == "arr" ?
-                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val); })))
+                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val.value); })))
                 : ts_bccc_2.co_error("Error: unsupported type for unary operator (-)!");
     });
 };
@@ -340,7 +340,7 @@ exports.set_index = function (a, i, e) {
 };
 // Debugger statements
 exports.breakpoint = function (r) {
-    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg_rt(r)(Sem.mk_unit_val))), p); };
+    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg_rt(r)(ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))), p); };
 };
 exports.typechecker_breakpoint = function (range) {
     return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt)); })), p); };
@@ -351,14 +351,20 @@ exports.set_highlighting = function (r) {
 };
 // Control flow statements
 exports.done = ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt));
+exports.lub = function (t1, t2) {
+    return type_equals(t1, t2) ? ts_bccc_1.apply(ts_bccc_1.inl(), t1) :
+        t1.kind == "unit" ? ts_bccc_1.apply(ts_bccc_1.inl(), t2) :
+            t2.kind == "unit" ? ts_bccc_1.apply(ts_bccc_1.inl(), t1) :
+                ts_bccc_1.apply(ts_bccc_1.inr(), {});
+};
 exports.if_then_else = function (c, t, e) {
     return c.then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
             t.then(function (t_t) {
                 return e.then(function (e_t) {
-                    return type_equals(t_t.type, e_t.type) ?
-                        ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem)))
-                        : ts_bccc_2.co_error("Error: the branches of a conditional should be of the same type!");
+                    var on_type = ts_bccc_1.fun(function (t_i) { return ts_bccc_2.co_unit(mk_typing(t_i, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))); });
+                    var on_error = ts_bccc_1.constant(ts_bccc_2.co_error("Error: the branches of a conditional should have compatible types!"));
+                    return ts_bccc_1.apply(on_type.plus(on_error), exports.lub(t_t.type, e_t.type));
                 });
             });
     });
@@ -366,17 +372,16 @@ exports.if_then_else = function (c, t, e) {
 exports.while_do = function (c, b) {
     return c.then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
-            b.then(function (t_t) {
-                return type_equals(t_t.type, exports.unit_type) ?
-                    ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem)))
-                    : ts_bccc_2.co_error("Error: the body of a loop should be of type unit, instead it has type " + JSON.stringify(t_t.type));
-            });
+            b.then(function (t_t) { return ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem))); });
     });
 };
 exports.semicolon = function (p, q) {
     return p.then(function (p_t) {
         return q.then(function (q_t) {
-            return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (_) { return q_t.sem; })));
+            return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (res) {
+                var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
+                return res.kind == "left" ? q_t.sem : f;
+            })));
         });
     });
 };

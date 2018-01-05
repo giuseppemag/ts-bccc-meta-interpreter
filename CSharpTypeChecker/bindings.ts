@@ -27,10 +27,10 @@ export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_nam
 export type TypeInformation = Type & { is_constant:boolean }
 export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
-export interface Typing { type:TypeInformation, sem:Sem.ExprRt<Sem.Val> }
-let mk_typing = (t:Type,s:Sem.ExprRt<Sem.Val>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
+export interface Typing { type:TypeInformation, sem:Sem.ExprRt<Sum<Sem.Val,Sem.Val>> }
+let mk_typing = (t:Type,s:Sem.ExprRt<Sum<Sem.Val,Sem.Val>>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
 let mk_typing_cat = fun2(mk_typing)
-let mk_typing_cat_full = fun2<TypeInformation, Sem.ExprRt<Sem.Val>, Typing>((t,s) => mk_typing(t,s,t.is_constant))
+let mk_typing_cat_full = fun2<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>, Typing>((t,s) => mk_typing(t,s,t.is_constant))
 
 export let empty_state : State = { highlighting:zero_range, bindings:Immutable.Map<Name, TypeInformation>() }
 
@@ -57,7 +57,7 @@ export interface Stmt extends Coroutine<State, Err, Typing> {}
 export let get_v = function(v:Name) : Stmt {
   let f = load.then(
     constant<Unit,Err>(`Error: variable ${v} does not exist.`).map_plus(
-    (id<TypeInformation>().times(constant<TypeInformation, Sem.ExprRt<Sem.Val>>(Sem.get_v_rt(v)))).then(mk_typing_cat_full)
+    (id<TypeInformation>().times(constant<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>>(Sem.get_v_rt(v)))).then(mk_typing_cat_full)
   ))
   let g = snd<Name,State>().times(f).then(distribute_sum_prod())
   let g1 = g.then(
@@ -327,7 +327,7 @@ export let length = function(a:Stmt) : Stmt {
             type_equals(a_t.type, string_type) ?
              co_unit(mk_typing(int_type, Sem.string_length_rt(a_t.sem)))
             : a_t.type.kind == "arr" ?
-             co_unit(mk_typing(int_type, a_t.sem.then(a_val => Sem.get_arr_len_rt(a_val))))
+             co_unit(mk_typing(int_type, a_t.sem.then(a_val => Sem.get_arr_len_rt(a_val.value))))
             : co_error<State,Err,Typing>("Error: unsupported type for unary operator (-)!")
         )
 }
@@ -353,7 +353,7 @@ export let set_index = function(a:Stmt, i:Stmt, e:Stmt) : Stmt {
 
 // Debugger statements
 export let breakpoint = function(r:SourceRange) : (_:Stmt) => Stmt {
-  return p => semicolon(co_unit(mk_typing(unit_type, Sem.dbg_rt(r)(Sem.mk_unit_val))), p)
+  return p => semicolon(co_unit(mk_typing(unit_type, Sem.dbg_rt(r)(apply(inl<Sem.Val,Sem.Val>(), Sem.mk_unit_val)))), p)
 }
 
 export let typechecker_breakpoint = function(range:SourceRange) : (_:Stmt) => Stmt {
@@ -369,30 +369,40 @@ export let set_highlighting = function(r:SourceRange) : Stmt {
 // Control flow statements
 export let done : Stmt = co_unit(mk_typing(unit_type, Sem.done_rt))
 
+export let lub = (t1:TypeInformation, t2:TypeInformation) : Sum<TypeInformation, Unit> => {
+  return type_equals(t1, t2) ? apply(inl<TypeInformation, Unit>(), t1) :
+         t1.kind == "unit" ? apply(inl<TypeInformation, Unit>(), t2) :
+         t2.kind == "unit" ? apply(inl<TypeInformation, Unit>(), t1) :
+         apply(inr<TypeInformation, Unit>(), {})
+}
+
 export let if_then_else = function(c:Stmt, t:Stmt, e:Stmt) : Stmt {
   return c.then(c_t =>
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
          t.then(t_t =>
-         e.then(e_t =>
-         type_equals(t_t.type, e_t.type) ?
-           co_unit(mk_typing(t_t.type,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem)))
-         : co_error<State,Err,Typing>("Error: the branches of a conditional should be of the same type!"))))
+         e.then(e_t => {
+
+          let on_type : Fun<TypeInformation, Stmt> = fun(t_i => co_unit(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
+          let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(co_error<State,Err,Typing>("Error: the branches of a conditional should have compatible types!"))
+
+          return apply(on_type.plus(on_error), lub(t_t.type, e_t.type))
+         })))
 }
 
 export let while_do = function(c:Stmt, b:Stmt) : Stmt {
   return c.then(c_t =>
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
-         b.then(t_t =>
-         type_equals(t_t.type, unit_type) ?
-           co_unit(mk_typing(t_t.type,Sem.while_do_rt(c_t.sem, t_t.sem)))
-         : co_error<State,Err,Typing>(`Error: the body of a loop should be of type unit, instead it has type ${JSON.stringify(t_t.type)}`)
+         b.then(t_t => co_unit(mk_typing(t_t.type,Sem.while_do_rt(c_t.sem, t_t.sem)))
          ))
 }
 
 export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
   return p.then(p_t =>
-         q.then(q_t =>
-         co_unit(mk_typing(q_t.type, p_t.sem.then(_ => q_t.sem))
+         q.then(q_t =>          
+           co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
+            let f:Sem.ExprRt<Sum<Sem.Val,Sem.Val>> = co_unit(apply(inr<Sem.Val,Sem.Val>(), res.value))
+            return res.kind == "left" ? q_t.sem : f
+           }))
          )))
 }
 

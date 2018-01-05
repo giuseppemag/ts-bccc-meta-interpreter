@@ -31,9 +31,9 @@ exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-gri
 var highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.load_rt = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?
-        ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst))
+        ts_bccc_1.apply(ts_bccc_1.inr(), ts_bccc_1.apply(ts_bccc_1.inl(), x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst)))
         : x.snd.globals.has(x.fst) ?
-            ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.globals.get(x.fst))
+            ts_bccc_1.apply(ts_bccc_1.inr(), ts_bccc_1.apply(ts_bccc_1.inl(), x.snd.globals.get(x.fst)))
             : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
 exports.store_rt = ts_bccc_1.fun(function (x) {
@@ -70,7 +70,7 @@ exports.pop_scope_rt = ts_bccc_1.fun(function (x) {
 });
 exports.empty_memory_rt = { highlighting: source_range_1.mk_range(0, 0, 0, 0), globals: exports.empty_scope_val, heap: exports.empty_scope_val, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
 exports.set_highlighting_rt = function (r) {
-    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_unit_val)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
 exports.set_v_expr_rt = function (v, e) {
     return e.then(function (e_val) {
@@ -78,8 +78,9 @@ exports.set_v_expr_rt = function (v, e) {
         return exports.set_v_rt(v, e_val);
     });
 };
-exports.set_v_rt = function (v, val) {
-    var store_co = exports.store_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+exports.set_v_rt = function (v, vals) {
+    var val = vals.value;
+    var store_co = exports.store_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
@@ -91,72 +92,75 @@ exports.get_v_rt = function (v) {
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.new_obj_rt = function () {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_rt = function (len) {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_expr_rt = function (len) {
-    return len.then(function (len_v) { return len_v.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.v + " as it is not an integer.") : exports.new_arr_rt(len_v.v); });
+    return len.then(function (len_v) { return len_v.value.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.value.v + " as it is not an integer.") : exports.new_arr_rt(len_v.value.v); });
 };
 exports.get_arr_len_rt = function (a_ref) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                ts_bccc_2.co_unit(exports.mk_int_val(a_val.v.length));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_int_val(a_val.value.v.length)));
         });
 };
 exports.get_arr_len_expr_rt = function (a) {
-    return a.then(function (a_val) { return exports.get_arr_len_rt(a_val); });
+    return a.then(function (a_val) { return exports.get_arr_len_rt(a_val.value); });
 };
 exports.get_arr_el_rt = function (a_ref, i) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                !a_val.v.elements.has(i) ? exports.runtime_error("Cannot find element " + i + " on " + a_val.v + ".") :
-                    ts_bccc_2.co_unit(a_val.v.elements.get(i));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                !a_val.value.v.elements.has(i) ? exports.runtime_error("Cannot find element " + i + " on " + a_val.value.v + ".") :
+                    ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), a_val.value.v.elements.get(i)));
         });
 };
 exports.get_arr_el_expr_rt = function (a, i) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
-            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
-                exports.get_arr_el_rt(a_val, i_val.v);
+            return i_val.value.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
+                exports.get_arr_el_rt(a_val.value, i_val.value.v);
         });
     });
 };
 exports.set_arr_el_rt = function (a_ref, i, v) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                exports.set_heap_v_rt(a_ref.v, __assign({}, a_val, { v: __assign({}, a_val.v, { length: Math.max(i + 1, a_val.v.length), elements: a_val.v.elements.set(i, v) }) }));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                exports.set_heap_v_rt(a_ref.v, __assign({}, a_val.value, { v: __assign({}, a_val.value.v, { length: Math.max(i + 1, a_val.value.v.length), elements: a_val.value.v.elements.set(i, v) }) }));
         });
 };
 exports.set_arr_el_expr_rt = function (a, i, e) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
-            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
-                e.then(function (e_val) { return exports.set_arr_el_rt(a_val, i_val.v, e_val); });
+            if (i_val.value.k != "i")
+                return exports.runtime_error("Index " + i_val + " is not an integer.");
+            var i = i_val.value;
+            return e.then(function (e_val) { return exports.set_arr_el_rt(a_val.value, i.v, e_val.value); });
         });
     });
 };
 exports.set_heap_v_rt = function (v, val) {
-    var store_co = exports.store_heap_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_heap_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_heap_v_rt = function (v) {
-    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
+    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt.then(ts_bccc_1.id().map_plus(ts_bccc_1.inl())))).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
     var g1 = ts_bccc_1.constant("Cannot find heap entry " + v + ".").then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_class_def_rt = function (v, int) {
-    var store_co = exports.store_class_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_class_def_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(int))).times(ts_bccc_1.id())).then(store_co);
+    var g = f;
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_class_def_rt = function (v) {
@@ -167,7 +171,7 @@ exports.get_class_def_rt = function (v) {
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_fun_def_rt = function (v, l) {
-    var store_co = exports.store_fun_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_fun_def_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(l))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };

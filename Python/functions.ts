@@ -20,40 +20,40 @@ let build_closure = (closure_parameters:Array<ValueName>) => function(i:number, 
   if (i >= closure_parameters.length) return co_unit(closure)
   else
     return get_v_rt(closure_parameters[i]).then(c_val =>
-           build_closure(closure_parameters)(i+1, closure.set(closure_parameters[i], c_val))
+           build_closure(closure_parameters)(i+1, closure.set(closure_parameters[i], c_val.value))
            )
 }
 
-export let mk_lambda_rt = function(body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : ExprRt<Val> {
+export let mk_lambda_rt = function(body:ExprRt<Sum<Val,Val>>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : ExprRt<Sum<Val,Val>> {
   return build_closure(closure_parameters)(0, empty_scope_val).then(closure => lambda_expr({ body:body, parameters:parameters, closure:closure, range:range }))
 }
 
-export let def_fun_rt = function(n:ValueName, body:ExprRt<Val>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : StmtRt {
+export let def_fun_rt = function(n:ValueName, body:ExprRt<Sum<Val,Val>>, parameters:Array<ValueName>, closure_parameters:Array<ValueName>, range:SourceRange) : StmtRt {
   return build_closure(closure_parameters)(0, empty_scope_val).then(closure => set_fun_def_rt(n, { body:body, parameters:parameters, closure:closure, range:range }))
 }
 
-export let return_rt = function (e: ExprRt<Val>): ExprRt<Val> {
-  return e.then(e_val => set_v_rt("return", e_val).then(_ => co_unit(e_val)))
+export let return_rt = function (e: ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val,Val>> {
+  return e.then(e_val => set_v_rt("return", e_val).then(_ => co_unit(apply(inr<Val,Val>(), e_val.value))))
 }
 
-export let call_by_name_rt = function(f_n:ValueName, args:Array<ExprRt<Val>>) : ExprRt<Val> {
+export let call_by_name_rt = function(f_n:ValueName, args:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> {
   return get_fun_def_rt(f_n).then(f =>
          call_lambda_rt(f, args))
 }
 
-export let call_lambda_expr_rt = function(lambda:ExprRt<Val>, arg_values:Array<ExprRt<Val>>) : ExprRt<Val> {
+export let call_lambda_expr_rt = function(lambda:ExprRt<Sum<Val,Val>>, arg_values:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> {
   return lambda.then(l =>
-         l.k == "lambda" ? call_lambda_rt(l.v, arg_values)
+         l.value.k == "lambda" ? call_lambda_rt(l.value.v, arg_values)
          : runtime_error("Cannot invoke non-lambda expression."))
 }
 
-export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt<Val>>) : ExprRt<Val> {
+export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> {
   let body = lambda.body
   if (arg_expressions.length != lambda.parameters.length) return runtime_error(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.parameters.length}, received ${arg_expressions.length}.`)
 
-  let eval_args:Coroutine<MemRt, ErrVal, Immutable.List<Val>> = comm_list_coroutine(Immutable.List<ExprRt<Val>>(arg_expressions))
+  let eval_args:Coroutine<MemRt, ErrVal, Immutable.List<Sum<Val,Val>>> = comm_list_coroutine(Immutable.List<ExprRt<Sum<Val,Val>>>(arg_expressions))
 
-  let set_args = (arg_values:Array<Val>) => lambda.parameters.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<StmtRt>((sets, arg_value) =>
+  let set_args = (arg_values:Array<Sum<Val,Val>>) => lambda.parameters.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<StmtRt>((sets, arg_value) =>
     set_v_rt(arg_value.fst, arg_value.snd).then(_ => sets),
     done_rt)
   let init = mk_coroutine(apply(push_scope_rt, lambda.closure).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
@@ -67,5 +67,6 @@ export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt
         //  co_get_state<Mem, Err>().then(s =>
          body.then(res =>
          cleanup.then(_ =>
-         co_unit(res))))))
+         co_unit(apply(inl<Val,Val>(), res.value)))
+        ))))
 }

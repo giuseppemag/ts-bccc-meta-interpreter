@@ -13,7 +13,7 @@ var build_closure = function (closure_parameters) { return function (i, closure)
         return ts_bccc_2.co_unit(closure);
     else
         return python_1.get_v_rt(closure_parameters[i]).then(function (c_val) {
-            return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val));
+            return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val.value));
         });
 }; };
 exports.mk_lambda_rt = function (body, parameters, closure_parameters, range) {
@@ -23,7 +23,7 @@ exports.def_fun_rt = function (n, body, parameters, closure_parameters, range) {
     return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure, range: range }); });
 };
 exports.return_rt = function (e) {
-    return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });
+    return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), e_val.value)); }); });
 };
 exports.call_by_name_rt = function (f_n, args) {
     return memory_1.get_fun_def_rt(f_n).then(function (f) {
@@ -32,7 +32,7 @@ exports.call_by_name_rt = function (f_n, args) {
 };
 exports.call_lambda_expr_rt = function (lambda, arg_values) {
     return lambda.then(function (l) {
-        return l.k == "lambda" ? exports.call_lambda_rt(l.v, arg_values)
+        return l.value.k == "lambda" ? exports.call_lambda_rt(l.value.v, arg_values)
             : memory_1.runtime_error("Cannot invoke non-lambda expression.");
     });
 };
@@ -54,7 +54,7 @@ exports.call_lambda_rt = function (lambda, arg_expressions) {
                 //  co_get_state<Mem, Err>().then(s =>
                 return body.then(function (res) {
                     return cleanup.then(function (_) {
-                        return ts_bccc_2.co_unit(res);
+                        return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), res.value));
                     });
                 });
             });

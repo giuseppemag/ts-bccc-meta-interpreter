@@ -16,34 +16,34 @@ var python_1 = require("./python");
 exports.FalseCat = ts_bccc_1.unit().then(ts_bccc_1.inl());
 exports.TrueCat = ts_bccc_1.unit().then(ts_bccc_1.inr());
 exports.bool_to_boolcat = ts_bccc_1.fun(function (b) { return b ? exports.TrueCat : exports.FalseCat; });
-exports.unit_expr = function () { return (ts_bccc_2.co_unit(memory_1.mk_unit_val)); };
-exports.str_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.mk_string_val(s))); };
-exports.float_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.mk_float_val(n))); };
-exports.int_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.mk_int_val(n))); };
-exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(memory_1.mk_arr_val(a))); };
-exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.mk_bool_val(s))); };
-exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(memory_1.mk_lambda_val(l))); };
-exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(memory_1.mk_obj_val(o))); };
-exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(memory_1.mk_ref_val(r))); };
+exports.unit_expr = function () { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_unit_val))); };
+exports.str_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_string_val(s)))); };
+exports.float_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_float_val(n)))); };
+exports.int_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_int_val(n)))); };
+exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_arr_val(a)))); };
+exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_bool_val(s)))); };
+exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_lambda_val(l)))); };
+exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_obj_val(o)))); };
+exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_ref_val(r)))); };
 exports.val_expr = function (v) { return (ts_bccc_2.co_unit(v)); };
-exports.render_grid_expr = function (v) { return (ts_bccc_2.co_unit(python_1.mk_render_grid_val(v))); };
-exports.render_grid_pixel_expr = function (v) { return (ts_bccc_2.co_unit(python_1.mk_render_grid_pixel_val(v))); };
+exports.render_grid_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_val(v)))); };
+exports.render_grid_pixel_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_pixel_val(v)))); };
 var lift_binary_operation = function (a, b, check_types, actual_operation, operator_name) {
     return a.then(function (a_val) { return b.then(function (b_val) {
-        return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.v + " and " + b_val.v + ".")))), { fst: a_val, snd: b_val });
+        return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.value.v + " and " + b_val.value.v + ".")))), { fst: a_val.value, snd: b_val.value });
     }); });
 };
 exports.mk_empty_render_grid_rt = function (width, height) {
     return width.then(function (w) { return height.then(function (h) {
-        return w.k == "i" && h.k == "i" ? exports.render_grid_expr({ width: w.v, height: h.v, pixels: Immutable.Map() })
-            : memory_1.runtime_error("Type error: cannot create empty render grid with width and height " + w.v + " and " + h.v + ".");
+        return w.value.k == "i" && h.value.k == "i" ? exports.render_grid_expr({ width: w.value.v, height: h.value.v, pixels: Immutable.Map() })
+            : memory_1.runtime_error("Type error: cannot create empty render grid with width and height " + w.value.v + " and " + h.value.v + ".");
     }); });
 };
 exports.mk_render_grid_pixel_rt = function (x, y, status) {
     return x.then(function (x_val) { return y.then(function (y_val) { return status.then(function (status_val) {
-        return x_val.k == "i" && y_val.k == "i" && status_val.k == "b" ?
-            exports.render_grid_pixel_expr({ x: x_val.v, y: y_val.v, status: status_val.v })
-            : memory_1.runtime_error("Type error: cannot create render grid pixel with x,y, and status " + x_val.v + ", " + y_val.v + ", and " + status_val.v + ".");
+        return x_val.value.k == "i" && y_val.value.k == "i" && status_val.value.k == "b" ?
+            exports.render_grid_pixel_expr({ x: x_val.value.v, y: y_val.value.v, status: status_val.value.v })
+            : memory_1.runtime_error("Type error: cannot create render grid pixel with x,y, and status " + x_val.value.v + ", " + y_val.value.v + ", and " + status_val.value.v + ".");
     }); }); });
 };
 exports.render_grid_plus_rt = function (r, p) {
@@ -146,7 +146,7 @@ exports.string_plus_rt = function (a, b) {
 };
 var lift_unary_operation = function (a, check_type, actual_operation, operator_name) {
     return a.then(function (a_val) {
-        return ts_bccc_1.apply(ts_bccc_1.fun(check_type).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on value " + a_val.v + ".")))), a_val);
+        return ts_bccc_1.apply(ts_bccc_1.fun(check_type).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on value " + a_val.value.v + ".")))), a_val.value);
     });
 };
 exports.bool_not_rt = function (a) {

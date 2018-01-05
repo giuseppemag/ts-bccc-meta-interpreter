@@ -59,7 +59,7 @@ export interface State {
 }
 export interface Typing {
     type: TypeInformation;
-    sem: Sem.ExprRt<Sem.Val>;
+    sem: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>;
 }
 export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
@@ -99,6 +99,7 @@ export declare let typechecker_breakpoint: (range: SourceRange) => (_: Stmt) => 
 export declare let highlight: Fun<Prod<SourceRange, State>, State>;
 export declare let set_highlighting: (r: SourceRange) => Stmt;
 export declare let done: Stmt;
+export declare let lub: (t1: TypeInformation, t2: TypeInformation) => Sum<TypeInformation, Unit>;
 export declare let if_then_else: (c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (c: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (p: Stmt, q: Stmt) => Stmt;

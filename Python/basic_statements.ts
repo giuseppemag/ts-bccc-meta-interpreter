@@ -5,13 +5,13 @@ import { StmtRt, MemRt, ErrVal, ExprRt, set_highlighting_rt, Bool, Val, runtime_
 import { bool_to_boolcat } from "./expressions"
 import { SourceRange } from "../source_range";
 
-export let done_rt: StmtRt = co_unit<MemRt, ErrVal, Val>(mk_unit_val)
+export let done_rt: StmtRt = co_unit<MemRt, ErrVal, Sum<Val,Val>>(apply(inl(), mk_unit_val))
 export let dbg_rt = (range:SourceRange) => function<A> (v:A) : ExprRt<A> { return set_highlighting_rt(range).then(_ => Co.suspend<MemRt,ErrVal>().then(_ => co_unit<MemRt,ErrVal,A>(v))) }
-export let if_then_else_rt = function(c:ExprRt<Val>, f:StmtRt, g:StmtRt) : StmtRt {
-  return c.then(c_val => c_val.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
-                         : c_val.v ? f : g)
+export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
+  return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
+                         : c_val.value.v ? f : g)
 }
 
-export let while_do_rt = function (p: ExprRt<Val>, k: StmtRt): StmtRt {
+export let while_do_rt = function (p: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
   return if_then_else_rt(p, k.then(_ => while_do_rt(p, k)), done_rt)
 }
