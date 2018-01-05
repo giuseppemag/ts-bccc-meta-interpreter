@@ -173,7 +173,7 @@ let render_code = (code:string, stream:DebuggerStream) : JSX.Element => {
         }
       </div>
 }
-export function HomePage() : JSX.Element {
+export function MetaPlayground() : JSX.Element {
   type AppState = { code:string, stream:DebuggerStream, step_index:number, editing:boolean }
   return <div style={{background:"linear-gradient(rgb(33, 22, 110), rgb(59, 54, 181))"}}>
     {simple_application(
@@ -205,7 +205,7 @@ export function HomePage() : JSX.Element {
 
 export let HomePage_to = (target_element_id:string) => {
   ReactDOM.render(
-    HomePage(),
+    MetaPlayground(),
     document.getElementById(target_element_id)
   )
 }

@@ -10696,6 +10696,22 @@ exports.f = __webpack_require__(14) ? Object.defineProperty : function definePro
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
+
+function __export(m) {
+    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+__export(__webpack_require__(84));
+__export(__webpack_require__(393));
+__export(__webpack_require__(773));
+__export(__webpack_require__(774));
+
+
+/***/ }),
+/* 17 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
 /* WEBPACK VAR INJECTION */(function(process) {/**
  * Copyright 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -10891,22 +10907,6 @@ var ReactDOMComponentTree = {
 
 module.exports = ReactDOMComponentTree;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
-
-/***/ }),
-/* 17 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-function __export(m) {
-    for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
-}
-Object.defineProperty(exports, "__esModule", { value: true });
-__export(__webpack_require__(84));
-__export(__webpack_require__(393));
-__export(__webpack_require__(773));
-__export(__webpack_require__(774));
-
 
 /***/ }),
 /* 18 */
@@ -27588,10 +27588,10 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
-var CCC = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
-var Co = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var CCC = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
+var Co = __webpack_require__(16);
 var source_range_1 = __webpack_require__(129);
 exports.runtime_error = function (e) { return ts_bccc_2.co_error(e); };
 exports.init_array_val = function (len) { return ({ elements: Immutable.Map(Immutable.Range(0, len).map(function (i) { return [i, exports.mk_unit_val]; })), length: len }); };
@@ -27610,9 +27610,9 @@ exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-gri
 var highlight = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { highlighting: x.fst })); });
 exports.load_rt = ts_bccc_1.fun(function (x) {
     return !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count() - 1).has(x.fst) ?
-        ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst))
+        ts_bccc_1.apply(ts_bccc_1.inr(), ts_bccc_1.apply(ts_bccc_1.inl(), x.snd.stack.get(x.snd.stack.count() - 1).get(x.fst)))
         : x.snd.globals.has(x.fst) ?
-            ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.globals.get(x.fst))
+            ts_bccc_1.apply(ts_bccc_1.inr(), ts_bccc_1.apply(ts_bccc_1.inl(), x.snd.globals.get(x.fst)))
             : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
 exports.store_rt = ts_bccc_1.fun(function (x) {
@@ -27649,7 +27649,7 @@ exports.pop_scope_rt = ts_bccc_1.fun(function (x) {
 });
 exports.empty_memory_rt = { highlighting: source_range_1.mk_range(0, 0, 0, 0), globals: exports.empty_scope_val, heap: exports.empty_scope_val, functions: Immutable.Map(), classes: Immutable.Map(), stack: Immutable.Map() };
 exports.set_highlighting_rt = function (r) {
-    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_unit_val)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
 exports.set_v_expr_rt = function (v, e) {
     return e.then(function (e_val) {
@@ -27657,8 +27657,9 @@ exports.set_v_expr_rt = function (v, e) {
         return exports.set_v_rt(v, e_val);
     });
 };
-exports.set_v_rt = function (v, val) {
-    var store_co = exports.store_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+exports.set_v_rt = function (v, vals) {
+    var val = vals.value;
+    var store_co = exports.store_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
@@ -27670,72 +27671,75 @@ exports.get_v_rt = function (v) {
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.new_obj_rt = function () {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_obj_val(exports.empty_scope_val)).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_rt = function (len) {
-    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
 exports.new_arr_expr_rt = function (len) {
-    return len.then(function (len_v) { return len_v.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.v + " as it is not an integer.") : exports.new_arr_rt(len_v.v); });
+    return len.then(function (len_v) { return len_v.value.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.value.v + " as it is not an integer.") : exports.new_arr_rt(len_v.value.v); });
 };
 exports.get_arr_len_rt = function (a_ref) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                ts_bccc_2.co_unit(exports.mk_int_val(a_val.v.length));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_int_val(a_val.value.v.length)));
         });
 };
 exports.get_arr_len_expr_rt = function (a) {
-    return a.then(function (a_val) { return exports.get_arr_len_rt(a_val); });
+    return a.then(function (a_val) { return exports.get_arr_len_rt(a_val.value); });
 };
 exports.get_arr_el_rt = function (a_ref, i) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                !a_val.v.elements.has(i) ? exports.runtime_error("Cannot find element " + i + " on " + a_val.v + ".") :
-                    ts_bccc_2.co_unit(a_val.v.elements.get(i));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                !a_val.value.v.elements.has(i) ? exports.runtime_error("Cannot find element " + i + " on " + a_val.value.v + ".") :
+                    ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), a_val.value.v.elements.get(i)));
         });
 };
 exports.get_arr_el_expr_rt = function (a, i) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
-            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
-                exports.get_arr_el_rt(a_val, i_val.v);
+            return i_val.value.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
+                exports.get_arr_el_rt(a_val.value, i_val.value.v);
         });
     });
 };
 exports.set_arr_el_rt = function (a_ref, i, v) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
         exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.v + " as it is not an array.") :
-                exports.set_heap_v_rt(a_ref.v, __assign({}, a_val, { v: __assign({}, a_val.v, { length: Math.max(i + 1, a_val.v.length), elements: a_val.v.elements.set(i, v) }) }));
+            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                exports.set_heap_v_rt(a_ref.v, __assign({}, a_val.value, { v: __assign({}, a_val.value.v, { length: Math.max(i + 1, a_val.value.v.length), elements: a_val.value.v.elements.set(i, v) }) }));
         });
 };
 exports.set_arr_el_expr_rt = function (a, i, e) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
-            return i_val.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
-                e.then(function (e_val) { return exports.set_arr_el_rt(a_val, i_val.v, e_val); });
+            if (i_val.value.k != "i")
+                return exports.runtime_error("Index " + i_val + " is not an integer.");
+            var i = i_val.value;
+            return e.then(function (e_val) { return exports.set_arr_el_rt(a_val.value, i.v, e_val.value); });
         });
     });
 };
 exports.set_heap_v_rt = function (v, val) {
-    var store_co = exports.store_heap_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_heap_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_heap_v_rt = function (v) {
-    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
+    var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt.then(ts_bccc_1.id().map_plus(ts_bccc_1.inl())))).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
     var g1 = ts_bccc_1.constant("Cannot find heap entry " + v + ".").then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_class_def_rt = function (v, int) {
-    var store_co = exports.store_class_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_class_def_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(int))).times(ts_bccc_1.id())).then(store_co);
+    var g = f;
     return ts_bccc_2.mk_coroutine(f);
 };
 exports.get_class_def_rt = function (v) {
@@ -27746,7 +27750,7 @@ exports.get_class_def_rt = function (v) {
     return ts_bccc_2.mk_coroutine(f.then(g));
 };
 exports.set_fun_def_rt = function (v, l) {
-    var store_co = exports.store_fun_def_rt.then(ts_bccc_1.constant(exports.mk_unit_val).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var store_co = exports.store_fun_def_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(l))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
@@ -30126,8 +30130,8 @@ module.exports = canDefineProperty;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var ts_bccc_1 = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
 var Immutable = __webpack_require__(72);
 exports.option_to_array = function (x) {
     var l = ts_bccc_1.fun(function (x) { return [x]; });
@@ -31817,7 +31821,7 @@ module.exports = shallowEqual;
 
 var DOMLazyTree = __webpack_require__(80);
 var Danger = __webpack_require__(687);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactInstrumentation = __webpack_require__(34);
 
 var createMicrosoftUnsafeLocalFunction = __webpack_require__(176);
@@ -33792,14 +33796,15 @@ __export(__webpack_require__(768));
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var ts_bccc_1 = __webpack_require__(17);
-var Co = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
+var Co = __webpack_require__(16);
 var memory_1 = __webpack_require__(101);
-exports.done_rt = ts_bccc_1.co_unit(memory_1.mk_unit_val);
-exports.dbg_rt = function (range) { return function (v) { return memory_1.set_highlighting_rt(range).then(function (_) { return Co.suspend().then(function (_) { return ts_bccc_1.co_unit(v); }); }); }; };
+exports.done_rt = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_unit_val));
+exports.dbg_rt = function (range) { return function (v) { return memory_1.set_highlighting_rt(range).then(function (_) { return Co.suspend().then(function (_) { return ts_bccc_2.co_unit(v); }); }); }; };
 exports.if_then_else_rt = function (c, f, g) {
-    return c.then(function (c_val) { return c_val.k != "b" ? memory_1.runtime_error("Error: conditional expression " + c_val + " is not a boolean.")
-        : c_val.v ? f : g; });
+    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error("Error: conditional expression " + c_val + " is not a boolean.")
+        : c_val.value.v ? f : g; });
 };
 exports.while_do_rt = function (p, k) {
     return exports.if_then_else_rt(p, k.then(function (_) { return exports.while_do_rt(p, k); }), exports.done_rt);
@@ -49178,7 +49183,7 @@ module.exports = PooledClass.addPoolingTo(CallbackQueue);
 
 
 var DOMProperty = __webpack_require__(57);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactInstrumentation = __webpack_require__(34);
 
 var quoteAttributeValueForBrowser = __webpack_require__(750);
@@ -49446,7 +49451,7 @@ module.exports = ReactDOMComponentFlags;
 var _assign = __webpack_require__(9);
 
 var LinkedValueUtils = __webpack_require__(172);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactUpdates = __webpack_require__(45);
 
 var warning = __webpack_require__(4);
@@ -49921,7 +49926,7 @@ var DOMProperty = __webpack_require__(57);
 var React = __webpack_require__(82);
 var ReactBrowserEventEmitter = __webpack_require__(122);
 var ReactCurrentOwner = __webpack_require__(46);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactDOMContainerInfo = __webpack_require__(697);
 var ReactDOMFeatureFlags = __webpack_require__(699);
 var ReactFeatureFlags = __webpack_require__(372);
@@ -51521,9 +51526,9 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
-var Co = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
+var Co = __webpack_require__(16);
 var source_range_1 = __webpack_require__(129);
 var Sem = __webpack_require__(83);
 var ccc_aux_1 = __webpack_require__(128);
@@ -51826,7 +51831,7 @@ exports.length = function (a) {
         return type_equals(a_t.type, exports.string_type) ?
             ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.string_length_rt(a_t.sem)))
             : a_t.type.kind == "arr" ?
-                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val); })))
+                ts_bccc_2.co_unit(mk_typing(exports.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val.value); })))
                 : ts_bccc_2.co_error("Error: unsupported type for unary operator (-)!");
     });
 };
@@ -51852,7 +51857,7 @@ exports.set_index = function (a, i, e) {
 };
 // Debugger statements
 exports.breakpoint = function (r) {
-    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg_rt(r)(Sem.mk_unit_val))), p); };
+    return function (p) { return exports.semicolon(ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.dbg_rt(r)(ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))), p); };
 };
 exports.typechecker_breakpoint = function (range) {
     return function (p) { return exports.semicolon(exports.semicolon(exports.set_highlighting(range), Co.suspend().then(function (_) { return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt)); })), p); };
@@ -51863,14 +51868,20 @@ exports.set_highlighting = function (r) {
 };
 // Control flow statements
 exports.done = ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.done_rt));
+exports.lub = function (t1, t2) {
+    return type_equals(t1, t2) ? ts_bccc_1.apply(ts_bccc_1.inl(), t1) :
+        t1.kind == "unit" ? ts_bccc_1.apply(ts_bccc_1.inl(), t2) :
+            t2.kind == "unit" ? ts_bccc_1.apply(ts_bccc_1.inl(), t1) :
+                ts_bccc_1.apply(ts_bccc_1.inr(), {});
+};
 exports.if_then_else = function (c, t, e) {
     return c.then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
             t.then(function (t_t) {
                 return e.then(function (e_t) {
-                    return type_equals(t_t.type, e_t.type) ?
-                        ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem)))
-                        : ts_bccc_2.co_error("Error: the branches of a conditional should be of the same type!");
+                    var on_type = ts_bccc_1.fun(function (t_i) { return ts_bccc_2.co_unit(mk_typing(t_i, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))); });
+                    var on_error = ts_bccc_1.constant(ts_bccc_2.co_error("Error: the branches of a conditional should have compatible types!"));
+                    return ts_bccc_1.apply(on_type.plus(on_error), exports.lub(t_t.type, e_t.type));
                 });
             });
     });
@@ -51878,17 +51889,16 @@ exports.if_then_else = function (c, t, e) {
 exports.while_do = function (c, b) {
     return c.then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error("Error: condition has the wrong type!") :
-            b.then(function (t_t) {
-                return type_equals(t_t.type, exports.unit_type) ?
-                    ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem)))
-                    : ts_bccc_2.co_error("Error: the body of a loop should be of type unit, instead it has type " + JSON.stringify(t_t.type));
-            });
+            b.then(function (t_t) { return ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem))); });
     });
 };
 exports.semicolon = function (p, q) {
     return p.then(function (p_t) {
         return q.then(function (q_t) {
-            return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (_) { return q_t.sem; })));
+            return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (res) {
+                var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
+                return res.kind == "left" ? q_t.sem : f;
+            })));
         });
     });
 };
@@ -52163,41 +52173,41 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
 var memory_1 = __webpack_require__(101);
 var python_1 = __webpack_require__(83);
 exports.FalseCat = ts_bccc_1.unit().then(ts_bccc_1.inl());
 exports.TrueCat = ts_bccc_1.unit().then(ts_bccc_1.inr());
 exports.bool_to_boolcat = ts_bccc_1.fun(function (b) { return b ? exports.TrueCat : exports.FalseCat; });
-exports.unit_expr = function () { return (ts_bccc_2.co_unit(memory_1.mk_unit_val)); };
-exports.str_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.mk_string_val(s))); };
-exports.float_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.mk_float_val(n))); };
-exports.int_expr = function (n) { return (ts_bccc_2.co_unit(memory_1.mk_int_val(n))); };
-exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(memory_1.mk_arr_val(a))); };
-exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(memory_1.mk_bool_val(s))); };
-exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(memory_1.mk_lambda_val(l))); };
-exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(memory_1.mk_obj_val(o))); };
-exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(memory_1.mk_ref_val(r))); };
+exports.unit_expr = function () { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_unit_val))); };
+exports.str_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_string_val(s)))); };
+exports.float_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_float_val(n)))); };
+exports.int_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_int_val(n)))); };
+exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_arr_val(a)))); };
+exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_bool_val(s)))); };
+exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_lambda_val(l)))); };
+exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_obj_val(o)))); };
+exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_ref_val(r)))); };
 exports.val_expr = function (v) { return (ts_bccc_2.co_unit(v)); };
-exports.render_grid_expr = function (v) { return (ts_bccc_2.co_unit(python_1.mk_render_grid_val(v))); };
-exports.render_grid_pixel_expr = function (v) { return (ts_bccc_2.co_unit(python_1.mk_render_grid_pixel_val(v))); };
+exports.render_grid_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_val(v)))); };
+exports.render_grid_pixel_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_pixel_val(v)))); };
 var lift_binary_operation = function (a, b, check_types, actual_operation, operator_name) {
     return a.then(function (a_val) { return b.then(function (b_val) {
-        return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.v + " and " + b_val.v + ".")))), { fst: a_val, snd: b_val });
+        return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.value.v + " and " + b_val.value.v + ".")))), { fst: a_val.value, snd: b_val.value });
     }); });
 };
 exports.mk_empty_render_grid_rt = function (width, height) {
     return width.then(function (w) { return height.then(function (h) {
-        return w.k == "i" && h.k == "i" ? exports.render_grid_expr({ width: w.v, height: h.v, pixels: Immutable.Map() })
-            : memory_1.runtime_error("Type error: cannot create empty render grid with width and height " + w.v + " and " + h.v + ".");
+        return w.value.k == "i" && h.value.k == "i" ? exports.render_grid_expr({ width: w.value.v, height: h.value.v, pixels: Immutable.Map() })
+            : memory_1.runtime_error("Type error: cannot create empty render grid with width and height " + w.value.v + " and " + h.value.v + ".");
     }); });
 };
 exports.mk_render_grid_pixel_rt = function (x, y, status) {
     return x.then(function (x_val) { return y.then(function (y_val) { return status.then(function (status_val) {
-        return x_val.k == "i" && y_val.k == "i" && status_val.k == "b" ?
-            exports.render_grid_pixel_expr({ x: x_val.v, y: y_val.v, status: status_val.v })
-            : memory_1.runtime_error("Type error: cannot create render grid pixel with x,y, and status " + x_val.v + ", " + y_val.v + ", and " + status_val.v + ".");
+        return x_val.value.k == "i" && y_val.value.k == "i" && status_val.value.k == "b" ?
+            exports.render_grid_pixel_expr({ x: x_val.value.v, y: y_val.value.v, status: status_val.value.v })
+            : memory_1.runtime_error("Type error: cannot create render grid pixel with x,y, and status " + x_val.value.v + ", " + y_val.value.v + ", and " + status_val.value.v + ".");
     }); }); });
 };
 exports.render_grid_plus_rt = function (r, p) {
@@ -52300,7 +52310,7 @@ exports.string_plus_rt = function (a, b) {
 };
 var lift_unary_operation = function (a, check_type, actual_operation, operator_name) {
     return a.then(function (a_val) {
-        return ts_bccc_1.apply(ts_bccc_1.fun(check_type).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on value " + a_val.v + ".")))), a_val);
+        return ts_bccc_1.apply(ts_bccc_1.fun(check_type).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on value " + a_val.value.v + ".")))), a_val.value);
     });
 };
 exports.bool_not_rt = function (a) {
@@ -52509,7 +52519,7 @@ let render_code = (code, stream) => {
     return React.createElement("div", { style: { fontFamily: "monospace", width: "48%", float: "left", whiteSpace: "pre-wrap" } }, lines.map((line, line_index) => React.createElement("div", { style: { color: highlighting.start.row == line_index ? "black" : "white",
             background: highlighting.start.row == line_index ? 'rgb(255,255,153)' : 'none' } }, line)));
 };
-function HomePage() {
+function MetaPlayground() {
     return React.createElement("div", { style: { background: "linear-gradient(rgb(33, 22, 110), rgb(59, 54, 181))" } }, monadic_react_1.simple_application(monadic_react_1.repeat("main-repeat")(monadic_react_1.any("main-any")([
             s => s.editing ? monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" } })))(s)
             : monadic_react_1.custom("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
@@ -52519,9 +52529,9 @@ function HomePage() {
         monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e })), e => monadic_react_1.button("Toggle editing")(!e))
     ]))({ code: default_program, stream: ts_bccc_meta_interpreter_1.get_stream(default_program), step_index: 0, editing: false }), _ => { }));
 }
-exports.HomePage = HomePage;
+exports.MetaPlayground = MetaPlayground;
 exports.HomePage_to = (target_element_id) => {
-    ReactDOM.render(HomePage(), document.getElementById(target_element_id));
+    ReactDOM.render(MetaPlayground(), document.getElementById(target_element_id));
 };
 
 
@@ -77865,7 +77875,7 @@ module.exports = ARIADOMPropertyConfig;
 
 
 
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 
 var focusNode = __webpack_require__(241);
 
@@ -78502,7 +78512,7 @@ module.exports = CSSPropertyOperations;
 var EventPluginHub = __webpack_require__(97);
 var EventPropagators = __webpack_require__(98);
 var ExecutionEnvironment = __webpack_require__(19);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactUpdates = __webpack_require__(45);
 var SyntheticEvent = __webpack_require__(52);
 
@@ -78936,7 +78946,7 @@ module.exports = DefaultEventPluginOrder;
 
 
 var EventPropagators = __webpack_require__(98);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var SyntheticMouseEvent = __webpack_require__(123);
 
 var eventTypes = {
@@ -80486,7 +80496,7 @@ module.exports = ReactCompositeComponent;
 
 
 
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactDefaultInjection = __webpack_require__(712);
 var ReactMount = __webpack_require__(375);
 var ReactReconciler = __webpack_require__(81);
@@ -80616,7 +80626,7 @@ var EventPluginHub = __webpack_require__(97);
 var EventPluginRegistry = __webpack_require__(121);
 var ReactBrowserEventEmitter = __webpack_require__(122);
 var ReactDOMComponentFlags = __webpack_require__(369);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactDOMInput = __webpack_require__(701);
 var ReactDOMOption = __webpack_require__(704);
 var ReactDOMSelect = __webpack_require__(370);
@@ -81650,7 +81660,7 @@ module.exports = ReactDOMContainerInfo;
 var _assign = __webpack_require__(9);
 
 var DOMLazyTree = __webpack_require__(80);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 
 var ReactDOMEmptyComponent = function (instantiate) {
   // ReactCompositeComponent uses this:
@@ -81737,7 +81747,7 @@ module.exports = ReactDOMFeatureFlags;
 
 
 var DOMChildrenOperations = __webpack_require__(168);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 
 /**
  * Operations used to process updates to DOM nodes.
@@ -81780,7 +81790,7 @@ var _prodInvariant = __webpack_require__(8),
 
 var DOMPropertyOperations = __webpack_require__(368);
 var LinkedValueUtils = __webpack_require__(172);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactUpdates = __webpack_require__(45);
 
 var invariant = __webpack_require__(3);
@@ -82217,7 +82227,7 @@ module.exports = ReactDOMNullInputValuePropHook;
 var _assign = __webpack_require__(9);
 
 var React = __webpack_require__(82);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactDOMSelect = __webpack_require__(370);
 
 var warning = __webpack_require__(4);
@@ -82565,7 +82575,7 @@ var _prodInvariant = __webpack_require__(8),
 
 var DOMChildrenOperations = __webpack_require__(168);
 var DOMLazyTree = __webpack_require__(80);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 
 var escapeTextContentForBrowser = __webpack_require__(125);
 var invariant = __webpack_require__(3);
@@ -82734,7 +82744,7 @@ var _prodInvariant = __webpack_require__(8),
     _assign = __webpack_require__(9);
 
 var LinkedValueUtils = __webpack_require__(172);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactUpdates = __webpack_require__(45);
 
 var invariant = __webpack_require__(3);
@@ -83602,7 +83612,7 @@ var EnterLeaveEventPlugin = __webpack_require__(689);
 var HTMLDOMPropertyConfig = __webpack_require__(691);
 var ReactComponentBrowserEnvironment = __webpack_require__(693);
 var ReactDOMComponent = __webpack_require__(696);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactDOMEmptyComponent = __webpack_require__(698);
 var ReactDOMTreeTraversal = __webpack_require__(708);
 var ReactDOMTextComponent = __webpack_require__(706);
@@ -83753,7 +83763,7 @@ var _assign = __webpack_require__(9);
 var EventListener = __webpack_require__(236);
 var ExecutionEnvironment = __webpack_require__(19);
 var PooledClass = __webpack_require__(69);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactUpdates = __webpack_require__(45);
 
 var getEventTarget = __webpack_require__(179);
@@ -85518,7 +85528,7 @@ module.exports = SVGDOMPropertyConfig;
 
 var EventPropagators = __webpack_require__(98);
 var ExecutionEnvironment = __webpack_require__(19);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactInputSelection = __webpack_require__(374);
 var SyntheticEvent = __webpack_require__(52);
 
@@ -85717,7 +85727,7 @@ var _prodInvariant = __webpack_require__(8);
 
 var EventListener = __webpack_require__(236);
 var EventPropagators = __webpack_require__(98);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var SyntheticAnimationEvent = __webpack_require__(731);
 var SyntheticClipboardEvent = __webpack_require__(732);
 var SyntheticEvent = __webpack_require__(52);
@@ -86670,7 +86680,7 @@ module.exports = dangerousStyleValue;
 var _prodInvariant = __webpack_require__(8);
 
 var ReactCurrentOwner = __webpack_require__(46);
-var ReactDOMComponentTree = __webpack_require__(16);
+var ReactDOMComponentTree = __webpack_require__(17);
 var ReactInstanceMap = __webpack_require__(99);
 
 var getHostComponentFromComposite = __webpack_require__(381);
@@ -89984,7 +89994,7 @@ module.exports = traverseAllChildren;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
 var source_range_1 = __webpack_require__(129);
 var ccc_aux_1 = __webpack_require__(128);
 var CSharp = __webpack_require__(185);
@@ -90632,8 +90642,8 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
     return t;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var ts_bccc_1 = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
 var memory_1 = __webpack_require__(101);
 var basic_statements_1 = __webpack_require__(186);
 var expressions_1 = __webpack_require__(392);
@@ -90643,31 +90653,31 @@ exports.declare_class_rt = function (C_name, int) {
 };
 exports.field_get_rt = function (F_name, this_addr) {
     return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
-        if (this_val.k != "obj")
+        if (this_val.value.k != "obj")
             return memory_1.runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
-        return expressions_1.val_expr(this_val.v.get(F_name));
+        return expressions_1.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), this_val.value.v.get(F_name)));
     });
 };
 exports.field_get_expr_rt = function (F_name, this_expr) {
     return this_expr.then(function (this_addr) {
-        return this_addr.k != "ref" ? memory_1.runtime_error("runtime type error") :
-            exports.field_get_rt(F_name, this_addr);
+        return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error") :
+            exports.field_get_rt(F_name, this_addr.value);
     });
 };
 exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
     return new_val_expr.then(function (new_val) {
         return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
-            if (this_val.k != "obj")
+            if (this_val.value.k != "obj")
                 return memory_1.runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
-            var new_this_val = __assign({}, this_val, { v: this_val.v.set(F_name, new_val) });
-            return memory_1.set_heap_v_rt(this_addr.v, new_this_val).then(function (_) { return basic_statements_1.done_rt; });
+            var new_this_val = __assign({}, this_val, { v: this_val.value.v.set(F_name, new_val.value) });
+            return memory_1.set_heap_v_rt(this_addr.v, new_this_val.value).then(function (_) { return basic_statements_1.done_rt; });
         });
     });
 };
 exports.field_set_expr_rt = function (F_name, new_val_expr, this_expr) {
     return this_expr.then(function (this_addr) {
-        return this_addr.k != "ref" ? memory_1.runtime_error("runtime type error") :
-            exports.field_set_rt(F_name, new_val_expr, this_addr);
+        return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error") :
+            exports.field_set_rt(F_name, new_val_expr, this_addr.value);
     });
 };
 exports.resolve_method_rt = function (M_name, C_def) {
@@ -90677,25 +90687,25 @@ exports.resolve_method_rt = function (M_name, C_def) {
 exports.call_method_rt = function (M_name, this_addr, args) {
     return this_addr.k != "ref" ? memory_1.runtime_error("runtime type error: this is not a reference when calling " + M_name + ".") :
         memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
-            if (this_val.k != "obj")
+            if (this_val.value.k != "obj")
                 return memory_1.runtime_error("runtime type error: this is not an object when calling " + M_name + ".");
-            var this_class = this_val.v.get("class");
+            var this_class = this_val.value.v.get("class");
             if (this_class.k != "s")
                 return memory_1.runtime_error("runtime type error: this.class is not a string.");
             return memory_1.get_class_def_rt(this_class.v).then(function (C_def) {
-                var f = ts_bccc_1.fun(function (m) { return python_1.call_lambda_expr_rt(m, args.concat([expressions_1.val_expr(this_addr)])); }).plus(ts_bccc_1.constant(expressions_1.unit_expr()));
+                var f = ts_bccc_1.fun(function (m) { return python_1.call_lambda_expr_rt(m, args.concat([expressions_1.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), this_addr))])); }).plus(ts_bccc_1.constant(expressions_1.unit_expr()));
                 return ts_bccc_1.apply(f, exports.resolve_method_rt(M_name, C_def));
             });
         });
 };
 exports.call_method_expr_rt = function (M_name, this_expr, args) {
-    return this_expr.then(function (this_addr) { return exports.call_method_rt(M_name, this_addr, args); });
+    return this_expr.then(function (this_addr) { return exports.call_method_rt(M_name, this_addr.value, args); });
 };
 exports.call_cons_rt = function (C_name, args) {
     return memory_1.get_class_def_rt(C_name).then(function (C_def) {
         return memory_1.new_obj_rt().then(function (this_addr) {
-            return this_addr.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
-                exports.field_set_rt("class", expressions_1.str_expr(C_name), this_addr).then(function (_) {
+            return this_addr.value.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
+                exports.field_set_rt("class", expressions_1.str_expr(C_name), this_addr.value).then(function (_) {
                     return python_1.call_lambda_expr_rt(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
                         return ts_bccc_2.co_unit(this_addr);
                     });
@@ -90713,9 +90723,9 @@ exports.call_cons_rt = function (C_name, args) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
-var ts_bccc_2 = __webpack_require__(17);
-var Co = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
+var ts_bccc_2 = __webpack_require__(16);
+var Co = __webpack_require__(16);
 var memory_1 = __webpack_require__(101);
 var basic_statements_1 = __webpack_require__(186);
 var python_1 = __webpack_require__(83);
@@ -90725,7 +90735,7 @@ var build_closure = function (closure_parameters) { return function (i, closure)
         return ts_bccc_2.co_unit(closure);
     else
         return python_1.get_v_rt(closure_parameters[i]).then(function (c_val) {
-            return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val));
+            return build_closure(closure_parameters)(i + 1, closure.set(closure_parameters[i], c_val.value));
         });
 }; };
 exports.mk_lambda_rt = function (body, parameters, closure_parameters, range) {
@@ -90735,7 +90745,7 @@ exports.def_fun_rt = function (n, body, parameters, closure_parameters, range) {
     return build_closure(closure_parameters)(0, python_1.empty_scope_val).then(function (closure) { return memory_1.set_fun_def_rt(n, { body: body, parameters: parameters, closure: closure, range: range }); });
 };
 exports.return_rt = function (e) {
-    return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(e_val); }); });
+    return e.then(function (e_val) { return memory_1.set_v_rt("return", e_val).then(function (_) { return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), e_val.value)); }); });
 };
 exports.call_by_name_rt = function (f_n, args) {
     return memory_1.get_fun_def_rt(f_n).then(function (f) {
@@ -90744,7 +90754,7 @@ exports.call_by_name_rt = function (f_n, args) {
 };
 exports.call_lambda_expr_rt = function (lambda, arg_values) {
     return lambda.then(function (l) {
-        return l.k == "lambda" ? exports.call_lambda_rt(l.v, arg_values)
+        return l.value.k == "lambda" ? exports.call_lambda_rt(l.value.v, arg_values)
             : memory_1.runtime_error("Cannot invoke non-lambda expression.");
     });
 };
@@ -90766,7 +90776,7 @@ exports.call_lambda_rt = function (lambda, arg_expressions) {
                 //  co_get_state<Mem, Err>().then(s =>
                 return body.then(function (res) {
                     return cleanup.then(function (_) {
-                        return ts_bccc_2.co_unit(res);
+                        return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), res.value));
                     });
                 });
             });
@@ -90783,7 +90793,7 @@ exports.call_lambda_rt = function (lambda, arg_expressions) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = __webpack_require__(72);
-var ts_bccc_1 = __webpack_require__(17);
+var ts_bccc_1 = __webpack_require__(16);
 var Py = __webpack_require__(83);
 var CSharp = __webpack_require__(185);
 var ccc_aux_1 = __webpack_require__(128);
