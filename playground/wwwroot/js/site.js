@@ -64539,7 +64539,27 @@ const ReactDOM = __webpack_require__(80);
 const Immutable = __webpack_require__(79);
 const ts_bccc_meta_compiler_1 = __webpack_require__(866);
 const markup_1 = __webpack_require__(421);
+const graph_1 = __webpack_require__(877);
 const monadic_react_1 = __webpack_require__(767);
+let default_graph = `{
+  "Nodes": [
+      {"id": 1, "x": 0, "y": 0, "content": "5", "color":"#56ff56", "highlighting":"#56bb56"},
+      {"id": 2, "x": 200, "y": 100},
+      {"id": 3, "x": 400, "y": 150},
+      {"id": 4, "x": 200, "y": 250, "content": "4"},
+      {"id": 5, "x": 0, "y": 250, "content": "5"}
+  ],
+  "Links": [
+      {"source_id": 1, "target_id": 2, "type": "arrow", "weight": 20, "color":"#36ff36" },
+      {"source_id": 1, "target_id": 5, "type": "arrow", "weight": 20, "color":"#36ff36" },
+      {"source_id": 2, "target_id": 3, "type": "arrow", "weight": 60 },
+      {"source_id": 4, "target_id": 3, "type": "arrow", "weight": 60 },
+      {"source_id": 4, "target_id": 2, "type": "arrow", "weight": 10 },
+      {"source_id": 2, "target_id": 4, "type": "arrow", "weight": 10 },
+      {"source_id": 5, "target_id": 4, "type": "arrow", "weight": 10 }
+  ]
+}
+`;
 let default_program = `
 int fibonacci(int n) {
   if (n <= 1) {
@@ -64712,19 +64732,29 @@ let deserialize_document = function (d) {
 };
 let document_editor = (mode) => {
     let raw_blocks = [
-        ["code", { kind: "code", default_content: default_program, renderer: (block_data) => monadic_react_1.label("Code", true, undefined, `block-label-${block_data.index}`)(content => monadic_react_1.custom()(_ => k => React.createElement(CodeComponent, { code: content, set_content: c => k(() => { })(c), mode: mode })))(block_data.content) }],
-        ["markdown", { kind: "markdown", default_content: "", renderer: (block_data) => monadic_react_1.label("Markdown", true, undefined, `block-label-${block_data.index}`)(content => monadic_react_1.custom()(_ => k => React.createElement(markup_1.MarkupComponent, { content: content, set_content: c => k(() => { })(c), mode: mode, kind: "Markdown" })))(block_data.content) }],
-        ["latex", { kind: "latex", default_content: "", renderer: (block_data) => monadic_react_1.label("Latex", true, undefined, `block-label-${block_data.index}`)(content => monadic_react_1.custom()(_ => k => React.createElement(markup_1.MarkupComponent, { content: content, set_content: c => k(() => { })(c), mode: mode, kind: "LaTeX" })))(block_data.content) }],
-        ["image", { kind: "image", default_content: "", renderer: (block_data) => monadic_react_1.label("Image", true, undefined, `block-label-${block_data.index}`)(monadic_react_1.image(mode))(block_data.content) }]
+        ["graph", { kind: "graph", default_content: default_graph, renderer: (block_data) => monadic_react_1.label("Graph", true, undefined, `block-label-${block_data.order_by}`)(content => monadic_react_1.custom()(_ => k => React.createElement(graph_1.GraphComponent, { content: content, set_content: c => k(() => { })(c), mode: mode })))(block_data.content) }],
+        ["code", { kind: "code", default_content: default_program, renderer: (block_data) => monadic_react_1.label("Code", true, undefined, `block-label-${block_data.order_by}`)(content => monadic_react_1.custom()(_ => k => React.createElement(CodeComponent, { code: content, set_content: c => k(() => { })(c), mode: mode })))(block_data.content) }],
+        ["markdown", { kind: "markdown", default_content: "", renderer: (block_data) => monadic_react_1.label("Markdown", true, undefined, `block-label-${block_data.order_by}`)(content => monadic_react_1.custom()(_ => k => React.createElement(markup_1.MarkupComponent, { content: content, set_content: c => k(() => { })(c), mode: mode, kind: "Markdown" })))(block_data.content) }],
+        ["latex", { kind: "latex", default_content: "", renderer: (block_data) => monadic_react_1.label("Latex", true, undefined, `block-label-${block_data.order_by}`)(content => monadic_react_1.custom()(_ => k => React.createElement(markup_1.MarkupComponent, { content: content, set_content: c => k(() => { })(c), mode: mode, kind: "LaTeX" })))(block_data.content) }],
+        ["image", { kind: "image", default_content: "", renderer: (block_data) => monadic_react_1.label("Image", true, undefined, `block-label-${block_data.order_by}`)(monadic_react_1.image(mode))(block_data.content) }]
     ];
     let blocks = Immutable.Map(raw_blocks);
+    let last_open_file = window.localStorage.getItem("last_open_file");
+    let initial_state = { document: { blocks: Immutable.Map(), next_key: 1 }, current_path: monadic_react_1.none() };
+    if (last_open_file != null)
+        initial_state = { document: deserialize_document(FS.readFileSync(last_open_file, "utf8")), current_path: monadic_react_1.some(last_open_file) };
     return monadic_react_1.repeat("document-editor-repeat")(monadic_react_1.any("document-editor-main")([
         monadic_react_1.any("document-editor-save-load")([
+                d => monadic_react_1.button(`New`)({}).then(`new-document`, _ => {
+                window.localStorage.removeItem("last_open_file");
+                return monadic_react_1.unit({ document: { blocks: Immutable.Map(), next_key: 1 }, current_path: monadic_react_1.none() });
+            }),
                 d => monadic_react_1.button(`Save as`)({}).then(`save-document-as`, _ => {
                 return monadic_react_1.lift_promise(_ => new Promise((resolve, reject) => {
                     dialog.showSaveDialog({}, (fileName) => {
                         if (fileName === undefined)
                             return reject("invalid path");
+                        window.localStorage.setItem("last_open_file", fileName);
                         FS.writeFile(fileName, serialize_document(d.document), (err) => {
                             if (err) {
                                 reject(err.message);
@@ -64741,6 +64771,7 @@ let document_editor = (mode) => {
                     dialog.showOpenDialog({}, (fileNames) => {
                         if (fileNames === undefined || fileNames.length < 1)
                             return reject("invalid path");
+                        window.localStorage.setItem("last_open_file", fileNames[0]);
                         FS.readFile(fileNames[0], "utf8", (err, buffer) => {
                             if (err) {
                                 reject(err.message);
@@ -64768,13 +64799,44 @@ let document_editor = (mode) => {
                 }), "never")({});
             }),
         ]),
-        monadic_react_1.retract("document-editor-document-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), d => monadic_react_1.any("document-editor-blocks")(d.blocks.sortBy((v, k) => v && v.index).map((b, b_i) => {
-            if (!b || !b_i)
+        monadic_react_1.retract("document-editor-document-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), d => monadic_react_1.any("document-editor-blocks")(d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
+            if (!b || !b_k)
                 return _ => monadic_react_1.unit(null).never();
-            return d => blocks.get(b.kind).renderer(b).then(`block-${b_i}`, new_content => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_i, Object.assign({}, d.blocks.get(b_i), { content: new_content })) })));
+            return monadic_react_1.any(`block-${b_k}`)([
+                    d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, d.blocks.get(b_k), { content: new_content })) }))),
+                    d => monadic_react_1.button("Remove")({}).then(`block-remove`, _ => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.remove(b_k) }))),
+                    d => monadic_react_1.button("Move up")({}).then(`block-move-up`, _ => {
+                    let predecessors = d.blocks.filter(b1 => { if (!b1)
+                        return false;
+                    else
+                        return b1.order_by < b.order_by; });
+                    if (predecessors.isEmpty())
+                        return monadic_react_1.unit(Object.assign({}, d));
+                    let predecessor = predecessors.maxBy(s => s && s.order_by);
+                    let p_k = d.blocks.findKey(b1 => { if (!b1)
+                        return false;
+                    else
+                        return b1.order_by == predecessor.order_by; });
+                    return monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, b, { order_by: predecessor.order_by })).set(p_k, Object.assign({}, predecessor, { order_by: b.order_by })) }));
+                }),
+                    d => monadic_react_1.button("Move down")({}).then(`block-move-down`, _ => {
+                    let successors = d.blocks.filter(b1 => { if (!b1)
+                        return false;
+                    else
+                        return b1.order_by > b.order_by; });
+                    if (successors.isEmpty())
+                        return monadic_react_1.unit(Object.assign({}, d));
+                    let successor = successors.minBy(s => s && s.order_by);
+                    let s_k = d.blocks.findKey(b1 => { if (!b1)
+                        return false;
+                    else
+                        return b1.order_by == successor.order_by; });
+                    return monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, b, { order_by: successor.order_by })).set(s_k, Object.assign({}, successor, { order_by: b.order_by })) }));
+                })
+            ]);
         }).toArray())(d)),
-        monadic_react_1.retract("document-editor-new-block-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), monadic_react_1.any("document-editor-new-block")(raw_blocks.map(rb => d => monadic_react_1.button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ => monadic_react_1.unit(Object.assign({}, d, { next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, index: d.blocks.count(), content: rb[1].default_content }) }))))))
-    ]))({ document: { blocks: Immutable.Map(), next_key: 1 }, current_path: monadic_react_1.none() }).never();
+        monadic_react_1.retract("document-editor-new-block-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), monadic_react_1.any("document-editor-new-block")(raw_blocks.map(rb => (d) => monadic_react_1.button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ => monadic_react_1.unit(Object.assign({}, d, { next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))))))
+    ]))(initial_state).never();
 };
 function MetaPlayground() {
     return React.createElement("div", { style: { background: "linear-gradient(rgb(33, 22, 110), rgb(59, 54, 181))" } }, monadic_react_1.simple_application(document_editor("edit"), _ => { }));
@@ -102632,6 +102694,220 @@ module.exports = require("fs");
 /***/ (function(module, exports) {
 
 module.exports = require("punycode");
+
+/***/ }),
+/* 877 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const React = __webpack_require__(21);
+class GraphComponent extends React.Component {
+    constructor(props, context) {
+        super(props, context);
+        this.state = { validating: false, correct: false, errors: [] };
+        this.validateGraphData = this.validateGraphData.bind(this);
+        this.validateNode = this.validateNode.bind(this);
+        this.drawNode = this.drawNode.bind(this);
+    }
+    componentDidMount() {
+        let ctx = this.canvas.getContext('2d');
+        if (ctx != null)
+            this.canvasContext = ctx;
+        try {
+            this.drawGraph(JSON.parse(this.props.content));
+        }
+        catch (error) {
+        }
+    }
+    shouldComponentUpdate(new_props) {
+        return new_props.content != this.props.content;
+    }
+    componentWillReceiveProps(new_props) {
+        if (new_props.content != this.props.content) {
+            try {
+                this.drawGraph(JSON.parse(new_props.content));
+            }
+            catch (error) {
+            }
+        }
+        // this.state.validating == false ?
+        //     this.setState({...this.state, validating: true}, () => this.validateGraphData(props.content))
+        // : null
+    }
+    isArray(variable) {
+        return typeof variable == 'undefined' ? false : Array.isArray(variable);
+    }
+    validateNode(node) {
+        if (typeof node.id != 'number' || typeof node.x != 'number' || typeof node.y != 'number') {
+            return "The properties id, x and y of a node must be numbers";
+        }
+        return "";
+    }
+    validateLink(link) {
+        if (typeof link.source_id != 'number' || typeof link.target_id != 'number') {
+            return "The properties source_id and target_id of a link must be both numbers";
+        }
+        if (link.type != "line" && link.type != "arrow" && link.type != "dotted line") {
+            return `The property 'type' of a link can only be 'line', 'arrow' or 'dotted line'`;
+        }
+        return "";
+    }
+    validateGraphData(graphData) {
+        try {
+            let errors = Array();
+            let parsedGraph = JSON.parse(graphData);
+            // Check if the Nodes and Links does exists
+            if (this.isArray(parsedGraph.Nodes) == false) {
+                errors.push("The 'Nodes' property does not exists or is not an array");
+            }
+            if (this.isArray(parsedGraph.Links) == false) {
+                errors.push("The 'Links' property does not exists or is not an array");
+            }
+            // If 'nodes' and 'link' are both arrays, check the content
+            if (errors.length == 0) {
+                parsedGraph.Nodes.forEach((node) => {
+                    let validationOutput = this.validateNode(node);
+                    validationOutput != null ? errors.push(validationOutput + `, check the following node:\n${JSON.stringify(node)}`) : null;
+                });
+                parsedGraph.Links.forEach((link) => {
+                    let validationOutput = this.validateLink(link);
+                    validationOutput != null ? errors.push(validationOutput + `, check the following node:\n${JSON.stringify(link)}`) : null;
+                });
+            }
+            // If the content of 'nodes' and 'links' are correct check the relations
+            if (errors.length == 0) {
+                parsedGraph.Links.forEach((link) => {
+                    let foundNodes = parsedGraph.Nodes.filter((node) => (node.id == link.source_id || node.id == link.target_id)).length;
+                    foundNodes == 2 ? null : errors.push(`The target_id and source_id of a link must refer to a existing node, check the following link:\n${JSON.stringify(link)}`);
+                });
+            }
+            this.setState({ validating: false, errors: errors, correct: errors.length == 0 }, () => {
+                this.state.errors.length == 0 ? this.drawGraph(parsedGraph) : null;
+            });
+        }
+        catch (e) {
+            this.setState({ validating: false, correct: false, errors: [e.toString()] });
+        }
+    }
+    drawNode(node) {
+        this.canvasContext.beginPath();
+        this.canvasContext.arc(node.x, node.y, 30, 0, 2 * Math.PI, false);
+        this.canvasContext.fillStyle = node.color === undefined ? "#00a3ff" : node.color;
+        this.canvasContext.fill();
+        this.canvasContext.strokeStyle = node.highlighting === undefined ? '#000000' : node.highlighting;
+        this.canvasContext.stroke();
+    }
+    drawLink(link, source, target) {
+        this.canvasContext.beginPath();
+        this.canvasContext.moveTo(source.x, source.y);
+        this.canvasContext.lineTo(target.x, target.y);
+        this.canvasContext.strokeStyle = link.color === undefined ? '#000000' : link.color;
+        this.canvasContext.stroke();
+        if (link.type == "arrow") {
+            this.canvasContext.fillStyle = link.color === undefined ? '#000000' : link.color;
+            this.drawArrowHead(source, target);
+        }
+        if (link.weight !== undefined) {
+            // Calculate middle of the line
+            let x = Math.abs((target.x + source.x) / 2);
+            let y = Math.abs((target.y + source.y) / 2);
+            this.canvasContext.beginPath();
+            this.canvasContext.rect(x - 15, y - 10, 30, 20);
+            this.canvasContext.fillStyle = '#fff';
+            this.canvasContext.fill();
+            this.canvasContext.beginPath();
+            this.canvasContext.font = "18px Arial";
+            this.canvasContext.textBaseline = "middle";
+            this.canvasContext.textAlign = "center";
+            this.canvasContext.fillStyle = '#000';
+            this.canvasContext.fillText(link.weight.toString(), x, y);
+        }
+    }
+    drawArrowHead(source, target) {
+        // Calculate arrow position
+        let distance = Math.sqrt(Math.pow((source.y - target.y), 2) + Math.pow((source.x - target.x), 2));
+        let angle = Math.atan2((target.y - source.y), (source.x - target.x));
+        let arrowX = target.x + (30 * Math.cos(angle));
+        let arrowY = target.y - (30 * Math.sin(angle));
+        this.canvasContext.beginPath();
+        //Move to postion
+        this.canvasContext.translate(arrowX, arrowY);
+        // Rotate
+        this.canvasContext.rotate(-(angle + (Math.PI / 2)));
+        // Draw arrow
+        this.canvasContext.moveTo(0, 0);
+        this.canvasContext.lineTo(-7.5, 10);
+        this.canvasContext.lineTo(7.5, 10);
+        this.canvasContext.fill();
+        // Rotate and translate back
+        this.canvasContext.rotate(angle + (Math.PI / 2));
+        this.canvasContext.translate(-arrowX, -arrowY);
+    }
+    drawContent(node) {
+        this.canvasContext.font = "30px Arial";
+        this.canvasContext.textBaseline = "middle";
+        this.canvasContext.textAlign = "center";
+        this.canvasContext.fillStyle = "#000";
+        this.canvasContext.fillText(node.content, node.x, node.y);
+        // let tmp_element = document.createElement("div")
+        // tmp_element.style.background='rgba(0,0,0,0)'
+        // document.body.appendChild(tmp_element)
+        // latex.render(node.content, tmp_element)
+        // html2canvas(tmp_element).then(tex_canvas => {
+        //   this.canvasContext.drawImage(tex_canvas, 0, 0, 50, 50, node.x + 20, node.y + 20, 30, 30)
+        //   document.body.removeChild(tmp_element)
+        // })
+    }
+    drawGraph(graph) {
+        let width = 0;
+        let height = 0;
+        // Find edge nodes
+        graph.Nodes.forEach((node) => {
+            node.x > width ? width = node.x : null;
+            node.y > height ? height = node.y : null;
+        });
+        this.canvas.width = width + 66;
+        this.canvas.height = height + 120;
+        // Clear the canvas before drawing
+        this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        // Change the draw origin to create offset on the left and top corner
+        this.canvasContext.translate(32, 32);
+        // Translate the canvas to create a offset
+        this.canvasContext.lineWidth = 2;
+        graph.Links.forEach((link) => {
+            let source = graph.Nodes.filter((n) => n.id == link.source_id)[0];
+            let target = graph.Nodes.filter((n) => n.id == link.target_id)[0];
+            this.drawLink(link, source, target);
+        });
+        graph.Nodes.forEach((node) => {
+            this.drawNode(node);
+            if (node.content !== undefined) {
+                this.drawContent(node);
+            }
+        });
+        this.canvasContext.translate(-32, -32);
+    }
+    render() {
+        return (React.createElement("div", null,
+            this.props.mode == "edit" ?
+                React.createElement("textarea", { value: this.props.content, onChange: e => {
+                        this.props.set_content(e.target.value);
+                    } })
+                : null,
+            React.createElement("div", { className: "canvas-container", ref: (el) => { if (el)
+                    this.canvasContainer = el; } },
+                this.state.correct == false ?
+                    this.state.errors.map((e, i) => React.createElement("div", { className: "canvas__error" },
+                        React.createElement("p", { key: i }, e)))
+                    : null,
+                React.createElement("canvas", { ref: (el) => { if (el)
+                        this.canvas = el; } }))));
+    }
+}
+exports.GraphComponent = GraphComponent;
+
 
 /***/ })
 /******/ ]);

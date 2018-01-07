@@ -13,6 +13,7 @@
   "dependencies": {
     "babel-polyfill": "^6.26.0",
     "electron": "^1.7.10",
+    "html2canvas": "^1.0.0-alpha.9",
     "markdown-it": "^8.4.0",
     "monadic_react": "^1.0.54",
     "ts-bccc-meta-compiler": "^1.0.6"

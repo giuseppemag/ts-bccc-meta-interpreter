@@ -1,11 +1,13 @@
+[ ] renderer buttons
+  [ ] play
+  [ ] edit
+[ ] no global edit/view
+[ ] localization
 [ ] keys everywhere (especially `code`)
-[ ] proper mode in code editor
-[ ] remove renderer
-[ ] renderer up/renderer down
-[ ] at most one block is being edited, the others are running
-  [ ] play/stop button on block
-  [ ] no global edit/view
-[ ] save and load dialog
-  [ ] remember last file
+[ ] fix styling
+[ ] restore missing fonts
+[ ] split into different files
+[ ] refactor graph
+[ ] move latex, graph and markdown to monadic react
+[ ] latex in graph nodes
 [ ] android app
-[ ] move latex and markdown to monadic react
