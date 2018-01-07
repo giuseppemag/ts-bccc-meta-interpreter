@@ -11,10 +11,11 @@
   },
   "main": "main.js",
   "dependencies": {
+    "babel-polyfill": "^6.26.0",
     "electron": "^1.7.10",
+    "markdown-it": "^8.4.0",
     "monadic_react": "^1.0.54",
-    "ts-bccc-meta-compiler": "file:..",
-    "ts-bccc-meta-interpreter": "file:.."
+    "ts-bccc-meta-compiler": "^1.0.6"
   },
   "devDependencies": {
     "awesome-typescript-loader": "^3.1.2",

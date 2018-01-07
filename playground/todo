@@ -1,0 +1,11 @@
+[ ] keys everywhere (especially `code`)
+[ ] proper mode in code editor
+[ ] remove renderer
+[ ] renderer up/renderer down
+[ ] at most one block is being edited, the others are running
+  [ ] play/stop button on block
+  [ ] no global edit/view
+[ ] save and load dialog
+  [ ] remember last file
+[ ] android app
+[ ] move latex and markdown to monadic react

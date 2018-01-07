@@ -1,4 +1,5 @@
 module.exports = {
+    target: "electron",
     entry: "./Client/app.ts",
     output: {
         filename: "site.js",
