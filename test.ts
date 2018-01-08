@@ -148,16 +148,16 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-int fibonacci(int n) {
-  if (n <= 1) {
-    return n;
-  } else {
-    return fibonacci((n-1)) + fibonacci((n-2));
+int test(){
+  int x;
+  x = 15;
+  if(x > 0){
+    x = 5;
   }
+  return x;
 }
-
 int x;
-x = fibonacci(6);
+x = test();
 
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)

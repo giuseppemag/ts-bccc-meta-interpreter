@@ -84,6 +84,14 @@ exports.store_rt = ts_bccc_1.fun(function (x) {
     }
     return x.snd;
 });
+exports.decl_rt = ts_bccc_1.fun(function (x) {
+    if (x.snd.stack.count() > 0) {
+        return (__assign({}, x.snd, { stack: x.snd.stack.set(x.snd.stack.count() - 1, x.snd.stack.last().set(x.snd.stack.last().count() - 1, x.snd.stack.last().last().set(x.fst.fst, x.fst.snd))) }));
+    }
+    else {
+        return (__assign({}, x.snd, { globals: x.snd.globals.set(x.snd.globals.count() - 1, x.snd.globals.last().set(x.fst.fst, x.fst.snd)) }));
+    }
+});
 exports.load_class_def_rt = ts_bccc_1.fun(function (x) {
     return x.snd.classes.has(x.fst) ? ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.classes.get(x.fst)) : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
@@ -104,6 +112,28 @@ exports.heap_alloc_rt = ts_bccc_1.fun(function (x) {
     var new_ref = "ref_" + x.snd.heap.count();
     return ({ fst: exports.mk_ref_val(new_ref), snd: __assign({}, x.snd, { heap: x.snd.heap.set(new_ref, x.fst) }) });
 });
+exports.push_inner_scope_rt = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) {
+    if (!m.stack.isEmpty()) {
+        var stack_count = m.stack.count();
+        var top_stack = m.stack.last();
+        var top_stack_count = top_stack.count();
+        return (__assign({}, m, { stack: m.stack.set(stack_count - 1, top_stack.set(top_stack_count, s)) }));
+    }
+    else {
+        return (__assign({}, m, { globals: m.globals.set(m.globals.count(), s) }));
+    }
+}));
+exports.pop_inner_scope_rt = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) {
+    if (!m.stack.isEmpty()) {
+        var stack_count = m.stack.count();
+        var top_stack = m.stack.get(stack_count - 1);
+        var top_stack_count = top_stack.count();
+        return (__assign({}, m, { stack: m.stack.set(stack_count - 1, top_stack.remove(top_stack_count - 1)) }));
+    }
+    else {
+        return (__assign({}, m, { globals: m.globals.remove(m.globals.count() - 1) }));
+    }
+}));
 exports.push_scope_rt = ts_bccc_1.curry(ts_bccc_1.fun2(function (s, m) { return (__assign({}, m, { stack: m.stack.set(m.stack.count(), Immutable.Map().set(0, s)) })); }));
 exports.pop_scope_rt = ts_bccc_1.fun(function (x) {
     return !x.stack.isEmpty() ?
@@ -128,6 +158,12 @@ exports.set_v_expr_rt = function (v, e) {
 exports.set_v_rt = function (v, vals) {
     var val = vals.value;
     var store_co = exports.store_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
+    var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
+    return ts_bccc_2.mk_coroutine(f);
+};
+exports.decl_v_rt = function (v, vals) {
+    var val = vals.value;
+    var store_co = exports.decl_rt.then((ts_bccc_1.constant(exports.mk_unit_val).then(ts_bccc_1.inl())).times(ts_bccc_1.id()).then(Co.value().then(Co.result().then(Co.no_error()))));
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };

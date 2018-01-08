@@ -94,6 +94,7 @@ export interface MemRt {
 }
 export declare let load_rt: Fun<Prod<string, MemRt>, Sum<Unit, Sum<Val, Val>>>;
 export declare let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;
+export declare let decl_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;
 export declare let load_class_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Interface>>;
 export declare let store_class_def_rt: Fun<Prod<Prod<ValueName, Interface>, MemRt>, MemRt>;
 export declare let load_fun_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Lambda>>;
@@ -101,6 +102,8 @@ export declare let store_fun_def_rt: Fun<Prod<Prod<ValueName, Lambda>, MemRt>, M
 export declare let load_heap_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit, Val>>;
 export declare let store_heap_rt: Fun<Prod<Prod<ValueName, Val>, MemRt>, MemRt>;
 export declare let heap_alloc_rt: Fun<Prod<Val, MemRt>, Prod<Val, MemRt>>;
+export declare let push_inner_scope_rt: Fun<Scope, Fun<MemRt, MemRt>>;
+export declare let pop_inner_scope_rt: Fun<Scope, Fun<MemRt, MemRt>>;
 export declare let push_scope_rt: Fun<Scope, Fun<MemRt, MemRt>>;
 export declare let pop_scope_rt: Fun<MemRt, Sum<Unit, MemRt>>;
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {
@@ -110,6 +113,7 @@ export declare let empty_memory_rt: MemRt;
 export declare let set_highlighting_rt: (r: SourceRange) => ExprRt<Sum<Val, Val>>;
 export declare let set_v_expr_rt: (v: string, e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let set_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val, Val>>;
+export declare let decl_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val, Val>>;
 export declare let get_v_rt: (v: string) => ExprRt<Sum<Val, Val>>;
 export declare let new_obj_rt: () => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_rt: (len: number) => ExprRt<Sum<Val, Val>>;

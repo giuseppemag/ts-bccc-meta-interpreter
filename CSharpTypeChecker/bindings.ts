@@ -68,13 +68,13 @@ export let get_v = function(v:Name) : Stmt {
   return mk_coroutine<State,Err,Typing>(h)
 }
 export let decl_v = function(v:Name, t:Type, is_constant?:boolean) : Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.done_rt)).times(id())).then(wrap_co)
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args))
 }
 export let decl_const = function(c:Name, t:Type, e:Stmt) : Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.done_rt)).times(id())).then(wrap_co)
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(c).times(constant<Unit,TypeInformation>({...t, is_constant:true})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args)).then(_ =>

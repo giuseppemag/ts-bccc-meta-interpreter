@@ -58,13 +58,13 @@ exports.get_v = function (v) {
     return ts_bccc_2.mk_coroutine(h);
 };
 exports.decl_v = function (v, t, is_constant) {
-    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done_rt)).times(ts_bccc_1.id())).then(wrap_co);
+    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
 };
 exports.decl_const = function (c, t, e) {
-    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.done_rt)).times(ts_bccc_1.id())).then(wrap_co);
+    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(c, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(c).times(ts_bccc_1.constant(__assign({}, t, { is_constant: true }))), {});
     return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)).then(function (_) {

@@ -100,6 +100,15 @@ export let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x => {
   return x.snd
 })
 
+export let decl_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x => {
+  
+    if(x.snd.stack.count() > 0){
+      return ({...x.snd, stack:x.snd.stack.set(x.snd.stack.count() - 1, x.snd.stack.last().set(x.snd.stack.last().count() - 1, x.snd.stack.last().last().set(x.fst.fst, x.fst.snd))) })
+    }
+    else{
+      return  ({...x.snd, globals:x.snd.globals.set(x.snd.globals.count() - 1, x.snd.globals.last().set(x.fst.fst, x.fst.snd)) })
+    }
+  })
 
 export let load_class_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit,Interface>> = fun(x =>
   x.snd.classes.has(x.fst) ? apply(inr(), x.snd.classes.get(x.fst)) : apply(inl<Unit,Interface>(), {}))
@@ -118,10 +127,37 @@ export let heap_alloc_rt: Fun<Prod<Val,MemRt>, Prod<Val, MemRt>> = fun(x => {
   let new_ref = `ref_${x.snd.heap.count()}`
   return ({ fst:mk_ref_val(new_ref), snd:{...x.snd, heap:x.snd.heap.set(new_ref, x.fst) }})
 })
+
+
+export let push_inner_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => {
+  if(!m.stack.isEmpty()){
+    let stack_count = m.stack.count()
+    let top_stack = m.stack.last()
+    let top_stack_count = top_stack.count()
+    return ({...m, stack:m.stack.set(stack_count - 1, top_stack.set(top_stack_count, s))})
+  }
+  else {
+    return ({...m, globals:m.globals.set(m.globals.count(), s)})
+  }
+}))
+export let pop_inner_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => {
+  if(!m.stack.isEmpty()){    
+    let stack_count = m.stack.count()
+    let top_stack = m.stack.get(stack_count - 1)
+    let top_stack_count = top_stack.count()
+
+    return ({...m, stack:m.stack.set(stack_count - 1, top_stack.remove(top_stack_count - 1))})
+  }
+  else{
+    return ({...m, globals:m.globals.remove(m.globals.count() - 1)})    
+  }
+}))
+
 export let push_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => ({...m, stack:m.stack.set(m.stack.count(), Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>>().set(0, s))})))
+
 export let pop_scope_rt: Fun<MemRt, Sum<Unit,MemRt>> = fun(x =>
   !x.stack.isEmpty() ?
-    apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)}))
+    apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)})) 
   : apply(inl(), {}))
 
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {}
@@ -145,6 +181,12 @@ export let set_v_expr_rt = function (v: ValueName, e: ExprRt<Sum<Val,Val>>): Stm
 export let set_v_rt = function (v: ValueName, vals: Sum<Val,Val>): StmtRt {
   let val = vals.value
   let store_co = store_rt.then((constant<MemRt,Val>(mk_unit_val).then(inl<Val,Val>())).times(id<MemRt>()).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
+  let f = ((constant<MemRt, string>(v).times(constant<MemRt, Val>(val))).times(id<MemRt>())).then(store_co)
+  return mk_coroutine(f)
+}
+export let decl_v_rt = function (v: ValueName, vals: Sum<Val,Val>): StmtRt {
+  let val = vals.value
+  let store_co = decl_rt.then((constant<MemRt,Val>(mk_unit_val).then(inl<Val,Val>())).times(id<MemRt>()).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
   let f = ((constant<MemRt, string>(v).times(constant<MemRt, Val>(val))).times(id<MemRt>())).then(store_co)
   return mk_coroutine(f)
 }
