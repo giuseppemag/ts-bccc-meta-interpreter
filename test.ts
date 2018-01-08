@@ -152,19 +152,12 @@ int fibonacci(int n) {
   if (n <= 1) {
     return n;
   } else {
-    if (n > 1) {
-      return 123;
-    }
-    else{
-      int x;
-      x = 5;
-    }
     return fibonacci((n-1)) + fibonacci((n-2));
   }
 }
 
 int x;
-x = fibonacci(5);
+x = fibonacci(6);
 
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)

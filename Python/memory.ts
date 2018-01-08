@@ -16,10 +16,13 @@ export interface RenderGridPixel { x:number, y:number, status:boolean }
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, mk_unit_val])), length:len })
 
 export type ValueName = string
+export type NestingLevel = number
 export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
+export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
 export interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<ValueName, StmtRt> }
 export let empty_scope_val = Immutable.Map<ValueName, Val>()
+export let empty_scopes_val = Immutable.Map<NestingLevel, Scope>().set(0,empty_scope_val)
 export let mk_unit_val : Val = ({ v:apply(unit(),{}), k:"u" })
 export let mk_string_val : (_:string) => Val = v => ({ v:v, k:"s" })
 export let mk_int_val : (_:number) => Val = v => ({ v:Math.floor(v), k:"i" })
@@ -33,19 +36,71 @@ export let mk_render_grid_val : (_:RenderGrid) => Val = r => ({ v:r, k:"render-g
 export let mk_render_grid_pixel_val : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
 
 export type ErrVal = string
-export interface MemRt { highlighting:SourceRange, globals:Scope, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scope> }
+
+let find_last_scope = <T>(scopes: Scopes, p:(_:Scope) => Sum<Unit, T>) : Sum<Unit, T> => {
+  let i = scopes.count() - 1
+  
+  for (var index = i; index >= 0; index--){
+    let current:Scope = scopes.get(index)
+    let res = p(current)
+    if(res.kind == "right")
+      return res
+  }
+  return { kind: "left", value: {} }
+}
+// Mem[][], v, 
+let update_variable = (name:ValueName, value:Val, scopes: Scopes, assign_if_not_present:boolean) : Sum<Unit, Scopes> => {
+  let i = scopes.count() - 1
+  
+  for (var index = i; index >= 0; index--){
+    let current:Scope = scopes.get(index)
+    if(current.has(name)){
+      current = current.set(name, value)
+      scopes = scopes.set(index, current)
+      return { kind: "right", value: scopes }
+    }
+  }
+  if(assign_if_not_present){
+      let current:Scope = scopes.get(i)
+      current = current.set(name, value)
+      scopes = scopes.set(i, current)
+      return { kind: "right", value: scopes }
+  }
+  return { kind: "left", value: {} }
+}
+
+export interface MemRt { highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
 let highlight : Fun<Prod<SourceRange, MemRt>, MemRt> = fun(x => ({...x.snd, highlighting:x.fst }))
 export let load_rt: Fun<Prod<string, MemRt>, Sum<Unit,Sum<Val,Val>>> = fun(x =>
-  !x.snd.stack.isEmpty() && x.snd.stack.get(x.snd.stack.count()-1).has(x.fst) ?
-    apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),x.snd.stack.get(x.snd.stack.count()-1).get(x.fst)))
-  : x.snd.globals.has(x.fst) ?
-    apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),x.snd.globals.get(x.fst)))
-  : apply(inl<Unit,Sum<Val,Val>>(), {}))
-export let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x =>
-  !x.snd.stack.isEmpty() ?
-    ({...x.snd, stack:x.snd.stack.set(x.snd.stack.count() - 1, x.snd.stack.get(x.snd.stack.count() - 1).set(x.fst.fst, x.fst.snd)) })
-  :
-    ({...x.snd, globals:x.snd.globals.set(x.fst.fst, x.fst.snd) }))
+  {
+    if(!x.snd.stack.isEmpty()){
+      let res = find_last_scope<Scope>(x.snd.stack.get(x.snd.stack.count()-1), (scope:Scope) => scope.has(x.fst) ? { kind: "right", value: scope } : { kind: "left", value: {} })
+      if(res.kind == "right")
+        return apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),res.value.get(x.fst)))
+    } 
+    let maybe_in_globals = find_last_scope<Scope>(x.snd.globals, (scope:Scope) => scope.has(x.fst) ? { kind: "right", value: scope } : { kind: "left", value: {} })
+    if(maybe_in_globals.kind == "right"){
+      return apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),maybe_in_globals.value.get(x.fst)))
+    }
+    return apply(inl<Unit,Sum<Val,Val>>(), {})
+  })
+
+export let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x => {
+
+  if(!x.snd.stack.isEmpty()){
+    let scopes1 = update_variable(x.fst.fst,x.fst.snd,x.snd.stack.get(x.snd.stack.count() - 1), true)
+    if(scopes1.kind == "right"){
+      return ({...x.snd, stack:x.snd.stack.set(x.snd.stack.count() - 1, scopes1.value) })
+    }
+  }
+  let scopes1 = update_variable(x.fst.fst,x.fst.snd,x.snd.globals, true)
+  if(scopes1.kind == "right"){      
+    return ({...x.snd, globals:scopes1.value })
+  }
+  return x.snd
+})
+
+
 export let load_class_def_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit,Interface>> = fun(x =>
   x.snd.classes.has(x.fst) ? apply(inr(), x.snd.classes.get(x.fst)) : apply(inl<Unit,Interface>(), {}))
 export let store_class_def_rt: Fun<Prod<Prod<ValueName, Interface>, MemRt>, MemRt> = fun(x => ({...x.snd, classes:x.snd.classes.set(x.fst.fst, x.fst.snd) }))
@@ -63,7 +118,7 @@ export let heap_alloc_rt: Fun<Prod<Val,MemRt>, Prod<Val, MemRt>> = fun(x => {
   let new_ref = `ref_${x.snd.heap.count()}`
   return ({ fst:mk_ref_val(new_ref), snd:{...x.snd, heap:x.snd.heap.set(new_ref, x.fst) }})
 })
-export let push_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => ({...m, stack:m.stack.set(m.stack.count(), s)})))
+export let push_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => ({...m, stack:m.stack.set(m.stack.count(), Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>>().set(0, s))})))
 export let pop_scope_rt: Fun<MemRt, Sum<Unit,MemRt>> = fun(x =>
   !x.stack.isEmpty() ?
     apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)}))
@@ -72,7 +127,12 @@ export let pop_scope_rt: Fun<MemRt, Sum<Unit,MemRt>> = fun(x =>
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {}
 export type StmtRt = ExprRt<Sum<Val,Val>>
 
-export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0), globals:empty_scope_val, heap:empty_scope_val, functions:Immutable.Map<ValueName,Lambda>(), classes:Immutable.Map<ValueName, Interface>(), stack:Immutable.Map<number, Scope>() }
+export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0), 
+                                     globals:empty_scopes_val, 
+                                     heap:empty_scope_val, 
+                                     functions:Immutable.Map<ValueName,Lambda>(), 
+                                     classes:Immutable.Map<ValueName, Interface>(), 
+                                     stack:Immutable.Map<number, Scopes>() }
 
 export let set_highlighting_rt = function(r:SourceRange) : StmtRt {
   return mk_coroutine(constant<MemRt, SourceRange>(r).times(id<MemRt>()).then(highlight).then(constant<MemRt,Sum<Val,Val>>(apply(inl(),mk_unit_val)).times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))

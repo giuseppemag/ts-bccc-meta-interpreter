@@ -51,7 +51,6 @@ exports.call_lambda_rt = function (lambda, arg_expressions) {
     return eval_args.then(function (arg_values) {
         return init.then(function (_) {
             return set_args(arg_values.toArray()).then(function (_) {
-                //  co_get_state<Mem, Err>().then(s =>
                 return body.then(function (res) {
                     return cleanup.then(function (_) {
                         return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), res.value));

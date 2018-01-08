@@ -30,6 +30,7 @@ export interface RenderGridPixel {
 }
 export declare let init_array_val: (_: number) => ArrayVal;
 export declare type ValueName = string;
+export declare type NestingLevel = number;
 export declare type Val = {
     v: Unit;
     k: "u";
@@ -63,11 +64,14 @@ export declare type Val = {
 };
 export interface Scope extends Immutable.Map<ValueName, Val> {
 }
+export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {
+}
 export interface Interface {
     base: Sum<Interface, Unit>;
     methods: Immutable.Map<ValueName, StmtRt>;
 }
 export declare let empty_scope_val: Immutable.Map<string, Val>;
+export declare let empty_scopes_val: Immutable.Map<number, Scope>;
 export declare let mk_unit_val: Val;
 export declare let mk_string_val: (_: string) => Val;
 export declare let mk_int_val: (_: number) => Val;
@@ -82,11 +86,11 @@ export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
 export declare type ErrVal = string;
 export interface MemRt {
     highlighting: SourceRange;
-    globals: Scope;
+    globals: Scopes;
     heap: Scope;
     functions: Immutable.Map<ValueName, Lambda>;
     classes: Immutable.Map<ValueName, Interface>;
-    stack: Immutable.Map<number, Scope>;
+    stack: Immutable.Map<number, Scopes>;
 }
 export declare let load_rt: Fun<Prod<string, MemRt>, Sum<Unit, Sum<Val, Val>>>;
 export declare let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;

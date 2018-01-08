@@ -56,6 +56,7 @@ export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt
   let set_args = (arg_values:Array<Sum<Val,Val>>) => lambda.parameters.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<StmtRt>((sets, arg_value) =>
     set_v_rt(arg_value.fst, arg_value.snd).then(_ => sets),
     done_rt)
+    
   let init = mk_coroutine(apply(push_scope_rt, lambda.closure).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
 
   let pop_success = (unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>())))
@@ -64,7 +65,6 @@ export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt
   return eval_args.then(arg_values =>
          init.then(_ =>
          set_args(arg_values.toArray()).then(_ =>
-        //  co_get_state<Mem, Err>().then(s =>
          body.then(res =>
          cleanup.then(_ =>
          co_unit(apply(inl<Val,Val>(), res.value)))
