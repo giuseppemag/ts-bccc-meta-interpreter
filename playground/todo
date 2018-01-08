@@ -1,7 +1,7 @@
 [ ] renderer buttons
   [ ] play
   [ ] edit
-[ ] no global edit/view
+[ ] global edit/view disables play/edit buttons
 [ ] localization
 [ ] keys everywhere (especially `code`)
 [ ] fix styling

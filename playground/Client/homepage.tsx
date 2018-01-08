@@ -224,26 +224,26 @@ class CodeComponent extends React.Component<CodeComponentProps, {}> {
 }
 
 let code_editor = (mode: Mode): (code: string) => C<string> => {
-  type CodeEditorState = { code: string, stream: DebuggerStream, step_index: number, editing: boolean, last_update: "code" | "step" | "config" }
+  type CodeEditorState = { code: string, stream: DebuggerStream, step_index: number, editing: boolean, last_update: "internal" | "code" | "step" | "config" }
   return code => repeat<CodeEditorState>("main-repeat")(
     any<CodeEditorState, CodeEditorState>("main-any")([
-      s => s.editing ? retract<CodeEditorState, string>("source-editor-retract")(s => s.code, s => c => ({ ...s, code: c, last_update: "code" }),
+      s => s.editing ? retract<CodeEditorState, string>("source-editor-retract")(s => s.code, s => c => ({ ...s, code: c, last_update: "internal" }),
         c => custom<string>("source-editor-textarea")(
           _ => k =>
             <textarea value={c}
               onChange={e => k(() => { })(e.currentTarget.value)}
-              style={{ fontFamily: "monospace", width: "45%", height: "600px", overflowY: "scroll", float: "left" }} />
+              style={{ fontFamily: "monospace", width: !s.editing ? "45%" : "100%", height: "600px", overflowY: "scroll", float: "left" }} />
         ))(s)
         : custom<{}>("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
-      s => custom<CodeEditorState>(`source-editor-state-step-${s.step_index}`)(
+      s => s.editing ? unit({}).never() : custom<CodeEditorState>(`source-editor-state-step-${s.step_index}`)(
         _ => k => render_debugger_stream(s.stream, s.code, (range: SourceRange) => { })
       ).never("source-editor-state-step-never"),
-      s => button<{}>("Next", s.stream.kind != "step")({}).then("state-next-button", _ =>
+      s => s.editing ? unit({}).never() : button<{}>("Next", s.stream.kind != "step")({}).then("state-next-button", _ =>
         unit<CodeEditorState>({ ...s, stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1, last_update: "step" })),
-      s => button<{}>("Reload")({}).then("state-reset-button", _ =>
-        unit<CodeEditorState>({ ...s, stream: get_stream(s.code), step_index: 0, last_update: "step" })),
-      retract<CodeEditorState, boolean>("source-editor-toggle-editing-retract")(s => s.editing, s => e => ({ ...s, editing: e, last_update: "config" }),
-        e => button<boolean>("Toggle editing")(!e))
+      s => !s.editing ? unit({}).never() : button<{}>("Reload")({}).then("state-reset-button", _ =>
+        unit<CodeEditorState>({ ...s, editing:false, stream: get_stream(s.code), step_index: 0, last_update: "code" })),
+      s => mode == "edit" && s.editing ? unit({}).never() : retract<CodeEditorState, boolean>("source-editor-toggle-editing-retract")(s => s.editing, s => e => ({ ...s, editing: e, last_update: "config" }),
+        e => button<boolean>("Edit")(!e))(s)
     ])
   )({ code: code, stream: get_stream(code), step_index: 0, editing: false, last_update: "code" }).filter(s => s.last_update == "code", "code-editor-filter").map(s => s.code, "code-editor-map")
 }
@@ -267,31 +267,29 @@ let document_editor = (mode: Mode): C<void> => {
 
   let raw_blocks: Array<[BlockKind, ActualDocumentBlock]> = [
     ["graph", {
-      kind: "graph", default_content: default_graph, renderer: (block_data: ActualDocumentBlockData) => (
-        content => custom<string>()(
-          _ => k => <GraphComponent content={content} set_content={c => k(() => { })(c)} mode={mode} />)
-      )(block_data.content)
+      kind: "graph", default_content: default_graph, renderer: div<ActualDocumentBlockData,string>("go-slide-graph")((block_data: ActualDocumentBlockData) =>
+        custom<string>()(
+          _ => k => <GraphComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />)
+      )
     }],
     ["code", {
-      kind: "code", default_content: default_program, renderer: (block_data: ActualDocumentBlockData) => (
-        content => custom<string>()(
-          _ => k => <CodeComponent code={content} set_content={c => k(() => { })(c)} mode={mode} />)
-      )(block_data.content)
+      kind: "code", default_content: default_program, renderer: div<ActualDocumentBlockData,string>("go-slide-latex")((block_data: ActualDocumentBlockData) =>
+        custom<string>()(
+          _ => k => <CodeComponent code={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
     ["markdown", {
-      kind: "markdown", default_content: "", renderer: (block_data: ActualDocumentBlockData) => (
-        content => custom<string>()(
-          _ => k => <MarkupComponent content={content} set_content={c => k(() => { })(c)} mode={mode} kind="Markdown" />)
-      )(block_data.content)
+      kind: "markdown", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-markdown")((block_data: ActualDocumentBlockData) =>
+        custom<string>()(
+          _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="Markdown" />))
     }],
     ["latex", {
-      kind: "latex", default_content: "", renderer: (block_data: ActualDocumentBlockData) => (
-        content => custom<string>()(
-          _ => k => <MarkupComponent content={content} set_content={c => k(() => { })(c)} mode={mode} kind="LaTeX" />))(block_data.content)
+      kind: "latex", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-latex")((block_data: ActualDocumentBlockData) =>
+        custom<string>()(
+          _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="LaTeX" />))
     }],
     ["image", {
-      kind: "image", default_content: "", renderer: (block_data: ActualDocumentBlockData) => (
-        image(mode))(block_data.content)
+      kind: "image", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-image")((block_data: ActualDocumentBlockData) => (
+        image(mode))(block_data.content))
     }]
   ]
   let blocks = Immutable.Map<BlockKind, ActualDocumentBlock>(raw_blocks)
@@ -356,6 +354,13 @@ let document_editor = (mode: Mode): C<void> => {
             })
           }), "never")({})
         }),
+        retract<EditorState, ActualDocument>("document-editor-new-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
+        any<ActualDocument, ActualDocument>("document-editor-new-block")(
+          raw_blocks.map(rb => (d: ActualDocument) =>
+            button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ =>
+              unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
+          )
+        ))
       ]),
       retract<EditorState, ActualDocument>("document-editor-document-retract")(e => e.document, e => d => ({ ...e, document: d }),
         d => any<ActualDocument, ActualDocument>("document-editor-blocks")(
@@ -383,14 +388,7 @@ let document_editor = (mode: Mode): C<void> => {
               })
             ])
           }).toArray()
-        )(d)),
-      retract<EditorState, ActualDocument>("document-editor-new-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
-        any<ActualDocument, ActualDocument>("document-editor-new-block")(
-          raw_blocks.map(rb => (d: ActualDocument) =>
-            button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ =>
-              unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
-          )
-        ))
+        )(d))
     ]
     )
   )(initial_state).never()
@@ -404,9 +402,13 @@ export function MetaPlayground(): JSX.Element {
           <div className="go-lecture-player">
             <div className="go-current-activity">
               <div className="go-activity-container">
-                {simple_application(document_editor("edit"),
-                  _ => { }
-                )}
+                <div className="go-activity-item">
+                  <div className="go-slide">
+                    {simple_application(document_editor("edit"),
+                      _ => { }
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
