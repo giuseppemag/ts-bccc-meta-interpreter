@@ -81,9 +81,9 @@ let markupViewer: MarkupViewer = (props: MarkupViewerProps) => {
   if (props.mode == "view" || props.mode == "edit") {
     return (
     <div className="model__attribute markdown">
-      <label className={`attribute-label attribute-label-${className}`}>
+      {/* <label className={`attribute-label attribute-label-${className}`}>
         {i18next.t(capitalize(className))}
-      </label>
+      </label> */}
       {
         props.mode == "edit"
 
