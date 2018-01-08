@@ -238,12 +238,14 @@ let code_editor = (mode: Mode): (code: string) => C<string> => {
       s => s.editing ? unit({}).never() : custom<CodeEditorState>(`source-editor-state-step-${s.step_index}`)(
         _ => k => render_debugger_stream(s.stream, s.code, (range: SourceRange) => { })
       ).never("source-editor-state-step-never"),
-      s => s.editing ? unit({}).never() : button<{}>("Next", s.stream.kind != "step")({}).then("state-next-button", _ =>
+      s => s.editing ? unit({}).never() : button<{}>("Next", s.stream.kind != "step", `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-next-button", _ =>
         unit<CodeEditorState>({ ...s, stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1, last_update: "step" })),
-      s => !s.editing ? unit({}).never() : button<{}>("Reload")({}).then("state-reset-button", _ =>
+      s => s.editing ? unit({}).never() : button<{}>("Reset", false, `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-reset-button", _ =>
+        unit<CodeEditorState>({ ...s, editing:false, stream: get_stream(s.code), step_index: 0, last_update: "code" })),
+      s => !s.editing ? unit({}).never() : button<{}>("Reload", false, `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-reload-button", _ =>
         unit<CodeEditorState>({ ...s, editing:false, stream: get_stream(s.code), step_index: 0, last_update: "code" })),
       s => mode == "edit" && s.editing ? unit({}).never() : retract<CodeEditorState, boolean>("source-editor-toggle-editing-retract")(s => s.editing, s => e => ({ ...s, editing: e, last_update: "config" }),
-        e => button<boolean>("Edit")(!e))(s)
+        e => button<boolean>("Edit", false, `button-edit`, "button button--primary button--small editor__suggestion")(!e))(s)
     ])
   )({ code: code, stream: get_stream(code), step_index: 0, editing: false, last_update: "code" }).filter(s => s.last_update == "code", "code-editor-filter").map(s => s.code, "code-editor-map")
 }
@@ -303,12 +305,12 @@ let document_editor = (mode: Mode): C<void> => {
 
   return repeat<EditorState>("document-editor-repeat")(
     any<EditorState, EditorState>("document-editor-main")([
-      any<EditorState, EditorState>("document-editor-save-load")([
-        d => button(`New`)({}).then(`new-document`, _ => {
+      any<EditorState, EditorState>("document-editor-save-load", "editor__suggestions cf")([
+        d => button(`New`, false, `button-new`, "button button--primary button--small editor__suggestion")({}).then(`new-document`, _ => {
           window.localStorage.removeItem("last_open_file")
           return unit<EditorState>({ document: { blocks: Immutable.Map<number, ActualDocumentBlockData>(), next_key: 1 }, current_path: none<string>() })
         }),
-        d => button(`Save as`)({}).then(`save-document-as`, _ => {
+        d => button(`Save as`, false, `button-save-as`, "button button--primary button--small editor__suggestion")({}).then(`save-document-as`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             dialog.showSaveDialog({}, (fileName) => {
               if (fileName === undefined)
@@ -324,7 +326,7 @@ let document_editor = (mode: Mode): C<void> => {
             })
           }), "never")({})
         }),
-        d => button(`Load`)({}).then(`load-document`, _ => {
+        d => button(`Load`, false, `button-load`, "button button--primary button--small editor__suggestion")({}).then(`load-document`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             dialog.showOpenDialog({}, (fileNames) => {
               if (fileNames === undefined || fileNames.length < 1)
@@ -340,7 +342,7 @@ let document_editor = (mode: Mode): C<void> => {
             })
           }), "never")({})
         }),
-        d => button(`Save`, d.current_path.kind == "none")({}).then(`save-document`, _ => {
+        d => button(`Save`, d.current_path.kind == "none", `button-save`, "button button--primary button--small editor__suggestion")({}).then(`save-document`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             if (d.current_path.kind == "none")
               return reject("invalid path")
@@ -353,14 +355,7 @@ let document_editor = (mode: Mode): C<void> => {
               }
             })
           }), "never")({})
-        }),
-        retract<EditorState, ActualDocument>("document-editor-new-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
-        any<ActualDocument, ActualDocument>("document-editor-new-block")(
-          raw_blocks.map(rb => (d: ActualDocument) =>
-            button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ =>
-              unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
-          )
-        ))
+        })
       ]),
       retract<EditorState, ActualDocument>("document-editor-document-retract")(e => e.document, e => d => ({ ...e, document: d }),
         d => any<ActualDocument, ActualDocument>("document-editor-blocks")(
@@ -369,8 +364,8 @@ let document_editor = (mode: Mode): C<void> => {
             return any<ActualDocument, ActualDocument>(`block-${b_k}`)([
               d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content =>
                 unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...d.blocks.get(b_k), content: new_content }) })),
-              d => button("Remove")({}).then(`block-remove`, _ => unit<ActualDocument>({ ...d, blocks: d.blocks.remove(b_k) })),
-              d => button("Move up")({}).then(`block-move-up`, _ => {
+              d => button("Del", false, `button-remove`, "button button--primary button--small")({}).then(`block-remove`, _ => unit<ActualDocument>({ ...d, blocks: d.blocks.remove(b_k) })),
+              d => button("Up", false, `button-move-up`, "button button--primary button--small")({}).then(`block-move-up`, _ => {
                 let predecessors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by < b.order_by })
                 if (predecessors.isEmpty()) return unit<ActualDocument>({ ...d })
                 let predecessor = predecessors.maxBy(s => s && s.order_by)
@@ -378,7 +373,7 @@ let document_editor = (mode: Mode): C<void> => {
 
                 return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
               }),
-              d => button("Move down")({}).then(`block-move-down`, _ => {
+              d => button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
                 let successors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by > b.order_by })
                 if (successors.isEmpty()) return unit<ActualDocument>({ ...d })
                 let successor = successors.minBy(s => s && s.order_by)
@@ -388,7 +383,14 @@ let document_editor = (mode: Mode): C<void> => {
               })
             ])
           }).toArray()
-        )(d))
+        )(d)),
+        retract<EditorState, ActualDocument>("document-editor-add-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
+          any<ActualDocument, ActualDocument>("document-editor-add-block", "editor__suggestions cf")(
+            raw_blocks.map(rb => (d: ActualDocument) =>
+              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ =>
+                unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
+            )
+          ))
     ]
     )
   )(initial_state).never()

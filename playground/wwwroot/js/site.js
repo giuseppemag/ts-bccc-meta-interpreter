@@ -64678,9 +64678,10 @@ let code_editor = (mode) => {
             s => s.editing ? monadic_react_1.retract("source-editor-retract")(s => s.code, s => c => (Object.assign({}, s, { code: c, last_update: "internal" })), c => monadic_react_1.custom("source-editor-textarea")(_ => k => React.createElement("textarea", { value: c, onChange: e => k(() => { })(e.currentTarget.value), style: { fontFamily: "monospace", width: !s.editing ? "45%" : "100%", height: "600px", overflowY: "scroll", float: "left" } })))(s)
             : monadic_react_1.custom("source-editor-textarea")(_ => _ => render_code(s.code, s.stream)).never("source-editor-textarea-never"),
             s => s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.custom(`source-editor-state-step-${s.step_index}`)(_ => k => render_debugger_stream(s.stream, s.code, (range) => { })).never("source-editor-state-step-never"),
-            s => s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.button("Next", s.stream.kind != "step")({}).then("state-next-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1, last_update: "step" }))),
-            s => !s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.button("Reload")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { editing: false, stream: ts_bccc_meta_compiler_1.get_stream(s.code), step_index: 0, last_update: "code" }))),
-            s => mode == "edit" && s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e, last_update: "config" })), e => monadic_react_1.button("Edit")(!e))(s)
+            s => s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.button("Next", s.stream.kind != "step", `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-next-button", _ => monadic_react_1.unit(Object.assign({}, s, { stream: s.stream.kind == "step" ? s.stream.next() : s.stream, step_index: s.step_index + 1, last_update: "step" }))),
+            s => s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.button("Reset", false, `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-reset-button", _ => monadic_react_1.unit(Object.assign({}, s, { editing: false, stream: ts_bccc_meta_compiler_1.get_stream(s.code), step_index: 0, last_update: "code" }))),
+            s => !s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.button("Reload", false, `button-next`, "button button--primary button--small editor__suggestion")({}).then("state-reload-button", _ => monadic_react_1.unit(Object.assign({}, s, { editing: false, stream: ts_bccc_meta_compiler_1.get_stream(s.code), step_index: 0, last_update: "code" }))),
+            s => mode == "edit" && s.editing ? monadic_react_1.unit({}).never() : monadic_react_1.retract("source-editor-toggle-editing-retract")(s => s.editing, s => e => (Object.assign({}, s, { editing: e, last_update: "config" })), e => monadic_react_1.button("Edit", false, `button-edit`, "button button--primary button--small editor__suggestion")(!e))(s)
     ]))({ code: code, stream: ts_bccc_meta_compiler_1.get_stream(code), step_index: 0, editing: false, last_update: "code" }).filter(s => s.last_update == "code", "code-editor-filter").map(s => s.code, "code-editor-map");
 };
 let serialize_document = function (d) {
@@ -64714,12 +64715,12 @@ let document_editor = (mode) => {
     if (last_open_file != null)
         initial_state = { document: deserialize_document(FS.readFileSync(last_open_file, "utf8")), current_path: monadic_react_1.some(last_open_file) };
     return monadic_react_1.repeat("document-editor-repeat")(monadic_react_1.any("document-editor-main")([
-        monadic_react_1.any("document-editor-save-load")([
-                d => monadic_react_1.button(`New`)({}).then(`new-document`, _ => {
+        monadic_react_1.any("document-editor-save-load", "editor__suggestions cf")([
+                d => monadic_react_1.button(`New`, false, `button-new`, "button button--primary button--small editor__suggestion")({}).then(`new-document`, _ => {
                 window.localStorage.removeItem("last_open_file");
                 return monadic_react_1.unit({ document: { blocks: Immutable.Map(), next_key: 1 }, current_path: monadic_react_1.none() });
             }),
-                d => monadic_react_1.button(`Save as`)({}).then(`save-document-as`, _ => {
+                d => monadic_react_1.button(`Save as`, false, `button-save-as`, "button button--primary button--small editor__suggestion")({}).then(`save-document-as`, _ => {
                 return monadic_react_1.lift_promise(_ => new Promise((resolve, reject) => {
                     dialog.showSaveDialog({}, (fileName) => {
                         if (fileName === undefined)
@@ -64736,7 +64737,7 @@ let document_editor = (mode) => {
                     });
                 }), "never")({});
             }),
-                d => monadic_react_1.button(`Load`)({}).then(`load-document`, _ => {
+                d => monadic_react_1.button(`Load`, false, `button-load`, "button button--primary button--small editor__suggestion")({}).then(`load-document`, _ => {
                 return monadic_react_1.lift_promise(_ => new Promise((resolve, reject) => {
                     dialog.showOpenDialog({}, (fileNames) => {
                         if (fileNames === undefined || fileNames.length < 1)
@@ -64753,7 +64754,7 @@ let document_editor = (mode) => {
                     });
                 }), "never")({});
             }),
-                d => monadic_react_1.button(`Save`, d.current_path.kind == "none")({}).then(`save-document`, _ => {
+                d => monadic_react_1.button(`Save`, d.current_path.kind == "none", `button-save`, "button button--primary button--small editor__suggestion")({}).then(`save-document`, _ => {
                 return monadic_react_1.lift_promise(_ => new Promise((resolve, reject) => {
                     if (d.current_path.kind == "none")
                         return reject("invalid path");
@@ -64767,16 +64768,15 @@ let document_editor = (mode) => {
                         }
                     });
                 }), "never")({});
-            }),
-            monadic_react_1.retract("document-editor-new-block-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), monadic_react_1.any("document-editor-new-block")(raw_blocks.map(rb => (d) => monadic_react_1.button(`Add ${rb[1].kind} block`)({}).then(`new-block-${rb[1].kind}`, _ => monadic_react_1.unit(Object.assign({}, d, { next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))))))
+            })
         ]),
         monadic_react_1.retract("document-editor-document-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), d => monadic_react_1.any("document-editor-blocks")(d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
             if (!b || !b_k)
                 return _ => monadic_react_1.unit(null).never();
             return monadic_react_1.any(`block-${b_k}`)([
                     d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, d.blocks.get(b_k), { content: new_content })) }))),
-                    d => monadic_react_1.button("Remove")({}).then(`block-remove`, _ => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.remove(b_k) }))),
-                    d => monadic_react_1.button("Move up")({}).then(`block-move-up`, _ => {
+                    d => monadic_react_1.button("Del", false, `button-remove`, "button button--primary button--small")({}).then(`block-remove`, _ => monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.remove(b_k) }))),
+                    d => monadic_react_1.button("Up", false, `button-move-up`, "button button--primary button--small")({}).then(`block-move-up`, _ => {
                     let predecessors = d.blocks.filter(b1 => { if (!b1)
                         return false;
                     else
@@ -64790,7 +64790,7 @@ let document_editor = (mode) => {
                         return b1.order_by == predecessor.order_by; });
                     return monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, b, { order_by: predecessor.order_by })).set(p_k, Object.assign({}, predecessor, { order_by: b.order_by })) }));
                 }),
-                    d => monadic_react_1.button("Move down")({}).then(`block-move-down`, _ => {
+                    d => monadic_react_1.button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
                     let successors = d.blocks.filter(b1 => { if (!b1)
                         return false;
                     else
@@ -64805,7 +64805,8 @@ let document_editor = (mode) => {
                     return monadic_react_1.unit(Object.assign({}, d, { blocks: d.blocks.set(b_k, Object.assign({}, b, { order_by: successor.order_by })).set(s_k, Object.assign({}, successor, { order_by: b.order_by })) }));
                 })
             ]);
-        }).toArray())(d))
+        }).toArray())(d)),
+        monadic_react_1.retract("document-editor-add-block-retract")(e => e.document, e => d => (Object.assign({}, e, { document: d })), monadic_react_1.any("document-editor-add-block", "editor__suggestions cf")(raw_blocks.map(rb => (d) => monadic_react_1.button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ => monadic_react_1.unit(Object.assign({}, d, { next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))))))
     ]))(initial_state).never();
 };
 function MetaPlayground() {
