@@ -101,7 +101,7 @@ let markupViewer: MarkupViewer = (props: MarkupViewerProps) => {
     )
   }
   else /* props.mode == "presentation" */ {
-    return <div className={`go-slide-${className}`}>
+    return <div className={`slide slide--${className}`}>
       {rendererResponse.element}
     </div>
   }

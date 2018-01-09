@@ -10,12 +10,12 @@ export let TextComponent = (props: Props) => {
   let richText = RichText(true, props.mode == "edit" ? "edit" : "view", () => props.content, (new_content) => new_content != "" ? props.set_content(new_content) : null);
 
   return props.mode === "presentation" ?
-    <div className="go-slide-text">
+    <div className="slide slide--text">
       {richText}
     </div>
     :
     <div>
-      <div className="model__attribute text">
+      <div className="text">
         <label className="attribute-label attribute-label-text">{i18next.t('Text')}</label>
         <div className="model__attribute-content">
           {richText}

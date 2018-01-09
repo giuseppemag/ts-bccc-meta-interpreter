@@ -95,37 +95,37 @@ let document_editor = (mode: Mode): C<void> => {
 
   let raw_blocks: Array<[BlockKind, ActualDocumentBlock]> = [
     ["graph", {
-      kind: "graph", default_content: default_graph, renderer: div<ActualDocumentBlockData,string>("go-slide-graph")((block_data: ActualDocumentBlockData) =>
+      kind: "graph", default_content: default_graph, renderer: div<ActualDocumentBlockData,string>("slide slide--graph")((block_data: ActualDocumentBlockData) =>
         custom<string>()(
           _ => k => <GraphComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />)
       )
     }],
     ["code", {
-      kind: "code", default_content: default_program, renderer: div<ActualDocumentBlockData,string>("go-slide-latex")((block_data: ActualDocumentBlockData) =>
+      kind: "code", default_content: default_program, renderer: div<ActualDocumentBlockData,string>("slide slide--latex")((block_data: ActualDocumentBlockData) =>
         custom<string>()(
           _ => k => <CodeComponent code={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
     ["markdown", {
-      kind: "markdown", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-markdown")((block_data: ActualDocumentBlockData) =>
+      kind: "markdown", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--markdown")((block_data: ActualDocumentBlockData) =>
         custom<string>()(
           _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="Markdown" />))
     }],
     ["latex", {
-      kind: "latex", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-latex")((block_data: ActualDocumentBlockData) =>
+      kind: "latex", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--latex")((block_data: ActualDocumentBlockData) =>
         custom<string>()(
           _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="LaTeX" />))
     }],
     ["image", {
-      kind: "image", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-image")((block_data: ActualDocumentBlockData) => (
+      kind: "image", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--image")((block_data: ActualDocumentBlockData) => (
         image(mode))(block_data.content))
     }],
     ["text", {
-      kind: "text", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-text")((block_data: ActualDocumentBlockData) => 
+      kind: "text", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--text")((block_data: ActualDocumentBlockData) => 
       custom<string>()(
         _ => k => <TextComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
     ["title", {
-      kind: "title", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-text")((block_data: ActualDocumentBlockData) => 
+      kind: "title", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--text")((block_data: ActualDocumentBlockData) => 
       custom<string>()(
         _ => k => <TitleComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
@@ -197,33 +197,33 @@ let document_editor = (mode: Mode): C<void> => {
         d => any<ActualDocument, ActualDocument>("document-editor-blocks")(
           d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
             if (!b || !b_k) return _ => unit(null).never<ActualDocument>()
-            return any<ActualDocument, ActualDocument>(`block-${b_k}`)([
+            return any<ActualDocument, ActualDocument>(`block-${b_k}`, `block block--${b.kind}`)([
               d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content =>
                 unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...d.blocks.get(b_k), content: new_content }) })),
-              d => button("Del", false, `button-remove`, "button button--primary button--small")({}).then(`block-remove`, _ => unit<ActualDocument>({ ...d, blocks: d.blocks.remove(b_k) })),
-              d => button("Up", false, `button-move-up`, "button button--primary button--small")({}).then(`block-move-up`, _ => {
-                let predecessors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by < b.order_by })
-                if (predecessors.isEmpty()) return unit<ActualDocument>({ ...d })
-                let predecessor = predecessors.maxBy(s => s && s.order_by)
-                let p_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == predecessor.order_by })
-
-                return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
-              }),
-              d => button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
-                let successors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by > b.order_by })
-                if (successors.isEmpty()) return unit<ActualDocument>({ ...d })
-                let successor = successors.minBy(s => s && s.order_by)
-                let s_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == successor.order_by })
-
-                return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: successor.order_by }).set(s_k, { ...successor, order_by: b.order_by }) })
-              })
+              any<ActualDocument, ActualDocument>(`block-buttons`, `block__buttons`)([ 
+                d => button("Del", false, `button-remove`, "button button--small")({}).then(`block-remove`, _ => unit<ActualDocument>({ ...d, blocks: d.blocks.remove(b_k) })),
+                d => button("Up", false, `button-move-up`, "button button--small")({}).then(`block-move-up`, _ => {
+                  let predecessors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by < b.order_by })
+                  if (predecessors.isEmpty()) return unit<ActualDocument>({ ...d })
+                  let predecessor = predecessors.maxBy(s => s && s.order_by)
+                  let p_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == predecessor.order_by })
+                  return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
+                }),
+                d => button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
+                  let successors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by > b.order_by })
+                  if (successors.isEmpty()) return unit<ActualDocument>({ ...d })
+                  let successor = successors.minBy(s => s && s.order_by)
+                  let s_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == successor.order_by })
+                  return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: successor.order_by }).set(s_k, { ...successor, order_by: b.order_by }) })
+                })
+              ])
             ])
           }).toArray()
         )(d)),
         retract<EditorState, ActualDocument>("document-editor-add-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
           any<ActualDocument, ActualDocument>("document-editor-add-block", "toolbar__add")(
             raw_blocks.map(rb => (d: ActualDocument) =>
-              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary")({}).then(`new-block-${rb[1].kind}`, _ =>
+              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--small")({}).then(`new-block-${rb[1].kind}`, _ =>
                 unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
             )
           ))
@@ -233,26 +233,10 @@ let document_editor = (mode: Mode): C<void> => {
 }
 
 export function MetaPlayground(): JSX.Element {
-  return <div className="go-page go-page--view go-student-player">
-    <div className="go-content">
-      <div className="go-content-inner go-course">
-        <div className="go-chapter">
-          <div className="go-lecture-player">
-            <div className="go-current-activity">
-              <div className="go-activity-container">
-                <div className="go-activity-item">
-                  <div className="go-slide">
-                    {simple_application(document_editor("edit"),
-                      _ => { }
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+  return <div className="go-page">
+    {simple_application(document_editor("edit"),
+      _ => { }
+    )}
   </div>
 }
 

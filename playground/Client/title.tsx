@@ -10,12 +10,12 @@ export let TitleComponent = (props: Props) => {
   let title = RichText(true, props.mode == "edit" ? "edit" : "view", () => props.content, (new_content) => new_content != "" ? props.set_content(new_content) : null);
 
   return props.mode === "presentation" ?
-    <div className="go-slide-title">
+    <div className="slide slide--title">
       {title}
     </div>
     :
     <div>
-      <div className="model__attribute title">
+      <div className="title">
         <label className="attribute-label attribute-label-title">{i18next.t('Title')}</label>
         <div className="model__attribute-content">
           {title}
