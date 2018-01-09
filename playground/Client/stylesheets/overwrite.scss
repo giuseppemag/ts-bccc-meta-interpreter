@@ -1,67 +1,13 @@
-// ==========================================================================
-// Main Stylesheet
-// ==========================================================================
+.go-lecture-player {
+  width: 100%;
+}
 
-// ==========================================================================
-// The SCSS folder is structured using the ITCSS principle (Hoppinger Style):
-// - SETTINGS: for variables
-// - TOOLS: for mixins/functions
-// - VENDOR: for third-party styling
-// - GLOBAL: for element styling - no classes or IDs
-// - OBJECTS: for shared styling - OOCSS!
-// - PAGES: for specific page styling - as less as possible
-// - OVERWRITES: for overwriting styles - this is the only place where the `!important` tag is acceptable.
-//
-// READ MORE: http://csswizardry.net/talks/2014/11/itcss-dafed.pdf
-// ==========================================================================
+.toolbar__add {
+  width: 100%;
+  display: flex;
+}
 
-@charset 'UTF-8';
-
-// ==========================================================================
-// SETTINGS
-// ==========================================================================
-
-@import 'settings/variables';
-@import 'overwrites/project-variables';
-@import 'settings/fonts';
-
-// ==========================================================================
-// TOOLS
-// ==========================================================================
-
-@import 'tools/mixins';
-
-// ==========================================================================
-// VENDOR
-// ============================================= =============================
-
-@import 'vendor/normalize';
-
-// ==========================================================================
-// GLOBAL
-// ==========================================================================
-
-@import 'global/core';
-@import 'global/typography';
-@import 'global/links';
-@import 'global/buttons';
-@import 'global/spinners';
-@import 'global/lists';
-@import 'global/figures';
-@import 'global/forms';
-@import 'global/tables';
-
-// ==========================================================================
-// OBJECTS
-// ==========================================================================
-
-
-// ==========================================================================
-// PAGES
-// ==========================================================================
-
-// ==========================================================================
-// OVERWRITES
-// ==========================================================================
-
-@import 'overwrites/project-specific';
+.toolbar__operations {
+  width: 100%;
+  display: flex;
+}

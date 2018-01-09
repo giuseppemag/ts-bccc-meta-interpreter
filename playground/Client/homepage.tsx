@@ -141,12 +141,12 @@ let document_editor = (mode: Mode): C<void> => {
 
   return repeat<EditorState>("document-editor-repeat")(
     any<EditorState, EditorState>("document-editor-main")([
-      any<EditorState, EditorState>("document-editor-save-load", "editor__suggestions cf")([
-        d => button(`New`, false, `button-new`, "button button--primary button--small editor__suggestion")({}).then(`new-document`, _ => {
+      any<EditorState, EditorState>("document-editor-save-load", "toolbar__operations")([
+        d => button(`New`, false, `button-new`, "button--small")({}).then(`new-document`, _ => {
           window.localStorage.removeItem("last_open_file")
           return unit<EditorState>({ document: { blocks: Immutable.Map<number, ActualDocumentBlockData>(), next_key: 1 }, current_path: none<string>() })
         }),
-        d => button(`Save as`, false, `button-save-as`, "button button--primary button--small editor__suggestion")({}).then(`save-document-as`, _ => {
+        d => button(`Save as`, false, `button-save-as`, "button--small")({}).then(`save-document-as`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             dialog.showSaveDialog({}, (fileName) => {
               if (fileName === undefined)
@@ -162,7 +162,7 @@ let document_editor = (mode: Mode): C<void> => {
             })
           }), "never")({})
         }),
-        d => button(`Load`, false, `button-load`, "button button--primary button--small editor__suggestion")({}).then(`load-document`, _ => {
+        d => button(`Load`, false, `button-load`, "button--small")({}).then(`load-document`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             dialog.showOpenDialog({}, (fileNames) => {
               if (fileNames === undefined || fileNames.length < 1)
@@ -178,7 +178,7 @@ let document_editor = (mode: Mode): C<void> => {
             })
           }), "never")({})
         }),
-        d => button(`Save`, d.current_path.kind == "none", `button-save`, "button button--primary button--small editor__suggestion")({}).then(`save-document`, _ => {
+        d => button(`Save`, d.current_path.kind == "none", `button-save`, "button--small")({}).then(`save-document`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
             if (d.current_path.kind == "none")
               return reject("invalid path")
@@ -221,9 +221,9 @@ let document_editor = (mode: Mode): C<void> => {
           }).toArray()
         )(d)),
         retract<EditorState, ActualDocument>("document-editor-add-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
-          any<ActualDocument, ActualDocument>("document-editor-add-block", "editor__suggestions cf")(
+          any<ActualDocument, ActualDocument>("document-editor-add-block", "toolbar__add")(
             raw_blocks.map(rb => (d: ActualDocument) =>
-              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ =>
+              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary")({}).then(`new-block-${rb[1].kind}`, _ =>
                 unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
             )
           ))
