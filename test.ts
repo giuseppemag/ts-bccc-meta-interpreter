@@ -149,8 +149,15 @@ export let test_imp = function () {
   export let test_parser = () => {
     let source = `
 int x;
-bool c;
-c = true == false;
+x = 5; 
+int y ;
+y = 5;
+while(x > 0){
+  int y;
+  y = 5;
+  y = y + 10;
+  x = x - 1;
+}
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

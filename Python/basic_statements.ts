@@ -7,11 +7,12 @@ import { SourceRange } from "../source_range";
 
 export let done_rt: StmtRt = co_unit<MemRt, ErrVal, Sum<Val,Val>>(apply(inl(), mk_unit_val))
 export let dbg_rt = (range:SourceRange) => function<A> (v:A) : ExprRt<A> { return set_highlighting_rt(range).then(_ => Co.suspend<MemRt,ErrVal>().then(_ => co_unit<MemRt,ErrVal,A>(v))) }
-export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
 
+let push_new_context = mk_coroutine(apply(push_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
+let pop_current_context = mk_coroutine(apply(pop_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
+
+export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
   
-  let push_new_context = mk_coroutine(apply(push_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
-  let pop_current_context = mk_coroutine(apply(pop_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
   
 
   return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
@@ -21,5 +22,6 @@ export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt
 }
 
 export let while_do_rt = function (p: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
-  return if_then_else_rt(p, k.then(_ => while_do_rt(p, k)), done_rt)
+  return if_then_else_rt(p, 
+    push_new_context.then(_ => k.then(res => pop_current_context.then(_ => while_do_rt(p, k)))), done_rt)
 }

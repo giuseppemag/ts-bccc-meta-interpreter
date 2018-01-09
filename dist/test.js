@@ -76,7 +76,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nbool c;\nc = true == false;\n";
+        var source = "\nint x;\nx = 5; \nint y ;\ny = 5;\nwhile(x > 0){\n  int y;\n  y = 5;\n  y = y + 10;\n  x = x - 1;\n}\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
