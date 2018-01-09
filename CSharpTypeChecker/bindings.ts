@@ -170,7 +170,11 @@ export let eq = function(a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_eq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_eq_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_eq_rt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, bool_type) ?
+             co_unit(mk_typing(bool_type, Sem.bool_eq_rt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, string_type) ?
+             co_unit(mk_typing(bool_type, Sem.string_eq_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (==)!")
           : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
         ))
@@ -183,7 +187,11 @@ export let neq = function(a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_neq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_neq_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_neq_rt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, string_type) ?
+             co_unit(mk_typing(bool_type, Sem.string_neq_rt(a_t.sem, b_t.sem)))
+            : type_equals(a_t.type, bool_type) ?
+             co_unit(mk_typing(bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>("Error: unsupported types for operator (!=)!")
           : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
         ))
@@ -232,7 +240,7 @@ export let plus = function(a:Stmt, b:Stmt) : Stmt {
             : co_error<State,Err,Typing>("Error: unsupported types for operator (+)!")
           : type_equals(a_t.type, render_grid_type) && type_equals(b_t.type, render_grid_pixel_type) ?
             co_unit(mk_typing(render_grid_type, Sem.render_grid_plus_rt(a_t.sem, b_t.sem)))
-          : co_error<State,Err,Typing>("Error: cannot sum expressions of non-compatible types!")
+          : co_error<State,Err,Typing>("Error: cannot sum expressions of non-compatible types! (" +  a_t.type.kind + "," + b_t.type.kind + ")")
         ))
 }
 

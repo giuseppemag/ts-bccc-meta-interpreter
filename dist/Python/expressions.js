@@ -108,8 +108,17 @@ exports.int_eq_rt = function (a, b) {
 exports.int_neq_rt = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "i" || ab.snd.k != "i" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst != ab_val.snd); }, "(!=)");
 };
+exports.bool_eq_rt = function (a, b) {
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "b" || ab.snd.k != "b" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst == ab_val.snd); }, "(==)");
+};
 exports.bool_neq_rt = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "b" || ab.snd.k != "b" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst != ab_val.snd); }, "(!=)");
+};
+exports.string_eq_rt = function (a, b) {
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "s" || ab.snd.k != "s" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst == ab_val.snd); }, "(==)");
+};
+exports.string_neq_rt = function (a, b) {
+    return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "s" || ab.snd.k != "s" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst != ab_val.snd); }, "(!=)");
 };
 exports.float_plus_rt = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "f" || ab.snd.k != "f" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_float_val(ab_val.fst + ab_val.snd); }, "(+)");

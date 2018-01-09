@@ -76,7 +76,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint test(){\n  int x;\n  x = 15;\n  if(x > 0){\n    x = 5;\n  }\n  return x;\n}\nint x;\nx = test();\n\n";
+        var source = "\nint x;\nbool c;\nc = (1 + 2 * 3) > 0;\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -85,7 +85,7 @@ var ImpLanguageWithSuspend;
         var res = CSharp.program_prs().run.f(tokens);
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + res.value;
-        // console.log(JSON.stringify(res.value.value.fst)) // ast
+        console.log(JSON.stringify(res.value.value.fst)); // ast
         var hrstart = process.hrtime();
         var p = csharp_1.ast_to_type_checker(res.value.value.fst);
         var output = "";

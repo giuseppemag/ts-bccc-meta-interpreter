@@ -83,6 +83,22 @@ var GrammarBasics;
         return ts_bccc_1.apply(ts_bccc_1.inr(), tokens.toArray());
     };
 })(GrammarBasics = exports.GrammarBasics || (exports.GrammarBasics = {}));
+var proprity_operators_table = Immutable.Map()
+    .set("*", 10)
+    .set("/", 10)
+    .set("%", 10)
+    .set("+", 7)
+    .set("-", 7)
+    .set(">", 6)
+    .set("<", 6)
+    .set("<=", 6)
+    .set(">=", 6)
+    .set("==", 5)
+    .set("!=", 5)
+    .set("not", 4)
+    .set("xor", 4)
+    .set("&&", 4)
+    .set("||", 4);
 var mk_string = function (v, sr) { return ({ range: sr, ast: { kind: "string", value: v } }); };
 var mk_bool = function (v, sr) { return ({ range: sr, ast: { kind: "bool", value: v } }); };
 var mk_int = function (v, sr) { return ({ range: sr, ast: { kind: "int", value: v } }); };
@@ -450,9 +466,47 @@ var call = function () {
         });
     });
 };
+var expr_after_op_AUX = function (op, comp_left_right, left, right, t, sym, compose_right_t) {
+    return proprity_operators_table.get(op) >= proprity_operators_table.get(sym) ?
+        expr_after_op(comp_left_right(left, right), t, function (l, r) { return compose_right_t(l, r); }, sym) :
+        expr_after_op(right, t, function (l, r) { return compose_right_t(l, r); }, sym).then(function (e) {
+            return ts_bccc_1.co_unit(comp_left_right(left, e));
+        });
+};
+var expr_after_op = function (left, right, comp_left_right, op) {
+    return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "+", mk_plus);
+    }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "-", mk_minus);
+    }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "*", mk_times);
+    }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "/", mk_div);
+    }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "%", mk_mod);
+    }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "<", mk_lt);
+    }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, ">", mk_gt);
+    }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "<=", mk_leq);
+    }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, ">=", mk_geq);
+    }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "==", mk_eq);
+    }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "!=", mk_neq);
+    }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "&&", mk_and);
+    }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "xor", mk_xor);
+    }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return term().then(function (t) {
+        return expr_after_op_AUX(op, comp_left_right, left, right, t, "||", mk_or);
+    }); }))(ts_bccc_1.co_unit(comp_left_right(left, right))))))))))))))));
+};
 var expr = function () {
     return term().then(function (l) {
-        return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_plus(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_minus(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_times(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_div(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_mod(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_lt(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_gt(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_leq(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_geq(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_eq(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_neq(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_and(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_or(l, r)); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return expr().then(function (r) { return ts_bccc_1.co_unit(mk_xor(l, r)); }); }))(ts_bccc_1.co_unit(l)))))))))))))));
+        return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_plus(l, r); }), "+"); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_minus(l, r); }), "-"); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_times(l, r); }), "*"); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_div(l, r); }), "/"); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_mod(l, r); }), "%"); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_lt(l, r); }), "<"); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_gt(l, r); }), ">"); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_leq(l, r); }), "<="); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_geq(l, r); }), ">="); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_eq(l, r); }), "=="); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_neq(l, r); }), "!="); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_and(l, r); }), "&&"); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_or(l, r); }), "||"); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_xor(l, r); }), "xor"); }); }))(ts_bccc_1.co_unit(l)))))))))))))));
     });
 };
 var semicolon = ignore_whitespace(semicolon_sign);

@@ -143,9 +143,24 @@ export let int_neq_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Va
           ab => ab.fst.k != "i" || ab.snd.k != "i" ? inr<Prod<number,number>, Unit>().f({}) : inl<Prod<number,number>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => mk_bool_val(ab_val.fst != ab_val.snd), "(!=)")
 }
+export let bool_eq_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
+  return lift_binary_operation<boolean,boolean>(a, b,
+          ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => mk_bool_val(ab_val.fst == ab_val.snd), "(==)")
+}
 export let bool_neq_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
   return lift_binary_operation<boolean,boolean>(a, b,
           ab => ab.fst.k != "b" || ab.snd.k != "b" ? inr<Prod<boolean,boolean>, Unit>().f({}) : inl<Prod<boolean,boolean>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => mk_bool_val(ab_val.fst != ab_val.snd), "(!=)")
+}
+export let string_eq_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
+  return lift_binary_operation<string,string>(a, b,
+          ab => ab.fst.k != "s" || ab.snd.k != "s" ? inr<Prod<string,string>, Unit>().f({}) : inl<Prod<string,string>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => mk_bool_val(ab_val.fst == ab_val.snd), "(==)")
+}
+export let string_neq_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
+  return lift_binary_operation<string,string>(a, b,
+          ab => ab.fst.k != "s" || ab.snd.k != "s" ? inr<Prod<string,string>, Unit>().f({}) : inl<Prod<string,string>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => mk_bool_val(ab_val.fst != ab_val.snd), "(!=)")
 }
 export let float_plus_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {

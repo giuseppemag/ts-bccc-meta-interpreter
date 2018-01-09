@@ -146,6 +146,28 @@ export module GrammarBasics {
   }
 }
 
+
+
+let proprity_operators_table = 
+  Immutable.Map<string, number>()
+  .set("*", 10)  
+  .set("/", 10)  
+  .set("%", 10)  
+  .set("+", 7)
+  .set("-", 7)
+  .set(">", 6)
+  .set("<", 6)
+  .set("<=", 6)
+  .set(">=", 6)
+  .set("==", 5)
+  .set("!=", 5)
+  .set("not", 4)
+  .set("xor", 4)
+  .set("&&", 4)
+  .set("||", 4)
+
+
+
 export interface DebuggerAST { kind: "dbg" }
 export interface TCDebuggerAST { kind: "tc-dbg" }
 export interface StringAST { kind: "string", value:string }
@@ -540,10 +562,10 @@ let term : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(unary_expr())(
   left_bracket.then(_ =>
-      expr().then(e =>
-      right_bracket.then(_ =>
-      co_unit(e)))
-    )))))))))
+                                                           expr().then(e =>
+                                                           right_bracket.then(_ =>
+                                                           co_unit(e)))
+                                                          )))))))))
 
 let unary_expr : () => Parser = () =>
   not_op.then(_ =>
@@ -557,22 +579,93 @@ let call : () => Parser = () =>
   right_bracket.then(_ =>
   co_unit<ParserState,ParserError,ParserRes>(mk_call(f_name, actuals))))))
 
+
+let expr_after_op_AUX = (op:string, comp_left_right:(l:ParserRes, r:ParserRes)=>ParserRes, left:ParserRes, right:ParserRes, t:ParserRes, sym:string, compose_right_t:(l:ParserRes, r:ParserRes)=>ParserRes) =>
+  proprity_operators_table.get(op) >= proprity_operators_table.get(sym) ? 
+    expr_after_op(comp_left_right(left, right), t, (l,r) => compose_right_t(l, r), sym):
+    expr_after_op(right, t, (l,r) => compose_right_t(l, r), sym).then(e => 
+      co_unit(comp_left_right(left, e)))
+
+let expr_after_op = (left:ParserRes, right:ParserRes, comp_left_right:(l:ParserRes, r:ParserRes)=>ParserRes, op:string) : Coroutine<Immutable.List<Token>, string, ParserRes> =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (plus_op.then(_ => term().then(t =>
+        expr_after_op_AUX(op, comp_left_right, left, right, t, "+", mk_plus))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (minus_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "-", mk_minus))))(
+
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (times_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "*", mk_times))))(
+
+          
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (div_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "/", mk_div))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (mod_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "%", mk_mod))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (lt_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "<", mk_lt))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (gt_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, ">", mk_gt))))(
+  
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (leq_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "<=", mk_leq))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (geq_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, ">=", mk_geq))))(        
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (eq_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "==", mk_eq))))(        
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (neq_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "!=", mk_neq))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (and_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "&&", mk_and))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (xor_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "xor", mk_xor))))(
+
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)
+    (or_op.then(_ => term().then(t =>
+      expr_after_op_AUX(op, comp_left_right, left, right, t, "||", mk_or))))(
+
+  co_unit(comp_left_right(left, right))))))))))))))))
+
+
+
 let expr : () => Parser = () =>
   term().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(plus_op.then(_ => expr().then(r => co_unit(mk_plus(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(minus_op.then(_ => expr().then(r => co_unit(mk_minus(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(times_op.then(_ => expr().then(r => co_unit(mk_times(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(div_op.then(_ => expr().then(r => co_unit(mk_div(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(mod_op.then(_ => expr().then(r => co_unit(mk_mod(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(lt_op.then(_ => expr().then(r => co_unit(mk_lt(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(gt_op.then(_ => expr().then(r => co_unit(mk_gt(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(leq_op.then(_ => expr().then(r => co_unit(mk_leq(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(geq_op.then(_ => expr().then(r => co_unit(mk_geq(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(eq_op.then(_ => expr().then(r => co_unit(mk_eq(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(neq_op.then(_ => expr().then(r => co_unit(mk_neq(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(and_op.then(_ => expr().then(r => co_unit(mk_and(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(or_op.then(_ => expr().then(r => co_unit(mk_or(l,r)))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(xor_op.then(_ => expr().then(r => co_unit(mk_xor(l,r)))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(plus_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_plus(l,r)), "+"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(minus_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_minus(l,r)), "-"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(times_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_times(l,r)), "*"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(div_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_div(l,r)), "/"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(mod_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_mod(l,r)), "%"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(lt_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_lt(l,r)), "<"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(gt_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_gt(l,r)), ">"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(leq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_leq(l,r)), "<="))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(geq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_geq(l,r)), ">="))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(eq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_eq(l,r)), "=="))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(neq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_neq(l,r)), "!="))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(and_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_and(l,r)), "&&"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(or_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_or(l,r)), "||"))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(xor_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_xor(l,r)), "xor"))))(
+
   co_unit(l)
   )))))))))))))))
 

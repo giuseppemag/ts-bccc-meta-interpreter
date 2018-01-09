@@ -36,7 +36,10 @@ export declare let int_geq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val
 export declare let int_leq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let int_eq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let int_neq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let bool_eq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let bool_neq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let string_eq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let string_neq_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let float_plus_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let float_minus_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let float_times_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>, sr: SourceRange) => ExprRt<Sum<Val, Val>>;
