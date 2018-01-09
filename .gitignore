@@ -1,4 +1,4 @@
 **/node_modules/*
 .vscode/settings.json
-wwwroot/*.js
-wwwroot/*.js.map
+**/wwwroot/**/*.js
+**/wwwroot/**/*.js.map
