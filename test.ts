@@ -148,16 +148,8 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-int fibonacci() {
-  return 1;
-}
-int id(int a, int b) {
-  return a + b;
-}
-int a;
-a = fibonacci();
-int b;
-b = id(1, 2);
+bool b;
+b = false != !false;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

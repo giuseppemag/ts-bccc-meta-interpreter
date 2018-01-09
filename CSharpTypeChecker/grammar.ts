@@ -92,7 +92,6 @@ export module GrammarBasics {
 
   let token = lex_catch(semicolon)(
               lex_catch(comma)(
-              lex_catch(not)(
               lex_catch(and)(
               lex_catch(or)(
               lex_catch(xor)(
@@ -102,6 +101,7 @@ export module GrammarBasics {
               lex_catch(gt)(
               lex_catch(eq)(
               lex_catch(neq)(
+              lex_catch(not)(
               lex_catch(plus)(
               lex_catch(times)(
               lex_catch(int)(
