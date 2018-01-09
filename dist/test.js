@@ -76,7 +76,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x;\nx = 5; \nint y ;\ny = 5;\nwhile(x > 0){\n  int y;\n  y = 5;\n  y = y + 10;\n  x = x - 1;\n}\n";
+        var source = "\nint fibonacci() {\n  return 1;\n}\nint id(int a, int b) {\n  return a + b;\n}\nint a;\na = fibonacci();\nint b;\nb = id(1, 2);\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
