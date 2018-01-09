@@ -1,0 +1,27 @@
+/// <binding />
+var gulp = require("gulp");
+
+// Plugins for CSS compoling
+var sass         = require('gulp-sass'),
+    autoprefixer = require('gulp-autoprefixer'),
+    cleanCSS     = require('gulp-clean-css'),
+    rename       = require('gulp-rename'),
+    mmq          = require('gulp-merge-media-queries');
+
+gulp.task("default", ['stylesheets']);
+
+gulp.task('stylesheets', function() {
+    return gulp.src('./playground/Client/stylesheets/*.scss')
+        .pipe(sass().on('error', sass.logError))
+        .pipe(mmq({log: false}))
+        .pipe(autoprefixer({browsers: ['> 2%', 'last 2 versions'], cascade: false}))
+        .pipe(gulp.dest("./playground/wwwroot/css"))
+      .pipe(rename({ suffix: '.min' }))
+        .pipe(cleanCSS())
+        .pipe(gulp.dest("./playground/wwwroot/css"))
+});
+
+// Watch Stylesheets
+gulp.task('watch', function(callback) {
+    gulp.watch(['./playground/Client/stylesheets/**/*.scss'], ['stylesheets']);
+});
