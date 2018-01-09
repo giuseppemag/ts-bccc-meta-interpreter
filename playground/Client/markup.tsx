@@ -80,7 +80,7 @@ let markupViewer: MarkupViewer = (props: MarkupViewerProps) => {
 
   if (props.mode == "view" || props.mode == "edit") {
     return (
-    <div className="model__attribute markdown">
+    <div className="markdown">
       {/* <label className={`attribute-label attribute-label-${className}`}>
         {i18next.t(capitalize(className))}
       </label> */}
