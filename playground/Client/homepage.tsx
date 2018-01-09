@@ -1,17 +1,19 @@
 import * as Electron from "electron"
-let dialog = Electron.remote.dialog
+import * as MonadicReact from 'monadic_react'
 import * as FS from "fs"
 import * as Path from "path"
 import * as React from "react"
 import * as ReactDOM from "react-dom"
-import { List, Map, Set, Range } from "immutable"
-import * as Immutable from "immutable"
 import * as Moment from 'moment'
 import * as i18next from 'i18next'
+import * as Immutable from "immutable"
+import { List, Map, Set, Range } from "immutable"
 import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range, SourceRange, Bindings, TypeInformation, Type } from 'ts-bccc-meta-compiler'
 import { MarkupComponent } from "./markup"
 import { GraphComponent } from "./graph"
 import { CodeComponent } from './code'
+import { TextComponent } from './text'
+import { TitleComponent } from './title'
 
 import {
   UrlTemplate, application, get_context, Route, Url, make_url, fallback_url, link_to_route,
@@ -21,9 +23,8 @@ import {
   rich_text, paginate, Page, list, editable_list, simple_application, some, none
 } from 'monadic_react'
 
-import * as MonadicReact from 'monadic_react'
-
-
+let dialog = Electron.remote.dialog
+ 
 let default_graph = `{
   "Nodes": [
       {"id": 1, "x": 0, "y": 0, "content": "5", "color":"#56ff56", "highlighting":"#56bb56"},
@@ -87,7 +88,7 @@ let deserialize_document = function <k>(d: string): Document<k> {
 }
 
 let document_editor = (mode: Mode): C<void> => {
-  type BlockKind = "markdown" | "latex" | "image" | "code" | "graph"
+  type BlockKind = "markdown" | "latex" | "image" | "code" | "graph" | "text" | "title"
   type ActualDocumentBlockData = DocumentBlockData<BlockKind>
   type ActualDocumentBlock = DocumentBlock<BlockKind>
   type ActualDocument = Document<BlockKind>
@@ -117,7 +118,17 @@ let document_editor = (mode: Mode): C<void> => {
     ["image", {
       kind: "image", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-image")((block_data: ActualDocumentBlockData) => (
         image(mode))(block_data.content))
-    }]
+    }],
+    ["text", {
+      kind: "text", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-text")((block_data: ActualDocumentBlockData) => 
+      custom<string>()(
+        _ => k => <TextComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
+    }],
+    ["title", {
+      kind: "title", default_content: "", renderer: div<ActualDocumentBlockData,string>("go-slide-text")((block_data: ActualDocumentBlockData) => 
+      custom<string>()(
+        _ => k => <TitleComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
+    }],
   ]
   let blocks = Immutable.Map<BlockKind, ActualDocumentBlock>(raw_blocks)
 
