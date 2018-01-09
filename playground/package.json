@@ -6,6 +6,7 @@
   },
   "version": "1.0.0",
   "scripts": {
+    "start": "yarn run tsc & yarn run electron",
     "electron": "./node_modules/.bin/electron .",
     "tsc": "./node_modules/.bin/webpack -w"
   },

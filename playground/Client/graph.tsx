@@ -36,13 +36,13 @@ interface GraphComponentState {
 
 export class GraphComponent extends React.Component<GraphComponentProps, GraphComponentState> {
     // Parent of the <canvas> element
-    public canvasContainer: HTMLDivElement
+    private canvasContainer: HTMLDivElement
 
     // The <canvas> element
-    public canvas: HTMLCanvasElement
+    private canvas: HTMLCanvasElement
 
     // Drawing context of the canvas
-    public canvasContext: CanvasRenderingContext2D
+    private canvasContext: CanvasRenderingContext2D
 
 
     constructor(props: GraphComponentProps, context?: any) {
