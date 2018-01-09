@@ -552,7 +552,7 @@ let render_grid_pixel_prs : () => Parser = () =>
   ))))
 
 
-let term : () => Parser = () =>
+let term : () => Parser = () : Parser =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(mk_empty_render_grid_prs())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(render_grid_pixel_prs())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(bool)(
@@ -580,95 +580,76 @@ let call : () => Parser = () =>
   co_unit<ParserState,ParserError,ParserRes>(mk_call(f_name, actuals))))))
 
 
-let expr_after_op_AUX = (op:string, comp_left_right:(l:ParserRes, r:ParserRes)=>ParserRes, left:ParserRes, right:ParserRes, t:ParserRes, sym:string, compose_right_t:(l:ParserRes, r:ParserRes)=>ParserRes) =>
-  proprity_operators_table.get(op) >= proprity_operators_table.get(sym) ? 
-    expr_after_op(comp_left_right(left, right), t, (l,r) => compose_right_t(l, r), sym):
-    expr_after_op(right, t, (l,r) => compose_right_t(l, r), sym).then(e => 
-      co_unit(comp_left_right(left, e)))
+let empty_table = {symbols:Immutable.Stack<ParserRes>(), 
+                   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>()}
+let reduce_table = (table:{symbols:Immutable.Stack<ParserRes>, 
+                     ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : ParserRes => {
 
-let expr_after_op = (left:ParserRes, right:ParserRes, comp_left_right:(l:ParserRes, r:ParserRes)=>ParserRes, op:string) : Coroutine<Immutable.List<Token>, string, ParserRes> =>
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (plus_op.then(_ => term().then(t =>
-        expr_after_op_AUX(op, comp_left_right, left, right, t, "+", mk_plus))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (minus_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "-", mk_minus))))(
+  let res = reduce_table_2(table.symbols,table.ops, true)
+  return res.new_top
+}
 
 
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (times_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "*", mk_times))))(
-
-          
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (div_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "/", mk_div))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (mod_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "%", mk_mod))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (lt_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "<", mk_lt))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (gt_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, ">", mk_gt))))(
+let reduce_table_2 = (symbols:Immutable.Stack<ParserRes>, 
+                ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>, reduce_to_end:boolean) : 
+                {new_top: ParserRes, symbols:Immutable.Stack<ParserRes>, ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>} => {
+  if(reduce_to_end && symbols.count() == 1 && ops.count() == 0)
+    return {new_top: symbols.peek(), symbols:symbols.pop(), ops:ops} 
   
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (leq_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "<=", mk_leq))))(
+  let snd = symbols.peek()
+  let fst = symbols.pop().peek()
+  symbols = symbols.pop().pop()
+  let op = ops.peek()
+  let new_top = op.snd(fst, snd)
 
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (geq_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, ">=", mk_geq))))(        
+  if(reduce_to_end)
+    return reduce_table_2(symbols.push(new_top), ops.pop(), reduce_to_end)
+  return {new_top: new_top, symbols:symbols.push(new_top), ops:ops.pop()}
+}
 
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (eq_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "==", mk_eq))))(        
+let expr_after_op = (symbols:Immutable.Stack<ParserRes>, 
+                         ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>, 
+                         current_op:string, 
+                         compose_current:(l:ParserRes, r:ParserRes)=>ParserRes) : Coroutine<Immutable.List<Token>, string,{symbols:Immutable.Stack<ParserRes>, 
+                                                                                                                           ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}> => 
+    {
+      if(ops.count() >= 1 && 
+         symbols.count() >= 2 && proprity_operators_table.get(ops.peek().fst) >= proprity_operators_table.get(current_op)){
+        let res = reduce_table_2(symbols, ops, false)
+        return expr_after_op(res.symbols, res.ops, current_op, compose_current)
+      }
+      return expr_AUX({symbols:symbols, ops: ops.push({fst:current_op,snd:compose_current})})
+    }
 
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (neq_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "!=", mk_neq))))(
+type SymTable = {symbols:Immutable.Stack<ParserRes>, 
+                 ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}
 
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (and_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "&&", mk_and))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (xor_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "xor", mk_xor))))(
-
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)
-    (or_op.then(_ => term().then(t =>
-      expr_after_op_AUX(op, comp_left_right, left, right, t, "||", mk_or))))(
-
-  co_unit(comp_left_right(left, right))))))))))))))))
-
-
-
-let expr : () => Parser = () =>
+let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>, 
+  ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<Immutable.List<Token>, string, SymTable> =>
   term().then(l =>
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(plus_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_plus(l,r)), "+"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(minus_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_minus(l,r)), "-"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(times_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_times(l,r)), "*"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(div_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_div(l,r)), "/"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(mod_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_mod(l,r)), "%"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(lt_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_lt(l,r)), "<"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(gt_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_gt(l,r)), ">"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(leq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_leq(l,r)), "<="))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(geq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_geq(l,r)), ">="))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(eq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_eq(l,r)), "=="))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(neq_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_neq(l,r)), "!="))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(and_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_and(l,r)), "&&"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(or_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_or(l,r)), "||"))))(
-  co_catch<ParserState,ParserError,ParserRes>(both_errors)(xor_op.then(_ => term().then(r => expr_after_op(l, r, ((l,r)=> mk_xor(l,r)), "xor"))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(minus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "-", (l,r)=> mk_minus(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(times_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "*", (l,r)=> mk_times(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(div_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "/", (l,r)=> mk_div(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(mod_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "%", (l,r)=> mk_mod(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(lt_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "<", (l,r)=> mk_lt(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(gt_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, ">", (l,r)=> mk_gt(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(leq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "<=", (l,r)=> mk_leq(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(geq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, ">=", (l,r)=> mk_geq(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(eq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "==", (l,r)=> mk_eq(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(neq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "!=", (l,r)=> mk_neq(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(and_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "&&", (l,r)=> mk_and(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(or_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "||", (l,r)=> mk_or(l,r))))(
+    co_catch<ParserState,ParserError,SymTable>(both_errors)(xor_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "xor", (l,r)=> mk_xor(l,r))))(
+    co_unit({...table, symbols:table.symbols.push(l)})
+    )))))))))))))))
 
-  co_unit(l)
-  )))))))))))))))
 
+let expr = () : Coroutine<Immutable.List<Token>, string, ParserRes> =>
+  {
+    let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
+    return res
+  }
 
   
 let semicolon = ignore_whitespace(semicolon_sign)

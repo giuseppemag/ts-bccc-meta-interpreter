@@ -1,4 +1,12 @@
 "use strict";
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
@@ -466,48 +474,40 @@ var call = function () {
         });
     });
 };
-var expr_after_op_AUX = function (op, comp_left_right, left, right, t, sym, compose_right_t) {
-    return proprity_operators_table.get(op) >= proprity_operators_table.get(sym) ?
-        expr_after_op(comp_left_right(left, right), t, function (l, r) { return compose_right_t(l, r); }, sym) :
-        expr_after_op(right, t, function (l, r) { return compose_right_t(l, r); }, sym).then(function (e) {
-            return ts_bccc_1.co_unit(comp_left_right(left, e));
-        });
+var empty_table = { symbols: Immutable.Stack(),
+    ops: Immutable.Stack() };
+var reduce_table = function (table) {
+    var res = reduce_table_2(table.symbols, table.ops, true);
+    return res.new_top;
 };
-var expr_after_op = function (left, right, comp_left_right, op) {
-    return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "+", mk_plus);
-    }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "-", mk_minus);
-    }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "*", mk_times);
-    }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "/", mk_div);
-    }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "%", mk_mod);
-    }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "<", mk_lt);
-    }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, ">", mk_gt);
-    }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "<=", mk_leq);
-    }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, ">=", mk_geq);
-    }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "==", mk_eq);
-    }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "!=", mk_neq);
-    }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "&&", mk_and);
-    }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "xor", mk_xor);
-    }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return term().then(function (t) {
-        return expr_after_op_AUX(op, comp_left_right, left, right, t, "||", mk_or);
-    }); }))(ts_bccc_1.co_unit(comp_left_right(left, right))))))))))))))));
+var reduce_table_2 = function (symbols, ops, reduce_to_end) {
+    if (reduce_to_end && symbols.count() == 1 && ops.count() == 0)
+        return { new_top: symbols.peek(), symbols: symbols.pop(), ops: ops };
+    var snd = symbols.peek();
+    var fst = symbols.pop().peek();
+    symbols = symbols.pop().pop();
+    var op = ops.peek();
+    var new_top = op.snd(fst, snd);
+    if (reduce_to_end)
+        return reduce_table_2(symbols.push(new_top), ops.pop(), reduce_to_end);
+    return { new_top: new_top, symbols: symbols.push(new_top), ops: ops.pop() };
+};
+var expr_after_op = function (symbols, ops, current_op, compose_current) {
+    if (ops.count() >= 1 &&
+        symbols.count() >= 2 && proprity_operators_table.get(ops.peek().fst) >= proprity_operators_table.get(current_op)) {
+        var res = reduce_table_2(symbols, ops, false);
+        return expr_after_op(res.symbols, res.ops, current_op, compose_current);
+    }
+    return expr_AUX({ symbols: symbols, ops: ops.push({ fst: current_op, snd: compose_current }) });
+};
+var expr_AUX = function (table) {
+    return term().then(function (l) {
+        return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "+", function (l, r) { return mk_plus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "-", function (l, r) { return mk_minus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "*", function (l, r) { return mk_times(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "/", function (l, r) { return mk_div(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "%", function (l, r) { return mk_mod(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<", function (l, r) { return mk_lt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">", function (l, r) { return mk_gt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<=", function (l, r) { return mk_leq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">=", function (l, r) { return mk_geq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "==", function (l, r) { return mk_eq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "!=", function (l, r) { return mk_neq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "&&", function (l, r) { return mk_and(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "||", function (l, r) { return mk_or(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "xor", function (l, r) { return mk_xor(l, r); }); }))(ts_bccc_1.co_unit(__assign({}, table, { symbols: table.symbols.push(l) }))))))))))))))));
+    });
 };
 var expr = function () {
-    return term().then(function (l) {
-        return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_plus(l, r); }), "+"); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_minus(l, r); }), "-"); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_times(l, r); }), "*"); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_div(l, r); }), "/"); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_mod(l, r); }), "%"); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_lt(l, r); }), "<"); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_gt(l, r); }), ">"); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_leq(l, r); }), "<="); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_geq(l, r); }), ">="); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_eq(l, r); }), "=="); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_neq(l, r); }), "!="); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_and(l, r); }), "&&"); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_or(l, r); }), "||"); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return term().then(function (r) { return expr_after_op(l, r, (function (l, r) { return mk_xor(l, r); }), "xor"); }); }))(ts_bccc_1.co_unit(l)))))))))))))));
-    });
+    var res = expr_AUX(empty_table).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
+    return res;
 };
 var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);

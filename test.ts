@@ -150,7 +150,7 @@ export let test_imp = function () {
     let source = `
 int x;
 bool c;
-c = (1 + 2 * 3) > 0;
+c = true == false;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -160,7 +160,7 @@ c = (1 + 2 * 3) > 0;
     let res = CSharp.program_prs().run.f(tokens)
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
 
-    console.log(JSON.stringify(res.value.value.fst)) // ast
+    //console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)
 
