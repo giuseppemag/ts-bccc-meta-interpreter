@@ -9,11 +9,18 @@
   "main": "dist/main.js",
   "scripts": {
     "tsc": "node_modules/.bin/tsc -w",
-    "main": "node dist/test.js"
+    "main": "node dist/test.js",
+    "css": "gulp"
   },
   "author": "Dr. Giuseppe Maggiore",
   "license": "MIT",
   "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-autoprefixer": "^4.1.0",
+    "gulp-clean-css": "^3.9.2",
+    "gulp-merge-media-queries": "^0.2.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^3.1.0",
     "typescript": "^2.6.1"
   },
   "dependencies": {
