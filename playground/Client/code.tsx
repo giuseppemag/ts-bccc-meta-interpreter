@@ -1,5 +1,5 @@
 import * as React from "react"
-import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range, SourceRange, Bindings, TypeInformation, Type } from 'ts-bccc-meta-compiler'
+import { DebuggerStream, get_stream, RenderGrid, Scopes, mk_range, SourceRange, Bindings, TypeInformation, Type, Scope } from 'ts-bccc-meta-compiler'
 
 import {
   UrlTemplate, application, get_context, Route, Url, make_url, fallback_url, link_to_route,
@@ -40,6 +40,11 @@ let find_start_line_from_range = (source: string, range: SourceRange): string =>
   return rows[range.start.row];
 }
 
+let render_scopes = (scopes: Scopes, source: string): JSX.Element[] => {
+let a = scopes.toArray().map(scope => render_scope(scope, source) ).reduce((a,b) => a.concat(b))
+return a
+
+}
 let render_scope = (scope: Scope, source: string): JSX.Element[] => {
   return scope.map((v, k) => {
     if (v == undefined || k == undefined) return <tr />
@@ -103,14 +108,14 @@ let render_debugger_stream = (stream: DebuggerStream, source: string, select_cod
   return <div style={style} key="debugger-stream">
     <table>
       <tbody>
-        {render_scope(state.memory.globals, source)}
+        {render_scopes(state.memory.globals, source)}
         <tr className="debugger__row" key="stack">
           <td className="debugger__cell debugger__cell--variable">Stack </td>
           <td className="debugger__cell debugger__cell--value">
             {state.memory.stack.toArray().map((stack_frame, i) =>
               <table key={`stack-frame-${i}`} className="debugger__table debugger__table--inception">
                 <tbody>
-                  {render_scope(stack_frame, source)}
+                  {render_scopes(stack_frame, source)}
                 </tbody>
               </table>
             )}
