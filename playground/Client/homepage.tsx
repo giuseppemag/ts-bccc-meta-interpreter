@@ -89,12 +89,25 @@ module Option {
   }
 } 
 
+type Tuple<T1, T2> = [T1, T2]
+
 interface AbstractDocumentBlock<k> { kind: k, renderer: (_: AbstractDocumentBlockData<k>) => C<string>, default_content: string }
 interface AbstractDocumentBlockData<k> { kind: k, content: string, order_by: number }
 interface AbstractDocument<k> { blocks: Immutable.Map<number, AbstractDocumentBlockData<k>> }
 interface AbstractDocumentCollection<l, k> { documents: Immutable.Map<l, AbstractDocument<k>> }
 
-let serialize_document = <l, k>(d: AbstractDocumentCollection<l, k>): string => {  }
+let serialize_document = <l, k>(d: AbstractDocumentCollection<l, k>): string => { 
+  let s: Array<Tuple<l, Array<Tuple<number, AbstractDocumentBlockData<k>>>>> = d.documents.map((ovu, oku) => {
+    let ok = oku as l
+    let ov = ovu as AbstractDocument<k>
+    return [ok, ov.blocks.map((ivu, iku) => {
+      let ik = iku as number
+      let iv = ivu as AbstractDocumentBlockData<k>
+      return [ik, iv]
+    }).toArray()]
+  }).toArray()
+  return JSON.stringify(s)
+}
 
 let deserialize_document = function <l, k>(d: string): AbstractDocumentCollection<l, k> { }
 
@@ -247,16 +260,19 @@ let document_editor = (mode: Mode): C<void> => {
           )(d))),
         fun(_ => div<EditorState, EditorState>()( m => string("view")("hello").ignore_with(m)))
       ).f(es.language)(es),
+      es => Option.visit<DocumentLanguage, (_: EditorState) => C<EditorState>>(
+        fun(language => retract<EditorState, Document>("document-editor-add-block-retract")(
+          e => e.collection.documents.get(language), 
+          e => d => ({ ...e, collection: { documents: e.collection.documents.set(language, d) } }),
+          any<Document, Document>("document-editor-add-block", "editor__suggestions cf")(
+            raw_blocks.map(rb => (d: Document) =>
+              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ =>
+                unit<Document>({ ...d, blocks: d.blocks.set(d.blocks.keySeq().count() > 0 ? d.blocks.keySeq().max() + 1 : 0, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
+            )
+          ))),
+        fun(_ =>  div<EditorState, EditorState>()( m => string("view")("hello").ignore_with(m)))
+      ).f(es.language)(es)
       
-      retract<EditorState, Document>("document-editor-add-block-retract")(
-        e => e.collection.documents.get(e.language), 
-        e => d => ({ ...e, collection: { documents: e.collection.documents.set(e.language, d) } }),
-        any<Document, Document>("document-editor-add-block", "editor__suggestions cf")(
-          raw_blocks.map(rb => (d: Document) =>
-            button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ =>
-              unit<Document>({ ...d, blocks: d.blocks.set(d.blocks.keySeq().count() > 0 ? d.blocks.keySeq().max() + 1 : 0, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
-          )
-        ))
     ]
     )
   )(initial_state).never()
