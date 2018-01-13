@@ -111,7 +111,7 @@ export let test_imp = function () {
             body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
                  CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
                  CSharp.done)),
-            range: mk_range(1,1,1,1), 
+            range: mk_range(1,1,1,1),
             parameters:[{ name:"k", type:CSharp.int_type}],
             return_t:CSharp.unit_type
           }],
@@ -148,8 +148,14 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-bool b;
-b = false != !false;
+class Vector2 {
+  int x;
+  int y;
+
+  int hello(int x) {
+    return x;
+  }
+}
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

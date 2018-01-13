@@ -25,6 +25,8 @@ export declare type Token = ({
 } | {
     kind: "else";
 } | {
+    kind: "class";
+} | {
     kind: "id";
     v: string;
 } | {
@@ -108,7 +110,7 @@ export interface IfAST {
 export interface DeclAST {
     kind: "decl";
     l: ParserRes;
-    r: ParserRes;
+    r: string;
 }
 export interface AssignAST {
     kind: "=";
@@ -133,6 +135,12 @@ export interface ArgsAST {
     kind: "args";
     value: Immutable.List<DeclAST>;
 }
+export interface ClassAST {
+    kind: "class";
+    C_name: string;
+    fields: Immutable.List<DeclAST>;
+    methods: Immutable.List<FunctionDeclarationAST>;
+}
 export interface BinOpAST {
     kind: BinOpKind;
     l: ParserRes;
@@ -141,12 +149,6 @@ export interface BinOpAST {
 export interface UnaryOpAST {
     kind: UnaryOpKind;
     e: ParserRes;
-}
-export interface FunDefAST {
-    kind: "fun";
-    n: IdAST;
-    args: Array<AST>;
-    body: AST;
 }
 export interface MkEmptyRenderGrid {
     kind: "mk-empty-render-grid";
@@ -161,9 +163,9 @@ export interface MkRenderGridPixel {
 }
 export interface FunctionDeclarationAST {
     kind: "func_decl";
-    name: ParserRes;
+    name: string;
     return_type: ParserRes;
-    arg_decls: ParserRes;
+    arg_decls: Immutable.List<DeclAST>;
     body: ParserRes;
 }
 export interface FunctionCallAST {
@@ -171,7 +173,7 @@ export interface FunctionCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | FunDefAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

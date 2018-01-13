@@ -1,13 +1,22 @@
 "use strict";
-var sample = "\n// generic type composition\n(infix) type . = F::(*=>*) => G::(*=>*) => a::* => F(G a)\n\n// generic type endo-composition\n(infix) type ^ = F::(*=>*) => n::int => if n = 0 then Id else F . F\n\n// functors only have a map function\ntype Functor = F::(*=>*) => {\n  map : a::* => b::* => (a->b) -> (F a -> F b)\n}\n\n// monads have unit (eta) and join (mu)\ntype Monad = M::(*=>*) => Functor M => {\n  eta : a::* => (a -> M a)\n  mu  : a::* => (M^2 a) => M a\n}\n\n// identity function\nlet id : a::* => a -> a\n\n// function composition\n(infix) let . : a::* => b::* => c::* => (f:b->c) -> (g:a->b) -> (x:a) -> c = f(g x)\n\n// function composition (other way around)\n(infix) let ; : a::* => b::* => c::* => (f:a->b) -> (g:b->c) -> (x:a) -> c = g(f x)\n\n// identity functor: does nothing\ntype Id = a::* => a\nlet Id_Functor : Functor Id = {\n  map : a::* => (x:a) -> x\n}\n\n// identity monad (also does nothing)\nlet Id_Monad : Monad Id Id_Functor = {\n  eta : a::* => id a\n  mu  : a::* => id a\n}\n\n(infix) type * = F::(*=>*) => G::(*=>*) => a::* => b::* => a -> b -> {\n  x : a\n  y : b\n}\n\ntype Product = (infix) *::(*=>*=>*) => a::* => b::* => {\n  fst       : a*b -> a\n  snd       : a*b -> b\n  (infix) * : c::* => (f:c->a) -> (g:c->b) -> (c->a*b)\n  bi_map    : a'::* => b'::* => (f:a->a') -> (g:a->a') -> (a*b -> a'*b')\n}\n\n(infix) type * = a::* => b::* => { x:a, y:b }\nlet Product : a::* => b::* => Product (*) a b = {\n  fst = (p:a*b) -> p.x\n  snd = (p:a*b) -> p.y\n  *   = c::* => (f:c->a) -> (g:c->a) -> (c->a*b)\n  bi_map = a'::* => b'::* => (f:a->a') -> (g:a->a') -> (fst;f * snd;g)\n}\n\ntype Sum = (infix) +::(*=>*=>*) => a::* => b::* => {\n  inl       : a::* => b::* => a -> a+b\n  inr       : a::* => b::* => b -> a+b\n  (infix) + : c::* => (f:a->c) -> (g:b->c) -> (a+b->c)\n  bi_map    : a'::* => b'::* => (f:a->a') -> (g:a->a') -> (a+b -> a'+b')\n}\n\n\n";
+var sample = "\n// generic type composition\n(infix 0) type . = F::(*=>*) => G::(*=>*) => a::* => F(G a)\n\n// generic type endo-composition\n(infix 5) type ^ = F::(*=>*) => n::int => if n = 0 then Id else F . F\n\n// functors only have a map function\ntype Functor = F::(*=>*) => {\n  map : a::* => b::* => (a->b) -> (F a -> F b)\n}\n\n// identity functor: does nothing\ntype Id = a::* => a\nlet Id_Functor : Functor Id = {\n  map : a::* => a -> a = x -> x\n}\n\n// monads have unit (eta) and join (mu)\ntype Monad = M::(*=>*) => Functor M => {\n  eta : a::* => (Id a -> M a)\n  mu  : a::* => (M^2 a) => M a\n}\n\n// identity function\nlet id : a::* => a -> a = x -> x\n\n// function composition\n(infix) let . : a::* => b::* => c::* => (b->c) -> (a->b) -> a -> c = f -> g -> x -> f(g x)\n\n// function composition (other way around)\n(infix) let ; : a::* => b::* => c::* => (a->b) -> (b->c) -> a -> c = f -> g -> x -> g(f x)\n\n// identity monad (also does nothing)\nlet Id_Monad : Monad Id Id_Functor = {\n  eta : a::* => Id a -> a = x -> x\n  mu  : a::* => Id^2 a -> Id a = x -> x\n}\n\n(infix) type * = F::(*=>*) => G::(*=>*) => a::* => b::* => a -> b -> {\n  x : a\n  y : b\n}\n\nlet fst : a:* => b:* => a*b -> a = p -> p.x\nlet snd : a:* => b:* => a*b -> b = p -> p.y\n\n(infix) let <*> : a::* => b::* => c::* => (c->a) -> (c->b) -> (c->a*b) = f -> g -> x -> { x:f x, y:g y }\n\ntype BiFunctor = F::(*=>*=>*) => {\n  map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (F a b -> F a' b')\n}\n\nlet PairFunctor : BiFunctor * => {\n  map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (a*b -> a'*b') = f -> g -> (fst;f) <*> (snd;g)\n}\n\n(infix) type + = F::(*=>*) => G::(*=>*) => a::* => b::* => a -> b -> { k:\"l\", v:a } | { k:\"r\", v:b }\n\nlet inl : a:* => b:* => a -> a+b = x -> { k:\"l\", v:x }\nlet inr : a:* => b:* => b -> a+b = x -> { k:\"r\", v:x }\n\n(infix) let <+> : a::* => b::* => c::* => (a->c) -> (b->c) -> (a+b->c) = f -> g -> x -> if x.k == \"l\" then f x.v else g x.v\n\nlet SumFunctor : BiFunctor + => {\n  map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (a+b -> a'+b') = f -> g -> (f;inl) <+> (g;inr)\n}\n\ntype One = {}\nlet unit : a::* => a -> 1 = x -> {}\n\ntype Zero = error\nlet absurd : a::* => 0 -> a = x -> error\n\n(infix) type ^ : b::* => a::* => a->b\n\ntype LeftFunctor = F::(*=>*=>*) => Bi_F::BiFunctor F => c::* => {\n  map\n} : Functor (a::* => F a c)\n\n";
 /*
 TODO:
 [ ] language selector in playground!!!
 
-[ ] pairs (over functors)
-[ ] sums (over functors)
+[ ] pairs
+  [x] basic
+  [ ] bifunctor
+  [ ] left/right functors
+[ ] sums
+  [x] basic
+  [ ] bifunctor
+  [ ] left/right functors
 [ ] exponents (over functors)
-[ ] hom-functors
+  [x] basic
+  [ ] profunctor
+  [ ] left/right functor/cofunctor
+[ ] identities
 [ ] pro-functors
 [ ] option monad
 [ ] do-notation

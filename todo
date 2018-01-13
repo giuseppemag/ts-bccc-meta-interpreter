@@ -1,4 +1,5 @@
-[ ] IMP TYPE CHECKER
+[ ] Create GrandeOmegaShared private repository
+[ ] C#
   [ ] File management
     [ ] Split into multiple files
       [ ] Bindings.ts becomes a whole directory of files
@@ -10,16 +11,14 @@
       [ ] Covariance/contravariance in function calls and variable assignments
     [ ] Structs
     [ ] Tuples
+    [ ] Records
     [ ] Static methods
+      [ ] Definition
+      [ ] Call
     [ ] Extension methods
-    [ ] LINQ
-[ ] IMP PARSER
   [ ] Functions
     [ ] Lambda's (requires Func and generics in type-checker)
-    [ ] Inner, outer, function statements
-    [ ] Type of branches in if-then-else vs return type for function
     [ ] Closure
-    [ ] Unreachable statements (return x; ...)
   [ ] Statements
     [ ] Full declaration and assignment (`int x = 10;`)
     [/] Assignment
@@ -28,26 +27,28 @@
         [ ] To set field
       [ ] Right-hand
         [ ] Field get
-        [ ] Basic (non-recursive) arithmetic expressions
-          [ ] - (unary)
-        [ ] Constructor
-        [ ] Method call
     [ ] For
+    [ ] ForEach
+    [ ] LINQ
+    [ ] yield return
+    [ ] pattern matching
   [ ] Classes
     [ ] Def
+      [ ] fields
+      [ ] methods
+      [ ] constructor
     [ ] Method call
+    [ ] Constructor call
+    [ ]
   [ ] Left out for first viability test
     [ ] Proper (recursive) field lookups
-    [ ] Proper (recursive) expressions
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
     [ ] Are lambda arguments properly checked at both run-time and compile-time
     [ ] How are nested errors propagated (for example, the errors inside the body of a while or inside the body of a function)?
-  [ ] variable scope inside if's and while's
 
 [ ] Highlighting
   [ ] Use both start and end
   [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value
-  [ ] `mk_lambda` must also accept the range for rendering in the state
 
 [ ] Required for basic quality but not basic functionality
   [ ] breakpoint right after return (`ret_break?`)

@@ -76,7 +76,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nbool b;\nb = false != !false;\n";
+        var source = "\nclass Vector2 {\n  int x;\n  int y;\n\n  int hello(int x) {\n    return x;\n  }\n}\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

@@ -406,7 +406,7 @@ export let while_do = function(c:Stmt, b:Stmt) : Stmt {
 
 export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
   return p.then(p_t =>
-         q.then(q_t =>          
+         q.then(q_t =>
            co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
             let f:Sem.ExprRt<Sum<Sem.Val,Sem.Val>> = co_unit(apply(inr<Sem.Val,Sem.Val>(), res.value))
             return res.kind == "left" ? q_t.sem : f
