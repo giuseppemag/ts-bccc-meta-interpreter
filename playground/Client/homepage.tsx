@@ -82,12 +82,12 @@ while (x < 16) {
 }`
 
 module Option {
-  export let some = function <a> (): Fun<a, Sum<a, Unit>> { return fun(x => inl<a, Unit>().f(x)) }
-  export let none = function <a> ():     Fun<Unit, Sum<a, Unit>> { return fun(x => inr<a, Unit>().f(x)) }
-  export let visit = function <a, b> (onSome: Fun<a, b>, onNone: Fun<Unit, b>): Fun<Sum<a, Unit>, b> { 
-    return fun(x => x.kind == "left" ? onSome.f(x.value) : onNone.f(x.value)) 
+  export let some = function <a>(): Fun<a, Sum<a, Unit>> { return fun(x => inl<a, Unit>().f(x)) }
+  export let none = function <a>(): Fun<Unit, Sum<a, Unit>> { return fun(x => inr<a, Unit>().f(x)) }
+  export let visit = function <a, b>(onSome: Fun<a, b>, onNone: Fun<Unit, b>): Fun<Sum<a, Unit>, b> {
+    return fun(x => x.kind == "left" ? onSome.f(x.value) : onNone.f(x.value))
   }
-} 
+}
 
 type Tuple<T1, T2> = [T1, T2]
 
@@ -96,20 +96,36 @@ interface AbstractDocumentBlockData<k> { kind: k, content: string, order_by: num
 interface AbstractDocument<k> { blocks: Immutable.Map<number, AbstractDocumentBlockData<k>> }
 interface AbstractDocumentCollection<l, k> { documents: Immutable.Map<l, AbstractDocument<k>> }
 
-let serialize_document = <l, k>(d: AbstractDocumentCollection<l, k>): string => { 
-  let s: Array<Tuple<l, Array<Tuple<number, AbstractDocumentBlockData<k>>>>> = d.documents.map((ovu, oku) => {
-    let ok = oku as l
-    let ov = ovu as AbstractDocument<k>
-    return [ok, ov.blocks.map((ivu, iku) => {
-      let ik = iku as number
-      let iv = ivu as AbstractDocumentBlockData<k>
-      return [ik, iv]
-    }).toArray()]
+type AbstractDocumentCollectionSave<l, k> = [l, [number, AbstractDocumentBlockData<k>][]][]
+
+let serialize_document_collection = <l, k>(d: AbstractDocumentCollection<l, k>): string => {
+  // This is to inform the typesystem that it is a tuple returned from the map.
+  let make_tuple = <A, B>(a: A, b: B): [A, B] => [a, b]
+  let serial: AbstractDocumentCollectionSave<l, k> = d.documents.map((d, k) => {
+    let documentKey = k as l
+    let document = d as AbstractDocument<k>
+    return make_tuple(documentKey, document.blocks.map((b, k) => {
+      let blockKey = k as number
+      let block = b as AbstractDocumentBlockData<k>
+      return make_tuple(blockKey, block)
+    }).toArray())
   }).toArray()
-  return JSON.stringify(s)
+  return JSON.stringify(serial)
 }
 
-let deserialize_document = function <l, k>(d: string): AbstractDocumentCollection<l, k> { }
+let deserialize_document_collection = function <l, k>(c: string): AbstractDocumentCollection<l, k> {
+  let serial = JSON.parse(c) as AbstractDocumentCollectionSave<l, k>
+  let documents = serial.map((d): [l, AbstractDocument<k>] => {
+    let [language, document] = d
+    let blocks = document.reduce(
+      (acc, val) => acc.set(val[0], val[1]),
+      Immutable.Map<number, AbstractDocumentBlockData<k>>())
+    return [language, { blocks: blocks }]
+  }).reduce((acc: Immutable.Map<l, AbstractDocument<k>>, val) =>
+    acc.set(val[0], val[1]),
+    Immutable.Map<l, AbstractDocument<k>>())
+  return { documents: documents }
+}
 
 let document_editor = (mode: Mode): C<void> => {
   type BlockKind = "markdown" | "latex" | "image" | "code" | "graph" | "text" | "title"
@@ -117,6 +133,7 @@ let document_editor = (mode: Mode): C<void> => {
   type DocumentBlock = AbstractDocumentBlock<BlockKind>
   type Document = AbstractDocument<BlockKind>
   type DocumentLanguage = "en" | "nl"
+  let selectableLanguages: DocumentLanguage[] = ["en", "nl"]
   type DocumentCollection = AbstractDocumentCollection<DocumentLanguage, BlockKind>
   let DocumentCollectionNew = (): DocumentCollection => ({ documents: Immutable.Map([{ document: { blocks: Immutable.Map<number, DocumentBlockData>() } }]) })
 
@@ -162,17 +179,19 @@ let document_editor = (mode: Mode): C<void> => {
   interface EditorState { collection: DocumentCollection, language: Option<DocumentLanguage>, current_path: Option<string> }
 
   let last_open_file = window.localStorage.getItem("last_open_file")
-  
-  let initial_state: EditorState = { 
-    collection: DocumentCollectionNew(), 
-    language: Option.none<DocumentLanguage>().f({}), 
-    current_path: Option.none<string>().f({}) }
+
+  let initial_state: EditorState = {
+    collection: DocumentCollectionNew(),
+    language: Option.none<DocumentLanguage>().f({}),
+    current_path: Option.none<string>().f({})
+  }
 
   if (last_open_file != null)
-    initial_state = { 
-      collection: deserialize_document(FS.readFileSync(last_open_file, "utf8")), 
-      language: Option.none<DocumentLanguage>().f({}), 
-      current_path: Option.some<string>().f(last_open_file) }
+    initial_state = {
+      collection: deserialize_document_collection(FS.readFileSync(last_open_file, "utf8")),
+      language: Option.none<DocumentLanguage>().f({}),
+      current_path: Option.some<string>().f(last_open_file)
+    }
 
   return repeat<EditorState>("document-editor-repeat")(
     any<EditorState, EditorState>("document-editor-main")([
@@ -187,7 +206,7 @@ let document_editor = (mode: Mode): C<void> => {
               if (fileName === undefined)
                 return reject("invalid path")
               window.localStorage.setItem("last_open_file", fileName)
-              FS.writeFile(fileName, serialize_document(d.collection), (err) => {
+              FS.writeFile(fileName, serialize_document_collection(d.collection), (err) => {
                 if (err) {
                   reject(err.message)
                 } else {
@@ -207,7 +226,7 @@ let document_editor = (mode: Mode): C<void> => {
                 if (err) {
                   reject(err.message)
                 } else {
-                  resolve({ collection: deserialize_document(buffer), language: Option.none<DocumentLanguage>().f({}), current_path: Option.some<string>().f(fileNames[0]) })
+                  resolve({ collection: deserialize_document_collection(buffer), language: Option.none<DocumentLanguage>().f({}), current_path: Option.some<string>().f(fileNames[0]) })
                 }
               })
             })
@@ -218,7 +237,7 @@ let document_editor = (mode: Mode): C<void> => {
             if (d.current_path.kind == "right")
               return reject("invalid path")
             let fileName = d.current_path.value
-            FS.writeFile(fileName, serialize_document(d.collection), (err) => {
+            FS.writeFile(fileName, serialize_document_collection(d.collection), (err) => {
               if (err) {
                 reject(err.message)
               } else {
@@ -226,11 +245,16 @@ let document_editor = (mode: Mode): C<void> => {
               }
             })
           }), "never")({})
-        })
+        }),
+       // d => retract<EditorState, Option<DocumentLanguage>>("document-language-retract")(
+       //   es => es.language,
+       //   es => l => ({...es, language: l }),
+       //   l => selector<Option<DocumentLanguage>>("dropdown", l => l.kind == "r")
+       // )(d)
       ]),
       es => Option.visit<DocumentLanguage, (_: EditorState) => C<EditorState>>(
         fun(language => retract<EditorState, Document>("document-editor-document-retract")(
-          e => e.collection.documents.get(language), 
+          e => e.collection.documents.get(language),
           e => d => ({ ...e, collection: { documents: e.collection.documents.set(language, d) } }),
           d => any<Document, Document>("document-editor-blocks")(
             d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
@@ -244,7 +268,7 @@ let document_editor = (mode: Mode): C<void> => {
                   if (predecessors.isEmpty()) return unit<Document>({ ...d })
                   let predecessor = predecessors.maxBy(s => s && s.order_by)
                   let p_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == predecessor.order_by })
-  
+
                   return unit<Document>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
                 }),
                 d => button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
@@ -252,17 +276,17 @@ let document_editor = (mode: Mode): C<void> => {
                   if (successors.isEmpty()) return unit<Document>({ ...d })
                   let successor = successors.minBy(s => s && s.order_by)
                   let s_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == successor.order_by })
-  
+
                   return unit<Document>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: successor.order_by }).set(s_k, { ...successor, order_by: b.order_by }) })
                 })
               ])
             }).toArray()
           )(d))),
-        fun(_ => div<EditorState, EditorState>()( m => string("view")("hello").ignore_with(m)))
+        fun(_ => div<EditorState, EditorState>('document-editor-hidden', 'document-editor-hidden')(s => unit(s).never('document-editor-hidden-never')))
       ).f(es.language)(es),
       es => Option.visit<DocumentLanguage, (_: EditorState) => C<EditorState>>(
         fun(language => retract<EditorState, Document>("document-editor-add-block-retract")(
-          e => e.collection.documents.get(language), 
+          e => e.collection.documents.get(language),
           e => d => ({ ...e, collection: { documents: e.collection.documents.set(language, d) } }),
           any<Document, Document>("document-editor-add-block", "editor__suggestions cf")(
             raw_blocks.map(rb => (d: Document) =>
@@ -270,9 +294,8 @@ let document_editor = (mode: Mode): C<void> => {
                 unit<Document>({ ...d, blocks: d.blocks.set(d.blocks.keySeq().count() > 0 ? d.blocks.keySeq().max() + 1 : 0, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
             )
           ))),
-        fun(_ =>  div<EditorState, EditorState>()( m => string("view")("hello").ignore_with(m)))
+        fun(_ => div<EditorState, EditorState>('document-editor-hidden', 'document-editor-add-block-hidden')(s => unit(s).never('document-editor-add-block-hidden-never')))
       ).f(es.language)(es)
-      
     ]
     )
   )(initial_state).never()
