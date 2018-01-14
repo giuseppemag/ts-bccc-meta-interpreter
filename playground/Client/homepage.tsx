@@ -196,6 +196,20 @@ let document_editor = (mode: Mode): C<void> => {
   return repeat<EditorState>("document-editor-repeat")(
     any<EditorState, EditorState>("document-editor-main")([
       any<EditorState, EditorState>("document-editor-save-load", "toolbar__operations")([
+        d => retract<EditorState, Option<DocumentLanguage>>('language-select')(
+          es => es.language,
+          es => l => {
+            let documents = es.collection.documents
+            if (l.kind == "left" && !documents.has(l.value)) {
+              documents = documents.set(l.value, { blocks: Immutable.Map() })
+            } 
+            return {...es, language: l, collection: { documents: documents }} 
+          },
+          l => selector<Option<DocumentLanguage>>("dropdown", o => o.kind == "left" ? o.value : "None")(
+            selectableLanguages.map(l => Option.some<DocumentLanguage>().f(l)).concat([ Option.none<DocumentLanguage>().f({}) ]),
+            l
+          )
+        )(d),
         d => button(`New`, false, `button-new`, "button--small")({}).then(`new-document`, _ => {
           window.localStorage.removeItem("last_open_file")
           return unit<EditorState>({ collection: { documents: Immutable.Map() }, language: inr<DocumentLanguage, Unit>().f({}), current_path: inr<string, Unit>().f({}) })
