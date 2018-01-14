@@ -8,7 +8,7 @@ import * as Moment from 'moment'
 import * as i18next from 'i18next'
 import * as Immutable from "immutable"
 import { List, Map, Set, Range } from "immutable"
-import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range, SourceRange, Bindings, TypeInformation, Type } from 'ts-bccc-meta-compiler'
+import { DebuggerStream, get_stream, RenderGrid, Scope, mk_range, SourceRange, Bindings, TypeInformation, Type, plus } from 'ts-bccc-meta-compiler'
 import { MarkupComponent } from "./markup"
 import { GraphComponent } from "./graph"
 import { CodeComponent } from './code'
@@ -17,14 +17,17 @@ import { TitleComponent } from './title'
 
 import {
   UrlTemplate, application, get_context, Route, Url, make_url, fallback_url, link_to_route,
-  Option, C, Mode, unit, bind, string, number, bool, button, selector, multi_selector, label, h1, h2, div, form, image, link, file, overlay,
+  C, Mode, unit, bind, string, number, bool, button, selector, multi_selector, label, h1, h2, div, form, image, link, file, overlay,
   custom, repeat, all, any, lift_promise, retract, delay,
   simple_menu, mk_menu_entry, mk_submenu_entry, MenuEntry, MenuEntryValue, MenuEntrySubMenu,
-  rich_text, paginate, Page, list, editable_list, simple_application, some, none
+  rich_text, paginate, Page, list, editable_list, simple_application
 } from 'monadic_react'
 
+import { isNullOrUndefined } from "util";
+import { Fun, Option, Sum, inr, Unit, inl, fun } from "ts-bccc";
+
 let dialog = Electron.remote.dialog
- 
+
 let default_graph = `{
   "Nodes": [
       {"id": 1, "x": 0, "y": 0, "content": "5", "color":"#56ff56", "highlighting":"#56bb56"},
@@ -70,81 +73,132 @@ while (x < 16) {
     if (((y + x) % 2) == 1) {
       g = g + pixel x y true;
       debugger;
-    }
+    }pecially if you live anywhere near Rotterdam (and if you do not, come take a look at the coolest city ever!), drop us a line and let’s have a chat. Moreover, all we discussed in this article is used in practice: at Hoppinger we build all sorts of cool applications with these techniques, and more.
+
+
     y = y + 1;
   }
   x = x + 1;
 }`
 
-interface DocumentBlock<k> { kind: k, renderer: (_: DocumentBlockData<k>) => C<string>, default_content: string }
-interface DocumentBlockData<k> { kind: k, content: string, order_by: number }
-interface Document<k> { blocks: Immutable.Map<number, DocumentBlockData<k>>, next_key: number }
-let serialize_document = function <k>(d: Document<k>): string {
-  return JSON.stringify({ ...d, blocks: d.blocks.map((v, k) => ({ value: v, key: k })).toArray() })
+module Option {
+  export let some = function <a>(): Fun<a, Sum<a, Unit>> { return fun(x => inl<a, Unit>().f(x)) }
+  export let none = function <a>(): Fun<Unit, Sum<a, Unit>> { return fun(x => inr<a, Unit>().f(x)) }
+  export let visit = function <a, b>(onSome: Fun<a, b>, onNone: Fun<Unit, b>): Fun<Sum<a, Unit>, b> {
+    return fun(x => x.kind == "left" ? onSome.f(x.value) : onNone.f(x.value))
+  }
 }
-let deserialize_document = function <k>(d: string): Document<k> {
-  let raw_data: { blocks: Array<{ value: DocumentBlockData<k>, key: number }>, next_key: number } = JSON.parse(d)
-  return { ...raw_data, blocks: Immutable.Map<number, DocumentBlockData<k>>(raw_data.blocks.map(b => [b.key, b.value])) }
+
+type Tuple<T1, T2> = [T1, T2]
+
+interface AbstractDocumentBlock<k> { kind: k, renderer: (_: AbstractDocumentBlockData<k>) => C<string>, default_content: string }
+interface AbstractDocumentBlockData<k> { kind: k, content: string, order_by: number }
+interface AbstractDocument<k> { blocks: Immutable.Map<number, AbstractDocumentBlockData<k>> }
+interface AbstractDocumentCollection<l, k> { documents: Immutable.Map<l, AbstractDocument<k>> }
+
+type AbstractDocumentCollectionSave<l, k> = [l, [number, AbstractDocumentBlockData<k>][]][]
+
+let serialize_document_collection = <l, k>(d: AbstractDocumentCollection<l, k>): string => {
+  // This is to inform the typesystem that it is a tuple returned from the map.
+  let make_tuple = <A, B>(a: A, b: B): [A, B] => [a, b]
+  let serial: AbstractDocumentCollectionSave<l, k> = d.documents.map((d, k) => {
+    let documentKey = k as l
+    let document = d as AbstractDocument<k>
+    return make_tuple(documentKey, document.blocks.map((b, k) => {
+      let blockKey = k as number
+      let block = b as AbstractDocumentBlockData<k>
+      return make_tuple(blockKey, block)
+    }).toArray())
+  }).toArray()
+  return JSON.stringify(serial)
+}
+
+let deserialize_document_collection = function <l, k>(c: string): AbstractDocumentCollection<l, k> {
+  let serial = JSON.parse(c) as AbstractDocumentCollectionSave<l, k>
+  let documents = serial.map((d): [l, AbstractDocument<k>] => {
+    let [language, document] = d
+    let blocks = document.reduce(
+      (acc, val) => acc.set(val[0], val[1]),
+      Immutable.Map<number, AbstractDocumentBlockData<k>>())
+    return [language, { blocks: blocks }]
+  }).reduce((acc: Immutable.Map<l, AbstractDocument<k>>, val) =>
+    acc.set(val[0], val[1]),
+    Immutable.Map<l, AbstractDocument<k>>())
+  return { documents: documents }
 }
 
 let document_editor = (mode: Mode): C<void> => {
   type BlockKind = "markdown" | "latex" | "image" | "code" | "graph" | "text" | "title"
-  type ActualDocumentBlockData = DocumentBlockData<BlockKind>
-  type ActualDocumentBlock = DocumentBlock<BlockKind>
-  type ActualDocument = Document<BlockKind>
+  type DocumentBlockData = AbstractDocumentBlockData<BlockKind>
+  type DocumentBlock = AbstractDocumentBlock<BlockKind>
+  type Document = AbstractDocument<BlockKind>
+  type DocumentLanguage = "en" | "nl"
+  let selectableLanguages: DocumentLanguage[] = ["en", "nl"]
+  type DocumentCollection = AbstractDocumentCollection<DocumentLanguage, BlockKind>
+  let DocumentCollectionNew = (): DocumentCollection => ({ documents: Immutable.Map([{ document: { blocks: Immutable.Map<number, DocumentBlockData>() } }]) })
 
-  let raw_blocks: Array<[BlockKind, ActualDocumentBlock]> = [
+  let raw_blocks: Array<[BlockKind, DocumentBlock]> = [
     ["graph", {
-      kind: "graph", default_content: default_graph, renderer: div<ActualDocumentBlockData,string>("slide slide--graph")((block_data: ActualDocumentBlockData) =>
+      kind: "graph", default_content: default_graph, renderer: div<DocumentBlockData, string>("slide slide--graph")((block_data: DocumentBlockData) =>
         custom<string>()(
           _ => k => <GraphComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />)
       )
     }],
     ["code", {
-      kind: "code", default_content: default_program, renderer: div<ActualDocumentBlockData,string>("slide slide--latex")((block_data: ActualDocumentBlockData) =>
+      kind: "code", default_content: default_program, renderer: div<DocumentBlockData, string>("slide slide--latex")((block_data: DocumentBlockData) =>
         custom<string>()(
           _ => k => <CodeComponent code={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
     ["markdown", {
-      kind: "markdown", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--markdown")((block_data: ActualDocumentBlockData) =>
+      kind: "markdown", default_content: "", renderer: div<DocumentBlockData, string>("slide slide--markdown")((block_data: DocumentBlockData) =>
         custom<string>()(
           _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="Markdown" />))
     }],
     ["latex", {
-      kind: "latex", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--latex")((block_data: ActualDocumentBlockData) =>
+      kind: "latex", default_content: "", renderer: div<DocumentBlockData, string>("slide slide--latex")((block_data: DocumentBlockData) =>
         custom<string>()(
           _ => k => <MarkupComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} kind="LaTeX" />))
     }],
     ["image", {
-      kind: "image", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--image")((block_data: ActualDocumentBlockData) => (
+      kind: "image", default_content: "", renderer: div<DocumentBlockData, string>("slide slide--image")((block_data: DocumentBlockData) => (
         image(mode))(block_data.content))
     }],
     ["text", {
-      kind: "text", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--text")((block_data: ActualDocumentBlockData) => 
-      custom<string>()(
-        _ => k => <TextComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
+      kind: "text", default_content: "", renderer: div<DocumentBlockData, string>("slide slide--text")((block_data: DocumentBlockData) =>
+        custom<string>()(
+          _ => k => <TextComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
     ["title", {
-      kind: "title", default_content: "", renderer: div<ActualDocumentBlockData,string>("slide slide--text")((block_data: ActualDocumentBlockData) => 
-      custom<string>()(
-        _ => k => <TitleComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
+      kind: "title", default_content: "", renderer: div<DocumentBlockData, string>("slide slide--text")((block_data: DocumentBlockData) =>
+        custom<string>()(
+          _ => k => <TitleComponent content={block_data.content} set_content={c => k(() => { })(c)} mode={mode} />))
     }],
   ]
-  let blocks = Immutable.Map<BlockKind, ActualDocumentBlock>(raw_blocks)
+  let blocks = Immutable.Map<BlockKind, DocumentBlock>(raw_blocks)
 
-  interface EditorState { document: ActualDocument, current_path: Option<string> }
+  interface EditorState { collection: DocumentCollection, language: Option<DocumentLanguage>, current_path: Option<string> }
 
   let last_open_file = window.localStorage.getItem("last_open_file")
-  let initial_state: EditorState = { document: { blocks: Immutable.Map<number, ActualDocumentBlockData>(), next_key: 1 }, current_path: none<string>() }
+
+  let initial_state: EditorState = {
+    collection: DocumentCollectionNew(),
+    language: Option.none<DocumentLanguage>().f({}),
+    current_path: Option.none<string>().f({})
+  }
+
   if (last_open_file != null)
-    initial_state = { document: deserialize_document(FS.readFileSync(last_open_file, "utf8")), current_path: some<string>(last_open_file) }
+    initial_state = {
+      collection: deserialize_document_collection(FS.readFileSync(last_open_file, "utf8")),
+      language: Option.none<DocumentLanguage>().f({}),
+      current_path: Option.some<string>().f(last_open_file)
+    }
 
   return repeat<EditorState>("document-editor-repeat")(
     any<EditorState, EditorState>("document-editor-main")([
       any<EditorState, EditorState>("document-editor-save-load", "toolbar__operations")([
         d => button(`New`, false, `button-new`, "button--small")({}).then(`new-document`, _ => {
           window.localStorage.removeItem("last_open_file")
-          return unit<EditorState>({ document: { blocks: Immutable.Map<number, ActualDocumentBlockData>(), next_key: 1 }, current_path: none<string>() })
+          return unit<EditorState>({ collection: { documents: Immutable.Map() }, language: inr<DocumentLanguage, Unit>().f({}), current_path: inr<string, Unit>().f({}) })
         }),
         d => button(`Save as`, false, `button-save-as`, "button--small")({}).then(`save-document-as`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
@@ -152,7 +206,7 @@ let document_editor = (mode: Mode): C<void> => {
               if (fileName === undefined)
                 return reject("invalid path")
               window.localStorage.setItem("last_open_file", fileName)
-              FS.writeFile(fileName, serialize_document(d.document), (err) => {
+              FS.writeFile(fileName, serialize_document_collection(d.collection), (err) => {
                 if (err) {
                   reject(err.message)
                 } else {
@@ -172,18 +226,18 @@ let document_editor = (mode: Mode): C<void> => {
                 if (err) {
                   reject(err.message)
                 } else {
-                  resolve({ document: deserialize_document(buffer), current_path: some<string>(fileNames[0]) })
+                  resolve({ collection: deserialize_document_collection(buffer), language: Option.none<DocumentLanguage>().f({}), current_path: Option.some<string>().f(fileNames[0]) })
                 }
               })
             })
           }), "never")({})
         }),
-        d => button(`Save`, d.current_path.kind == "none", `button-save`, "button--small")({}).then(`save-document`, _ => {
+        d => button(`Save`, d.current_path.kind == "right", `button-save`, "button--small")({}).then(`save-document`, _ => {
           return lift_promise(_ => new Promise<EditorState>((resolve, reject) => {
-            if (d.current_path.kind == "none")
+            if (d.current_path.kind == "right")
               return reject("invalid path")
             let fileName = d.current_path.value
-            FS.writeFile(fileName, serialize_document(d.document), (err) => {
+            FS.writeFile(fileName, serialize_document_collection(d.collection), (err) => {
               if (err) {
                 reject(err.message)
               } else {
@@ -191,42 +245,59 @@ let document_editor = (mode: Mode): C<void> => {
               }
             })
           }), "never")({})
-        })
+        }),
+        // d => retract<EditorState, Option<DocumentLanguage>>("document-language-retract")(
+        //   es => es.language,
+        //   es => l => ({...es, language: l }),
+        //   l => selector<Option<DocumentLanguage>>("dropdown", l => l.kind == "r")
+        // )(d)
       ]),
-      retract<EditorState, ActualDocument>("document-editor-document-retract")(e => e.document, e => d => ({ ...e, document: d }),
-        d => any<ActualDocument, ActualDocument>("document-editor-blocks")(
-          d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
-            if (!b || !b_k) return _ => unit(null).never<ActualDocument>()
-            return any<ActualDocument, ActualDocument>(`block-${b_k}`, `block block--${b.kind}`)([
-              d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content =>
-                unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...d.blocks.get(b_k), content: new_content }) })),
-              any<ActualDocument, ActualDocument>(`block-buttons`, `block__buttons`)([ 
-                d => button("Del", false, `button-remove`, "button button--small")({}).then(`block-remove`, _ => unit<ActualDocument>({ ...d, blocks: d.blocks.remove(b_k) })),
-                d => button("Up", false, `button-move-up`, "button button--small")({}).then(`block-move-up`, _ => {
-                  let predecessors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by < b.order_by })
-                  if (predecessors.isEmpty()) return unit<ActualDocument>({ ...d })
-                  let predecessor = predecessors.maxBy(s => s && s.order_by)
-                  let p_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == predecessor.order_by })
-                  return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
-                }),
-                d => button("Down", false, `button-move-down`, "button button--primary button--small")({}).then(`block-move-down`, _ => {
-                  let successors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by > b.order_by })
-                  if (successors.isEmpty()) return unit<ActualDocument>({ ...d })
-                  let successor = successors.minBy(s => s && s.order_by)
-                  let s_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == successor.order_by })
-                  return unit<ActualDocument>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: successor.order_by }).set(s_k, { ...successor, order_by: b.order_by }) })
-                })
+      es => Option.visit<DocumentLanguage, (_: EditorState) => C<EditorState>>(
+        fun(language => retract<EditorState, Document>("document-editor-document-retract")(
+          e => e.collection.documents.get(language),
+          e => d => ({ ...e, collection: { documents: e.collection.documents.set(language, d) } }),
+          d => any<Document, Document>("document-editor-blocks")(
+            d.blocks.sortBy((v, k) => v && v.order_by).map((b, b_k) => {
+              if (!b || !b_k) return _ => unit(null).never<Document>()
+              return any<Document, Document>(`block-${b_k}`, `block block--${b.kind}`)([
+                d => blocks.get(b.kind).renderer(b).then(`block-renderer`, new_content =>
+                  unit<Document>({ ...d, blocks: d.blocks.set(b_k, { ...d.blocks.get(b_k), content: new_content }) })),
+                any<Document, Document>(`block-buttons`, `block__buttons`)([
+                  d => button("Del", false, `button-remove`, "button button--small")({}).then(`block-remove`, _ => unit<Document>({ ...d, blocks: d.blocks.remove(b_k) })),
+                  d => button("Up", false, `button-move-up`, "button button--small")({}).then(`block-move-up`, _ => {
+                    let predecessors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by < b.order_by })
+                    if (predecessors.isEmpty()) return unit<Document>({ ...d })
+                    let predecessor = predecessors.maxBy(s => s && s.order_by)
+                    let p_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == predecessor.order_by })
+
+                    return unit<Document>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: predecessor.order_by }).set(p_k, { ...predecessor, order_by: b.order_by }) })
+                  }),
+                  d => button("Down", false, `button-move-down`, "button button--small")({}).then(`block-move-down`, _ => {
+                    let successors = d.blocks.filter(b1 => { if (!b1) return false; else return b1.order_by > b.order_by })
+                    if (successors.isEmpty()) return unit<Document>({ ...d })
+                    let successor = successors.minBy(s => s && s.order_by)
+                    let s_k = d.blocks.findKey(b1 => { if (!b1) return false; else return b1.order_by == successor.order_by })
+
+                    return unit<Document>({ ...d, blocks: d.blocks.set(b_k, { ...b, order_by: successor.order_by }).set(s_k, { ...successor, order_by: b.order_by }) })
+                  })
+                ])
               ])
-            ])
-          }).toArray()
-        )(d)),
-        retract<EditorState, ActualDocument>("document-editor-add-block-retract")(e => e.document, e => d => ({ ...e, document: d }),
-          any<ActualDocument, ActualDocument>("document-editor-add-block", "toolbar__add")(
-            raw_blocks.map(rb => (d: ActualDocument) =>
-              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--small")({}).then(`new-block-${rb[1].kind}`, _ =>
-                unit<ActualDocument>({ ...d, next_key: d.next_key + 1, blocks: d.blocks.set(d.next_key, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
+            }).toArray()
+          )(d))),
+        fun(_ => div<EditorState, EditorState>('document-editor-hidden', 'document-editor-hidden')(s => unit(s).never('document-editor-hidden-never')))
+      ).f(es.language)(es),
+      es => Option.visit<DocumentLanguage, (_: EditorState) => C<EditorState>>(
+        fun(language => retract<EditorState, Document>("document-editor-add-block-retract")(
+          e => e.collection.documents.get(language),
+          e => d => ({ ...e, collection: { documents: e.collection.documents.set(language, d) } }),
+          any<Document, Document>("document-editor-add-block", "editor__suggestions cf")(
+            raw_blocks.map(rb => (d: Document) =>
+              button(`Add ${rb[1].kind}`, false, `button-add-block-${rb[1].kind}`, "button button--primary editor__suggestion")({}).then(`new-block-${rb[1].kind}`, _ =>
+                unit<Document>({ ...d, blocks: d.blocks.set(d.blocks.keySeq().count() > 0 ? d.blocks.keySeq().max() + 1 : 0, { kind: rb[1].kind, order_by: 1 + d.blocks.toArray().map(b => b.order_by).reduce((a, b) => Math.max(a, b), 0), content: rb[1].default_content }) }))
             )
-          ))
+          ))),
+        fun(_ => div<EditorState, EditorState>('document-editor-hidden', 'document-editor-add-block-hidden')(s => unit(s).never('document-editor-add-block-hidden-never')))
+      ).f(es.language)(es)
     ]
     )
   )(initial_state).never()
