@@ -20,32 +20,19 @@
     [ ] Lambda's (requires Func and generics in type-checker)
     [ ] Closure
   [ ] Statements
-    [ ] Full declaration and assignment (`int x = 10;`)
-    [/] Assignment
-      [ ] Left-hand
-        [/] To variable
-        [ ] To set field
-      [ ] Right-hand
-        [ ] Field get
     [ ] For
     [ ] ForEach
     [ ] LINQ
     [ ] yield return
+    [ ] async/await
     [ ] pattern matching
-  [ ] Classes
-    [ ] Def
-      [ ] fields
-      [ ] methods
-      [ ] constructor
-    [ ] Method call
-    [ ] Constructor call
-    [ ] `void` and its `return;`
-    [ ] Empty methods/functions
-  [ ] Left out for first viability test
+  [ ] Important improvements
     [ ] Proper (recursive) field lookups
-  [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
-    [ ] Are lambda arguments properly checked at both run-time and compile-time
-    [ ] How are nested errors propagated (for example, the errors inside the body of a while or inside the body of a function)?
+    [ ] methods/functions without body
+    [ ] (proper) initial values for variables at declaration when no value is specified
+    [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
+      [ ] Are lambda arguments properly checked at both run-time and compile-time
+      [ ] Propagate nested parse errors (for example, the errors inside the body of a while or inside the body of a function)
 
 [ ] Highlighting
   [ ] Use both start and end

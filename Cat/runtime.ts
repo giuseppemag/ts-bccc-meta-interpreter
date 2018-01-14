@@ -1,37 +1,29 @@
 let sample = `
-// generic type composition
 (infix 0) type . = F::(*=>*) => G::(*=>*) => a::* => F(G a)
 
-// generic type endo-composition
 (infix 5) type ^ = F::(*=>*) => n::int => if n = 0 then Id else F . F
 
-// functors only have a map function
 type Functor = F::(*=>*) => {
   map : a::* => b::* => (a->b) -> (F a -> F b)
 }
 
-// identity functor: does nothing
 type Id = a::* => a
 let Id_Functor : Functor Id = {
-  map : a::* => a -> a = x -> x
+  map : a::* => b::* => (a->b) -> (Id a -> Id b) = f -> x -> f x
 }
 
-// monads have unit (eta) and join (mu)
-type Monad = M::(*=>*) => Functor M => {
+type Monad = M::(*=>*) => F::Functor M => {
   eta : a::* => (Id a -> M a)
   mu  : a::* => (M^2 a) => M a
+  bind: a::* => b::* => M a -> (a -> M b) -> M b = p k -> F.map k p . mu
 }
 
-// identity function
 let id : a::* => a -> a = x -> x
 
-// function composition
 (infix) let . : a::* => b::* => c::* => (b->c) -> (a->b) -> a -> c = f -> g -> x -> f(g x)
 
-// function composition (other way around)
 (infix) let ; : a::* => b::* => c::* => (a->b) -> (b->c) -> a -> c = f -> g -> x -> g(f x)
 
-// identity monad (also does nothing)
 let Id_Monad : Monad Id Id_Functor = {
   eta : a::* => Id a -> a = x -> x
   mu  : a::* => Id^2 a -> Id a = x -> x
@@ -51,7 +43,7 @@ type BiFunctor = F::(*=>*=>*) => {
   map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (F a b -> F a' b')
 }
 
-let PairFunctor : BiFunctor * => {
+let PairBiFunctor : BiFunctor * => {
   map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (a*b -> a'*b') = f -> g -> (fst;f) <*> (snd;g)
 }
 
@@ -62,21 +54,54 @@ let inr : a:* => b:* => b -> a+b = x -> { k:"r", v:x }
 
 (infix) let <+> : a::* => b::* => c::* => (a->c) -> (b->c) -> (a+b->c) = f -> g -> x -> if x.k == "l" then f x.v else g x.v
 
-let SumFunctor : BiFunctor + => {
+let SumBiFunctor : BiFunctor + => {
   map : a::* => b::* => a'::* => b'::* => (a->a') -> (b->b') -> (a+b -> a'+b') = f -> g -> (f;inl) <+> (g;inr)
 }
 
-type One = {}
-let unit : a::* => a -> 1 = x -> {}
+type Unit = {}
+let unit : a::* => a -> Unit = x -> {}
 
 type Zero = error
 let absurd : a::* => 0 -> a = x -> error
 
 (infix) type ^ : b::* => a::* => a->b
 
-type LeftFunctor = F::(*=>*=>*) => Bi_F::BiFunctor F => c::* => {
-  map
-} : Functor (a::* => F a c)
+type LeftFunctor = F::(*=>*=>*) => c::* => Functor (a::* => F a c)
+type RightFunctor = F::(*=>*=>*) => c::* => Functor (a::* => F c a)
+type DiagonalFunctor = F::(*=>*=>*) => Functor (a::* => F a a)
+
+let PairLeftFunctor : c::* => LeftFunctor * c => {
+  map : a::* => b::* => (a->b) -> (a*c -> b*c) = f -> p -> { x:f p.x, y:p.y }
+}
+let PairRightFunctor : c::* => RigthFunctor * c => {
+  map : a::* => b::* => (a->b) -> (c*a -> c*b) = f -> p -> { x:p.x, y:f p.y }
+}
+let PairDiagFunctor : DiagonalFunctor * => {
+  map : a::* => b::* => (a->b) -> (a*a -> b*b) = f -> p -> { x:f p.x, y:f p.y }
+}
+
+let SumLeftFunctor : c::* => LeftFunctor + c => {
+  map : a::* => b::* => (a->b) -> (a+c -> b+c) = f -> p -> SumBiFunctor.map f id
+}
+let SumRightFunctor : c::* => RigthFunctor * c => {
+  map : a::* => b::* => (a->b) -> (c*a -> c*b) = f -> p -> SumBiFunctor.map id f
+}
+let SumDiagFunctor : DiagonalFunctor * => {
+  map : a::* => b::* => (a->b) -> (a*a -> b*b) = f -> p -> SumBiFunctor.map f f
+}
+
+type Option = a::* => Unit + a
+let none = a::* => Unit -> Option a = inl
+let some = a::* => a -> Option a = inr
+
+let Option_Functor : Functor Option = {
+  map : a::* => b::* => (a->b) -> (Option a -> Option b) = f -> SumBiFunctor.map id f
+}
+
+let Option_Monad : Monad Option Option_Functor = {
+  eta : a::* => Option a -> a = some a
+  mu  : a::* => Option^2 a -> Option a = (none a) <+> (id (Option a))
+}
 
 `
 
@@ -85,21 +110,12 @@ type LeftFunctor = F::(*=>*=>*) => Bi_F::BiFunctor F => c::* => {
 TODO:
 [ ] language selector in playground!!!
 
-[ ] pairs
-  [x] basic
-  [ ] bifunctor
-  [ ] left/right functors
-[ ] sums
-  [x] basic
-  [ ] bifunctor
-  [ ] left/right functors
 [ ] exponents (over functors)
   [x] basic
   [ ] profunctor
   [ ] left/right functor/cofunctor
 [ ] identities
 [ ] pro-functors
-[ ] option monad
 [ ] do-notation
 [ ] state monad
 [ ] fix on types

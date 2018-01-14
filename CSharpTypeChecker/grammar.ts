@@ -144,6 +144,7 @@ let proprity_operators_table =
 
 export interface DebuggerAST { kind: "dbg" }
 export interface TCDebuggerAST { kind: "tc-dbg" }
+export interface UnitAST { kind: "unit" }
 export interface StringAST { kind: "string", value:string }
 export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
@@ -168,7 +169,7 @@ export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Arr
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
 
-export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
+export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
@@ -177,6 +178,7 @@ export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
+let mk_unit = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "unit" }})
 let mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "bool", value:v }})
 let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
 let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
@@ -367,12 +369,12 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
   else return co_error(`expected identifier but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
 }))
 
-let return_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+let return_sign: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected return")
   let i = s.first()
   if (i.kind == "return") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
   }
   else return co_error(`expected return but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
 }))
@@ -700,12 +702,22 @@ let semicolon = ignore_whitespace(semicolon_sign)
 let comma = ignore_whitespace(comma_sign)
 let with_semicolon = <A>(p:Coroutine<ParserState, ParserError, A>) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
-let assign : () => Parser = () =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(field_ref())(identifier).then(l =>
-  equal_sign.then(_ =>
+let assign_left : (l:ParserRes) => Parser = (l) =>
+equal_sign.then(_ =>
   expr().then(r =>
   co_unit(mk_assign(l,r))
-  )))
+  ))
+
+let assign : () => Parser = () =>
+  co_catch<ParserState,ParserError,ParserRes>(snd_err)(field_ref())(identifier).then(l =>
+  assign_left(l)
+  )
+
+let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
+  identifier.then(l =>
+  identifier_token.then(r =>
+  assign_left(mk_identifier(r, l.range)).then(a =>
+  co_unit(mk_semicolon({ range:l.range, ast:mk_decl(l, r) }, a)))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   identifier.then(l =>
@@ -733,9 +745,13 @@ let arg_decls = () : Coroutine<Immutable.List<Token>, string, Array<DeclAST>> =>
     (co_unit(Array<DeclAST>()))
 
 let return_statement : () => Parser = () =>
-  return_sign.then(_ =>
-  expr().then(e =>
-  co_unit(mk_return(e))))
+  return_sign.then(return_range =>
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(
+    expr().then(e =>
+    co_unit<ParserState,ParserError,ParserRes>(mk_return(e)))
+  )(
+    co_unit<ParserState,ParserError,ParserRes>(mk_unit(return_range))
+  ))
 
 let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   if_keyword.then(_ =>
@@ -816,9 +832,10 @@ let inner_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(method_call()))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl().then(d =>
     co_unit<ParserState,ParserError,ParserRes>({ range:d.l.range, ast:d }))))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl_init()))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(assign()))((
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(dbg))(
-  with_semicolon(tc_dbg))))))))))
+  with_semicolon(tc_dbg)))))))))))
 
 let function_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(return_statement()))(inner_statement())

@@ -1,4 +1,5 @@
 import * as React from "react"
+import * as CCC from "ts-bccc"
 import { DebuggerStream, get_stream, RenderGrid, Scopes, mk_range, SourceRange, Bindings, TypeInformation, Type, Scope } from 'ts-bccc-meta-compiler'
 
 import {
@@ -52,10 +53,18 @@ let render_scope = (scope: Scope, source: string): JSX.Element[] => {
       <td className="debugger__cell debugger__cell--variable">{k}</td>
       <td className="debugger__cell debugger__cell--value">{v.k == "u" ? "()" :
         v.k == "i" ? v.v :
-          v.k == "render-grid" ? render_render_grid(v.v) :
-            v.k == "lambda" ? find_start_line_from_range(source, v.v.range).trim().replace("{", "") + "{ ... }" :
-
-              JSON.stringify(v.v)}</td>
+        v.k == "s" ? v.v :
+        v.k == "b" ? v.v :
+        v.k == "render-grid" ? render_render_grid(v.v) :
+        v.k == "lambda" ? find_start_line_from_range(source, v.v.range).trim().replace("{", "") + "{ ... }" :
+        v.k == "obj" ?
+        <table key={`globals`} className="debugger__table debugger__table--inception">
+          <tbody>
+            {render_scope(v.v, source)}
+            </tbody>
+        </table>
+        : JSON.stringify(v.v)}
+        </td>
     </tr>
   }).toArray()
 }
@@ -108,7 +117,26 @@ let render_debugger_stream = (stream: DebuggerStream, source: string, select_cod
   return <div style={style} key="debugger-stream">
     <table>
       <tbody>
-        {render_scopes(state.memory.globals, source)}
+        <tr className="debugger__row" key="globals">
+          <td className="debugger__cell debugger__cell--variable">Globals </td>
+          <td className="debugger__cell debugger__cell--value">
+            <table key={`globals`} className="debugger__table debugger__table--inception">
+              <tbody>
+                {render_scopes(state.memory.globals, source)}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        <tr className="debugger__row" key="heap">
+          <td className="debugger__cell debugger__cell--variable">Heap </td>
+          <td className="debugger__cell debugger__cell--value">
+            <table key={`globals`} className="debugger__table debugger__table--inception">
+              <tbody>
+                {render_scope(state.memory.heap, source)}
+                </tbody>
+            </table>
+          </td>
+        </tr>
         <tr className="debugger__row" key="stack">
           <td className="debugger__cell debugger__cell--variable">Stack </td>
           <td className="debugger__cell debugger__cell--value">

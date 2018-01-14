@@ -115,6 +115,7 @@ var proprity_operators_table = Immutable.Map()
     .set("&&", 4)
     .set("||", 4);
 var mk_string = function (v, sr) { return ({ range: sr, ast: { kind: "string", value: v } }); };
+var mk_unit = function (sr) { return ({ range: sr, ast: { kind: "unit" } }); };
 var mk_bool = function (v, sr) { return ({ range: sr, ast: { kind: "bool", value: v } }); };
 var mk_int = function (v, sr) { return ({ range: sr, ast: { kind: "int", value: v } }); };
 var mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v } }); };
@@ -298,7 +299,7 @@ var return_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_error("found empty state, expected return");
     var i = s.first();
     if (i.kind == "return") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
     }
     else
         return ts_bccc_1.co_error("expected return but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
@@ -591,11 +592,23 @@ var expr = function () {
 var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);
 var with_semicolon = function (p) { return p.then(function (p_res) { return ignore_whitespace(semicolon_sign).then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); };
+var assign_left = function (l) {
+    return equal_sign.then(function (_) {
+        return expr().then(function (r) {
+            return ts_bccc_1.co_unit(mk_assign(l, r));
+        });
+    });
+};
 var assign = function () {
     return ccc_aux_1.co_catch(snd_err)(field_ref())(identifier).then(function (l) {
-        return equal_sign.then(function (_) {
-            return expr().then(function (r) {
-                return ts_bccc_1.co_unit(mk_assign(l, r));
+        return assign_left(l);
+    });
+};
+var decl_init = function () {
+    return identifier.then(function (l) {
+        return identifier_token.then(function (r) {
+            return assign_left(mk_identifier(r, l.range)).then(function (a) {
+                return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
             });
         });
     });
@@ -626,10 +639,10 @@ var arg_decls = function () {
     }))(ts_bccc_1.co_unit(Array()));
 };
 var return_statement = function () {
-    return return_sign.then(function (_) {
-        return expr().then(function (e) {
+    return return_sign.then(function (return_range) {
+        return ccc_aux_1.co_catch(both_errors)(expr().then(function (e) {
             return ts_bccc_1.co_unit(mk_return(e));
-        });
+        }))(ts_bccc_1.co_unit(mk_unit(return_range)));
     });
 };
 var if_conditional = function (stmt) {
@@ -720,7 +733,7 @@ var outer_statement = function () {
 var inner_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop(function_statement))(ccc_aux_1.co_catch(both_errors)(if_conditional(function_statement))(ccc_aux_1.co_catch(both_errors)(with_semicolon(call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(method_call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: d.l.range, ast: d });
-    })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg))))))))));
+    })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl_init()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg)))))))))));
 };
 var function_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(with_semicolon(return_statement()))(inner_statement());

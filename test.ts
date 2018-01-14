@@ -167,11 +167,9 @@ class Vector2 {
   }
 }
 
-Vector2 v2;
-v2 = new Vector2(10, 5);
+Vector2 v2 = new Vector2(10, 5);
 v2.scale(2);
-int l;
-l = v2.length_squared();
+int l = v2.length_squared();
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
