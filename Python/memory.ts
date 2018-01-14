@@ -39,7 +39,7 @@ export type ErrVal = string
 
 let find_last_scope = <T>(scopes: Scopes, p:(_:Scope) => Sum<Unit, T>) : Sum<Unit, T> => {
   let i = scopes.count() - 1
-  
+
   for (var index = i; index >= 0; index--){
     let current:Scope = scopes.get(index)
     let res = p(current)
@@ -48,10 +48,10 @@ let find_last_scope = <T>(scopes: Scopes, p:(_:Scope) => Sum<Unit, T>) : Sum<Uni
   }
   return { kind: "left", value: {} }
 }
-// Mem[][], v, 
+// Mem[][], v,
 let update_variable = (name:ValueName, value:Val, scopes: Scopes, assign_if_not_present:boolean) : Sum<Unit, Scopes> => {
   let i = scopes.count() - 1
-  
+
   for (var index = i; index >= 0; index--){
     let current:Scope = scopes.get(index)
     if(current.has(name)){
@@ -77,7 +77,7 @@ export let load_rt: Fun<Prod<string, MemRt>, Sum<Unit,Sum<Val,Val>>> = fun(x =>
       let res = find_last_scope<Scope>(x.snd.stack.get(x.snd.stack.count()-1), (scope:Scope) => scope.has(x.fst) ? { kind: "right", value: scope } : { kind: "left", value: {} })
       if(res.kind == "right")
         return apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),res.value.get(x.fst)))
-    } 
+    }
     let maybe_in_globals = find_last_scope<Scope>(x.snd.globals, (scope:Scope) => scope.has(x.fst) ? { kind: "right", value: scope } : { kind: "left", value: {} })
     if(maybe_in_globals.kind == "right"){
       return apply(inr<Unit,Sum<Val,Val>>(), apply(inl<Val,Val>(),maybe_in_globals.value.get(x.fst)))
@@ -94,14 +94,14 @@ export let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x => {
     }
   }
   let scopes1 = update_variable(x.fst.fst,x.fst.snd,x.snd.globals, true)
-  if(scopes1.kind == "right"){      
+  if(scopes1.kind == "right"){
     return ({...x.snd, globals:scopes1.value })
   }
   return x.snd
 })
 
 export let decl_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt> = fun(x => {
-  
+
     if(x.snd.stack.count() > 0){
       return ({...x.snd, stack:x.snd.stack.set(x.snd.stack.count() - 1, x.snd.stack.last().set(x.snd.stack.last().count() - 1, x.snd.stack.last().last().set(x.fst.fst, x.fst.snd))) })
     }
@@ -122,7 +122,10 @@ export let load_heap_rt: Fun<Prod<ValueName, MemRt>, Sum<Unit,Val>> = fun(x =>
   x.snd.heap.has(x.fst) ?
     apply(inr(), x.snd.heap.get(x.fst))
   : apply(inl(), {}))
-export let store_heap_rt: Fun<Prod<Prod<ValueName, Val>, MemRt>, MemRt> = fun(x => ({...x.snd, heap:x.snd.heap.set(x.fst.fst, x.fst.snd) }))
+export let store_heap_rt: Fun<Prod<Prod<ValueName, Val>, MemRt>, MemRt> = fun(x => {
+  let res:MemRt = ({...x.snd, heap:x.snd.heap.set(x.fst.fst, x.fst.snd) })
+  return res
+})
 export let heap_alloc_rt: Fun<Prod<Val,MemRt>, Prod<Val, MemRt>> = fun(x => {
   let new_ref = `ref_${x.snd.heap.count()}`
   return ({ fst:mk_ref_val(new_ref), snd:{...x.snd, heap:x.snd.heap.set(new_ref, x.fst) }})
@@ -141,7 +144,7 @@ export let push_inner_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => {
   }
 }))
 export let pop_inner_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => {
-  if(!m.stack.isEmpty()){    
+  if(!m.stack.isEmpty()){
     let stack_count = m.stack.count()
     let top_stack = m.stack.get(stack_count - 1)
     let top_stack_count = top_stack.count()
@@ -149,7 +152,7 @@ export let pop_inner_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => {
     return ({...m, stack:m.stack.set(stack_count - 1, top_stack.remove(top_stack_count - 1))})
   }
   else{
-    return ({...m, globals:m.globals.remove(m.globals.count() - 1)})    
+    return ({...m, globals:m.globals.remove(m.globals.count() - 1)})
   }
 }))
 
@@ -157,17 +160,17 @@ export let push_scope_rt = curry(fun2<Scope,MemRt,MemRt>((s,m) => ({...m, stack:
 
 export let pop_scope_rt: Fun<MemRt, Sum<Unit,MemRt>> = fun(x =>
   !x.stack.isEmpty() ?
-    apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)})) 
+    apply(inr(), ({...x, stack:x.stack.remove(x.stack.count()-1)}))
   : apply(inl(), {}))
 
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {}
 export type StmtRt = ExprRt<Sum<Val,Val>>
 
-export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0), 
-                                     globals:empty_scopes_val, 
-                                     heap:empty_scope_val, 
-                                     functions:Immutable.Map<ValueName,Lambda>(), 
-                                     classes:Immutable.Map<ValueName, Interface>(), 
+export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0),
+                                     globals:empty_scopes_val,
+                                     heap:empty_scope_val,
+                                     functions:Immutable.Map<ValueName,Lambda>(),
+                                     classes:Immutable.Map<ValueName, Interface>(),
                                      stack:Immutable.Map<number, Scopes>() }
 
 export let set_highlighting_rt = function(r:SourceRange) : StmtRt {

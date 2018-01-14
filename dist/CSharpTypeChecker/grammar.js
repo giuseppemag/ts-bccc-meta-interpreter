@@ -22,9 +22,9 @@ var GrammarBasics;
         }
         else {
             var rest = s.buffer.replace(r, "");
-            console.log("Lexing", r, s.buffer);
-            console.log("Match", m);
-            console.log("Rest", rest);
+            // console.log("Lexing", r, s.buffer)
+            // console.log("Match", m)
+            // console.log("Rest", rest)
             var new_line_index = s.line_index;
             var new_column_index = s.column_index + m[0].length;
             var f = (ts_bccc_1.constant(t(m[0], source_range_1.mk_range(s.line_index, s.column_index, new_line_index, new_column_index))).times(ts_bccc_1.constant({ buffer: rest || "", line_index: new_line_index, column_index: new_column_index })));
@@ -43,6 +43,7 @@ var GrammarBasics;
     var token = lex_catch_many(Immutable.List([
         parse_prefix_regex(/^;/, function (s, r) { return ({ range: r, kind: ";" }); }),
         parse_prefix_regex(/^class/, function (s, r) { return ({ range: r, kind: "class" }); }),
+        parse_prefix_regex(/^new/, function (s, r) { return ({ range: r, kind: "new" }); }),
         parse_prefix_regex(/^return/, function (s, r) { return ({ range: r, kind: "return" }); }),
         parse_prefix_regex(/^while/, function (s, r) { return ({ range: r, kind: "while" }); }),
         parse_prefix_regex(/^if/, function (s, r) { return ({ range: r, kind: "if" }); }),
@@ -147,12 +148,22 @@ var mk_call = function (f_name, actuals) {
     return ({ range: f_name.range,
         ast: { kind: "func_call", name: f_name, actuals: actuals } });
 };
+var mk_method_call = function (obj, f_name, actuals) {
+    return ({ range: source_range_1.join_source_ranges(obj.range, f_name.range),
+        ast: { kind: "method_call", object: obj, name: f_name, actuals: actuals } });
+};
+var mk_constructor_call = function (new_range, C_name, actuals) {
+    return ({ range: new_range, ast: { kind: "cons_call", name: C_name, actuals: actuals } });
+};
+var mk_constructor_declaration = function (function_name, arg_decls, body) {
+    return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body });
+};
 var mk_function_declaration = function (return_type, function_name, arg_decls, body) {
     return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body });
 };
-var mk_class_declaration = function (C_name, fields, methods, range) {
+var mk_class_declaration = function (C_name, fields, methods, constructors, range) {
     return ({ range: range,
-        ast: { kind: "class", C_name: C_name, fields: fields, methods: methods } });
+        ast: { kind: "class", C_name: C_name, fields: fields, methods: methods, constructors: constructors } });
 };
 var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
 var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
@@ -362,6 +373,16 @@ var class_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s)
     else
         return ts_bccc_1.co_error("expected `class`");
 }));
+var new_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected `new`");
+    var i = s.first();
+    if (i.kind == "new") {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
+    }
+    else
+        return ts_bccc_1.co_error("expected `new`");
+}));
 var left_bracket = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_error("found empty state, expected dot");
@@ -480,17 +501,32 @@ var render_grid_pixel_prs = function () {
     });
 };
 var term = function () {
-    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(call())(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
+    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(call())(ccc_aux_1.co_catch(both_errors)(method_call())(ccc_aux_1.co_catch(both_errors)(field_ref())(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
             });
         });
-    })))))))));
+    })))))))))));
 };
 var unary_expr = function () {
     return not_op.then(function (_) {
         return expr().then(function (e) { return ts_bccc_1.co_unit(mk_not(e)); });
+    });
+};
+var method_call = function () {
+    return identifier.then(function (obj) {
+        return dot_sign.then(function (_) {
+            return identifier.then(function (f_name) {
+                return left_bracket.then(function (_) {
+                    return actuals().then(function (actuals) {
+                        return right_bracket.then(function (_) {
+                            return ts_bccc_1.co_unit(mk_method_call(obj, f_name, actuals));
+                        });
+                    });
+                });
+            });
+        });
     });
 };
 var call = function () {
@@ -535,9 +571,22 @@ var expr_AUX = function (table) {
         return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "+", function (l, r) { return mk_plus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "-", function (l, r) { return mk_minus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "*", function (l, r) { return mk_times(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "/", function (l, r) { return mk_div(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "%", function (l, r) { return mk_mod(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<", function (l, r) { return mk_lt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">", function (l, r) { return mk_gt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<=", function (l, r) { return mk_leq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">=", function (l, r) { return mk_geq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "==", function (l, r) { return mk_eq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "!=", function (l, r) { return mk_neq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "&&", function (l, r) { return mk_and(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "||", function (l, r) { return mk_or(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "xor", function (l, r) { return mk_xor(l, r); }); }))(ts_bccc_1.co_unit(__assign({}, table, { symbols: table.symbols.push(l) }))))))))))))))));
     });
 };
+var cons_call = function () {
+    return new_keyword.then(function (new_range) {
+        return identifier_token.then(function (class_name) {
+            return left_bracket.then(function (_) {
+                return actuals().then(function (actuals) {
+                    return right_bracket.then(function (_) {
+                        return ts_bccc_1.co_unit(mk_constructor_call(new_range, class_name, actuals));
+                    });
+                });
+            });
+        });
+    });
+};
 var expr = function () {
     var res = expr_AUX(empty_table).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
-    return res;
+    return ccc_aux_1.co_catch(both_errors)(res)(cons_call());
 };
 var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);
@@ -614,6 +663,23 @@ var bracketized_statement = function () {
         });
     });
 };
+var constructor_declaration = function () {
+    return identifier_token.then(function (function_name) {
+        return left_bracket.then(function (_) {
+            return arg_decls().then(function (arg_decls) {
+                return right_bracket.then(function (_) {
+                    return left_curly_bracket.then(function (_) {
+                        return function_statements().then(function (body) {
+                            return right_curly_bracket.then(function (_) {
+                                return ts_bccc_1.co_unit(mk_constructor_declaration(function_name, Immutable.List(arg_decls), body));
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
 var function_declaration = function () {
     return identifier.then(function (return_type) {
         return identifier_token.then(function (function_name) {
@@ -635,20 +701,15 @@ var function_declaration = function () {
 };
 var class_declaration = function () {
     return class_keyword.then(function (initial_range) {
-        return console.log("class!!!") ||
-            identifier_token.then(function (class_name) {
-                return console.log(class_name) ||
-                    left_curly_bracket.then(function (_) {
-                        return console.log("curlyyyyyyyyyy") ||
-                            class_statements().then(function (declarations) {
-                                return console.log("field and method declarations", declarations) ||
-                                    right_curly_bracket.then(function (closing_curly_range) {
-                                        return console.log("yyyyyyyyyylruc") ||
-                                            ts_bccc_1.co_unit(mk_class_declaration(class_name, declarations.fst, declarations.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
-                                    });
-                            });
+        return identifier_token.then(function (class_name) {
+            return left_curly_bracket.then(function (_) {
+                return class_statements().then(function (declarations) {
+                    return right_curly_bracket.then(function (closing_curly_range) {
+                        return ts_bccc_1.co_unit(mk_class_declaration(class_name, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
                     });
+                });
             });
+        });
     });
 };
 var outer_statement = function () {
@@ -657,9 +718,9 @@ var outer_statement = function () {
     }))(ccc_aux_1.co_catch(both_errors)(class_declaration())(inner_statement()));
 };
 var inner_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop(function_statement))(ccc_aux_1.co_catch(both_errors)(if_conditional(function_statement))(ccc_aux_1.co_catch(both_errors)(with_semicolon(call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
+    return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop(function_statement))(ccc_aux_1.co_catch(both_errors)(if_conditional(function_statement))(ccc_aux_1.co_catch(both_errors)(with_semicolon(call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(method_call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: d.l.range, ast: d });
-    })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg)))))))));
+    })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg))))))))));
 };
 var function_statement = function () {
     return ccc_aux_1.co_catch(both_errors)(with_semicolon(return_statement()))(inner_statement());
@@ -677,18 +738,25 @@ var outer_statements = function () { return generic_statements(outer_statement);
 var class_statements = function () {
     return ccc_aux_1.co_catch(both_errors)(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), d));
-    })))(function_declaration().then(function (d) {
-        return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), d));
-    })).then(function (decl) {
+    })))(ccc_aux_1.co_catch(both_errors)(function_declaration().then(function (d) {
+        return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inl()), d));
+    }))(constructor_declaration().then(function (d) {
+        return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inr()), d));
+    }))).then(function (decl) {
         return class_statements().then(function (decls) {
             return ts_bccc_1.co_unit({
                 fst: decl.kind == "left" ? decls.fst.push(decl.value) : decls.fst,
-                snd: decl.kind == "right" ? decls.snd.push(decl.value) : decls.snd
+                snd: decl.kind == "right" ?
+                    decl.value.kind == "left" ? __assign({}, decls.snd, { fst: decls.snd.fst.push(decl.value.value) }) : __assign({}, decls.snd, { snd: decls.snd.snd.push(decl.value.value) })
+                    : decls.snd
             });
         });
     }))(ts_bccc_1.co_unit({
         fst: Immutable.List(),
-        snd: Immutable.List()
+        snd: {
+            fst: Immutable.List(),
+            snd: Immutable.List()
+        }
     }));
 };
 exports.program_prs = function () {
@@ -699,9 +767,11 @@ exports.program_prs = function () {
 var string_to_csharp_type = function (s) {
     return s == "int" ? CSharp.int_type
         : s == "bool" ? CSharp.bool_type
-            : s == "RenderGrid" ? CSharp.render_grid_type
-                : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
-                    : CSharp.ref_type(s);
+            : s == "string" ? CSharp.string_type
+                : s == "void" ? CSharp.unit_type
+                    : s == "RenderGrid" ? CSharp.render_grid_type
+                        : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+                            : CSharp.ref_type(s);
 };
 exports.ast_to_type_checker = function (n) {
     return n.ast.kind == "int" ? CSharp.int(n.ast.value)
@@ -729,34 +799,47 @@ exports.ast_to_type_checker = function (n) {
                                                                                             : n.ast.kind == "return" ? CSharp.ret(exports.ast_to_type_checker(n.ast.value))
                                                                                                 : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(exports.ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
                                                                                                     : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r))
-                                                                                                        : n.ast.kind == "func_call" &&
-                                                                                                            n.ast.name.ast.kind == "id" ?
-                                                                                                            CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
-                                                                                                            : n.ast.kind == "func_decl" &&
-                                                                                                                n.ast.return_type.ast.kind == "id" ?
-                                                                                                                CSharp.def_fun({ name: n.ast.name,
-                                                                                                                    return_t: string_to_csharp_type(n.ast.return_type.ast.value),
-                                                                                                                    parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r, type: string_to_csharp_type(d.l.ast.value) }); }),
-                                                                                                                    body: exports.ast_to_type_checker(n.ast.body),
-                                                                                                                    range: n.range }, [])
-                                                                                                                : n.ast.kind == "class" && !n.ast.methods.some(function (m) { return !m || m.return_type.ast.kind != "id" || m.arg_decls.some(function (a) { return !a || a.l.ast.kind != "id"; }); })
-                                                                                                                    && !n.ast.fields.some(function (f) { return !f || f.l.ast.kind != "id"; }) ?
-                                                                                                                    CSharp.def_class(n.ast.C_name, n.ast.methods.toArray().map(function (m) { return ({
-                                                                                                                        name: m.name,
-                                                                                                                        return_t: string_to_csharp_type(m.return_type.ast.value),
-                                                                                                                        parameters: m.arg_decls.toArray().map(function (a) { return ({ name: a.r, type: string_to_csharp_type(a.l.ast.value) }); }),
-                                                                                                                        body: exports.ast_to_type_checker(m.body),
-                                                                                                                        range: source_range_1.join_source_ranges(m.return_type.range, m.body.range)
-                                                                                                                    }); }), n.ast.fields.toArray().map(function (f) { return ({ name: f.r, type: string_to_csharp_type(f.l.ast.value) }); }))
-                                                                                                                    : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
-                                                                                                                        CSharp.decl_v(n.ast.r, string_to_csharp_type(n.ast.l.ast.value))
-                                                                                                                        : n.ast.kind == "dbg" ?
-                                                                                                                            CSharp.breakpoint(n.range)(CSharp.done)
-                                                                                                                            : n.ast.kind == "tc-dbg" ?
-                                                                                                                                CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                                                : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                                                    CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
-                                                                                                                                    : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                                        CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
-                                                                                                                                        : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                                                        : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(exports.ast_to_type_checker(n.ast.l.ast.l), n.ast.l.ast.r.ast.value, exports.ast_to_type_checker(n.ast.r))
+                                                                                                            : n.ast.kind == "cons_call" ?
+                                                                                                                CSharp.call_cons(n.ast.name, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
+                                                                                                                : n.ast.kind == "func_call" &&
+                                                                                                                    n.ast.name.ast.kind == "id" ?
+                                                                                                                    CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
+                                                                                                                    : n.ast.kind == "method_call" &&
+                                                                                                                        n.ast.name.ast.kind == "id" ?
+                                                                                                                        console.log("eat a dick!") ||
+                                                                                                                            CSharp.call_method(exports.ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
+                                                                                                                        : n.ast.kind == "func_decl" &&
+                                                                                                                            n.ast.return_type.ast.kind == "id" ?
+                                                                                                                            CSharp.def_fun({ name: n.ast.name,
+                                                                                                                                return_t: string_to_csharp_type(n.ast.return_type.ast.value),
+                                                                                                                                parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r, type: string_to_csharp_type(d.l.ast.value) }); }),
+                                                                                                                                body: exports.ast_to_type_checker(n.ast.body),
+                                                                                                                                range: n.range }, [])
+                                                                                                                            : n.ast.kind == "class" && !n.ast.methods.some(function (m) { return !m || m.return_type.ast.kind != "id" || m.arg_decls.some(function (a) { return !a || a.l.ast.kind != "id"; }); })
+                                                                                                                                && !n.ast.fields.some(function (f) { return !f || f.l.ast.kind != "id"; }) ?
+                                                                                                                                CSharp.def_class(n.ast.C_name, n.ast.methods.toArray().map(function (m) { return ({
+                                                                                                                                    name: m.name,
+                                                                                                                                    return_t: string_to_csharp_type(m.return_type.ast.value),
+                                                                                                                                    parameters: m.arg_decls.toArray().map(function (a) { return ({ name: a.r, type: string_to_csharp_type(a.l.ast.value) }); }),
+                                                                                                                                    body: exports.ast_to_type_checker(m.body),
+                                                                                                                                    range: source_range_1.join_source_ranges(m.return_type.range, m.body.range)
+                                                                                                                                }); }).concat(n.ast.constructors.toArray().map(function (c) { return ({
+                                                                                                                                    name: c.name,
+                                                                                                                                    return_t: CSharp.unit_type,
+                                                                                                                                    parameters: c.arg_decls.toArray().map(function (a) { return ({ name: a.r, type: string_to_csharp_type(a.l.ast.value) }); }),
+                                                                                                                                    body: exports.ast_to_type_checker(c.body),
+                                                                                                                                    range: c.body.range
+                                                                                                                                }); })), n.ast.fields.toArray().map(function (f) { return ({ name: f.r, type: string_to_csharp_type(f.l.ast.value) }); }))
+                                                                                                                                : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
+                                                                                                                                    CSharp.decl_v(n.ast.r, string_to_csharp_type(n.ast.l.ast.value))
+                                                                                                                                    : n.ast.kind == "dbg" ?
+                                                                                                                                        CSharp.breakpoint(n.range)(CSharp.done)
+                                                                                                                                        : n.ast.kind == "tc-dbg" ?
+                                                                                                                                            CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                                                CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h))
+                                                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                                                    CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w), exports.ast_to_type_checker(n.ast.h), exports.ast_to_type_checker(n.ast.status))
+                                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 };

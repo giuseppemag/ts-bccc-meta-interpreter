@@ -76,7 +76,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass Vector2 {\n  int x;\n  int y;\n\n  int hello(int x) {\n    return x;\n  }\n}\n";
+        var source = "\nclass Vector2 {\n  int x;\n  int y;\n\n  Vector2(int x, int y) {\n    this.x = x;\n    this.y = y;\n  }\n\n  void scale(int k) {\n    this.x = this.x * k;\n    this.y = this.y * k;\n  }\n\n  int length_squared() {\n    return this.x * this.x + this.y * this.y;\n  }\n}\n\nVector2 v2;\nv2 = new Vector2(10, 5);\nv2.scale(2);\nint l;\nl = v2.length_squared();\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

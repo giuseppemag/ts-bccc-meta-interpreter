@@ -39,7 +39,7 @@ var find_last_scope = function (scopes, p) {
     }
     return { kind: "left", value: {} };
 };
-// Mem[][], v, 
+// Mem[][], v,
 var update_variable = function (name, value, scopes, assign_if_not_present) {
     var i = scopes.count() - 1;
     for (var index = i; index >= 0; index--) {
@@ -107,7 +107,10 @@ exports.load_heap_rt = ts_bccc_1.fun(function (x) {
         ts_bccc_1.apply(ts_bccc_1.inr(), x.snd.heap.get(x.fst))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.store_heap_rt = ts_bccc_1.fun(function (x) { return (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) })); });
+exports.store_heap_rt = ts_bccc_1.fun(function (x) {
+    var res = (__assign({}, x.snd, { heap: x.snd.heap.set(x.fst.fst, x.fst.snd) }));
+    return res;
+});
 exports.heap_alloc_rt = ts_bccc_1.fun(function (x) {
     var new_ref = "ref_" + x.snd.heap.count();
     return ({ fst: exports.mk_ref_val(new_ref), snd: __assign({}, x.snd, { heap: x.snd.heap.set(new_ref, x.fst) }) });

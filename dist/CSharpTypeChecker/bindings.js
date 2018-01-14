@@ -640,7 +640,7 @@ exports.call_method = function (this_ref, M_name, arg_values) {
                             !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
                         ts_bccc_2.co_error("Error: parameter type mismatch when calling method " + JSON.stringify(lambda_t.type) + " with arguments " + JSON.stringify(args_t))
                         :
-                            ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                            ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
                 })
                 : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type));
         });

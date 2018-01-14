@@ -35,8 +35,8 @@ exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
         return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
             if (this_val.value.k != "obj")
                 return memory_1.runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
-            var new_this_val = __assign({}, this_val, { v: this_val.value.v.set(F_name, new_val.value) });
-            return memory_1.set_heap_v_rt(this_addr.v, new_this_val.value).then(function (_) { return basic_statements_1.done_rt; });
+            var new_this_val = __assign({}, this_val.value, { v: this_val.value.v.set(F_name, new_val.value) });
+            return memory_1.set_heap_v_rt(this_addr.v, new_this_val).then(function (_) { return basic_statements_1.done_rt; });
         });
     });
 };

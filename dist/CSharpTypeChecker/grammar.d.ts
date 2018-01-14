@@ -27,6 +27,8 @@ export declare type Token = ({
 } | {
     kind: "class";
 } | {
+    kind: "new";
+} | {
     kind: "id";
     v: string;
 } | {
@@ -140,6 +142,7 @@ export interface ClassAST {
     C_name: string;
     fields: Immutable.List<DeclAST>;
     methods: Immutable.List<FunctionDeclarationAST>;
+    constructors: Immutable.List<ConstructorDeclarationAST>;
 }
 export interface BinOpAST {
     kind: BinOpKind;
@@ -161,6 +164,12 @@ export interface MkRenderGridPixel {
     h: ParserRes;
     status: ParserRes;
 }
+export interface ConstructorDeclarationAST {
+    kind: "cons_decl";
+    name: string;
+    arg_decls: Immutable.List<DeclAST>;
+    body: ParserRes;
+}
 export interface FunctionDeclarationAST {
     kind: "func_decl";
     name: string;
@@ -173,7 +182,18 @@ export interface FunctionCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
-export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export interface ConstructorCallAST {
+    kind: "cons_call";
+    name: string;
+    actuals: Array<ParserRes>;
+}
+export interface MethodCallAST {
+    kind: "method_call";
+    object: ParserRes;
+    name: ParserRes;
+    actuals: Array<ParserRes>;
+}
+export declare type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

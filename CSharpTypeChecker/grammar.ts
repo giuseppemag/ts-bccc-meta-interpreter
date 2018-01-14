@@ -11,7 +11,7 @@ export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
-  | { kind:"class" }
+  | { kind:"class" } | { kind:"new" }
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:BinOpKind } | {kind:UnaryOpKind}
   | { kind:";" } | { kind:"." }
@@ -36,9 +36,9 @@ export module GrammarBasics {
       return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), `Syntax error: cannot match token at (${s.line_index}, ${s.column_index}), ${s.buffer.substr(0, Math.min(s.buffer.length, 5))}...`)
     } else {
       let rest = s.buffer.replace(r, "")
-      console.log("Lexing", r, s.buffer)
-      console.log("Match", m)
-      console.log("Rest", rest)
+      // console.log("Lexing", r, s.buffer)
+      // console.log("Match", m)
+      // console.log("Rest", rest)
       let new_line_index = s.line_index
       let new_column_index = s.column_index + m[0].length
       let f = (constant<Unit,Token>(t(m[0], mk_range(s.line_index, s.column_index, new_line_index, new_column_index))).times(constant<Unit,LexerState>({buffer:rest || "", line_index:new_line_index, column_index:new_column_index})))
@@ -61,7 +61,7 @@ export module GrammarBasics {
   let token:Lexer = lex_catch_many(Immutable.List<Lexer>([
     parse_prefix_regex(/^;/, (s,r) => ({range:r, kind:";"})),
     parse_prefix_regex(/^class/, (s,r) => ({range:r, kind:"class"})),
-
+    parse_prefix_regex(/^new/, (s,r) => ({range:r, kind:"new"})),
     parse_prefix_regex(/^return/, (s,r) => ({range:r, kind:"return"})),
 
     parse_prefix_regex(/^while/, (s,r) => ({range:r, kind:"while"})),
@@ -156,19 +156,22 @@ export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface ReturnAST { kind: "return", value:ParserRes }
 export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
-export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST> }
+export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, constructors:Immutable.List<ConstructorDeclarationAST> }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
+export interface ConstructorDeclarationAST { kind:"cons_decl", name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionDeclarationAST { kind:"func_decl", name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
+export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
+export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
 
 export type AST = StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
-                | ClassAST
+                | ClassAST | ConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
@@ -211,12 +214,22 @@ let mk_call = (f_name:ParserRes, actuals:Array<ParserRes>) : ParserRes =>
   ({  range: f_name.range,
       ast: {kind:"func_call", name:f_name, actuals:actuals} })
 
+let mk_method_call = (obj:ParserRes, f_name:ParserRes, actuals:Array<ParserRes>) : ParserRes =>
+  ({  range: join_source_ranges(obj.range, f_name.range),
+      ast: {kind:"method_call", object:obj, name:f_name, actuals:actuals} })
+
+let mk_constructor_call = (new_range:SourceRange, C_name:string, actuals:Array<ParserRes>) : ParserRes =>
+  ({ range:new_range, ast:{ kind:"cons_call", name:C_name, actuals:actuals } })
+
+let mk_constructor_declaration = (function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
+  ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body})
+
 let mk_function_declaration = (return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
   ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body})
 
-let mk_class_declaration = (C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, range:SourceRange) : ParserRes =>
+let mk_class_declaration = (C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, constructors:Immutable.List<ConstructorDeclarationAST>, range:SourceRange) : ParserRes =>
   ({  range: range,
-      ast: {kind:"class", C_name:C_name, fields:fields, methods:methods } })
+      ast: {kind:"class", C_name:C_name, fields:fields, methods:methods, constructors:constructors } })
 
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
@@ -434,6 +447,15 @@ let class_keyword: Coroutine<ParserState,ParserError,SourceRange> = ignore_white
   else return co_error("expected `class`")
 }))
 
+let new_keyword: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error("found empty state, expected `new`")
+  let i = s.first()
+  if (i.kind == "new") {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
+  }
+  else return co_error("expected `new`")
+}))
 
 let left_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
@@ -558,18 +580,29 @@ let term : () => Parser = () : Parser =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(int)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(string)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(call())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(method_call())(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(field_ref())(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(identifier)(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(unary_expr())(
   left_bracket.then(_ =>
                                                            expr().then(e =>
                                                            right_bracket.then(_ =>
                                                            co_unit(e)))
-                                                          )))))))))
+                                                          )))))))))))
 
 let unary_expr : () => Parser = () =>
   not_op.then(_ =>
     expr().then(e => co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
 
+
+let method_call : () => Parser = () =>
+  identifier.then(obj =>
+  dot_sign.then(_ =>
+  identifier.then(f_name =>
+  left_bracket.then(_ =>
+  actuals().then((actuals:Array<ParserRes>) =>
+  right_bracket.then(_ =>
+  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals))))))))
 
 let call : () => Parser = () =>
   identifier.then(f_name =>
@@ -643,11 +676,23 @@ let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
     co_unit({...table, symbols:table.symbols.push(l)})
     )))))))))))))))
 
+let cons_call = () : Coroutine<Immutable.List<Token>, string, ParserRes> =>
+    new_keyword.then(new_range =>
+    identifier_token.then(class_name =>
+    left_bracket.then(_ =>
+    actuals().then((actuals:Array<ParserRes>) =>
+    right_bracket.then(_ =>
+    co_unit(mk_constructor_call(new_range, class_name, actuals))
+    )))))
 
 let expr = () : Coroutine<Immutable.List<Token>, string, ParserRes> =>
   {
     let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
-    return res
+    return co_catch<ParserState,ParserError,ParserRes>(both_errors)(
+      res
+    )(
+      cons_call()
+    )
   }
 
 
@@ -715,6 +760,18 @@ let bracketized_statement = () =>
   right_curly_bracket.then(_ =>
   co_unit(s))))
 
+let constructor_declaration = () =>
+  identifier_token.then(function_name =>
+  left_bracket.then(_ =>
+  arg_decls().then(arg_decls =>
+  right_bracket.then(_ =>
+  left_curly_bracket.then(_ =>
+  function_statements().then(body =>
+  right_curly_bracket.then(_ =>
+  co_unit(mk_constructor_declaration(function_name,
+                                  Immutable.List<DeclAST>(arg_decls),
+                                  body)))))))))
+
 let function_declaration = () =>
   identifier.then(return_type =>
   identifier_token.then(function_name =>
@@ -731,20 +788,16 @@ let function_declaration = () =>
 
 let class_declaration = () =>
   class_keyword.then(initial_range =>
-  console.log("class!!!") ||
   identifier_token.then(class_name =>
-  console.log(class_name) ||
   left_curly_bracket.then(_ =>
-  console.log("curlyyyyyyyyyy") ||
   class_statements().then(declarations =>
-  console.log("field and method declarations", declarations) ||
   right_curly_bracket.then(closing_curly_range =>
-  console.log("yyyyyyyyyylruc") ||
   co_unit(
     mk_class_declaration(
       class_name,
       declarations.fst,
-      declarations.snd,
+      declarations.snd.fst,
+      declarations.snd.snd,
       join_source_ranges(initial_range, closing_curly_range))
   ))))))
 
@@ -760,11 +813,12 @@ let inner_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(while_loop(function_statement))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(if_conditional(function_statement))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(call()))(
+  co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(method_call()))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(decl().then(d =>
     co_unit<ParserState,ParserError,ParserRes>({ range:d.l.range, ast:d }))))(
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(assign()))((
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(dbg))(
-  with_semicolon(tc_dbg)))))))))
+  with_semicolon(tc_dbg))))))))))
 
 let function_statement : () => Parser = () =>
   co_catch<ParserState,ParserError,ParserRes>(both_errors)(with_semicolon(return_statement()))(inner_statement())
@@ -781,23 +835,38 @@ let function_statements : () => Parser = () => generic_statements (function_stat
 let inner_statements : () => Parser = () => generic_statements (() => inner_statement())
 let outer_statements : () => Parser = () => generic_statements (outer_statement)
 
-let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Immutable.List<FunctionDeclarationAST>>> = () =>
-  co_catch<ParserState,ParserError,Prod<Immutable.List<DeclAST>, Immutable.List<FunctionDeclarationAST>>>(both_errors)(
-    co_catch<ParserState,ParserError,Sum<DeclAST, FunctionDeclarationAST>>(both_errors)(
+let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>> = () =>
+  co_catch<ParserState,ParserError,Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>(both_errors)(
+    co_catch<ParserState,ParserError,Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(both_errors)(
       with_semicolon(decl().then(d =>
-      co_unit<ParserState, ParserError, Sum<DeclAST, FunctionDeclarationAST>>(apply(inl<DeclAST, FunctionDeclarationAST>(), d))))
+      co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(apply(inl<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>(), d))))
     )(
-      function_declaration().then(d =>
-        co_unit<ParserState, ParserError, Sum<DeclAST, FunctionDeclarationAST>>(apply(inr<DeclAST, FunctionDeclarationAST>(), d)))
+      co_catch<ParserState,ParserError,Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(both_errors)(
+        function_declaration().then(d =>
+          co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
+            apply(inr<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>().after(inl<FunctionDeclarationAST, ConstructorDeclarationAST>()), d)))
+      )(
+        constructor_declaration().then(d =>
+          co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
+            apply(inr<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>().after(inr<FunctionDeclarationAST, ConstructorDeclarationAST>()), d)))
+      )
     ).then(decl =>
     class_statements().then(decls =>
-      co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Immutable.List<FunctionDeclarationAST>>>({
+      co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>({
         fst:decl.kind == "left" ? decls.fst.push(decl.value) : decls.fst,
-        snd:decl.kind == "right" ? decls.snd.push(decl.value) : decls.snd })
+        snd:decl.kind == "right" ?
+              decl.value.kind == "left" ?
+                {...decls.snd, fst:decls.snd.fst.push(decl.value.value)}
+              :
+                {...decls.snd, snd:decls.snd.snd.push(decl.value.value)}
+            : decls.snd })
   )))(
-    co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Immutable.List<FunctionDeclarationAST>>>({
+    co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>({
       fst:Immutable.List<DeclAST>(),
-      snd:Immutable.List<FunctionDeclarationAST>() }))
+      snd:{
+        fst:Immutable.List<FunctionDeclarationAST>(),
+        snd:Immutable.List<ConstructorDeclarationAST>() }
+      }))
 
 export let program_prs : () => Parser = () =>
   outer_statements().then(s =>
@@ -807,6 +876,8 @@ export let program_prs : () => Parser = () =>
 let string_to_csharp_type : (_:string) => CSharp.Type = s =>
   s == "int" ? CSharp.int_type
   : s == "bool" ? CSharp.bool_type
+  : s == "string" ? CSharp.string_type
+  : s == "void" ? CSharp.unit_type
   : s == "RenderGrid" ? CSharp.render_grid_type
   : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
   : CSharp.ref_type(s)
@@ -838,9 +909,16 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   : n.ast.kind == "return" ? CSharp.ret(ast_to_type_checker(n.ast.value))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(ast_to_type_checker(n.ast.l.ast.l), n.ast.l.ast.r.ast.value, ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "cons_call" ?
+    CSharp.call_cons(n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)))
   : n.ast.kind == "func_call" &&
     n.ast.name.ast.kind == "id" ?
     CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
+  : n.ast.kind == "method_call" &&
+    n.ast.name.ast.kind == "id" ?
+    console.log("eat a dick!") ||
+    CSharp.call_method(ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
   : n.ast.kind == "func_decl" &&
     n.ast.return_type.ast.kind == "id" ?
     CSharp.def_fun({ name:n.ast.name,
@@ -858,7 +936,14 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
           parameters:m.arg_decls.toArray().map(a => ({ name:a.r, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
           body:ast_to_type_checker(m.body),
           range:join_source_ranges(m.return_type.range, m.body.range)
-        })),
+        })).concat(
+        n.ast.constructors.toArray().map(c => ({
+          name:c.name,
+          return_t:CSharp.unit_type,
+          parameters:c.arg_decls.toArray().map(a => ({ name:a.r, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          body:ast_to_type_checker(c.body),
+          range:c.body.range
+        })) ),
       n.ast.fields.toArray().map(f => ({ name:f.r, type:string_to_csharp_type((f.l.ast as IdAST).value) }))
     )
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?

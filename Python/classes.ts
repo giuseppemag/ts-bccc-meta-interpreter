@@ -35,8 +35,9 @@ export let field_set_rt = function(F_name:ValueName, new_val_expr:ExprRt<Sum<Val
   return new_val_expr.then(new_val =>
     get_heap_v_rt(this_addr.v).then(this_val => {
     if (this_val.value.k != "obj") return runtime_error(`runtime type error: this is not a reference when looking ${F_name} up.`)
-    let new_this_val = {...this_val, v:this_val.value.v.set(F_name, new_val.value) }
-    return set_heap_v_rt(this_addr.v, new_this_val.value).then(_ => done_rt)
+
+    let new_this_val:Val = {...this_val.value, v:this_val.value.v.set(F_name, new_val.value) }
+    return set_heap_v_rt(this_addr.v, new_this_val).then(_ => done_rt)
   }))
 }
 

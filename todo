@@ -39,7 +39,8 @@
       [ ] constructor
     [ ] Method call
     [ ] Constructor call
-    [ ]
+    [ ] `void` and its `return;`
+    [ ] Empty methods/functions
   [ ] Left out for first viability test
     [ ] Proper (recursive) field lookups
   [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)

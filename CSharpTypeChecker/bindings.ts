@@ -663,7 +663,7 @@ export let call_method = function(this_ref:Stmt, M_name:string, arg_values:Array
                                     !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
             co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify(args_t)}`)
           :
-            co_unit(mk_typing(ref_type(C_name), Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+            co_unit(mk_typing(lambda_t.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
         )
       : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
   }))
