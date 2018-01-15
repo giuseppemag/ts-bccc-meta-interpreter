@@ -2607,6 +2607,18 @@ trim-newlines@^1.0.0:
   dependencies:
     glob "^6.0.4"
 
+ts-bccc-meta-compiler@^1.0.8:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/ts-bccc-meta-compiler/-/ts-bccc-meta-compiler-1.0.8.tgz#d4e092e2232594a75336c32384edb762d870a66d"
+  dependencies:
+    gulp "^3.9.1"
+    gulp-autoprefixer "^4.1.0"
+    gulp-clean-css "^3.9.2"
+    gulp-merge-media-queries "^0.2.1"
+    gulp-rename "^1.2.2"
+    immutable "^3.8.2"
+    ts-bccc "^1.0.10"
+
 ts-bccc@^1.0.10:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/ts-bccc/-/ts-bccc-1.0.10.tgz#c7e182ff7ba828ebf35ec2ae6f0e95d4777681db"
