@@ -72,6 +72,8 @@ var GrammarBasics;
         parse_prefix_regex(/^\./, function (s, r) { return ({ range: r, kind: "." }); }),
         parse_prefix_regex(/^\(/, function (s, r) { return ({ range: r, kind: "(" }); }),
         parse_prefix_regex(/^\)/, function (s, r) { return ({ range: r, kind: ")" }); }),
+        parse_prefix_regex(/^\[/, function (s, r) { return ({ range: r, kind: "[" }); }),
+        parse_prefix_regex(/^\]/, function (s, r) { return ({ range: r, kind: "]" }); }),
         parse_prefix_regex(/^{/, function (s, r) { return ({ range: r, kind: "{" }); }),
         parse_prefix_regex(/^}/, function (s, r) { return ({ range: r, kind: "}" }); }),
         parse_prefix_regex(/^".*"/, function (s, r) { return ({ range: r, kind: "string", v: s }); }),
@@ -99,6 +101,7 @@ var GrammarBasics;
     };
 })(GrammarBasics = exports.GrammarBasics || (exports.GrammarBasics = {}));
 var proprity_operators_table = Immutable.Map()
+    .set(".", 11)
     .set("*", 10)
     .set("/", 10)
     .set("%", 10)
@@ -217,6 +220,36 @@ var whitespace = function () {
     return ccc_aux_1.co_repeat(ccc_aux_1.co_catch(fst_err)(newline_sign)(whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
 };
 var ignore_whitespace = function (p) { return whitespace().then(function (_) { return p.then(function (p_res) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); }); };
+var symbol = function (token_kind, token_name) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected " + token_name);
+    var i = s.first();
+    if (i.kind == token_kind) {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
+    }
+    else
+        return ts_bccc_1.co_error("expected '" + token_name + "'");
+})); };
+var binop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected " + k);
+    var i = s.first();
+    if (i.kind == k) {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+    }
+    else
+        return ts_bccc_1.co_error("expected '" + k + "'");
+})); };
+var unaryop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.isEmpty())
+        return ts_bccc_1.co_error("found empty state, expected " + k);
+    var i = s.first();
+    if (i.kind == k) {
+        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+    }
+    else
+        return ts_bccc_1.co_error("expected '" + k + "'");
+})); };
 var dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.isEmpty())
         return ts_bccc_1.co_error("found empty state, expected identifier");
@@ -294,166 +327,22 @@ var identifier = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     else
         return ts_bccc_1.co_error("expected identifier but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
 }));
-var return_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected return");
-    var i = s.first();
-    if (i.kind == "return") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
-    }
-    else
-        return ts_bccc_1.co_error("expected return but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
-}));
-var while_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected while");
-    var i = s.first();
-    if (i.kind == "while") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected keyword 'while'");
-}));
-var if_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected if");
-    var i = s.first();
-    if (i.kind == "if") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected keyword 'if'");
-}));
-var else_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected else");
-    var i = s.first();
-    if (i.kind == "else") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected keyword 'else'");
-}));
-var equal_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected equal");
-    var i = s.first();
-    if (i.kind == "=") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '='");
-}));
-var semicolon_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected equal");
-    var i = s.first();
-    if (i.kind == ";") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected ';' at (" + i.range.start.to_string() + ")");
-}));
-var comma_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected equal");
-    var i = s.first();
-    if (i.kind == ",") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected ',' at (" + i.range.start.to_string() + ")");
-}));
-var class_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected `class`");
-    var i = s.first();
-    if (i.kind == "class") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
-    }
-    else
-        return ts_bccc_1.co_error("expected `class`");
-}));
-var new_keyword = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected `new`");
-    var i = s.first();
-    if (i.kind == "new") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
-    }
-    else
-        return ts_bccc_1.co_error("expected `new`");
-}));
-var left_bracket = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected dot");
-    var i = s.first();
-    if (i.kind == "(") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '('");
-}));
-var right_bracket = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected dot");
-    var i = s.first();
-    if (i.kind == ")") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected ')'");
-}));
-var left_curly_bracket = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected {");
-    var i = s.first();
-    if (i.kind == "{") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '{'");
-}));
-var right_curly_bracket = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected }");
-    var i = s.first();
-    if (i.kind == "}") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '}'");
-}));
-var dot_sign = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected dot");
-    var i = s.first();
-    if (i.kind == ".") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '.'");
-}));
-var binop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected " + k);
-    var i = s.first();
-    if (i.kind == k) {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '" + k + "'");
-})); };
-var unaryop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected " + k);
-    var i = s.first();
-    if (i.kind == k) {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
-    }
-    else
-        return ts_bccc_1.co_error("expected '" + k + "'");
-})); };
+var return_sign = symbol("return", "return");
+var while_keyword = symbol("while", "while");
+var if_keyword = symbol("if", "if");
+var else_keyword = symbol("else", "else");
+var equal_sign = symbol("=", "=");
+var semicolon_sign = symbol(";", "semicolon");
+var comma_sign = symbol(",", "comma");
+var class_keyword = symbol("class", "class");
+var new_keyword = symbol("new", "new");
+var left_bracket = symbol("(", "(");
+var right_bracket = symbol(")", ")");
+var left_square_bracket = symbol("[", "[");
+var right_square_bracket = symbol("]", "]");
+var left_curly_bracket = symbol("{", "{");
+var right_curly_bracket = symbol("}", "}");
+var dot_sign = symbol(".", ".");
 var plus_op = binop_sign("+");
 var minus_op = binop_sign("-");
 var times_op = binop_sign("*");
@@ -474,10 +363,17 @@ var eof = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_unit({});
     return ts_bccc_1.co_error("expected eof, found " + JSON.stringify(s.first()));
 }));
-var field_ref = function () { return identifier.then(function (l) {
+var field_ref_elements = function (identifiers) {
+    return ccc_aux_1.co_catch(snd_err)(identifier.then(function (l) {
+        return dot_sign.then(function (_) {
+            return field_ref_elements(identifiers.push(l));
+        });
+    }))(ts_bccc_1.co_unit(identifiers));
+};
+var field_ref = function () { return identifier.then(function (first) {
     return dot_sign.then(function (_) {
-        return ccc_aux_1.co_catch(snd_err)(field_ref())(identifier).then(function (r) {
-            return ts_bccc_1.co_unit(mk_field_ref(l, r));
+        return field_ref_elements(Immutable.List([first])).then(function (identifiers) {
+            return identifier.then(function (last) { return ts_bccc_1.co_unit(identifiers.push(last).toArray().reduce(function (l, r) { return mk_field_ref(l, r); })); });
         });
     });
 }); };
@@ -515,16 +411,21 @@ var unary_expr = function () {
         return expr().then(function (e) { return ts_bccc_1.co_unit(mk_not(e)); });
     });
 };
+var method_ref = function () { return identifier.then(function (first) {
+    return dot_sign.then(function (_) {
+        return field_ref_elements(Immutable.List([first])).then(function (identifiers) {
+            return identifier.then(function (last) { return ts_bccc_1.co_unit({ object: identifiers.toArray().reduce(function (l, r) { return mk_field_ref(l, r); }),
+                method: last }); });
+        });
+    });
+}); };
 var method_call = function () {
-    return identifier.then(function (obj) {
-        return dot_sign.then(function (_) {
-            return identifier.then(function (f_name) {
-                return left_bracket.then(function (_) {
-                    return actuals().then(function (actuals) {
-                        return right_bracket.then(function (_) {
-                            return ts_bccc_1.co_unit(mk_method_call(obj, f_name, actuals));
-                        });
-                    });
+    return method_ref().then(function (_a) {
+        var obj = _a.object, f_name = _a.method;
+        return left_bracket.then(function (_) {
+            return actuals().then(function (actuals) {
+                return right_bracket.then(function (_) {
+                    return ts_bccc_1.co_unit(mk_method_call(obj, f_name, actuals));
                 });
             });
         });
@@ -820,8 +721,7 @@ exports.ast_to_type_checker = function (n) {
                                                                                                                     CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
                                                                                                                     : n.ast.kind == "method_call" &&
                                                                                                                         n.ast.name.ast.kind == "id" ?
-                                                                                                                        console.log("eat a dick!") ||
-                                                                                                                            CSharp.call_method(exports.ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
+                                                                                                                        CSharp.call_method(exports.ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a); }))
                                                                                                                         : n.ast.kind == "func_decl" &&
                                                                                                                             n.ast.return_type.ast.kind == "id" ?
                                                                                                                             CSharp.def_fun({ name: n.ast.name,

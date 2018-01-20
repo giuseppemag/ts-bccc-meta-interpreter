@@ -18,6 +18,7 @@ export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { 
   | { kind:"dbg" } | { kind:"tc-dbg" }
   | { kind:"(" } | { kind:")" }
   | { kind:"{" } | { kind:"}" }
+  | { kind:"[" } | { kind:"]" }
   | { kind:"eof" } | { kind:"nl" }
   | { kind:" " }
   | { kind:"," }
@@ -92,6 +93,8 @@ export module GrammarBasics {
     parse_prefix_regex(/^\./, (s,r) => ({range:r, kind:"."})),
     parse_prefix_regex(/^\(/, (s,r) => ({range:r, kind:"("})),
     parse_prefix_regex(/^\)/, (s,r) => ({range:r, kind:")"})),
+    parse_prefix_regex(/^\[/, (s,r) => ({range:r, kind:"["})),
+    parse_prefix_regex(/^\]/, (s,r) => ({range:r, kind:"]"})),
     parse_prefix_regex(/^{/, (s,r) => ({range:r, kind:"{"})),
     parse_prefix_regex(/^}/, (s,r) => ({range:r, kind:"}"})),
     parse_prefix_regex(/^".*"/, (s,r) => ({range:r,  kind:"string", v:s })),
@@ -124,6 +127,7 @@ export module GrammarBasics {
 
 let proprity_operators_table =
   Immutable.Map<string, number>()
+  .set(".", 11)
   .set("*", 10)
   .set("/", 10)
   .set("%", 10)
@@ -292,6 +296,37 @@ let whitespace = () =>
 
 let ignore_whitespace = function<a>(p:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> { return whitespace().then(_ => p.then(p_res => whitespace().then(_ => co_unit(p_res)))) }
 
+let symbol = (token_kind:string, token_name:string) : Coroutine<ParserState,ParserError,SourceRange> => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error(`found empty state, expected ${token_name}`)
+  let i = s.first()
+  if (i.kind == token_kind) {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
+  }
+  else return co_error(`expected '${token_name}'`)
+}))
+
+let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error(`found empty state, expected ${k}`)
+  let i = s.first()
+  if (i.kind == k) {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error(`expected '${k}'`)
+}))
+
+let unaryop_sign: (_:UnaryOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.isEmpty())
+    return co_error(`found empty state, expected ${k}`)
+  let i = s.first()
+  if (i.kind == k) {
+    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
+  }
+  else return co_error(`expected '${k}'`)
+}))
+
+
 let dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.isEmpty())
     return co_error("found empty state, expected identifier")
@@ -369,166 +404,34 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
   else return co_error(`expected identifier but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
 }))
 
-let return_sign: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected return")
-  let i = s.first()
-  if (i.kind == "return") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
-  }
-  else return co_error(`expected return but found ${i.kind} at (${i.range.start.row}, ${i.range.start.column})`)
-}))
+let return_sign = symbol("return", "return")
 
-let while_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected while")
-  let i = s.first()
-  if (i.kind == "while") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected keyword 'while'")
-}))
+let while_keyword = symbol("while", "while")
 
-let if_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected if")
-  let i = s.first()
-  if (i.kind == "if") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected keyword 'if'")
-}))
+let if_keyword = symbol("if", "if")
 
-let else_keyword: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected else")
-  let i = s.first()
-  if (i.kind == "else") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected keyword 'else'")
-}))
+let else_keyword = symbol("else", "else")
 
-let equal_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected equal")
-  let i = s.first()
-  if (i.kind == "=") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '='")
-}))
+let equal_sign = symbol("=", "=")
 
-let semicolon_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected equal")
-  let i = s.first()
-  if (i.kind == ";") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error(`expected ';' at (${i.range.start.to_string()})`)
-}))
+let semicolon_sign = symbol(";", "semicolon")
 
-let comma_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected equal")
-  let i = s.first()
-  if (i.kind == ",") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error(`expected ',' at (${i.range.start.to_string()})`)
-}))
+let comma_sign = symbol(",", "comma")
 
-let class_keyword: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected `class`")
-  let i = s.first()
-  if (i.kind == "class") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
-  }
-  else return co_error("expected `class`")
-}))
+let class_keyword = symbol("class", "class")
 
-let new_keyword: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected `new`")
-  let i = s.first()
-  if (i.kind == "new") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
-  }
-  else return co_error("expected `new`")
-}))
+let new_keyword = symbol("new", "new")
 
-let left_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected dot")
-  let i = s.first()
-  if (i.kind == "(") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '('")
-}))
+let left_bracket = symbol("(", "(")
+let right_bracket = symbol(")", ")")
 
-let right_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected dot")
-  let i = s.first()
-  if (i.kind == ")") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected ')'")
-}))
+let left_square_bracket = symbol("[", "[")
+let right_square_bracket = symbol("]", "]")
 
-let left_curly_bracket: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected {")
-  let i = s.first()
-  if (i.kind == "{") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '{'")
-}))
+let left_curly_bracket = symbol("{", "{")
+let right_curly_bracket = symbol("}", "}")
 
-let right_curly_bracket: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected }")
-  let i = s.first()
-  if (i.kind == "}") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit(i.range))
-  }
-  else return co_error("expected '}'")
-}))
-
-let dot_sign: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error("found empty state, expected dot")
-  let i = s.first()
-  if (i.kind == ".") {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error("expected '.'")
-}))
-
-let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error(`found empty state, expected ${k}`)
-  let i = s.first()
-  if (i.kind == k) {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error(`expected '${k}'`)
-}))
-
-let unaryop_sign: (_:UnaryOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  if (s.isEmpty())
-    return co_error(`found empty state, expected ${k}`)
-  let i = s.first()
-  if (i.kind == k) {
-    return co_set_state<ParserState, ParserError>(s.rest().toList()).then(_ => co_unit({}))
-  }
-  else return co_error(`expected '${k}'`)
-}))
-
+let dot_sign = symbol(".", ".")
 
 let plus_op = binop_sign("+")
 let minus_op = binop_sign("-")
@@ -554,10 +457,15 @@ let eof: Coroutine<ParserState,ParserError,Unit> = ignore_whitespace(co_get_stat
   return co_error(`expected eof, found ${JSON.stringify(s.first())}`)
 }))
 
-let field_ref:  () => Parser = () => identifier.then(l =>
+let field_ref_elements = (identifiers:Immutable.List<ParserRes>) : Coroutine<ParserState,ParserError,Immutable.List<ParserRes>> =>
+  co_catch<ParserState,ParserError,Immutable.List<ParserRes>>(snd_err)(identifier.then(l =>
   dot_sign.then(_ =>
-  co_catch<ParserState,ParserError,ParserRes>(snd_err)(field_ref())(identifier).then(r =>
-  co_unit(mk_field_ref(l,r)))))
+  field_ref_elements(identifiers.push(l)))))(co_unit(identifiers))
+
+let field_ref:  () => Parser = () => identifier.then(first =>
+  dot_sign.then(_ =>
+  field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
+  identifier.then(last => co_unit(identifiers.push(last).toArray().reduce((l,r) => mk_field_ref(l,r)))))))
 
 let mk_empty_render_grid_prs : () => Parser = () =>
   mk_empty_render_grid_sign.then(_ =>
@@ -596,15 +504,20 @@ let unary_expr : () => Parser = () =>
   not_op.then(_ =>
     expr().then(e => co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
 
+let method_ref: () => Coroutine<ParserState,ParserError,{ object:ParserRes, method:ParserRes }> = () => identifier.then(first =>
+  dot_sign.then(_ =>
+  field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
+  identifier.then(last => co_unit(
+    { object:identifiers.toArray().reduce((l,r) => mk_field_ref(l,r)),
+      method:last }
+    )))))
 
 let method_call : () => Parser = () =>
-  identifier.then(obj =>
-  dot_sign.then(_ =>
-  identifier.then(f_name =>
+  method_ref().then(({ object:obj, method:f_name }) =>
   left_bracket.then(_ =>
   actuals().then((actuals:Array<ParserRes>) =>
   right_bracket.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals))))))))
+  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals))))))
 
 let call : () => Parser = () =>
   identifier.then(f_name =>
@@ -934,7 +847,6 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
     CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
   : n.ast.kind == "method_call" &&
     n.ast.name.ast.kind == "id" ?
-    console.log("eat a dick!") ||
     CSharp.call_method(ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
   : n.ast.kind == "func_decl" &&
     n.ast.return_type.ast.kind == "id" ?

@@ -148,28 +148,34 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-class Vector2 {
+class A {
   int x;
-  int y;
 
-  Vector2(int x, int y) {
+  A(int x) {
     this.x = x;
-    this.y = y;
   }
 
   void scale(int k) {
     this.x = this.x * k;
-    this.y = this.y * k;
   }
 
-  int length_squared() {
-    return this.x * this.x + this.y * this.y;
+  int get_x() {
+    return this.x;
   }
 }
 
-Vector2 v2 = new Vector2(10, 5);
-v2.scale(2);
-int l = v2.length_squared();
+class B {
+  A a;
+
+  B(A a) {
+    this.a = a;
+  }
+}
+
+A a = new A(10);
+B b = new B(a);
+b.a.scale(2);
+int x = b.a.x;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

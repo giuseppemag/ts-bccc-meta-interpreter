@@ -54,6 +54,10 @@ export declare type Token = ({
 } | {
     kind: "}";
 } | {
+    kind: "[";
+} | {
+    kind: "]";
+} | {
     kind: "eof";
 } | {
     kind: "nl";

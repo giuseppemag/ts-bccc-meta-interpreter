@@ -1,17 +1,19 @@
-[ ] Create GrandeOmegaShared private repository
 [ ] C#
-  [ ] File management
-    [ ] Split into multiple files
-      [ ] Bindings.ts becomes a whole directory of files
-      [ ] Grammar.ts becomes a whole directory of files
   [ ] Classes
     [ ] Generics
     [ ] Polymorphism
       [ ] Inheritance
       [ ] Covariance/contravariance in function calls and variable assignments
+    [ ] Access modifiers
+      [ ] public
+      [ ] private
+      [ ] static
+      [ ] protected
+      [ ] virtual
+      [ ] override
     [ ] Structs
     [ ] Tuples
-    [ ] Records
+    [ ] Records (C# 7 tuples)
     [ ] Static methods
       [ ] Definition
       [ ] Call
@@ -20,26 +22,30 @@
     [ ] Lambda's (requires Func and generics in type-checker)
     [ ] Closure
   [ ] Statements
+    [ ] arrays
+      [ ] lookup
+      [ ] assignment
     [ ] For
     [ ] ForEach
     [ ] LINQ
     [ ] yield return
     [ ] async/await
-    [ ] pattern matching
-  [ ] Important improvements
-    [ ] Proper (recursive) field lookups
-    [ ] methods/functions without body
-    [ ] (proper) initial values for variables at declaration when no value is specified
-    [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
-      [ ] Are lambda arguments properly checked at both run-time and compile-time
-      [ ] Propagate nested parse errors (for example, the errors inside the body of a while or inside the body of a function)
+    [ ] C# 7 pattern matching
+
+[ ] Issues/quality assurance
+  [ ] new B(new A(10)) does not work
+  [ ] methods/functions without body
+  [ ] (proper) initial values for variables at declaration when no value is specified
+  [ ] localized errors everywhere (curried parameter, used for runtime/compiler errors!)
+    [ ] are lambda arguments properly checked at both run-time and compile-time
+    [ ] propagate nested parse errors (for example, the errors inside the body of a while or inside the body of a function)
+  [ ] Split into multiple files
+    [ ] Bindings.ts becomes a whole directory of files
+    [ ] Grammar.ts becomes a whole directory of files
 
 [ ] Highlighting
   [ ] Use both start and end
   [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value
-
-[ ] Required for basic quality but not basic functionality
-  [ ] breakpoint right after return (`ret_break?`)
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
@@ -53,3 +59,4 @@
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
   [ ] Garbage collection (and `heap_alloc` fills in the gaps)
   [ ] Memory values as sums (of basic types)
+  [ ] breakpoint right after return (`ret_break?`)
