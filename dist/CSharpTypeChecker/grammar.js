@@ -173,159 +173,173 @@ var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
 var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
 var mk_empty_render_grid = function (w, h) { return ({ range: source_range_1.join_source_ranges(w.range, h.range), ast: { kind: "mk-empty-render-grid", w: w, h: h } }); };
 var mk_render_grid_pixel = function (w, h, status) { return ({ range: source_range_1.join_source_ranges(w.range, source_range_1.join_source_ranges(h.range, status.range)), ast: { kind: "mk-render-grid-pixel", w: w, h: h, status: status } }); };
+exports.mk_parser_state = function (tokens) { return ({ tokens: tokens, branch_priority: 0 }); };
+var no_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 0 })); });
+var partial_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 50 })); });
+var full_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 100 })); });
 var mk_empty_render_grid_sign = ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected empty_render_grid");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected empty_render_grid" });
+    var i = s.tokens.first();
     if (i.kind == "mk_empty_render_grid") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected empty_render_grid");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected empty_render_grid" });
 });
 var mk_render_grid_pixel_sign = ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected pixel");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected pixel" });
+    var i = s.tokens.first();
     if (i.kind == "pixel") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected pixel");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected pixel" });
 });
 var newline_sign = ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected newline");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected newline" });
+    var i = s.tokens.first();
     if (i.kind == "nl") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected newline");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected newline" });
 });
 var whitespace_sign = ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected whitespace");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected whitespace" });
+    var i = s.tokens.first();
     if (i.kind == " ") {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected whitespace");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected whitespace" });
 });
-var fst_err = function (e, _) { return e; };
-var snd_err = function (e, _) { return e; };
-var both_errors = function (e1, e2) { return e1 + ", or " + e2; };
+var merge_errors = function (e1, e2) {
+    var res = e1.priority > e2.priority ? e1 :
+        e2.priority > e1.priority ? e2 :
+            ({ priority: Math.max(e1.priority, e2.priority), message: e1.message + " or " + e2.message, range: source_range_1.join_source_ranges(e1.range, e2.range) });
+    // let show = [{p:e1.priority, m:e1.message},{p:e2.priority, m:e2.message},{p:res.priority, m:res.message}]
+    // if (res.priority > 50) console.log("merging errors", JSON.stringify(show))
+    return res;
+};
+var parser_or = function (p, q) {
+    return ccc_aux_1.co_catch(merge_errors)(p)(q);
+};
 var whitespace = function () {
-    return ccc_aux_1.co_repeat(ccc_aux_1.co_catch(fst_err)(newline_sign)(whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
+    return ccc_aux_1.co_repeat(parser_or(newline_sign, whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
 };
 var ignore_whitespace = function (p) { return whitespace().then(function (_) { return p.then(function (p_res) { return whitespace().then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); }); };
 var symbol = function (token_kind, token_name) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected " + token_name);
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected " + token_name });
+    var i = s.tokens.first();
     if (i.kind == token_kind) {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(i.range); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(i.range); });
     }
-    else
-        return ts_bccc_1.co_error("expected '" + token_name + "'");
+    else {
+        // if (token_kind == ";") console.log(`Failed ; lookup on ${s.branch_priority}`)
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected '" + token_name + "', found '" + i.kind + "'" });
+    }
 })); };
 var binop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected " + k);
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected " + k });
+    var i = s.tokens.first();
     if (i.kind == k) {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected '" + k + "'");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected '" + k + "'" });
 })); };
 var unaryop_sign = function (k) { return ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected " + k);
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected " + k });
+    var i = s.tokens.first();
     if (i.kind == k) {
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit({}); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({}); });
     }
     else
-        return ts_bccc_1.co_error("expected '" + k + "'");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected '" + k + "'" });
 })); };
 var dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected identifier");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
+    var i = s.tokens.first();
     if (i.kind == "dbg") {
         var res_1 = mk_dbg(i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_1); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_1); });
     }
     else
-        return ts_bccc_1.co_error("expected debugger but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected debugger but found " + i.kind });
 }));
 var tc_dbg = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected identifier");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
+    var i = s.tokens.first();
     if (i.kind == "tc-dbg") {
         var res_2 = mk_tc_dbg(i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_2); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_2); });
     }
     else
-        return ts_bccc_1.co_error("expected typecheker debugger but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected typecheker debugger but found " + i.kind });
 }));
 var string = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected number");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected number" });
+    var i = s.tokens.first();
     if (i.kind == "string") {
         var res_3 = mk_string(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_3); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_3); });
     }
     else
-        return ts_bccc_1.co_error("expected int");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected int" });
 }));
 var bool = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected boolean");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected boolean" });
+    var i = s.tokens.first();
     if (i.kind == "bool") {
         var res_4 = mk_bool(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_4); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_4); });
     }
     else
-        return ts_bccc_1.co_error("expected boolean");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected boolean" });
 }));
 var int = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected number");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected number" });
+    var i = s.tokens.first();
     if (i.kind == "int") {
         var res_5 = mk_int(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_5); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_5); });
     }
     else
-        return ts_bccc_1.co_error("expected int");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected int" });
 }));
 var identifier_token = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected identifier");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
+    var i = s.tokens.first();
     if (i.kind == "id") {
         var res_6 = i.v;
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_6); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_6); });
     }
     else
-        return ts_bccc_1.co_error("expected identifier but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });
 }));
 var identifier = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_error("found empty state, expected identifier");
-    var i = s.first();
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
+    var i = s.tokens.first();
     if (i.kind == "id") {
         var res_7 = mk_identifier(i.v, i.range);
-        return ts_bccc_1.co_set_state(s.rest().toList()).then(function (_) { return ts_bccc_1.co_unit(res_7); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_7); });
     }
     else
-        return ts_bccc_1.co_error("expected identifier but found " + i.kind + " at (" + i.range.start.row + ", " + i.range.start.column + ")");
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });
 }));
 var return_sign = symbol("return", "return");
 var while_keyword = symbol("while", "while");
@@ -359,16 +373,16 @@ var or_op = binop_sign("||");
 var xor_op = binop_sign("xor");
 var not_op = unaryop_sign("not");
 var eof = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    if (s.isEmpty())
-        return ts_bccc_1.co_unit({});
-    return ts_bccc_1.co_error("expected eof, found " + JSON.stringify(s.first()));
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_unit(source_range_1.zero_range);
+    return ts_bccc_1.co_error({ range: s.tokens.first().range, message: "expected eof, found " + s.tokens.first().kind, priority: s.branch_priority });
 }));
 var field_ref_elements = function (identifiers) {
-    return ccc_aux_1.co_catch(snd_err)(identifier.then(function (l) {
+    return parser_or(identifier.then(function (l) {
         return dot_sign.then(function (_) {
             return field_ref_elements(identifiers.push(l));
         });
-    }))(ts_bccc_1.co_unit(identifiers));
+    }), ts_bccc_1.co_unit(identifiers));
 };
 var field_ref = function () { return identifier.then(function (first) {
     return dot_sign.then(function (_) {
@@ -398,7 +412,7 @@ var render_grid_pixel_prs = function () {
     });
 };
 var term = function () {
-    return ccc_aux_1.co_catch(both_errors)(mk_empty_render_grid_prs())(ccc_aux_1.co_catch(both_errors)(render_grid_pixel_prs())(ccc_aux_1.co_catch(both_errors)(bool)(ccc_aux_1.co_catch(both_errors)(int)(ccc_aux_1.co_catch(both_errors)(string)(ccc_aux_1.co_catch(both_errors)(call())(ccc_aux_1.co_catch(both_errors)(method_call())(ccc_aux_1.co_catch(both_errors)(field_ref())(ccc_aux_1.co_catch(both_errors)(identifier)(ccc_aux_1.co_catch(both_errors)(unary_expr())(left_bracket.then(function (_) {
+    return parser_or(mk_empty_render_grid_prs(), parser_or(render_grid_pixel_prs(), parser_or(bool, parser_or(int, parser_or(string, parser_or(call(), parser_or(method_call(), parser_or(field_ref(), parser_or(identifier, parser_or(unary_expr(), left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
@@ -408,7 +422,9 @@ var term = function () {
 };
 var unary_expr = function () {
     return not_op.then(function (_) {
-        return expr().then(function (e) { return ts_bccc_1.co_unit(mk_not(e)); });
+        return expr().then(function (e) {
+            return ts_bccc_1.co_unit(mk_not(e));
+        });
     });
 };
 var method_ref = function () { return identifier.then(function (first) {
@@ -470,7 +486,7 @@ var expr_after_op = function (symbols, ops, current_op, compose_current) {
 };
 var expr_AUX = function (table) {
     return term().then(function (l) {
-        return ccc_aux_1.co_catch(both_errors)(plus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "+", function (l, r) { return mk_plus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(minus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "-", function (l, r) { return mk_minus(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(times_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "*", function (l, r) { return mk_times(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(div_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "/", function (l, r) { return mk_div(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(mod_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "%", function (l, r) { return mk_mod(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(lt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<", function (l, r) { return mk_lt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(gt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">", function (l, r) { return mk_gt(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(leq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<=", function (l, r) { return mk_leq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(geq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">=", function (l, r) { return mk_geq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(eq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "==", function (l, r) { return mk_eq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(neq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "!=", function (l, r) { return mk_neq(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(and_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "&&", function (l, r) { return mk_and(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(or_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "||", function (l, r) { return mk_or(l, r); }); }))(ccc_aux_1.co_catch(both_errors)(xor_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "xor", function (l, r) { return mk_xor(l, r); }); }))(ts_bccc_1.co_unit(__assign({}, table, { symbols: table.symbols.push(l) }))))))))))))))));
+        return parser_or(plus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "+", function (l, r) { return mk_plus(l, r); }); }), parser_or(minus_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "-", function (l, r) { return mk_minus(l, r); }); }), parser_or(times_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "*", function (l, r) { return mk_times(l, r); }); }), parser_or(div_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "/", function (l, r) { return mk_div(l, r); }); }), parser_or(mod_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "%", function (l, r) { return mk_mod(l, r); }); }), parser_or(lt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<", function (l, r) { return mk_lt(l, r); }); }), parser_or(gt_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">", function (l, r) { return mk_gt(l, r); }); }), parser_or(leq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "<=", function (l, r) { return mk_leq(l, r); }); }), parser_or(geq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, ">=", function (l, r) { return mk_geq(l, r); }); }), parser_or(eq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "==", function (l, r) { return mk_eq(l, r); }); }), parser_or(neq_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "!=", function (l, r) { return mk_neq(l, r); }); }), parser_or(and_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "&&", function (l, r) { return mk_and(l, r); }); }), parser_or(or_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "||", function (l, r) { return mk_or(l, r); }); }), parser_or(xor_op.then(function (_) { return expr_after_op(table.symbols.push(l), table.ops, "xor", function (l, r) { return mk_xor(l, r); }); }), ts_bccc_1.co_unit(__assign({}, table, { symbols: table.symbols.push(l) }))))))))))))))));
     });
 };
 var cons_call = function () {
@@ -488,28 +504,36 @@ var cons_call = function () {
 };
 var expr = function () {
     var res = expr_AUX(empty_table).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
-    return ccc_aux_1.co_catch(both_errors)(res)(cons_call());
+    return parser_or(res, cons_call());
 };
 var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);
 var with_semicolon = function (p) { return p.then(function (p_res) { return ignore_whitespace(semicolon_sign).then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); };
 var assign_left = function (l) {
     return equal_sign.then(function (_) {
-        return expr().then(function (r) {
-            return ts_bccc_1.co_unit(mk_assign(l, r));
+        return partial_match.then(function (_) {
+            return expr().then(function (r) {
+                return full_match.then(function (_) {
+                    return ts_bccc_1.co_unit(mk_assign(l, r));
+                });
+            });
         });
     });
 };
 var assign = function () {
-    return ccc_aux_1.co_catch(snd_err)(field_ref())(identifier).then(function (l) {
+    return parser_or(field_ref(), identifier).then(function (l) {
         return assign_left(l);
     });
 };
 var decl_init = function () {
     return identifier.then(function (l) {
         return identifier_token.then(function (r) {
-            return assign_left(mk_identifier(r, l.range)).then(function (a) {
-                return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
+            return partial_match.then(function (_) {
+                return assign_left(mk_identifier(r, l.range)).then(function (a) {
+                    return full_match.then(function (_) {
+                        return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
+                    });
+                });
             });
         });
     });
@@ -517,62 +541,86 @@ var decl_init = function () {
 var decl = function () {
     return identifier.then(function (l) {
         return identifier_token.then(function (r) {
-            return ts_bccc_1.co_unit(mk_decl(l, r));
+            return partial_match.then(function (_) {
+                return ts_bccc_1.co_unit(mk_decl(l, r));
+            });
         });
     });
 };
 var actuals = function () {
-    return ccc_aux_1.co_catch(both_errors)(term().then(function (a) {
-        return ccc_aux_1.co_catch(both_errors)(comma.then(function (_) {
+    return parser_or(term().then(function (a) {
+        return parser_or(comma.then(function (_) {
             return actuals().then(function (as) {
                 return ts_bccc_1.co_unit([a].concat(as));
             });
-        }))(ts_bccc_1.co_unit([a]));
-    }))(ts_bccc_1.co_unit(Array()));
+        }), ts_bccc_1.co_unit([a]));
+    }), ts_bccc_1.co_unit(Array()));
 };
 var arg_decls = function () {
-    return ccc_aux_1.co_catch(both_errors)(decl().then(function (d) {
-        return ccc_aux_1.co_catch(both_errors)(comma.then(function (_) {
+    return parser_or(decl().then(function (d) {
+        return parser_or(comma.then(function (_) {
             return arg_decls().then(function (ds) {
                 return ts_bccc_1.co_unit([d].concat(ds));
             });
-        }))(ts_bccc_1.co_unit([d]));
-    }))(ts_bccc_1.co_unit(Array()));
+        }), ts_bccc_1.co_unit([d]));
+    }), ts_bccc_1.co_unit(Array()));
 };
 var return_statement = function () {
-    return return_sign.then(function (return_range) {
-        return ccc_aux_1.co_catch(both_errors)(expr().then(function (e) {
-            return ts_bccc_1.co_unit(mk_return(e));
-        }))(ts_bccc_1.co_unit(mk_unit(return_range)));
+    return no_match.then(function (_) {
+        return return_sign.then(function (return_range) {
+            return partial_match.then(function (_) {
+                return parser_or(expr().then(function (e) {
+                    return ts_bccc_1.co_unit(mk_return(e));
+                }), ts_bccc_1.co_unit(mk_unit(return_range)));
+            });
+        });
     });
 };
 var if_conditional = function (stmt) {
-    return if_keyword.then(function (_) {
-        return expr().then(function (c) {
-            return stmt().then(function (t) {
-                return ccc_aux_1.co_catch(fst_err)(else_keyword.then(function (_) {
-                    return stmt().then(function (e) {
-                        return ts_bccc_1.co_unit(mk_if_then_else(c, t, e));
+    return no_match.then(function (_) {
+        return if_keyword.then(function (_) {
+            return partial_match.then(function (_) {
+                return expr().then(function (c) {
+                    return stmt().then(function (t) {
+                        return parser_or(else_keyword.then(function (_) {
+                            return stmt().then(function (e) {
+                                return full_match.then(function (_) {
+                                    return ts_bccc_1.co_unit(mk_if_then_else(c, t, e));
+                                });
+                            });
+                        }), ts_bccc_1.co_unit(mk_if_then(c, t)));
                     });
-                }))(ts_bccc_1.co_unit(mk_if_then(c, t)));
+                });
             });
         });
     });
 };
 var while_loop = function (stmt) {
-    return while_keyword.then(function (_) {
-        return expr().then(function (c) {
-            return stmt().then(function (b) {
-                return ts_bccc_1.co_unit(mk_while(c, b));
+    return no_match.then(function (_) {
+        return while_keyword.then(function (_) {
+            return partial_match.then(function (_) {
+                return expr().then(function (c) {
+                    return stmt().then(function (b) {
+                        return full_match.then(function (_) {
+                            return ts_bccc_1.co_unit(mk_while(c, b));
+                        });
+                    });
+                });
             });
         });
     });
 };
 var bracketized_statement = function () {
-    return left_curly_bracket.then(function (_) {
-        return function_statements().then(function (s) {
-            return right_curly_bracket.then(function (_) {
-                return ts_bccc_1.co_unit(s);
+    return no_match.then(function (_) {
+        return left_curly_bracket.then(function (_) {
+            return partial_match.then(function (_) {
+                return function_statements().then(function (s) {
+                    return right_curly_bracket.then(function (_) {
+                        return full_match.then(function (_) {
+                            return ts_bccc_1.co_unit(s);
+                        });
+                    });
+                });
             });
         });
     });
@@ -595,15 +643,21 @@ var constructor_declaration = function () {
     });
 };
 var function_declaration = function () {
-    return identifier.then(function (return_type) {
-        return identifier_token.then(function (function_name) {
-            return left_bracket.then(function (_) {
-                return arg_decls().then(function (arg_decls) {
-                    return right_bracket.then(function (_) {
-                        return left_curly_bracket.then(function (_) {
-                            return function_statements().then(function (body) {
-                                return right_curly_bracket.then(function (_) {
-                                    return ts_bccc_1.co_unit(mk_function_declaration(return_type, function_name, Immutable.List(arg_decls), body));
+    return no_match.then(function (_) {
+        return identifier.then(function (return_type) {
+            return identifier_token.then(function (function_name) {
+                return left_bracket.then(function (_) {
+                    return partial_match.then(function (_) {
+                        return arg_decls().then(function (arg_decls) {
+                            return right_bracket.then(function (_) {
+                                return left_curly_bracket.then(function (_) {
+                                    return function_statements().then(function (body) {
+                                        return right_curly_bracket.then(function (_) {
+                                            return full_match.then(function (_) {
+                                                return ts_bccc_1.co_unit(mk_function_declaration(return_type, function_name, Immutable.List(arg_decls), body));
+                                            });
+                                        });
+                                    });
                                 });
                             });
                         });
@@ -614,12 +668,18 @@ var function_declaration = function () {
     });
 };
 var class_declaration = function () {
-    return class_keyword.then(function (initial_range) {
-        return identifier_token.then(function (class_name) {
-            return left_curly_bracket.then(function (_) {
-                return class_statements().then(function (declarations) {
-                    return right_curly_bracket.then(function (closing_curly_range) {
-                        return ts_bccc_1.co_unit(mk_class_declaration(class_name, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+    return no_match.then(function (_) {
+        return class_keyword.then(function (initial_range) {
+            return partial_match.then(function (_) {
+                return identifier_token.then(function (class_name) {
+                    return left_curly_bracket.then(function (_) {
+                        return class_statements().then(function (declarations) {
+                            return right_curly_bracket.then(function (closing_curly_range) {
+                                return full_match.then(function (_) {
+                                    return ts_bccc_1.co_unit(mk_class_declaration(class_name, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                                });
+                            });
+                        });
                     });
                 });
             });
@@ -627,34 +687,34 @@ var class_declaration = function () {
     });
 };
 var outer_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(function_declaration().then(function (fun_decl) {
+    return parser_or(function_declaration().then(function (fun_decl) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(fun_decl.return_type.range, fun_decl.body.range), ast: fun_decl });
-    }))(ccc_aux_1.co_catch(both_errors)(class_declaration())(inner_statement()));
+    }), parser_or(class_declaration(), inner_statement()));
 };
 var inner_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(bracketized_statement())(ccc_aux_1.co_catch(both_errors)(while_loop(function_statement))(ccc_aux_1.co_catch(both_errors)(if_conditional(function_statement))(ccc_aux_1.co_catch(both_errors)(with_semicolon(call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(method_call()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
+    return parser_or(bracketized_statement(), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or(with_semicolon(call()), parser_or(with_semicolon(method_call()), parser_or(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: d.l.range, ast: d });
-    })))(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl_init()))(ccc_aux_1.co_catch(both_errors)(with_semicolon(assign()))((ccc_aux_1.co_catch(both_errors)(with_semicolon(dbg))(with_semicolon(tc_dbg)))))))))));
+    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(dbg), with_semicolon(tc_dbg))))))))));
 };
 var function_statement = function () {
-    return ccc_aux_1.co_catch(both_errors)(with_semicolon(return_statement()))(inner_statement());
+    return parser_or(with_semicolon(return_statement()), inner_statement());
 };
 var generic_statements = function (stmt) {
     return stmt().then(function (l) {
-        return ccc_aux_1.co_catch(snd_err)(generic_statements(stmt).then(function (r) {
+        return parser_or(generic_statements(stmt).then(function (r) {
             return ts_bccc_1.co_unit(mk_semicolon(l, r));
-        }))(ts_bccc_1.co_unit(l));
+        }), ts_bccc_1.co_unit(l));
     });
 };
 var function_statements = function () { return generic_statements(function_statement); };
 var inner_statements = function () { return generic_statements(function () { return inner_statement(); }); };
 var outer_statements = function () { return generic_statements(outer_statement); };
 var class_statements = function () {
-    return ccc_aux_1.co_catch(both_errors)(ccc_aux_1.co_catch(both_errors)(with_semicolon(decl().then(function (d) {
+    return parser_or(parser_or(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), d));
-    })))(ccc_aux_1.co_catch(both_errors)(function_declaration().then(function (d) {
+    })), parser_or(function_declaration().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inl()), d));
-    }))(constructor_declaration().then(function (d) {
+    }), constructor_declaration().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inr()), d));
     }))).then(function (decl) {
         return class_statements().then(function (decls) {
@@ -665,12 +725,14 @@ var class_statements = function () {
                     : decls.snd
             });
         });
-    }))(ts_bccc_1.co_unit({
-        fst: Immutable.List(),
-        snd: {
+    }), ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) {
+        return ts_bccc_1.co_unit({
             fst: Immutable.List(),
-            snd: Immutable.List()
-        }
+            snd: {
+                fst: Immutable.List(),
+                snd: Immutable.List()
+            }
+        });
     }));
 };
 exports.program_prs = function () {

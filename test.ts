@@ -12,6 +12,7 @@ import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 import * as DebuggerStream from "./csharp_debugger_stream"
+import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
 export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -153,6 +154,9 @@ class A {
 
   A(int x) {
     this.x = x;
+    while (x > 0) {
+      x = x - 1
+    }
   }
 
   void scale(int k) {
@@ -182,8 +186,8 @@ int x = b.a.x;
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
     // console.log(JSON.stringify(tokens.toArray())) // tokens
-    let res = CSharp.program_prs().run.f(tokens)
-    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
+    let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
+    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
 
     //console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()

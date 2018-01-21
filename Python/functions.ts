@@ -63,7 +63,7 @@ export let call_lambda_rt = function(lambda:Lambda, arg_expressions:Array<ExprRt
   let pop_failure = constant<Unit,ErrVal>(`Internal error: cannot pop an empty stack.`).then(Co.error<MemRt,ErrVal,Unit>())
   let cleanup = mk_coroutine(pop_scope_rt.then(pop_failure.plus(pop_success)))
   return eval_args.then(arg_values =>
-         console.log("lambda arguments", JSON.stringify(arg_values)) ||
+         // console.log("lambda arguments", JSON.stringify(arg_values)) ||
          init.then(_ =>
          set_args(arg_values.toArray()).then(_ =>
          body.then(res =>

@@ -205,8 +205,19 @@ export interface ParserRes {
     range: SourceRange;
     ast: AST;
 }
-export declare type ParserError = string;
-export declare type ParserState = Immutable.List<Token>;
+export interface ParserError {
+    priority: number;
+    message: string;
+    range: SourceRange;
+}
+export interface ParserState {
+    tokens: Immutable.List<Token>;
+    branch_priority: number;
+}
 export declare type Parser = Coroutine<ParserState, ParserError, ParserRes>;
+export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
+    tokens: Immutable.List<Token>;
+    branch_priority: number;
+};
 export declare let program_prs: () => Parser;
 export declare let ast_to_type_checker: (_: ParserRes) => CSharp.Stmt;
