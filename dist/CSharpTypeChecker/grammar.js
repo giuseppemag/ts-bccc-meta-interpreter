@@ -436,23 +436,35 @@ var method_ref = function () { return identifier.then(function (first) {
     });
 }); };
 var method_call = function () {
-    return method_ref().then(function (_a) {
-        var obj = _a.object, f_name = _a.method;
-        return left_bracket.then(function (_) {
-            return actuals().then(function (actuals) {
-                return right_bracket.then(function (_) {
-                    return ts_bccc_1.co_unit(mk_method_call(obj, f_name, actuals));
+    return no_match.then(function (_) {
+        return method_ref().then(function (_a) {
+            var obj = _a.object, f_name = _a.method;
+            return left_bracket.then(function (_) {
+                return partial_match.then(function (_) {
+                    return actuals().then(function (actuals) {
+                        return right_bracket.then(function (_) {
+                            return full_match.then(function (_) {
+                                return ts_bccc_1.co_unit(mk_method_call(obj, f_name, actuals));
+                            });
+                        });
+                    });
                 });
             });
         });
     });
 };
 var call = function () {
-    return identifier.then(function (f_name) {
-        return left_bracket.then(function (_) {
-            return actuals().then(function (actuals) {
-                return right_bracket.then(function (_) {
-                    return ts_bccc_1.co_unit(mk_call(f_name, actuals));
+    return no_match.then(function (_) {
+        return identifier.then(function (f_name) {
+            return left_bracket.then(function (_) {
+                return partial_match.then(function (_) {
+                    return actuals().then(function (actuals) {
+                        return right_bracket.then(function (_) {
+                            return full_match.then(function (_) {
+                                return ts_bccc_1.co_unit(mk_call(f_name, actuals));
+                            });
+                        });
+                    });
                 });
             });
         });
@@ -510,11 +522,13 @@ var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);
 var with_semicolon = function (p) { return p.then(function (p_res) { return ignore_whitespace(semicolon_sign).then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); };
 var assign_left = function (l) {
-    return equal_sign.then(function (_) {
-        return partial_match.then(function (_) {
-            return expr().then(function (r) {
-                return full_match.then(function (_) {
-                    return ts_bccc_1.co_unit(mk_assign(l, r));
+    return no_match.then(function (_) {
+        return equal_sign.then(function (_) {
+            return partial_match.then(function (_) {
+                return expr().then(function (r) {
+                    return full_match.then(function (_) {
+                        return ts_bccc_1.co_unit(mk_assign(l, r));
+                    });
                 });
             });
         });
@@ -526,12 +540,14 @@ var assign = function () {
     });
 };
 var decl_init = function () {
-    return identifier.then(function (l) {
-        return identifier_token.then(function (r) {
-            return partial_match.then(function (_) {
-                return assign_left(mk_identifier(r, l.range)).then(function (a) {
-                    return full_match.then(function (_) {
-                        return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
+    return no_match.then(function (_) {
+        return identifier.then(function (l) {
+            return identifier_token.then(function (r) {
+                return partial_match.then(function (_) {
+                    return assign_left(mk_identifier(r, l.range)).then(function (a) {
+                        return full_match.then(function (_) {
+                            return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
+                        });
                     });
                 });
             });
@@ -539,10 +555,12 @@ var decl_init = function () {
     });
 };
 var decl = function () {
-    return identifier.then(function (l) {
-        return identifier_token.then(function (r) {
-            return partial_match.then(function (_) {
-                return ts_bccc_1.co_unit(mk_decl(l, r));
+    return no_match.then(function (_) {
+        return identifier.then(function (l) {
+            return identifier_token.then(function (r) {
+                return partial_match.then(function (_) {
+                    return ts_bccc_1.co_unit(mk_decl(l, r));
+                });
             });
         });
     });
@@ -614,7 +632,7 @@ var bracketized_statement = function () {
     return no_match.then(function (_) {
         return left_curly_bracket.then(function (_) {
             return partial_match.then(function (_) {
-                return function_statements().then(function (s) {
+                return function_statements(ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (s) {
                     return right_curly_bracket.then(function (_) {
                         return full_match.then(function (_) {
                             return ts_bccc_1.co_unit(s);
@@ -626,14 +644,20 @@ var bracketized_statement = function () {
     });
 };
 var constructor_declaration = function () {
-    return identifier_token.then(function (function_name) {
-        return left_bracket.then(function (_) {
-            return arg_decls().then(function (arg_decls) {
-                return right_bracket.then(function (_) {
-                    return left_curly_bracket.then(function (_) {
-                        return function_statements().then(function (body) {
-                            return right_curly_bracket.then(function (_) {
-                                return ts_bccc_1.co_unit(mk_constructor_declaration(function_name, Immutable.List(arg_decls), body));
+    return no_match.then(function (_) {
+        return identifier_token.then(function (function_name) {
+            return left_bracket.then(function (_) {
+                return partial_match.then(function (_) {
+                    return arg_decls().then(function (arg_decls) {
+                        return right_bracket.then(function (_) {
+                            return left_curly_bracket.then(function (_) {
+                                return function_statements(ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
+                                    return right_curly_bracket.then(function (_) {
+                                        return full_match.then(function (_) {
+                                            return ts_bccc_1.co_unit(mk_constructor_declaration(function_name, Immutable.List(arg_decls), body));
+                                        });
+                                    });
+                                });
                             });
                         });
                     });
@@ -651,7 +675,7 @@ var function_declaration = function () {
                         return arg_decls().then(function (arg_decls) {
                             return right_bracket.then(function (_) {
                                 return left_curly_bracket.then(function (_) {
-                                    return function_statements().then(function (body) {
+                                    return function_statements(ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
                                         return right_curly_bracket.then(function (_) {
                                             return full_match.then(function (_) {
                                                 return ts_bccc_1.co_unit(mk_function_declaration(return_type, function_name, Immutable.List(arg_decls), body));
@@ -694,21 +718,25 @@ var outer_statement = function () {
 var inner_statement = function () {
     return parser_or(bracketized_statement(), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or(with_semicolon(call()), parser_or(with_semicolon(method_call()), parser_or(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: d.l.range, ast: d });
-    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(dbg), with_semicolon(tc_dbg))))))))));
+    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; })))))))))));
 };
 var function_statement = function () {
     return parser_or(with_semicolon(return_statement()), inner_statement());
 };
-var generic_statements = function (stmt) {
+var generic_statements = function (stmt, check_trailer) {
     return stmt().then(function (l) {
-        return parser_or(generic_statements(stmt).then(function (r) {
+        return parser_or(generic_statements(stmt, check_trailer).then(function (r) {
             return ts_bccc_1.co_unit(mk_semicolon(l, r));
-        }), ts_bccc_1.co_unit(l));
+        }), check_trailer.then(function (_) {
+            return ts_bccc_1.co_unit(l);
+        }));
     });
 };
-var function_statements = function () { return generic_statements(function_statement); };
-var inner_statements = function () { return generic_statements(function () { return inner_statement(); }); };
-var outer_statements = function () { return generic_statements(outer_statement); };
+var function_statements = function (check_trailer) {
+    return generic_statements(function_statement, check_trailer);
+};
+var inner_statements = function (check_trailer) { return generic_statements(function () { return inner_statement(); }, check_trailer); };
+var outer_statements = function (check_trailer) { return generic_statements(outer_statement, check_trailer); };
 var class_statements = function () {
     return parser_or(parser_or(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), d));
@@ -736,7 +764,7 @@ var class_statements = function () {
     }));
 };
 exports.program_prs = function () {
-    return outer_statements().then(function (s) {
+    return outer_statements(ccc_aux_1.co_lookup(eof).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (s) {
         return eof.then(function (_) { return ts_bccc_1.co_unit(s); });
     });
 };

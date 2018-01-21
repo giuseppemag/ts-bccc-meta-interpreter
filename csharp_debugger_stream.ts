@@ -11,6 +11,7 @@ import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
+import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
 export type DebuggerStream = ({ kind:"error"|"done" } | { kind:"step", next:() => DebuggerStream }) & { show:() => { kind:"memory", memory:Py.MemRt } | { kind:"bindings", state:CSharp.State } | { kind:"message", message:string } }
 export let get_stream = (source:string) : DebuggerStream => {
@@ -21,9 +22,9 @@ export let get_stream = (source:string) : DebuggerStream => {
   }
 
   let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-  let res = co_run_to_end(CSharp.program_prs(), tokens)
+  let res = co_run_to_end(CSharp.program_prs(), mk_parser_state(tokens))
   if (res.kind != "right") {
-    let error = res.value
+    let error = `Parser error (${res.value.range.to_string()}): ${res.value.message}`
     return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
 

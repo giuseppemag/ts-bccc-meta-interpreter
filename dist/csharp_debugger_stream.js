@@ -6,6 +6,7 @@ var Py = require("./Python/python");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
 var csharp_1 = require("./CSharpTypeChecker/csharp");
+var grammar_1 = require("./CSharpTypeChecker/grammar");
 exports.get_stream = function (source) {
     var parse_result = CSharp.GrammarBasics.tokenize(source);
     if (parse_result.kind == "left") {
@@ -13,9 +14,9 @@ exports.get_stream = function (source) {
         return { kind: "error", show: function () { return ({ kind: "message", message: error_1 }); } };
     }
     var tokens = Immutable.List(parse_result.value);
-    var res = ccc_aux_1.co_run_to_end(CSharp.program_prs(), tokens);
+    var res = ccc_aux_1.co_run_to_end(CSharp.program_prs(), grammar_1.mk_parser_state(tokens));
     if (res.kind != "right") {
-        var error_2 = res.value;
+        var error_2 = "Parser error (" + res.value.range.to_string() + "): " + res.value.message;
         return { kind: "error", show: function () { return ({ kind: "message", message: error_2 }); } };
     }
     var p = csharp_1.ast_to_type_checker(res.value.fst);

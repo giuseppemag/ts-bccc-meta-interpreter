@@ -38,13 +38,6 @@
   [ ] (proper) initial values for variables at declaration when no value is specified
   [ ] errors
     [ ] are lambda arguments properly checked at both run-time and compile-time
-    [ ] propagate nested parse errors (for example, the errors inside the body of a while or inside the body of a function)
-      parser_or<ParserRes>(generic_statements(stmt).then(r =>
-      co_unit(mk_semicolon(l, r))
-      ),
-        co_unit(l) <-- should store last error and repush it at next mismatch
-      ))
-
     [ ] type-checker error = { priority:number, message:string, range:SourceRange }
   [ ] Split into multiple files
     [ ] Bindings.ts becomes a whole directory of files

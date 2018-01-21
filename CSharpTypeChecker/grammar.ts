@@ -1,7 +1,7 @@
 import * as Immutable from "immutable"
 import { Prod, apply, curry, inl, inr, unit, Option, Sum, Unit, Fun, distribute_sum_prod, swap_prod, snd, fst, defun, Coroutine, co_get_state, co_error, co_set_state, co_unit, constant, State, CoCont, CoRet, mk_coroutine, Co, fun, CoPreRes, CoRes } from "ts-bccc"
 import * as CCC from "ts-bccc"
-import { SourceRange, join_source_ranges, mk_range, zero_range } from "../source_range";
+import { SourceRange, join_source_ranges, mk_range, zero_range, max_source_range, max_source_range } from "../source_range";
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end, co_lookup } from "../ccc_aux"
 import * as CSharp from "./csharp"
@@ -529,18 +529,24 @@ let method_ref: () => Coroutine<ParserState,ParserError,{ object:ParserRes, meth
     )))))
 
 let method_call : () => Parser = () =>
+  no_match.then(_ =>
   method_ref().then(({ object:obj, method:f_name }) =>
   left_bracket.then(_ =>
+  partial_match.then(_ =>
   actuals().then((actuals:Array<ParserRes>) =>
   right_bracket.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals))))))
+  full_match.then(_ =>
+  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals)))))))))
 
 let call : () => Parser = () =>
+  no_match.then(_ =>
   identifier.then(f_name =>
   left_bracket.then(_ =>
+  partial_match.then(_ =>
   actuals().then((actuals:Array<ParserRes>) =>
   right_bracket.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>(mk_call(f_name, actuals))))))
+  full_match.then(_ =>
+  co_unit<ParserState,ParserError,ParserRes>(mk_call(f_name, actuals)))))))))
 
 
 let empty_table = {symbols:Immutable.Stack<ParserRes>(),
@@ -632,12 +638,13 @@ let comma = ignore_whitespace(comma_sign)
 let with_semicolon = <A>(p:Coroutine<ParserState, ParserError, A>) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
 let assign_left : (l:ParserRes) => Parser = (l) =>
+  no_match.then(_ =>
   equal_sign.then(_ =>
   partial_match.then(_ =>
   expr().then(r =>
   full_match.then(_ =>
   co_unit(mk_assign(l,r))
-  ))))
+  )))))
 
 let assign : () => Parser = () =>
   parser_or<ParserRes>(field_ref(),identifier).then(l =>
@@ -645,18 +652,20 @@ let assign : () => Parser = () =>
   )
 
 let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
+  no_match.then(_ =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
   assign_left(mk_identifier(r, l.range)).then(a =>
   full_match.then(_ =>
-  co_unit(mk_semicolon({ range:l.range, ast:mk_decl(l, r) }, a)))))))
+  co_unit(mk_semicolon({ range:l.range, ast:mk_decl(l, r) }, a))))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
+  no_match.then(_ =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
-  co_unit(mk_decl(l, r)))))
+  co_unit(mk_decl(l, r))))))
 
 let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
@@ -715,22 +724,25 @@ let bracketized_statement = () =>
   no_match.then(_ =>
   left_curly_bracket.then(_ =>
   partial_match.then(_ =>
-  function_statements().then(s =>
+  function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(s =>
   right_curly_bracket.then(_ =>
   full_match.then(_ =>
   co_unit(s)))))))
 
 let constructor_declaration = () =>
+  no_match.then(_ =>
   identifier_token.then(function_name =>
   left_bracket.then(_ =>
+  partial_match.then(_ =>
   arg_decls().then(arg_decls =>
   right_bracket.then(_ =>
   left_curly_bracket.then(_ =>
-  function_statements().then(body =>
+  function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
   right_curly_bracket.then(_ =>
+  full_match.then(_ =>
   co_unit(mk_constructor_declaration(function_name,
                                   Immutable.List<DeclAST>(arg_decls),
-                                  body)))))))))
+                                  body))))))))))))
 
 let function_declaration = () =>
   no_match.then(_ =>
@@ -741,7 +753,7 @@ let function_declaration = () =>
   arg_decls().then(arg_decls =>
   right_bracket.then(_ =>
   left_curly_bracket.then(_ =>
-  function_statements().then(body =>
+  function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
   right_curly_bracket.then(_ =>
   full_match.then(_ =>
   co_unit(mk_function_declaration(return_type,
@@ -784,24 +796,26 @@ let inner_statement : () => Parser = () =>
     co_unit<ParserState,ParserError,ParserRes>({ range:d.l.range, ast:d }))),
   parser_or<ParserRes>(with_semicolon(decl_init()),
   parser_or<ParserRes>(with_semicolon(assign()),
-  parser_or<ParserRes>(with_semicolon(dbg),
-  with_semicolon(tc_dbg)
+  parser_or<ParserRes>(with_semicolon(no_match.then(_ => dbg)),
+  with_semicolon(no_match.then(_ => tc_dbg))
   )))))))))
 
 let function_statement : () => Parser = () =>
   parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement())
 
-let generic_statements = (stmt: () => Parser) : Parser =>
+let generic_statements = (stmt: () => Parser, check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
     stmt().then(l =>
     parser_or<ParserRes>(
-      generic_statements(stmt).then(r =>
+      generic_statements(stmt, check_trailer).then(r =>
       co_unit(mk_semicolon(l, r))),
-      co_unit(l))
+      check_trailer.then(_ =>
+      co_unit(l)))
     )
 
-let function_statements : () => Parser = () => generic_statements (function_statement)
-let inner_statements : () => Parser = () => generic_statements (() => inner_statement())
-let outer_statements : () => Parser = () => generic_statements (outer_statement)
+let function_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
+  generic_statements (function_statement, check_trailer)
+let inner_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser => generic_statements (() => inner_statement(), check_trailer)
+let outer_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser => generic_statements (outer_statement, check_trailer)
 
 let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>> = () =>
   parser_or<Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>(
@@ -838,7 +852,7 @@ let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.
       })))
 
 export let program_prs : () => Parser = () =>
-  outer_statements().then(s =>
+  outer_statements(co_lookup(eof).then(_ => co_unit({}))).then(s =>
   eof.then(_ => co_unit(s)))
 
 
