@@ -155,7 +155,7 @@ class A {
   A(int x) {
     this.x = x;
     while (x > 0) {
-      x = x - 1
+      x = x - 1;
     }
   }
 

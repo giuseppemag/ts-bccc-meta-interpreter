@@ -77,7 +77,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass A {\n  int x;\n\n  A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1\n    }\n  }\n\n  void scale(int k) {\n    this.x = this.x * k;\n  }\n\n  int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  A a;\n\n  B(A a) {\n    this.a = a;\n  }\n}\n\nA a = new A(10);\nB b = new B(a);\nb.a.scale(2);\nint x = b.a.x;\n";
+        var source = "\nclass A {\n  int x;\n\n  A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  void scale(int k) {\n    this.x = this.x * k;\n  }\n\n  int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  A a;\n\n  B(A a) {\n    this.a = a;\n  }\n}\n\nA a = new A(10);\nB b = new B(a);\nb.a.scale(2);\nint x = b.a.x;\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
