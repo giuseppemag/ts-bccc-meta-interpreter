@@ -19,6 +19,7 @@ export type DebuggerStream =
   { show:() => { kind:"memory", memory:Py.MemRt, ast:Stmt } | 
                { kind:"bindings", state:CSharp.State, ast:Stmt } | 
                { kind:"message", message:string } }
+import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
@@ -28,9 +29,9 @@ export let get_stream = (source:string) : DebuggerStream => {
   }
 
   let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-  let res = co_run_to_end(CSharp.program_prs(), tokens)
+  let res = co_run_to_end(CSharp.program_prs(), mk_parser_state(tokens))
   if (res.kind != "right") {
-    let error = res.value
+    let error = `Parser error (${res.value.range.to_string()}): ${res.value.message}`
     return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
 

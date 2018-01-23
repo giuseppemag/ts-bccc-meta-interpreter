@@ -12,6 +12,7 @@ import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 import * as DebuggerStream from "./csharp_debugger_stream"
+import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
 export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -148,36 +149,45 @@ export let test_imp = function () {
 
   export let test_parser = () => {
     let source = `
-class Vector2 {
+class A {
   int x;
-  int y;
 
-  Vector2(int x, int y) {
+  A(int x) {
     this.x = x;
-    this.y = y;
+    while (x > 0) {
+      x = x - 1;
+    }
   }
 
   void scale(int k) {
     this.x = this.x * k;
-    this.y = this.y * k;
   }
 
-  int length_squared() {
-    return this.x * this.x + this.y * this.y;
+  int get_x() {
+    return this.x;
   }
 }
 
-Vector2 v2 = new Vector2(10, 5);
-v2.scale(2);
-int l = v2.length_squared();
+class B {
+  A a;
+
+  B(A a) {
+    this.a = a;
+  }
+}
+
+A a = new A(10);
+B b = new B(a);
+b.a.scale(2);
+int x = b.a.x;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
     // console.log(JSON.stringify(tokens.toArray())) // tokens
-    let res = CSharp.program_prs().run.f(tokens)
-    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${res.value}`
+    let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
+    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
 
     //console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()

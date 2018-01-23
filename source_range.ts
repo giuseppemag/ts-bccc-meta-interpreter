@@ -6,7 +6,12 @@ export let mk_range = (sr:number, sc:number, er:number, ec:number) : SourceRange
 let lt = (r1:SourcePosition, r2:SourcePosition) => r1.row < r2.row || (r1.row == r2.row && r1.column < r2.column)
 export let join_source_ranges = (r1:SourceRange, r2:SourceRange) => {
   let s = lt(r1.start, r2.start) ? r1.start : r2.start
-  let e = lt(r1.end, r2.end)     ? r1.end   : r2.end
+  let e = lt(r1.end, r2.end)     ? r2.end   : r1.end
   return mk_range(s.row, s.column, e.row, e.column)
 }
+export let max_source_range = (r1:SourceRange, r2:SourceRange) => {
+  if (lt(r1.start, r2.start)) return r2
+  else return r1
+}
+
 export let zero_range : SourceRange = mk_range(0,0,0,0)
