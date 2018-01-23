@@ -30,7 +30,6 @@
     "gulp-merge-media-queries": "^0.2.1",
     "gulp-rename": "^1.2.2",
     "immutable": "^3.8.2",
-    "ts-bccc": "^1.0.10",
-    "ts-bccc-meta-compiler": "^1.0.9"
+    "ts-bccc": "^1.0.10"
   }
 }
