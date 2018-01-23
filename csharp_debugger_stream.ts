@@ -41,7 +41,7 @@ export let get_stream = (source:string) : DebuggerStream => {
     kind:"step",
     next:() => {
       let p = state.fst
-      let s = state.snd
+      let s = state.snd 
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value

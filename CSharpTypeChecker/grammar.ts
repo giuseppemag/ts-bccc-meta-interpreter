@@ -86,7 +86,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="})),
     parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="})),
     parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"})),
-    parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"})),
+    parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"})), 
     parse_prefix_regex(/^!/, (s,r) => ({range:r, kind:"not"})),
     parse_prefix_regex(/^,/, (s,r) => ({range:r, kind:","})),
     parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"})),

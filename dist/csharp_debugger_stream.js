@@ -20,7 +20,7 @@ exports.get_stream = function (source) {
         return { kind: "error", show: function () { return ({ kind: "message", message: error_2 }); } };
     }
     var p = csharp_1.ast_to_type_checker(res.value.fst);
-    var runtime_stream = function (state) { return ({
+    var runtime_stream = function (state, ast) { return ({
         kind: "step",
         next: function () {
             var p = state.fst;
@@ -31,14 +31,14 @@ exports.get_stream = function (source) {
                 return { kind: "error", show: function () { return ({ kind: "message", message: error_3 }); } };
             }
             if (k.value.kind == "left") {
-                return runtime_stream(k.value.value);
+                return runtime_stream(k.value.value, ast);
             }
             s = k.value.value.snd;
-            return { kind: "done", show: function () { return ({ kind: "memory", memory: s }); } };
+            return { kind: "done", show: function () { return ({ kind: "memory", memory: s, ast: ast }); } };
         },
-        show: function () { return ({ kind: "memory", memory: state.snd }); }
+        show: function () { return ({ kind: "memory", memory: state.snd, ast: ast }); }
     }); };
-    var typechecker_stream = function (state) { return ({
+    var typechecker_stream = function (state, ast) { return ({
         kind: "step",
         next: function () {
             var p = state.fst;
@@ -49,13 +49,13 @@ exports.get_stream = function (source) {
                 return { kind: "error", show: function () { return ({ kind: "message", message: error_4 }); } };
             }
             if (k.value.kind == "left") {
-                return typechecker_stream(k.value.value);
+                return typechecker_stream(k.value.value, ast);
             }
             var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt)), {});
-            return runtime_stream(initial_runtime_state);
+            return runtime_stream(initial_runtime_state, ast);
         },
-        show: function () { return ({ kind: "bindings", state: state.snd }); }
+        show: function () { return ({ kind: "bindings", state: state.snd, ast: ast }); }
     }); };
     var initial_compiler_state = ts_bccc_1.apply(ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state)), {});
-    return typechecker_stream(initial_compiler_state);
+    return typechecker_stream(initial_compiler_state, p);
 };

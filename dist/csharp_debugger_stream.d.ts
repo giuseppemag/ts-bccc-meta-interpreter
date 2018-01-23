@@ -1,5 +1,6 @@
 import * as Py from "./Python/python";
 import * as CSharp from "./CSharpTypeChecker/csharp";
+import { Stmt } from "./main";
 export declare type DebuggerStream = ({
     kind: "error" | "done";
 } | {
@@ -9,9 +10,11 @@ export declare type DebuggerStream = ({
     show: () => {
         kind: "memory";
         memory: Py.MemRt;
+        ast: Stmt;
     } | {
         kind: "bindings";
         state: CSharp.State;
+        ast: Stmt;
     } | {
         kind: "message";
         message: string;
