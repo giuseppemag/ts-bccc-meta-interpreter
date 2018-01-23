@@ -31,6 +31,6 @@
     "gulp-rename": "^1.2.2",
     "immutable": "^3.8.2",
     "ts-bccc": "^1.0.10",
-    "ts-bccc-meta-compiler": "^1.0.8"
+    "ts-bccc-meta-compiler": "^1.0.9"
   }
 }
