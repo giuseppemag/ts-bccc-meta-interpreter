@@ -10,14 +10,14 @@ import { mk_range, zero_range } from "./source_range";
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
-import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
+import { ast_to_type_checker, ParserRes } from "./CSharpTypeChecker/csharp";
 import { Stmt } from "./main";
 
 export type DebuggerStream = 
   ({ kind:"error"|"done" } | 
   { kind:"step", next:() => DebuggerStream }) & 
-  { show:() => { kind:"memory", memory:Py.MemRt, ast:Stmt } | 
-               { kind:"bindings", state:CSharp.State, ast:Stmt } | 
+  { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } | 
+               { kind:"bindings", state:CSharp.State, ast:ParserRes } | 
                { kind:"message", message:string } }
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
@@ -34,10 +34,11 @@ export let get_stream = (source:string) : DebuggerStream => {
     let error = `Parser error (${res.value.range.to_string()}): ${res.value.message}`
     return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
+  
+  let ast = res.value.fst
+  let p = ast_to_type_checker(ast)
 
-  let p = ast_to_type_checker(res.value.fst)
-
-  let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>, ast:Stmt) : DebuggerStream => ({
+  let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
     kind:"step",
     next:() => {
       let p = state.fst
@@ -48,7 +49,7 @@ export let get_stream = (source:string) : DebuggerStream => {
         return { kind:"error", show:() => ({ kind:"message", message:error }) }
       }
       if (k.value.kind == "left") {
-        return runtime_stream(k.value.value, ast)
+        return runtime_stream(k.value.value)
       }
       s = k.value.value.snd
       return { kind:"done", show:() => ({ kind:"memory", memory:s, ast:ast}) }
@@ -56,7 +57,7 @@ export let get_stream = (source:string) : DebuggerStream => {
     show:() => ({ kind:"memory", memory:state.snd, ast:ast })
   })
 
-  let typechecker_stream = (state:Prod<CSharp.Stmt,CSharp.State>, ast:Stmt) : DebuggerStream => ({
+  let typechecker_stream = (state:Prod<CSharp.Stmt,CSharp.State>) : DebuggerStream => ({
     kind:"step",
     next:() => {
       let p = state.fst
@@ -67,15 +68,15 @@ export let get_stream = (source:string) : DebuggerStream => {
         return { kind:"error", show:() => ({ kind:"message", message:error }) }
       }
       if (k.value.kind == "left") {
-        return typechecker_stream(k.value.value, ast)
+        return typechecker_stream(k.value.value)
       }
       let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt)), {})
-      return runtime_stream(initial_runtime_state, ast)
+      return runtime_stream(initial_runtime_state)
     },
     show:() => ({ kind:"bindings", state:state.snd, ast:ast })
   })
 
   let initial_compiler_state = apply(constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
-  return typechecker_stream(initial_compiler_state, p)
+  return typechecker_stream(initial_compiler_state)
 }
 
