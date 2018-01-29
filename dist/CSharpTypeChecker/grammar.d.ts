@@ -119,7 +119,10 @@ export interface IfAST {
 export interface DeclAST {
     kind: "decl";
     l: ParserRes;
-    r: string;
+    r: {
+        value: string;
+        range: SourceRange;
+    };
 }
 export interface AssignAST {
     kind: "=";

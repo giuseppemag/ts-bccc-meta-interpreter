@@ -153,7 +153,7 @@ export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
-export interface DeclAST { kind: "decl", l:ParserRes, r:string }
+export interface DeclAST { kind: "decl", l:ParserRes, r:{value:string, range:SourceRange} }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
@@ -186,7 +186,7 @@ let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: 
 let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
 let mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
 let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
-let mk_decl = (l:ParserRes,r:string) : DeclAST => ({ kind: "decl", l:l, r:r })
+let mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
 let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
 let mk_if_then = (c:ParserRes,t:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
@@ -414,6 +414,7 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
   let i = s.tokens.first()
   if (i.kind == "id") {
     let res = mk_identifier(i.v, i.range)
+    let range = i.range    
     return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
   }
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected identifier but found ${i.kind}` })
@@ -659,14 +660,14 @@ let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   partial_match.then(_ =>
   assign_left(mk_identifier(r.id, l.range)).then(a =>
   full_match.then(_ =>
-  co_unit(mk_semicolon({ range: join_source_ranges(l.range, r.range), ast:mk_decl(l, r.id) }, a))))))))
+  co_unit(mk_semicolon({ range: l.range, ast:mk_decl(l, r.id, r.range) }, a))))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
-  co_unit(mk_decl(l, r.id))))))
+  co_unit(mk_decl(l, r.id, r.range))))))
 
 let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
@@ -906,7 +907,7 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
     n.ast.return_type.ast.kind == "id" ?
     CSharp.def_fun({ name:n.ast.name,
                      return_t:string_to_csharp_type(n.ast.return_type.ast.value),
-                     parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r, type:string_to_csharp_type((d.l.ast as IdAST).value)})),
+                     parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.value, type:string_to_csharp_type((d.l.ast as IdAST).value)})),
                      body:ast_to_type_checker(n.ast.body),
                      range:n.range },
                      [])
@@ -916,21 +917,21 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
       n.ast.methods.toArray().map(m => ({
           name:m.name,
           return_t:string_to_csharp_type((m.return_type.ast as IdAST).value),
-          parameters:m.arg_decls.toArray().map(a => ({ name:a.r, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          parameters:m.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
           body:ast_to_type_checker(m.body),
           range:join_source_ranges(m.return_type.range, m.body.range)
         })).concat(
         n.ast.constructors.toArray().map(c => ({
           name:c.name,
           return_t:CSharp.unit_type,
-          parameters:c.arg_decls.toArray().map(a => ({ name:a.r, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          parameters:c.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
           body:ast_to_type_checker(c.body),
           range:c.body.range
         })) ),
-      n.ast.fields.toArray().map(f => ({ name:f.r, type:string_to_csharp_type((f.l.ast as IdAST).value) }))
+      n.ast.fields.toArray().map(f => ({ name:f.r.value, type:string_to_csharp_type((f.l.ast as IdAST).value) }))
     )
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
-    CSharp.decl_v(n.ast.r, string_to_csharp_type(n.ast.l.ast.value))
+    CSharp.decl_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
   : n.ast.kind == "dbg" ?
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?

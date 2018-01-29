@@ -124,7 +124,7 @@ var mk_int = function (v, sr) { return ({ range: sr, ast: { kind: "int", value: 
 var mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v } }); };
 var mk_return = function (e) { return ({ range: e.range, ast: { kind: "return", value: e } }); };
 var mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
-var mk_decl = function (l, r) { return ({ kind: "decl", l: l, r: r }); };
+var mk_decl = function (l, r, r_range) { return ({ kind: "decl", l: l, r: { value: r, range: r_range } }); };
 var mk_assign = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "=", l: l, r: r } }); };
 var mk_while = function (c, b) { return ({ range: source_range_1.join_source_ranges(c.range, b.range), ast: { kind: "while", c: c, b: b } }); };
 var mk_if_then = function (c, t) { return ({ range: source_range_1.join_source_ranges(c.range, t.range), ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.none(), {}) } }); };
@@ -337,6 +337,7 @@ var identifier = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     var i = s.tokens.first();
     if (i.kind == "id") {
         var res_7 = mk_identifier(i.v, i.range);
+        var range = i.range;
         return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_7); });
     }
     else
@@ -547,7 +548,7 @@ var decl_init = function () {
                 return partial_match.then(function (_) {
                     return assign_left(mk_identifier(r.id, l.range)).then(function (a) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(mk_semicolon({ range: source_range_1.join_source_ranges(l.range, r.range), ast: mk_decl(l, r.id) }, a));
+                            return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r.id, r.range) }, a));
                         });
                     });
                 });
@@ -560,7 +561,7 @@ var decl = function () {
         return identifier.then(function (l) {
             return identifier_token.then(function (r) {
                 return partial_match.then(function (_) {
-                    return ts_bccc_1.co_unit(mk_decl(l, r.id));
+                    return ts_bccc_1.co_unit(mk_decl(l, r.id, r.range));
                 });
             });
         });
@@ -817,7 +818,7 @@ exports.ast_to_type_checker = function (n) {
                                                                                                                             n.ast.return_type.ast.kind == "id" ?
                                                                                                                             CSharp.def_fun({ name: n.ast.name,
                                                                                                                                 return_t: string_to_csharp_type(n.ast.return_type.ast.value),
-                                                                                                                                parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r, type: string_to_csharp_type(d.l.ast.value) }); }),
+                                                                                                                                parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r.value, type: string_to_csharp_type(d.l.ast.value) }); }),
                                                                                                                                 body: exports.ast_to_type_checker(n.ast.body),
                                                                                                                                 range: n.range }, [])
                                                                                                                             : n.ast.kind == "class" && !n.ast.methods.some(function (m) { return !m || m.return_type.ast.kind != "id" || m.arg_decls.some(function (a) { return !a || a.l.ast.kind != "id"; }); })
@@ -825,18 +826,18 @@ exports.ast_to_type_checker = function (n) {
                                                                                                                                 CSharp.def_class(n.ast.C_name, n.ast.methods.toArray().map(function (m) { return ({
                                                                                                                                     name: m.name,
                                                                                                                                     return_t: string_to_csharp_type(m.return_type.ast.value),
-                                                                                                                                    parameters: m.arg_decls.toArray().map(function (a) { return ({ name: a.r, type: string_to_csharp_type(a.l.ast.value) }); }),
+                                                                                                                                    parameters: m.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: string_to_csharp_type(a.l.ast.value) }); }),
                                                                                                                                     body: exports.ast_to_type_checker(m.body),
                                                                                                                                     range: source_range_1.join_source_ranges(m.return_type.range, m.body.range)
                                                                                                                                 }); }).concat(n.ast.constructors.toArray().map(function (c) { return ({
                                                                                                                                     name: c.name,
                                                                                                                                     return_t: CSharp.unit_type,
-                                                                                                                                    parameters: c.arg_decls.toArray().map(function (a) { return ({ name: a.r, type: string_to_csharp_type(a.l.ast.value) }); }),
+                                                                                                                                    parameters: c.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: string_to_csharp_type(a.l.ast.value) }); }),
                                                                                                                                     body: exports.ast_to_type_checker(c.body),
                                                                                                                                     range: c.body.range
-                                                                                                                                }); })), n.ast.fields.toArray().map(function (f) { return ({ name: f.r, type: string_to_csharp_type(f.l.ast.value) }); }))
+                                                                                                                                }); })), n.ast.fields.toArray().map(function (f) { return ({ name: f.r.value, type: string_to_csharp_type(f.l.ast.value) }); }))
                                                                                                                                 : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
-                                                                                                                                    CSharp.decl_v(n.ast.r, string_to_csharp_type(n.ast.l.ast.value))
+                                                                                                                                    CSharp.decl_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
                                                                                                                                     : n.ast.kind == "dbg" ?
                                                                                                                                         CSharp.breakpoint(n.range)(CSharp.done)
                                                                                                                                         : n.ast.kind == "tc-dbg" ?
