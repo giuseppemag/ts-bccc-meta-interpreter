@@ -325,7 +325,8 @@ var identifier_token = ignore_whitespace(ts_bccc_1.co_get_state().then(function 
     var i = s.tokens.first();
     if (i.kind == "id") {
         var res_6 = i.v;
-        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_6); });
+        var range_1 = i.range;
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({ id: res_6, range: range_1 }); });
     }
     else
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });
@@ -507,7 +508,7 @@ var cons_call = function () {
             return left_bracket.then(function (_) {
                 return actuals().then(function (actuals) {
                     return right_bracket.then(function (_) {
-                        return ts_bccc_1.co_unit(mk_constructor_call(new_range, class_name, actuals));
+                        return ts_bccc_1.co_unit(mk_constructor_call(new_range, class_name.id, actuals));
                     });
                 });
             });
@@ -544,9 +545,9 @@ var decl_init = function () {
         return identifier.then(function (l) {
             return identifier_token.then(function (r) {
                 return partial_match.then(function (_) {
-                    return assign_left(mk_identifier(r, l.range)).then(function (a) {
+                    return assign_left(mk_identifier(r.id, l.range)).then(function (a) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r) }, a));
+                            return ts_bccc_1.co_unit(mk_semicolon({ range: source_range_1.join_source_ranges(l.range, r.range), ast: mk_decl(l, r.id) }, a));
                         });
                     });
                 });
@@ -559,7 +560,7 @@ var decl = function () {
         return identifier.then(function (l) {
             return identifier_token.then(function (r) {
                 return partial_match.then(function (_) {
-                    return ts_bccc_1.co_unit(mk_decl(l, r));
+                    return ts_bccc_1.co_unit(mk_decl(l, r.id));
                 });
             });
         });
@@ -654,7 +655,7 @@ var constructor_declaration = function () {
                                 return function_statements(ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
                                     return right_curly_bracket.then(function (_) {
                                         return full_match.then(function (_) {
-                                            return ts_bccc_1.co_unit(mk_constructor_declaration(function_name, Immutable.List(arg_decls), body));
+                                            return ts_bccc_1.co_unit(mk_constructor_declaration(function_name.id, Immutable.List(arg_decls), body));
                                         });
                                     });
                                 });
@@ -678,7 +679,7 @@ var function_declaration = function () {
                                     return function_statements(ccc_aux_1.co_lookup(right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
                                         return right_curly_bracket.then(function (_) {
                                             return full_match.then(function (_) {
-                                                return ts_bccc_1.co_unit(mk_function_declaration(return_type, function_name, Immutable.List(arg_decls), body));
+                                                return ts_bccc_1.co_unit(mk_function_declaration(return_type, function_name.id, Immutable.List(arg_decls), body));
                                             });
                                         });
                                     });
@@ -700,7 +701,7 @@ var class_declaration = function () {
                         return class_statements().then(function (declarations) {
                             return right_curly_bracket.then(function (closing_curly_range) {
                                 return full_match.then(function (_) {
-                                    return ts_bccc_1.co_unit(mk_class_declaration(class_name, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                                    return ts_bccc_1.co_unit(mk_class_declaration(class_name.id, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
                                 });
                             });
                         });
