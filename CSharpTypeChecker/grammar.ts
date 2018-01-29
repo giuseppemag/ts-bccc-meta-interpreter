@@ -396,13 +396,14 @@ let int: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().the
   else return co_error({ range:i.range, priority:s.branch_priority, message:"expected int" })
 }))
 
-let identifier_token: Coroutine<ParserState, ParserError, string> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+let identifier_token: Coroutine<ParserState, ParserError, {id:string, range:SourceRange}> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.tokens.isEmpty())
     return co_error({ range:mk_range(-1,0,0,0), priority:s.branch_priority, message:"found empty state, expected identifier" })
   let i = s.tokens.first()
   if (i.kind == "id") {
     let res = i.v
-    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
+    let range = i.range
+    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit({id:res, range:range}))
   }
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected identifier but found ${i.kind}` })
 }))
@@ -619,7 +620,7 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     left_bracket.then(_ =>
     actuals().then((actuals:Array<ParserRes>) =>
     right_bracket.then(_ =>
-    co_unit(mk_constructor_call(new_range, class_name, actuals))
+    co_unit(mk_constructor_call(new_range, class_name.id, actuals))
     )))))
 
 let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
@@ -656,16 +657,16 @@ let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
-  assign_left(mk_identifier(r, l.range)).then(a =>
+  assign_left(mk_identifier(r.id, l.range)).then(a =>
   full_match.then(_ =>
-  co_unit(mk_semicolon({ range:l.range, ast:mk_decl(l, r) }, a))))))))
+  co_unit(mk_semicolon({ range: join_source_ranges(l.range, r.range), ast:mk_decl(l, r.id) }, a))))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
-  co_unit(mk_decl(l, r))))))
+  co_unit(mk_decl(l, r.id))))))
 
 let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
@@ -740,7 +741,7 @@ let constructor_declaration = () =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
   right_curly_bracket.then(_ =>
   full_match.then(_ =>
-  co_unit(mk_constructor_declaration(function_name,
+  co_unit(mk_constructor_declaration(function_name.id,
                                   Immutable.List<DeclAST>(arg_decls),
                                   body))))))))))))
 
@@ -757,7 +758,7 @@ let function_declaration = () =>
   right_curly_bracket.then(_ =>
   full_match.then(_ =>
   co_unit(mk_function_declaration(return_type,
-                                  function_name,
+                                  function_name.id,
                                   Immutable.List<DeclAST>(arg_decls),
                                   body)))))))))))))
 
@@ -772,7 +773,7 @@ let class_declaration = () =>
   full_match.then(_ =>
   co_unit(
     mk_class_declaration(
-      class_name,
+      class_name.id,
       declarations.fst,
       declarations.snd.fst,
       declarations.snd.snd,
