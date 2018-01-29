@@ -795,7 +795,7 @@ let inner_statement : () => Parser = () =>
   parser_or<ParserRes>(with_semicolon(call()),
   parser_or<ParserRes>(with_semicolon(method_call()),
   parser_or<ParserRes>(with_semicolon(decl().then(d =>
-    co_unit<ParserState,ParserError,ParserRes>({ range:d.l.range, ast:d }))),
+    co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))),
   parser_or<ParserRes>(with_semicolon(decl_init()),
   parser_or<ParserRes>(with_semicolon(assign()),
   parser_or<ParserRes>(with_semicolon(no_match.then(_ => dbg)),
