@@ -122,6 +122,7 @@ var mk_unit = function (sr) { return ({ range: sr, ast: { kind: "unit" } }); };
 var mk_bool = function (v, sr) { return ({ range: sr, ast: { kind: "bool", value: v } }); };
 var mk_int = function (v, sr) { return ({ range: sr, ast: { kind: "int", value: v } }); };
 var mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v } }); };
+var mk_noop = function () { return ({ range: source_range_1.mk_range(-1, -1, -1, -1), ast: { kind: "noop" } }); };
 var mk_return = function (e) { return ({ range: e.range, ast: { kind: "return", value: e } }); };
 var mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
 var mk_decl = function (l, r, r_range) { return ({ kind: "decl", l: l, r: { value: r, range: r_range } }); };
@@ -718,20 +719,16 @@ var outer_statement = function () {
     }), parser_or(class_declaration(), inner_statement()));
 };
 var inner_statement = function () {
-    return parser_or(bracketized_statement(), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or(with_semicolon(call()), parser_or(with_semicolon(method_call()), parser_or(with_semicolon(decl().then(function (d) {
+    return parser_or(bracketized_statement(), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or(with_semicolon(ts_bccc_1.co_unit(mk_noop())), parser_or(with_semicolon(call()), parser_or(with_semicolon(method_call()), parser_or(with_semicolon(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d });
-    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; })))))))))));
+    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
 };
 var function_statement = function () {
     return parser_or(with_semicolon(return_statement()), inner_statement());
 };
 var generic_statements = function (stmt, check_trailer) {
     return stmt().then(function (l) {
-        return parser_or(generic_statements(stmt, check_trailer).then(function (r) {
-            return ts_bccc_1.co_unit(mk_semicolon(l, r));
-        }), check_trailer.then(function (_) {
-            return ts_bccc_1.co_unit(l);
-        }));
+        return parser_or(generic_statements(stmt, check_trailer).then(function (r) { return ts_bccc_1.co_unit(l.ast.kind == "noop" ? r : mk_semicolon(l, r)); }), check_trailer.then(function (_) { return l.ast.kind == "noop" ? ts_bccc_1.co_unit(r) : ts_bccc_1.co_unit(l); }));
     });
 };
 var function_statements = function (check_trailer) {

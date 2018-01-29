@@ -158,6 +158,7 @@ export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface ReturnAST { kind: "return", value:ParserRes }
+export interface NoopAST { kind: "noop" }
 export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
 export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, constructors:Immutable.List<ConstructorDeclarationAST> }
 
@@ -175,7 +176,7 @@ export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
-                | DebuggerAST | TCDebuggerAST
+                | DebuggerAST | TCDebuggerAST | NoopAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
 export interface ParserRes { range:SourceRange, ast:AST }
 
@@ -184,6 +185,8 @@ let mk_unit = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "unit" }}
 let mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "bool", value:v }})
 let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
 let mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
+let mk_noop = () : ParserRes => ({ range:mk_range(-1,-1,-1,-1), ast:{ kind: "noop" }})
+
 let mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
 let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
 let mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
@@ -792,6 +795,7 @@ let inner_statement : () => Parser = () =>
   parser_or<ParserRes>(bracketized_statement(),
   parser_or<ParserRes>(while_loop(function_statement),
   parser_or<ParserRes>(if_conditional(function_statement),
+  parser_or<ParserRes>(with_semicolon(co_unit(mk_noop())),
   parser_or<ParserRes>(with_semicolon(call()),
   parser_or<ParserRes>(with_semicolon(method_call()),
   parser_or<ParserRes>(with_semicolon(decl().then(d =>
@@ -800,7 +804,7 @@ let inner_statement : () => Parser = () =>
   parser_or<ParserRes>(with_semicolon(assign()),
   parser_or<ParserRes>(with_semicolon(no_match.then(_ => dbg)),
   with_semicolon(no_match.then(_ => tc_dbg))
-  )))))))))
+  ))))))))))
 
 let function_statement : () => Parser = () =>
   parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement())
@@ -808,10 +812,8 @@ let function_statement : () => Parser = () =>
 let generic_statements = (stmt: () => Parser, check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
     stmt().then(l =>
     parser_or<ParserRes>(
-      generic_statements(stmt, check_trailer).then(r =>
-      co_unit(mk_semicolon(l, r))),
-      check_trailer.then(_ =>
-      co_unit(l)))
+      generic_statements(stmt, check_trailer).then(r => co_unit(l.ast.kind == "noop" ? r : mk_semicolon(l, r))),
+      check_trailer.then(_ => l.ast.kind == "noop" ? co_unit(r) : co_unit(l)))
     )
 
 let function_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>

@@ -143,6 +143,9 @@ export interface ReturnAST {
     kind: "return";
     value: ParserRes;
 }
+export interface NoopAST {
+    kind: "noop";
+}
 export interface ArgsAST {
     kind: "args";
     value: Immutable.List<DeclAST>;
@@ -203,7 +206,7 @@ export interface MethodCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
