@@ -792,10 +792,10 @@ let outer_statement : () => Parser = () =>
   inner_statement()))
 
 let inner_statement : () => Parser = () =>
+  parser_or<ParserRes>(with_semicolon(co_unit(mk_noop())),
   parser_or<ParserRes>(bracketized_statement(),
   parser_or<ParserRes>(while_loop(function_statement),
   parser_or<ParserRes>(if_conditional(function_statement),
-  parser_or<ParserRes>(with_semicolon(co_unit(mk_noop())),
   parser_or<ParserRes>(with_semicolon(call()),
   parser_or<ParserRes>(with_semicolon(method_call()),
   parser_or<ParserRes>(with_semicolon(decl().then(d =>
@@ -812,8 +812,8 @@ let function_statement : () => Parser = () =>
 let generic_statements = (stmt: () => Parser, check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
     stmt().then(l =>
     parser_or<ParserRes>(
-      generic_statements(stmt, check_trailer).then(r => co_unit(l.ast.kind == "noop" ? r : mk_semicolon(l, r))),
-      check_trailer.then(_ => l.ast.kind == "noop" ? co_unit(r) : co_unit(l)))
+      generic_statements(stmt, check_trailer).then(r => co_unit(r.ast.kind == "noop" ? l : mk_semicolon(l, r))),
+      check_trailer.then(_ => co_unit(l)))
     )
 
 let function_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
