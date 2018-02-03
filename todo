@@ -52,7 +52,7 @@
 
 [ ] Type checker
   [ ] Var
-  [ ] static
+  [ ] static methods
   [ ] For
   [ ] Generics
   [ ] Tuples

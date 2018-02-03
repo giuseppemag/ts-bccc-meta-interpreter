@@ -41,7 +41,7 @@ var ImpLanguageWithSuspend;
             range: source_range_1.mk_range(1, 1, 1, 1) }, ["x"]), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(3, 0, 4, 0))(CSharp.done), CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(4, 0, 5, 0))(CSharp.done), CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")])))))))))));
         var class_test = CSharp.semicolon(CSharp.def_class("Vector2", [function (_) { return ({
                 name: "Vector2",
-                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.get_v("x")), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.get_v("y")), CSharp.done)),
+                body: CSharp.semicolon(CSharp.field_set({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "X", CSharp.get_v("x")), CSharp.semicolon(CSharp.field_set({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "Y", CSharp.get_v("y")), CSharp.done)),
                 range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "x", type: CSharp.int_type },
                     { name: "y", type: CSharp.int_type }],
@@ -50,7 +50,7 @@ var ImpLanguageWithSuspend;
             }); },
             function (_) { return ({
                 name: "Scale",
-                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
+                body: CSharp.semicolon(CSharp.field_set({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
                 range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "k", type: CSharp.int_type }],
                 return_t: CSharp.unit_type,
@@ -79,7 +79,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass A {\n  private int x;\n\n  public A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  public void scale(int k) {\n    this.x = this.get_x() * k;\n  }\n\n  public int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  public A a;\n\n  public B() {\n    this.a = new A(10);\n  }\n}\n\nB b = new B();\nb.a.scale(2);\n";
+        var source = "\nclass A {\n  static public int s_x;\n  private int x;\n\n  public A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  public void scale(int k) {\n    this.x = this.get_x() * k;\n  }\n\n  public int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  public A a;\n\n  public B() {\n    this.a = new A(10);\n  }\n}\n\nA.s_x = 100;\nint z = A.s_x;\nB b = new B();\nb.a.scale(2);\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

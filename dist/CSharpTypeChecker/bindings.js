@@ -517,6 +517,7 @@ exports.def_class = function (C_name, methods_from_context, fields_from_context)
     var fields = fields_from_context.map(function (f) { return f(context); });
     var C_type_placeholder = {
         kind: "obj",
+        C_name: C_name,
         methods: Immutable.Map(methods.map(function (m) {
             return [
                 m.name,
@@ -542,6 +543,7 @@ exports.def_class = function (C_name, methods_from_context, fields_from_context)
                 var methods_full_t = methods_t.zipWith(function (m_t, m_d) { return ({ typ: m_t, def: m_d }); }, Immutable.Seq(methods)).toArray();
                 var C_type = {
                     kind: "obj",
+                    C_name: C_name,
                     methods: Immutable.Map(methods_full_t.map(function (m) { return [m.def.name, { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) }]; })),
                     fields: Immutable.Map(fields.map(function (f) {
                         return [f.name,
@@ -556,7 +558,9 @@ exports.def_class = function (C_name, methods_from_context, fields_from_context)
                             m.typ.sem
                         ];
                         return res;
-                    }))
+                    })),
+                    static_methods: Immutable.Map(),
+                    static_fields: Immutable.Map()
                 };
                 return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type, { is_constant: true })) })).then(function (_) {
                     return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.declare_class_rt(C_name, C_int)));
@@ -568,8 +572,9 @@ exports.def_class = function (C_name, methods_from_context, fields_from_context)
 exports.field_get = function (context, this_ref, F_name) {
     return this_ref.then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
-            if (this_ref_t.type.kind != "ref")
-                return ts_bccc_2.co_error("Error: this must be a reference");
+            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+                return ts_bccc_2.co_error("Error: expected reference or class name when setting field " + F_name + ".");
+            }
             var C_name = this_ref_t.type.C_name;
             if (!bindings.bindings.has(this_ref_t.type.C_name))
                 return ts_bccc_2.co_error("Error: class " + this_ref_t.type.C_name + " is undefined");
@@ -585,7 +590,9 @@ exports.field_get = function (context, this_ref, F_name) {
                 else if (context.C_name != C_name)
                     return ts_bccc_2.co_error("Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_name) + " from " + context.C_name);
             }
-            return ts_bccc_2.co_unit(mk_typing(F_def.type, Sem.field_get_expr_rt(F_name, this_ref_t.sem)));
+            return ts_bccc_2.co_unit(mk_typing(F_def.type, F_def.modifiers.has("static") ?
+                Sem.static_field_get_expr_rt(C_name, F_name)
+                : Sem.field_get_expr_rt(F_name, this_ref_t.sem)));
         });
     });
 };
@@ -593,16 +600,17 @@ exports.field_set = function (context, this_ref, F_name, new_value) {
     return this_ref.then(function (this_ref_t) {
         return new_value.then(function (new_value_t) {
             return ts_bccc_1.co_get_state().then(function (bindings) {
-                if (this_ref_t.type.kind != "ref")
-                    return ts_bccc_2.co_error("Error: this must be a reference");
+                if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+                    return ts_bccc_2.co_error("Error: expected reference or class name when setting field " + F_name + ".");
+                }
                 var C_name = this_ref_t.type.C_name;
-                if (!bindings.bindings.has(this_ref_t.type.C_name))
-                    return ts_bccc_2.co_error("Error: class " + this_ref_t.type.C_name + " is undefined");
-                var C_def = bindings.bindings.get(this_ref_t.type.C_name);
+                if (!bindings.bindings.has(C_name))
+                    return ts_bccc_2.co_error("Error: class " + C_name + " is undefined");
+                var C_def = bindings.bindings.get(C_name);
                 if (C_def.kind != "obj")
-                    return ts_bccc_2.co_error("Error: type " + this_ref_t.type.C_name + " is not a class");
+                    return ts_bccc_2.co_error("Error: type " + C_name + " is not a class");
                 if (!C_def.fields.has(F_name))
-                    return ts_bccc_2.co_error("Error: class " + this_ref_t.type.C_name + " does not contain field " + F_name);
+                    return ts_bccc_2.co_error("Error: class " + C_name + " does not contain field " + F_name);
                 var F_def = C_def.fields.get(F_name);
                 if (!F_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
@@ -612,7 +620,9 @@ exports.field_set = function (context, this_ref, F_name, new_value) {
                 }
                 if (!type_equals(F_def.type, new_value_t.type))
                     return ts_bccc_2.co_error("Error: field " + this_ref_t.type.C_name + "::" + F_name + " cannot be assigned to value of type " + JSON.stringify(new_value_t.type));
-                return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)));
+                return ts_bccc_2.co_unit(mk_typing(exports.unit_type, F_def.modifiers.has("static") ?
+                    Sem.static_field_set_expr_rt(C_name, F_name, new_value_t.sem)
+                    : Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)));
             });
         });
     });

@@ -17,10 +17,12 @@ export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements
 
 export type ValueName = string
 export type NestingLevel = number
-export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" } | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" } | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
+export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" }
+                | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" }
+                | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
 export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
-export interface Interface { base:Sum<Interface, Unit>, methods:Immutable.Map<ValueName, StmtRt> }
+export interface Interface { base:Sum<Interface, Unit>, static_methods:Immutable.Map<ValueName, StmtRt>, methods:Immutable.Map<ValueName, StmtRt>, static_fields:Immutable.Map<ValueName, Val> }
 export let empty_scope_val = Immutable.Map<ValueName, Val>()
 export let empty_scopes_val = Immutable.Map<NestingLevel, Scope>().set(0,empty_scope_val)
 export let mk_unit_val : Val = ({ v:apply(unit(),{}), k:"u" })

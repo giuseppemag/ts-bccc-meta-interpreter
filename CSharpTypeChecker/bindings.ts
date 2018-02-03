@@ -14,7 +14,7 @@ export type Err = string
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
-                 | { kind:"obj", methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
+                 | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
@@ -548,6 +548,7 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
   let fields = fields_from_context.map(f => f(context))
   let C_type_placeholder:Type = {
     kind: "obj",
+    C_name:C_name,
     methods:Immutable.Map<Name, MethodTyping>(
       methods.map(m => {
         return [
@@ -578,6 +579,7 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
           let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<MethodDefinition>(methods)).toArray()
           let C_type:Type = {
             kind: "obj",
+            C_name:C_name,
             methods:Immutable.Map<Name, MethodTyping>(
               methods_full_t.map(m => [m.def.name, { typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }])
             ),
@@ -597,7 +599,9 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
                     m.typ.sem ]
                   return res
                 }
-              ))
+              )),
+            static_methods:Immutable.Map<Sem.ValueName, Sem.StmtRt>(),
+            static_fields:Immutable.Map<Sem.ValueName, Sem.Val>()
           }
           return co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type, is_constant:true}) }).then(_ =>
             co_unit(mk_typing(unit_type, Sem.declare_class_rt(C_name, C_int))))
@@ -608,7 +612,9 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
 export let field_get = function(context:CallingContext, this_ref:Stmt, F_name:string) : Stmt {
   return this_ref.then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
-           if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+           if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+             return co_error<State,Err,Typing>(`Error: expected reference or class name when setting field ${F_name}.`)
+           }
            let C_name = this_ref_t.type.C_name
            if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
            let C_def = bindings.bindings.get(this_ref_t.type.C_name)
@@ -623,7 +629,10 @@ export let field_get = function(context:CallingContext, this_ref:Stmt, F_name:st
               return co_error<State,Err,Typing>(`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`)
            }
 
-           return co_unit(mk_typing(F_def.type, Sem.field_get_expr_rt(F_name, this_ref_t.sem)))
+           return co_unit(mk_typing(F_def.type,
+                    F_def.modifiers.has("static") ?
+                        Sem.static_field_get_expr_rt(C_name, F_name)
+                      : Sem.field_get_expr_rt(F_name, this_ref_t.sem)))
           }
          ))
 }
@@ -632,12 +641,14 @@ export let field_set = function(context:CallingContext, this_ref:Stmt, F_name:st
   return this_ref.then(this_ref_t =>
          new_value.then(new_value_t =>
          co_get_state<State, Err>().then(bindings => {
-           if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
-           let C_name = this_ref_t.type.C_name
-           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
-           let C_def = bindings.bindings.get(this_ref_t.type.C_name)
-           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type ${this_ref_t.type.C_name} is not a class`)
-           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
+           if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+             return co_error<State,Err,Typing>(`Error: expected reference or class name when setting field ${F_name}.`)
+           }
+           let C_name:string = this_ref_t.type.C_name
+           if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+           let C_def = bindings.bindings.get(C_name)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type ${C_name} is not a class`)
+           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not contain field ${F_name}`)
            let F_def = C_def.fields.get(F_name)
 
            if (!F_def.modifiers.has("public")) {
@@ -648,7 +659,10 @@ export let field_set = function(context:CallingContext, this_ref:Stmt, F_name:st
            }
 
            if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>(`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`)
-           return co_unit(mk_typing(unit_type, Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)))
+           return co_unit(mk_typing(unit_type,
+                    F_def.modifiers.has("static") ?
+                        Sem.static_field_set_expr_rt(C_name, F_name, new_value_t.sem)
+                      : Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)))
           }
          )))
 }

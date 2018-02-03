@@ -68,7 +68,9 @@ export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueN
 }
 export interface Interface {
     base: Sum<Interface, Unit>;
+    static_methods: Immutable.Map<ValueName, StmtRt>;
     methods: Immutable.Map<ValueName, StmtRt>;
+    static_fields: Immutable.Map<ValueName, Val>;
 }
 export declare let empty_scope_val: Immutable.Map<string, Val>;
 export declare let empty_scopes_val: Immutable.Map<number, Scope>;

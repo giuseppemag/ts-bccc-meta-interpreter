@@ -100,8 +100,8 @@ export let test_imp = function () {
         CSharp.semicolon(CSharp.def_class("Vector2",
           [(_:CallingContext) => ({
             name:"Vector2",
-            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.get_v("x")),
-                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.get_v("y")),
+            body:CSharp.semicolon(CSharp.field_set({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "X", CSharp.get_v("x")),
+                 CSharp.semicolon(CSharp.field_set({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "Y", CSharp.get_v("y")),
                  CSharp.done)),
             range: mk_range(1,1,1,1),
             parameters:[{ name:"x", type:CSharp.int_type},
@@ -111,8 +111,8 @@ export let test_imp = function () {
           }),
           (_:CallingContext) => ({
             name:"Scale",
-            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
-                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
+            body:CSharp.semicolon(CSharp.field_set({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
+                 CSharp.semicolon(CSharp.field_set({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
                  CSharp.done)),
             range: mk_range(1,1,1,1),
             parameters:[{ name:"k", type:CSharp.int_type}],
@@ -153,6 +153,7 @@ export let test_imp = function () {
   export let test_parser = () => {
     let source = `
 class A {
+  static public int s_x;
   private int x;
 
   public A(int x) {
@@ -179,6 +180,8 @@ class B {
   }
 }
 
+A.s_x = 100;
+int z = A.s_x;
 B b = new B();
 b.a.scale(2);
 `

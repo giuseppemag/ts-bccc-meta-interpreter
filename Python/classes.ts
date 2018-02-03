@@ -41,6 +41,20 @@ export let field_set_rt = function(F_name:ValueName, new_val_expr:ExprRt<Sum<Val
   }))
 }
 
+export let static_field_get_expr_rt = function(C_name:ValueName, F_name:ValueName) : StmtRt {
+  return get_class_def_rt(C_name).then(C_def => {
+    return co_unit(apply(inl<Val,Val>(), C_def.static_fields.get(F_name)))
+  })
+}
+
+export let static_field_set_expr_rt = function(C_name:ValueName, F_name:ValueName, new_val_expr:ExprRt<Sum<Val, Val>>) : StmtRt {
+  return new_val_expr.then(new_val =>
+         get_class_def_rt(C_name).then(C_def => {
+           let new_C_def = {...C_def, static_fields:C_def.static_fields.set(F_name, new_val.value)}
+           return set_class_def_rt(C_name, new_C_def)
+         }))
+}
+
 export let field_set_expr_rt = function(F_name:ValueName, new_val_expr:ExprRt<Sum<Val, Val>>, this_expr:ExprRt<Sum<Val, Val>>) : StmtRt {
   return this_expr.then(this_addr =>
     this_addr.value.k != "ref" ? runtime_error(`runtime type error`) :

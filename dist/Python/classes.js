@@ -40,6 +40,19 @@ exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
         });
     });
 };
+exports.static_field_get_expr_rt = function (C_name, F_name) {
+    return memory_1.get_class_def_rt(C_name).then(function (C_def) {
+        return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), C_def.static_fields.get(F_name)));
+    });
+};
+exports.static_field_set_expr_rt = function (C_name, F_name, new_val_expr) {
+    return new_val_expr.then(function (new_val) {
+        return memory_1.get_class_def_rt(C_name).then(function (C_def) {
+            var new_C_def = __assign({}, C_def, { static_fields: C_def.static_fields.set(F_name, new_val.value) });
+            return memory_1.set_class_def_rt(C_name, new_C_def);
+        });
+    });
+};
 exports.field_set_expr_rt = function (F_name, new_val_expr, this_expr) {
     return this_expr.then(function (this_addr) {
         return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error") :

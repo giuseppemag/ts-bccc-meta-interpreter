@@ -33,6 +33,7 @@ export declare type Type = {
     out: Type;
 } | {
     kind: "obj";
+    C_name: string;
     methods: Immutable.Map<Name, MethodTyping>;
     fields: Immutable.Map<Name, FieldType>;
 } | {
