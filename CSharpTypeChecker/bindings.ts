@@ -11,7 +11,10 @@ import { comm_list_coroutine } from "../ccc_aux";
 
 export type Name = string
 export type Err = string
-export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type } | { kind:"obj", methods:Immutable.Map<Name, Typing>, fields:Immutable.Map<Name, Type> }
+export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
+export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
+export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
+                 | { kind:"obj", methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
@@ -46,7 +49,7 @@ let type_equals = (t1:Type,t2:Type) : boolean =>
   || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i])))
   || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg,t2.arg))
   || (t1.kind == "obj" && t2.kind == "obj" &&
-      !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).type, v1.type)) &&
+      !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type)) &&
       !t2.methods.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.methods.has(k2)))
   || t1.kind == t2.kind
 
@@ -414,9 +417,14 @@ export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
          )))
 }
 
+export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
+export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier> }
+export interface FieldDefinition extends Parameter { modifiers:Array<Modifier> }
+export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
+
 export let mk_param = function(name:Name, type:Type) {
   return { name:name, type:type }
 }
@@ -534,28 +542,49 @@ export let set_arr_el = function(a:Stmt, i:Stmt, e:Stmt) {
         )))
 }
 
-export let def_class = function(C_name:string, methods:Array<FunDefinition>, fields:Array<Parameter>) : Stmt {
+export let def_class = function(C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>) : Stmt {
+  let context:CallingContext = { kind:"class", C_name:C_name }
+  let methods = methods_from_context.map(m => m(context))
+  let fields = fields_from_context.map(f => f(context))
   let C_type_placeholder:Type = {
     kind: "obj",
-    methods:Immutable.Map<Name, Typing>(
-      methods.map(m => [m.name, mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t), Sem.done_rt)])
+    methods:Immutable.Map<Name, MethodTyping>(
+      methods.map(m => {
+        return [
+          m.name,
+          {
+            typing:mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t), Sem.done_rt),
+            modifiers:Immutable.Set<Modifier>(m.modifiers)
+          }
+        ]
+      })
     ),
-    fields:Immutable.Map<Name, Type>(
-      fields.map(f => [f.name, f.type])
+    fields:Immutable.Map<Name, FieldType>(
+      fields.map(f => {
+        return [
+          f.name,
+          {
+            type:f.type,
+            modifiers:Immutable.Set<Modifier>(f.modifiers)
+          }
+        ]
+      })
     )
   }
 
   return co_get_state<State, Err>().then(initial_bindings =>
           co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type_placeholder, is_constant:true}) }).then(_ =>
           comm_list_coroutine(Immutable.List<Stmt>(methods.map(m => def_method(C_name, m)))).then(methods_t => {
-          let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<FunDefinition>(methods)).toArray()
+          let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<MethodDefinition>(methods)).toArray()
           let C_type:Type = {
             kind: "obj",
-            methods:Immutable.Map<Name, Typing>(
-              methods_full_t.map(m => [m.def.name, m.typ])
+            methods:Immutable.Map<Name, MethodTyping>(
+              methods_full_t.map(m => [m.def.name, { typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }])
             ),
-            fields:Immutable.Map<Name, Type>(
-              fields.map(f => [f.name, f.type])
+            fields:Immutable.Map<Name, FieldType>(
+              fields.map(f =>
+                  [ f.name,
+                  { type:f.type, modifiers:Immutable.Set<Modifier>(f.modifiers) } ] )
             )
           }
           let C_int:Sem.Interface = {
@@ -576,43 +605,64 @@ export let def_class = function(C_name:string, methods:Array<FunDefinition>, fie
           )))
 }
 
-export let field_get = function(this_ref:Stmt, F_name:string) : Stmt {
+export let field_get = function(context:CallingContext, this_ref:Stmt, F_name:string) : Stmt {
   return this_ref.then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+           let C_name = this_ref_t.type.C_name
            if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
            let C_def = bindings.bindings.get(this_ref_t.type.C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is not a clas`)
            if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
            let F_def = C_def.fields.get(F_name)
-           return co_unit(mk_typing(F_def, Sem.field_get_expr_rt(F_name, this_ref_t.sem)))
+
+           if (!F_def.modifiers.has("public")) {
+            if (context.kind == "global scope")
+              return co_error<State,Err,Typing>(`Error: cannot get non-public field ${JSON.stringify(F_name)} from global scope`)
+            else if (context.C_name != C_name)
+              return co_error<State,Err,Typing>(`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`)
+           }
+
+           return co_unit(mk_typing(F_def.type, Sem.field_get_expr_rt(F_name, this_ref_t.sem)))
           }
          ))
 }
 
-export let field_set = function(this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
+export let field_set = function(context:CallingContext, this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
   return this_ref.then(this_ref_t =>
          new_value.then(new_value_t =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+           let C_name = this_ref_t.type.C_name
            if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
            let C_def = bindings.bindings.get(this_ref_t.type.C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type ${this_ref_t.type.C_name} is not a class`)
            if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
            let F_def = C_def.fields.get(F_name)
-           if (!type_equals(F_def, new_value_t.type)) return co_error<State,Err,Typing>(`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`)
+
+           if (!F_def.modifiers.has("public")) {
+            if (context.kind == "global scope")
+              return co_error<State,Err,Typing>(`Error: cannot set non-public field ${JSON.stringify(F_name)} from global scope`)
+            else if (context.C_name != C_name)
+              return co_error<State,Err,Typing>(`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`)
+           }
+
+           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>(`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`)
            return co_unit(mk_typing(unit_type, Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)))
           }
          )))
 }
 
 
-export let call_cons = function(C_name:string, arg_values:Array<Stmt>) : Stmt {
+export let call_cons = function(context:CallingContext, C_name:string, arg_values:Array<Stmt>) : Stmt {
   return co_get_state<State, Err>().then(bindings => {
     if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
-    if (!C_def.methods.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+    if (!C_def.methods.has(C_name)) {
+      console.log(JSON.stringify(C_def))
+      return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+    }
     let lambda_t = C_def.methods.get(C_name)
 
     let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
@@ -622,22 +672,29 @@ export let call_cons = function(C_name:string, arg_values:Array<Stmt>) : Stmt {
       )),
       co_unit(Immutable.List<Typing>()))
 
-    return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+    if (!lambda_t.modifiers.has("public")) {
+      if (context.kind == "global scope")
+        return co_error<State,Err,Typing>(`Error: cannot call non-public constructor ${C_name} from global scope`)
+      else if (context.C_name != C_name)
+        return co_error<State,Err,Typing>(`Error: cannot call non-public constructor ${C_name} from ${context.C_name}`)
+    }
+
+    return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
         check_arguments.then(args_t =>
-          lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
-          arg_values.length != lambda_t.type.in.args.length - 1 ||
-          args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                                    !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
-            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify(args_t)}`)
+          lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+          arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
+          args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                    !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
+            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem))))
         )
-      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
   })
 }
 
 
-export let call_method = function(this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
+export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
   return this_ref.then(this_ref_t =>
     co_get_state<State, Err>().then(bindings => {
       if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
@@ -645,7 +702,7 @@ export let call_method = function(this_ref:Stmt, M_name:string, arg_values:Array
     if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
-    if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+    if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have method ${M_name}`)
     let lambda_t = C_def.methods.get(M_name)
 
     let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
@@ -655,16 +712,23 @@ export let call_method = function(this_ref:Stmt, M_name:string, arg_values:Array
       )),
       co_unit(Immutable.List<Typing>()))
 
-    return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
+    if (!lambda_t.modifiers.has("public")) {
+      if (context.kind == "global scope")
+        return co_error<State,Err,Typing>(`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`)
+      else if (context.C_name != C_name)
+        return co_error<State,Err,Typing>(`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`)
+    }
+
+    return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
         check_arguments.then(args_t =>
-          lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
-          arg_values.length != lambda_t.type.in.args.length - 1 ||
-          args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                                    !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
-            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify(args_t)}`)
+          lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+          arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
+          args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                    !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
+            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
           :
-            co_unit(mk_typing(lambda_t.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+            co_unit(mk_typing(lambda_t.typing.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
         )
-      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
   }))
 }

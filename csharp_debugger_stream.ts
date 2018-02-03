@@ -13,11 +13,11 @@ import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker, ParserRes } from "./CSharpTypeChecker/csharp";
 import { Stmt } from "./main";
 
-export type DebuggerStream = 
-  ({ kind:"error"|"done" } | 
-  { kind:"step", next:() => DebuggerStream }) & 
-  { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } | 
-               { kind:"bindings", state:CSharp.State, ast:ParserRes } | 
+export type DebuggerStream =
+  ({ kind:"error"|"done" } |
+  { kind:"step", next:() => DebuggerStream }) &
+  { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
+               { kind:"bindings", state:CSharp.State, ast:ParserRes } |
                { kind:"message", message:string } }
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 
@@ -34,15 +34,15 @@ export let get_stream = (source:string) : DebuggerStream => {
     let error = `Parser error (${res.value.range.to_string()}): ${res.value.message}`
     return { kind:"error", show:() => ({ kind:"message", message:error }) }
   }
-  
+
   let ast = res.value.fst
-  let p = ast_to_type_checker(ast)
+  let p = ast_to_type_checker(ast)( { kind:"global scope" })
 
   let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
     kind:"step",
     next:() => {
       let p = state.fst
-      let s = state.snd 
+      let s = state.snd
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value

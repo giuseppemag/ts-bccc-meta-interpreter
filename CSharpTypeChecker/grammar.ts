@@ -5,12 +5,14 @@ import { SourceRange, join_source_ranges, mk_range, zero_range, max_source_range
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end, co_lookup } from "../ccc_aux"
 import * as CSharp from "./csharp"
+import { CallingContext } from "./bindings";
 
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||" | "xor"
 export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
+  | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
   | { kind:"class" } | { kind:"new" }
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:BinOpKind } | {kind:UnaryOpKind}
@@ -73,6 +75,12 @@ export module GrammarBasics {
     parse_prefix_regex(/^pixel/, (s,r) => ({range:r, kind:"pixel"})),
     parse_prefix_regex(/^debugger/, (s,r) => ({range:r, kind:"dbg"})),
     parse_prefix_regex(/^typechecker_debugger/, (s,r) => ({range:r, kind:"tc-dbg"})),
+    parse_prefix_regex(/^private/, (s,r) => ({range:r, kind:"private"})),
+    parse_prefix_regex(/^public/, (s,r) => ({range:r, kind:"public"})),
+    parse_prefix_regex(/^protected/, (s,r) => ({range:r, kind:"protected"})),
+    parse_prefix_regex(/^virtual/, (s,r) => ({range:r, kind:"virtual"})),
+    parse_prefix_regex(/^override/, (s,r) => ({range:r, kind:"override"})),
+    parse_prefix_regex(/^static/, (s,r) => ({range:r, kind:"static"})),
     parse_prefix_regex(/^\n/, (s,r) => ({range:r, kind:"nl"})),
     parse_prefix_regex(/^\+/, (s,r) => ({range:r, kind:"+"})),
     parse_prefix_regex(/^\*/, (s,r) => ({range:r, kind:"*"})),
@@ -86,7 +94,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="})),
     parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="})),
     parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"})),
-    parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"})), 
+    parse_prefix_regex(/^\^/, (s,r) => ({range:r, kind:"xor"})),
     parse_prefix_regex(/^!/, (s,r) => ({range:r, kind:"not"})),
     parse_prefix_regex(/^,/, (s,r) => ({range:r, kind:","})),
     parse_prefix_regex(/^\|\|/, (s,r) => ({range:r, kind:"||"})),
@@ -144,6 +152,8 @@ let proprity_operators_table =
   .set("&&", 4)
   .set("||", 4)
 
+export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
+
 export interface DebuggerAST { kind: "dbg" }
 export interface TCDebuggerAST { kind: "tc-dbg" }
 export interface UnitAST { kind: "unit" }
@@ -160,7 +170,11 @@ export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface ReturnAST { kind: "return", value:ParserRes }
 export interface NoopAST { kind: "noop" }
 export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
-export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, constructors:Immutable.List<ConstructorDeclarationAST> }
+
+export interface FieldAST { decl:DeclAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
+export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
+export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
+export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
@@ -178,6 +192,7 @@ export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
+                | ModifierAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
@@ -234,9 +249,16 @@ let mk_constructor_declaration = (function_name:string, arg_decls:Immutable.List
 let mk_function_declaration = (return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
   ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body})
 
-let mk_class_declaration = (C_name:string, fields:Immutable.List<DeclAST>, methods:Immutable.List<FunctionDeclarationAST>, constructors:Immutable.List<ConstructorDeclarationAST>, range:SourceRange) : ParserRes =>
+let mk_class_declaration = (C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, range:SourceRange) : ParserRes =>
   ({  range: range,
       ast: {kind:"class", C_name:C_name, fields:fields, methods:methods, constructors:constructors } })
+
+let mk_private = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"private"}})
+let mk_public = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"public"}})
+let mk_protected = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"protected"}})
+let mk_static = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"static"}})
+let mk_override = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"override"}})
+let mk_virtual = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"virtual"}})
 
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
@@ -417,7 +439,7 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
   let i = s.tokens.first()
   if (i.kind == "id") {
     let res = mk_identifier(i.v, i.range)
-    let range = i.range    
+    let range = i.range
     return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
   }
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected identifier but found ${i.kind}` })
@@ -451,6 +473,13 @@ let left_curly_bracket = symbol("{", "{")
 let right_curly_bracket = symbol("}", "}")
 
 let dot_sign = symbol(".", ".")
+
+let private_modifier = symbol("private", "private")
+let public_modifier = symbol("public", "public")
+let protected_modifier = symbol("protected", "protected")
+let static_modifier = symbol("static", "static")
+let override_modifier = symbol("override", "override")
+let virtual_modifier = symbol("virtual", "virtual")
 
 let plus_op = binop_sign("+")
 let minus_op = binop_sign("-")
@@ -821,24 +850,46 @@ let function_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit
 let inner_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser => generic_statements (() => inner_statement(), check_trailer)
 let outer_statements = (check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser => generic_statements (outer_statement, check_trailer)
 
-let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>> = () =>
-  parser_or<Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>(
-    parser_or<Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
-      with_semicolon(decl().then(d =>
-      co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(apply(inl<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>(), d))))
+let modifier = () : Coroutine<ParserState, ParserError, { range:SourceRange, ast:ModifierAST }> =>
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(private_modifier.then(r => co_unit(mk_private(r))),
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(public_modifier.then(r => co_unit(mk_public(r))),
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(protected_modifier.then(r => co_unit(mk_protected(r))),
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(virtual_modifier.then(r => co_unit(mk_virtual(r))),
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(override_modifier.then(r => co_unit(mk_override(r))),
+  static_modifier.then(r => co_unit(mk_static(r))))))))
+
+let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:SourceRange, ast:ModifierAST }>> =>
+  parser_or<Immutable.List<{ range:SourceRange, ast:ModifierAST }>>(
+  modifier().then(m =>
+  modifiers().then(ms =>
+  m.ast.kind == "private" && ms.some(m => !m || m.ast.kind == "public") ||
+  m.ast.kind == "public" && ms.some(m => !m || m.ast.kind == "private") ||
+  m.ast.kind == "virtual" && ms.some(m => !m || m.ast.kind == "override") ||
+  m.ast.kind == "override" && ms.some(m => !m || m.ast.kind == "virtual") ?
+    co_get_state<ParserState, ParserError>().then(s =>
+    co_error({ range:m.range, priority:s.branch_priority, message:"Error: incompatible modifiers." }))
+  : co_unit(ms.push(m)))),
+  co_unit(Immutable.List<{ range:SourceRange, ast:ModifierAST }>()))
+
+let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>> = () =>
+  parser_or<Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>>(
+    parser_or<Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
+      with_semicolon(modifiers().then(ms => decl().then(d =>
+      co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
+        apply(inl<FieldAST, Sum<MethodAST, ConstructorAST>>(), { decl:d, modifiers:ms })))))
     ,
-      parser_or<Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
-        function_declaration().then(d =>
-          co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
-            apply(inr<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>().after(inl<FunctionDeclarationAST, ConstructorDeclarationAST>()), d)))
+      parser_or<Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
+        modifiers().then(ms => function_declaration().then(d =>
+          co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
+            apply(inr<FieldAST, Sum<MethodAST, ConstructorAST>>().after(inl<MethodAST, ConstructorAST>()), { decl:d, modifiers:ms }))))
       ,
-        constructor_declaration().then(d =>
-          co_unit<ParserState, ParserError, Sum<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>>(
-            apply(inr<DeclAST, Sum<FunctionDeclarationAST, ConstructorDeclarationAST>>().after(inr<FunctionDeclarationAST, ConstructorDeclarationAST>()), d)))
+      modifiers().then(ms => constructor_declaration().then(d =>
+          co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
+            apply(inr<FieldAST, Sum<MethodAST, ConstructorAST>>().after(inr<MethodAST, ConstructorAST>()), { decl:d, modifiers:ms }))))
       )
     ).then(decl =>
     class_statements().then(decls =>
-      co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>({
+      co_unit<ParserState, ParserError, Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>>({
         fst:decl.kind == "left" ? decls.fst.push(decl.value) : decls.fst,
         snd:decl.kind == "right" ?
               decl.value.kind == "left" ?
@@ -848,11 +899,11 @@ let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.
             : decls.snd })
   )),
     co_lookup(right_curly_bracket).then(_ =>
-    co_unit<ParserState, ParserError, Prod<Immutable.List<DeclAST>, Prod<Immutable.List<FunctionDeclarationAST>, Immutable.List<ConstructorDeclarationAST>>>>({
-      fst:Immutable.List<DeclAST>(),
+    co_unit<ParserState, ParserError, Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>>({
+      fst:Immutable.List<FieldAST>(),
       snd:{
-        fst:Immutable.List<FunctionDeclarationAST>(),
-        snd:Immutable.List<ConstructorDeclarationAST>() }
+        fst:Immutable.List<MethodAST>(),
+        snd:Immutable.List<ConstructorAST>() }
       })))
 
 export let program_prs : () => Parser = () =>
@@ -869,68 +920,75 @@ let string_to_csharp_type : (_:string) => CSharp.Type = s =>
   : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
   : CSharp.ref_type(s)
 
-export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
+export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
   : n.ast.kind == "string" ? CSharp.str(n.ast.value)
   : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
-  : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "while" ? CSharp.while_do(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.b))
-  : n.ast.kind == "if" ? CSharp.if_then_else(ast_to_type_checker(n.ast.c), ast_to_type_checker(n.ast.t),
-                            n.ast.e.kind == "right" ? CSharp.done : ast_to_type_checker(n.ast.e.value))
-  : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "-" ? CSharp.minus(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r), n.range)
-  : n.ast.kind == "/" ? CSharp.div(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "%" ? CSharp.mod(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "<" ? CSharp.lt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == ">" ? CSharp.gt(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "<=" ? CSharp.leq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == ">=" ? CSharp.geq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "==" ? CSharp.eq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "!=" ? CSharp.neq(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "xor" ? CSharp.xor(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "not" ? CSharp.not(ast_to_type_checker(n.ast.e))
-  : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l), ast_to_type_checker(n.ast.r))
+  : n.ast.kind == ";" ? CSharp.semicolon(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "while" ? CSharp.while_do(ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.b)(context))
+  : n.ast.kind == "if" ? CSharp.if_then_else(ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.t)(context),
+                            n.ast.e.kind == "right" ? CSharp.done : ast_to_type_checker(n.ast.e.value)(context))
+  : n.ast.kind == "+" ? CSharp.plus(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "-" ? CSharp.minus(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "*" ? CSharp.times(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context), n.range)
+  : n.ast.kind == "/" ? CSharp.div(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "%" ? CSharp.mod(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "<" ? CSharp.lt(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == ">" ? CSharp.gt(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "<=" ? CSharp.leq(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == ">=" ? CSharp.geq(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "==" ? CSharp.eq(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "!=" ? CSharp.neq(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "xor" ? CSharp.xor(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "not" ? CSharp.not(ast_to_type_checker(n.ast.e)(context))
+  : n.ast.kind == "&&" ? CSharp.and(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "||" ? CSharp.or(ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "id" ? CSharp.get_v(n.ast.value)
-  : n.ast.kind == "return" ? CSharp.ret(ast_to_type_checker(n.ast.value))
-  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(ast_to_type_checker(n.ast.l), n.ast.r.ast.value)
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r))
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(ast_to_type_checker(n.ast.l.ast.l), n.ast.l.ast.r.ast.value, ast_to_type_checker(n.ast.r))
+  : n.ast.kind == "return" ? CSharp.ret(ast_to_type_checker(n.ast.value)(context))
+  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(context, ast_to_type_checker(n.ast.l.ast.l)(context), n.ast.l.ast.r.ast.value, ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "cons_call" ?
-    CSharp.call_cons(n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)))
+    CSharp.call_cons(context, n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "func_call" &&
     n.ast.name.ast.kind == "id" ?
-    CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
+    CSharp.call_by_name(n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "method_call" &&
     n.ast.name.ast.kind == "id" ?
-    CSharp.call_method(ast_to_type_checker(n.ast.object), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)))
+    CSharp.call_method(context, ast_to_type_checker(n.ast.object)(context), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "func_decl" &&
     n.ast.return_type.ast.kind == "id" ?
     CSharp.def_fun({ name:n.ast.name,
                      return_t:string_to_csharp_type(n.ast.return_type.ast.value),
                      parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.value, type:string_to_csharp_type((d.l.ast as IdAST).value)})),
-                     body:ast_to_type_checker(n.ast.body),
+                     body:ast_to_type_checker(n.ast.body)(context),
                      range:n.range },
                      [])
-  : n.ast.kind == "class" && !n.ast.methods.some(m => !m || m.return_type.ast.kind != "id" || m.arg_decls.some(a => !a || a.l.ast.kind != "id"))
-    && !n.ast.fields.some(f => !f || f.l.ast.kind != "id") ?
+  : n.ast.kind == "class"
+    && !n.ast.methods.some(m => !m || m.decl.return_type.ast.kind != "id" || m.decl.arg_decls.some(a => !a || a.l.ast.kind != "id"))
+    && !n.ast.fields.some(f => !f || f.decl.l.ast.kind != "id") ?
     CSharp.def_class(n.ast.C_name,
-      n.ast.methods.toArray().map(m => ({
-          name:m.name,
-          return_t:string_to_csharp_type((m.return_type.ast as IdAST).value),
-          parameters:m.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
-          body:ast_to_type_checker(m.body),
-          range:join_source_ranges(m.return_type.range, m.body.range)
+      n.ast.methods.toArray().map(m => (context:CallingContext) => ({
+          name:m.decl.name,
+          return_t:string_to_csharp_type((m.decl.return_type.ast as IdAST).value),
+          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          body:ast_to_type_checker(m.decl.body)(context),
+          range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+          modifiers:m.modifiers.toArray().map(mod => mod.ast.kind)
         })).concat(
-        n.ast.constructors.toArray().map(c => ({
-          name:c.name,
+        n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
+          name:c.decl.name,
           return_t:CSharp.unit_type,
-          parameters:c.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
-          body:ast_to_type_checker(c.body),
-          range:c.body.range
+          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          body:ast_to_type_checker(c.decl.body)(context),
+          range:c.decl.body.range,
+          modifiers:c.modifiers.toArray().map(mod => mod.ast.kind)
         })) ),
-      n.ast.fields.toArray().map(f => ({ name:f.r.value, type:string_to_csharp_type((f.l.ast as IdAST).value) }))
+      n.ast.fields.toArray().map(f => (context:CallingContext) => ({
+        name:f.decl.r.value,
+        type:string_to_csharp_type((f.decl.l.ast as IdAST).value),
+        modifiers:f.modifiers.toArray().map(mod => mod.ast.kind)
+      }))
     )
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
     CSharp.decl_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
@@ -939,8 +997,8 @@ export let ast_to_type_checker : (_:ParserRes) => CSharp.Stmt = n =>
   : n.ast.kind == "tc-dbg" ?
     CSharp.typechecker_breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "mk-empty-render-grid" ?
-    CSharp.mk_empty_render_grid(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h))
+    CSharp.mk_empty_render_grid(ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context))
   : n.ast.kind == "mk-render-grid-pixel" ?
-    CSharp.mk_render_grid_pixel(ast_to_type_checker(n.ast.w), ast_to_type_checker(n.ast.h), ast_to_type_checker(n.ast.status))
+    CSharp.mk_render_grid_pixel(ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.status)(context))
   : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)})()
 

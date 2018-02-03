@@ -20,7 +20,7 @@ exports.get_stream = function (source) {
         return { kind: "error", show: function () { return ({ kind: "message", message: error_2 }); } };
     }
     var ast = res.value.fst;
-    var p = csharp_1.ast_to_type_checker(ast);
+    var p = csharp_1.ast_to_type_checker(ast)({ kind: "global scope" });
     var runtime_stream = function (state) { return ({
         kind: "step",
         next: function () {

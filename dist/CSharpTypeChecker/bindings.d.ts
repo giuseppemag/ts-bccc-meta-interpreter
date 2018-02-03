@@ -5,6 +5,14 @@ import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
 export declare type Name = string;
 export declare type Err = string;
+export interface MethodTyping {
+    typing: Typing;
+    modifiers: Immutable.Set<Modifier>;
+}
+export interface FieldType {
+    type: Type;
+    modifiers: Immutable.Set<Modifier>;
+}
 export declare type Type = {
     kind: "render-grid-pixel";
 } | {
@@ -25,8 +33,8 @@ export declare type Type = {
     out: Type;
 } | {
     kind: "obj";
-    methods: Immutable.Map<Name, Typing>;
-    fields: Immutable.Map<Name, Type>;
+    methods: Immutable.Map<Name, MethodTyping>;
+    fields: Immutable.Map<Name, FieldType>;
 } | {
     kind: "ref";
     C_name: string;
@@ -103,6 +111,7 @@ export declare let lub: (t1: TypeInformation, t2: TypeInformation) => Sum<TypeIn
 export declare let if_then_else: (c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (c: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (p: Stmt, q: Stmt) => Stmt;
+export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override";
 export interface Parameter {
     name: Name;
     type: Type;
@@ -116,6 +125,18 @@ export interface FunDefinition extends LambdaDefinition {
     name: string;
     range: SourceRange;
 }
+export interface MethodDefinition extends FunDefinition {
+    modifiers: Array<Modifier>;
+}
+export interface FieldDefinition extends Parameter {
+    modifiers: Array<Modifier>;
+}
+export declare type CallingContext = {
+    kind: "global scope";
+} | {
+    kind: "class";
+    C_name: string;
+};
 export declare let mk_param: (name: string, type: Type) => {
     name: string;
     type: Type;
@@ -130,8 +151,8 @@ export declare let new_array: (type: Type, len: Stmt) => Coroutine<State, string
 export declare let get_arr_len: (a: Stmt) => Coroutine<State, string, Typing>;
 export declare let get_arr_el: (a: Stmt, i: Stmt) => Coroutine<State, string, Typing>;
 export declare let set_arr_el: (a: Stmt, i: Stmt, e: Stmt) => Coroutine<State, string, Typing>;
-export declare let def_class: (C_name: string, methods: FunDefinition[], fields: Parameter[]) => Stmt;
-export declare let field_get: (this_ref: Stmt, F_name: string) => Stmt;
-export declare let field_set: (this_ref: Stmt, F_name: string, new_value: Stmt) => Stmt;
-export declare let call_cons: (C_name: string, arg_values: Stmt[]) => Stmt;
-export declare let call_method: (this_ref: Stmt, M_name: string, arg_values: Stmt[]) => Stmt;
+export declare let def_class: (C_name: string, methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[]) => Stmt;
+export declare let field_get: (context: CallingContext, this_ref: Stmt, F_name: string) => Stmt;
+export declare let field_set: (context: CallingContext, this_ref: Stmt, F_name: string, new_value: Stmt) => Stmt;
+export declare let call_cons: (context: CallingContext, C_name: string, arg_values: Stmt[]) => Stmt;
+export declare let call_method: (context: CallingContext, this_ref: Stmt, M_name: string, arg_values: Stmt[]) => Stmt;

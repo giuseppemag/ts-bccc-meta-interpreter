@@ -2,6 +2,7 @@ import * as Immutable from "immutable";
 import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as CSharp from "./csharp";
+import { CallingContext } from "./bindings";
 export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor";
 export declare type UnaryOpKind = "not";
 export declare type Token = ({
@@ -24,6 +25,18 @@ export declare type Token = ({
     kind: "then";
 } | {
     kind: "else";
+} | {
+    kind: "private";
+} | {
+    kind: "public";
+} | {
+    kind: "static";
+} | {
+    kind: "protected";
+} | {
+    kind: "virtual";
+} | {
+    kind: "override";
 } | {
     kind: "class";
 } | {
@@ -80,6 +93,19 @@ export declare type Token = ({
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
 }
+export declare type ModifierAST = {
+    kind: "private";
+} | {
+    kind: "public";
+} | {
+    kind: "static";
+} | {
+    kind: "protected";
+} | {
+    kind: "virtual";
+} | {
+    kind: "override";
+};
 export interface DebuggerAST {
     kind: "dbg";
 }
@@ -150,12 +176,33 @@ export interface ArgsAST {
     kind: "args";
     value: Immutable.List<DeclAST>;
 }
+export interface FieldAST {
+    decl: DeclAST;
+    modifiers: Immutable.List<{
+        range: SourceRange;
+        ast: ModifierAST;
+    }>;
+}
+export interface MethodAST {
+    decl: FunctionDeclarationAST;
+    modifiers: Immutable.List<{
+        range: SourceRange;
+        ast: ModifierAST;
+    }>;
+}
+export interface ConstructorAST {
+    decl: ConstructorDeclarationAST;
+    modifiers: Immutable.List<{
+        range: SourceRange;
+        ast: ModifierAST;
+    }>;
+}
 export interface ClassAST {
     kind: "class";
     C_name: string;
-    fields: Immutable.List<DeclAST>;
-    methods: Immutable.List<FunctionDeclarationAST>;
-    constructors: Immutable.List<ConstructorDeclarationAST>;
+    fields: Immutable.List<FieldAST>;
+    methods: Immutable.List<MethodAST>;
+    constructors: Immutable.List<ConstructorAST>;
 }
 export interface BinOpAST {
     kind: BinOpKind;
@@ -206,7 +253,7 @@ export interface MethodCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -226,4 +273,4 @@ export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
     branch_priority: number;
 };
 export declare let program_prs: () => Parser;
-export declare let ast_to_type_checker: (_: ParserRes) => CSharp.Stmt;
+export declare let ast_to_type_checker: (_: ParserRes) => (_: CallingContext) => CSharp.Stmt;

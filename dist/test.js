@@ -39,22 +39,24 @@ var ImpLanguageWithSuspend;
             parameters: [CSharp.mk_param("j", CSharp.int_type)],
             return_t: CSharp.int_type,
             range: source_range_1.mk_range(1, 1, 1, 1) }, ["x"]), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(3, 0, 4, 0))(CSharp.done), CSharp.semicolon(CSharp.set_v("x", CSharp.call_by_name("f", [CSharp.get_v("y")])), CSharp.semicolon(CSharp.breakpoint(source_range_1.mk_range(4, 0, 5, 0))(CSharp.done), CSharp.set_v("x", CSharp.call_by_name("g", [CSharp.get_v("y")])))))))))));
-        var class_test = CSharp.semicolon(CSharp.def_class("Vector2", [{
+        var class_test = CSharp.semicolon(CSharp.def_class("Vector2", [function (_) { return ({
                 name: "Vector2",
                 body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.get_v("x")), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.get_v("y")), CSharp.done)),
                 range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "x", type: CSharp.int_type },
                     { name: "y", type: CSharp.int_type }],
-                return_t: CSharp.unit_type
-            },
-            {
+                return_t: CSharp.unit_type,
+                modifiers: ["public"]
+            }); },
+            function (_) { return ({
                 name: "Scale",
-                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
+                body: CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "X"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind: "class", C_name: "Vector2" }, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), source_range_1.zero_range)), CSharp.done)),
                 range: source_range_1.mk_range(1, 1, 1, 1),
                 parameters: [{ name: "k", type: CSharp.int_type }],
-                return_t: CSharp.unit_type
-            }], [{ name: "X", type: CSharp.int_type },
-            { name: "Y", type: CSharp.int_type }]), CSharp.semicolon(CSharp.decl_v("v2", CSharp.ref_type("Vector2")), CSharp.semicolon(CSharp.set_v("v2", CSharp.call_cons("Vector2", [CSharp.int(10), CSharp.int(20)])), CSharp.semicolon(CSharp.call_method(CSharp.get_v("v2"), "Scale", [CSharp.int(2)]), CSharp.done))));
+                return_t: CSharp.unit_type,
+                modifiers: ["public"]
+            }); }], [function (_) { return ({ name: "X", type: CSharp.int_type, modifiers: ["public"] }); },
+            function (_) { return ({ name: "Y", type: CSharp.int_type, modifiers: ["public"] }); }]), CSharp.semicolon(CSharp.decl_v("v2", CSharp.ref_type("Vector2")), CSharp.semicolon(CSharp.set_v("v2", CSharp.call_cons({ kind: "global scope" }, "Vector2", [CSharp.int(10), CSharp.int(20)])), CSharp.semicolon(CSharp.call_method({ kind: "global scope" }, CSharp.get_v("v2"), "Scale", [CSharp.int(2)]), CSharp.done))));
         var hrstart = process.hrtime();
         var p = class_test;
         var output = "";
@@ -77,7 +79,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass A {\n  int x;\n\n  A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  void scale(int k) {\n    this.x = this.x * k;\n  }\n\n  int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  A a;\n\n  B(A a) {\n    this.a = a;\n  }\n}\n\nA a = new A(10);\nB b = new B(a);\nb.a.scale(2);\nint x = b.a.x;\n";
+        var source = "\nclass A {\n  private int x;\n\n  public A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  public void scale(int k) {\n    this.x = this.get_x() * k;\n  }\n\n  public int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  public A a;\n\n  public B() {\n    this.a = new A(10);\n  }\n}\n\nB b = new B();\nb.a.scale(2);\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -88,7 +90,7 @@ var ImpLanguageWithSuspend;
             return "Parse error: " + JSON.stringify(res.value);
         //console.log(JSON.stringify(res.value.value.fst)) // ast
         var hrstart = process.hrtime();
-        var p = csharp_1.ast_to_type_checker(res.value.value.fst);
+        var p = csharp_1.ast_to_type_checker(res.value.value.fst)({ kind: "global scope" });
         var output = "";
         var log = function (s, x) {
             output = output + s + JSON.stringify(x) + "\n\n";

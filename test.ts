@@ -13,6 +13,7 @@ import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 import * as DebuggerStream from "./csharp_debugger_stream"
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
+import { CallingContext } from "./main";
 
 export module ImpLanguageWithSuspend {
   let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
@@ -97,7 +98,7 @@ export let test_imp = function () {
 
       let class_test =
         CSharp.semicolon(CSharp.def_class("Vector2",
-          [{
+          [(_:CallingContext) => ({
             name:"Vector2",
             body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.get_v("x")),
                  CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.get_v("y")),
@@ -105,22 +106,24 @@ export let test_imp = function () {
             range: mk_range(1,1,1,1),
             parameters:[{ name:"x", type:CSharp.int_type},
                         { name:"y", type:CSharp.int_type}],
-            return_t:CSharp.unit_type
-          },
-          {
+            return_t:CSharp.unit_type,
+            modifiers:["public"]
+          }),
+          (_:CallingContext) => ({
             name:"Scale",
-            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
-                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get(CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
+            body:CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "X", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "X"), CSharp.get_v("k"), zero_range)),
+                 CSharp.semicolon(CSharp.field_set(CSharp.get_v("this"), "Y", CSharp.times(CSharp.field_get({ kind:"class", C_name:"Vector2"}, CSharp.get_v("this"), "Y"), CSharp.get_v("k"), zero_range)),
                  CSharp.done)),
             range: mk_range(1,1,1,1),
             parameters:[{ name:"k", type:CSharp.int_type}],
-            return_t:CSharp.unit_type
-          }],
-          [{ name:"X", type:CSharp.int_type},
-           { name:"Y", type:CSharp.int_type}]),
+            return_t:CSharp.unit_type,
+            modifiers:["public"]
+          })],
+          [(_:CallingContext) => ({ name:"X", type:CSharp.int_type, modifiers:["public"]}),
+           (_:CallingContext) => ({ name:"Y", type:CSharp.int_type, modifiers:["public"]})]),
         CSharp.semicolon(CSharp.decl_v("v2", CSharp.ref_type("Vector2")),
-        CSharp.semicolon(CSharp.set_v("v2", CSharp.call_cons("Vector2", [CSharp.int(10), CSharp.int(20)])),
-        CSharp.semicolon(CSharp.call_method(CSharp.get_v("v2"), "Scale", [CSharp.int(2)]),
+        CSharp.semicolon(CSharp.set_v("v2", CSharp.call_cons({ kind:"global scope" }, "Vector2", [CSharp.int(10), CSharp.int(20)])),
+        CSharp.semicolon(CSharp.call_method({ kind:"global scope" }, CSharp.get_v("v2"), "Scale", [CSharp.int(2)]),
         CSharp.done))))
 
     let hrstart = process.hrtime()
@@ -150,36 +153,34 @@ export let test_imp = function () {
   export let test_parser = () => {
     let source = `
 class A {
-  int x;
+  private int x;
 
-  A(int x) {
+  public A(int x) {
     this.x = x;
     while (x > 0) {
       x = x - 1;
     }
   }
 
-  void scale(int k) {
-    this.x = this.x * k;
+  public void scale(int k) {
+    this.x = this.get_x() * k;
   }
 
-  int get_x() {
+  public int get_x() {
     return this.x;
   }
 }
 
 class B {
-  A a;
+  public A a;
 
-  B(A a) {
-    this.a = a;
+  public B() {
+    this.a = new A(10);
   }
 }
 
-A a = new A(10);
-B b = new B(a);
+B b = new B();
 b.a.scale(2);
-int x = b.a.x;
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -191,7 +192,7 @@ int x = b.a.x;
 
     //console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
-    let p = ast_to_type_checker(res.value.value.fst)
+    let p = ast_to_type_checker(res.value.value.fst)({ kind:"global scope" })
 
     let output = ""
     let log = function(s:string,x:any) {

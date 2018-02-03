@@ -8,7 +8,7 @@
   },
   "main": "dist/main.js",
   "scripts": {
-    "tsc": "node_modules/.bin/tsc -w",
+    "tsc": "node_modules/.bin/tsc -w -pretty",
     "main": "node dist/test.js",
     "css": "gulp"
   },
