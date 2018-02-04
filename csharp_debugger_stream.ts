@@ -19,7 +19,7 @@ export type DebuggerStream =
   { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                { kind:"bindings", state:CSharp.State, ast:ParserRes } |
                { kind:"message", message:string } }
-import { mk_parser_state } from "./CSharpTypeChecker/grammar";
+import { mk_parser_state, global_calling_context } from "./CSharpTypeChecker/grammar";
 
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
@@ -36,7 +36,7 @@ export let get_stream = (source:string) : DebuggerStream => {
   }
 
   let ast = res.value.fst
-  let p = ast_to_type_checker(ast)( { kind:"global scope" })
+  let p = ast_to_type_checker(ast)(global_calling_context)
 
   let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
     kind:"step",

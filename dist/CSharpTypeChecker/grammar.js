@@ -131,6 +131,7 @@ var mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", v
 var mk_noop = function () { return ({ range: source_range_1.mk_range(-1, -1, -1, -1), ast: { kind: "noop" } }); };
 var mk_return = function (e) { return ({ range: e.range, ast: { kind: "return", value: e } }); };
 var mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
+var mk_decl_and_init = function (l, r, v, r_range) { return ({ kind: "decl and init", l: l, r: { value: r, range: r_range }, v: v }); };
 var mk_decl = function (l, r, r_range) { return ({ kind: "decl", l: l, r: { value: r, range: r_range } }); };
 var mk_assign = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "=", l: l, r: r } }); };
 var mk_while = function (c, b) { return ({ range: source_range_1.join_source_ranges(c.range, b.range), ast: { kind: "while", c: c, b: b } }); };
@@ -542,13 +543,13 @@ var expr = function () {
 var semicolon = ignore_whitespace(semicolon_sign);
 var comma = ignore_whitespace(comma_sign);
 var with_semicolon = function (p) { return p.then(function (p_res) { return ignore_whitespace(semicolon_sign).then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); };
-var assign_left = function (l) {
+var assign_right = function () {
     return no_match.then(function (_) {
         return equal_sign.then(function (_) {
             return partial_match.then(function (_) {
                 return expr().then(function (r) {
                     return full_match.then(function (_) {
-                        return ts_bccc_1.co_unit(mk_assign(l, r));
+                        return ts_bccc_1.co_unit(r);
                     });
                 });
             });
@@ -557,7 +558,7 @@ var assign_left = function (l) {
 };
 var assign = function () {
     return parser_or(field_ref(), identifier).then(function (l) {
-        return assign_left(l);
+        return assign_right().then(function (r) { return ts_bccc_1.co_unit(mk_assign(l, r)); });
     });
 };
 var decl_init = function () {
@@ -565,9 +566,9 @@ var decl_init = function () {
         return identifier.then(function (l) {
             return identifier_token.then(function (r) {
                 return partial_match.then(function (_) {
-                    return assign_left(mk_identifier(r.id, l.range)).then(function (a) {
+                    return assign_right().then(function (v) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(mk_semicolon({ range: l.range, ast: mk_decl(l, r.id, r.range) }, a));
+                            return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(l.range, v.range), ast: mk_decl_and_init(l, r.id, v, r.range) });
                         });
                     });
                 });
@@ -809,8 +810,10 @@ var string_to_csharp_type = function (s) {
                 : s == "void" ? CSharp.unit_type
                     : s == "RenderGrid" ? CSharp.render_grid_type
                         : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
-                            : CSharp.ref_type(s);
+                            : s == "var" ? CSharp.var_type
+                                : CSharp.ref_type(s);
 };
+exports.global_calling_context = ({ kind: "global scope" });
 exports.ast_to_type_checker = function (n) { return function (context) {
     return n.ast.kind == "int" ? CSharp.int(n.ast.value)
         : n.ast.kind == "string" ? CSharp.str(n.ast.value)
@@ -877,13 +880,15 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                 }); }; }))
                                                                                                                                 : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
                                                                                                                                     CSharp.decl_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
-                                                                                                                                    : n.ast.kind == "dbg" ?
-                                                                                                                                        CSharp.breakpoint(n.range)(CSharp.done)
-                                                                                                                                        : n.ast.kind == "tc-dbg" ?
-                                                                                                                                            CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                                                                CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
-                                                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                                                    CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
-                                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                                                                                    : n.ast.kind == "decl and init" && n.ast.l.ast.kind == "id" ?
+                                                                                                                                        CSharp.decl_and_init_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value), exports.ast_to_type_checker(n.ast.v)(context))
+                                                                                                                                        : n.ast.kind == "dbg" ?
+                                                                                                                                            CSharp.breakpoint(n.range)(CSharp.done)
+                                                                                                                                            : n.ast.kind == "tc-dbg" ?
+                                                                                                                                                CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                                                                                                                : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                                                    CSharp.mk_empty_render_grid(exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
+                                                                                                                                                    : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                                                        CSharp.mk_render_grid_pixel(exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
+                                                                                                                                                        : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 }; };

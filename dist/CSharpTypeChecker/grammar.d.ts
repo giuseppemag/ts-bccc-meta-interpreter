@@ -150,6 +150,15 @@ export interface DeclAST {
         range: SourceRange;
     };
 }
+export interface DeclAndInitAST {
+    kind: "decl and init";
+    l: ParserRes;
+    r: {
+        value: string;
+        range: SourceRange;
+    };
+    v: ParserRes;
+}
 export interface AssignAST {
     kind: "=";
     l: ParserRes;
@@ -253,7 +262,7 @@ export interface MethodCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -273,4 +282,5 @@ export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
     branch_priority: number;
 };
 export declare let program_prs: () => Parser;
+export declare let global_calling_context: CallingContext;
 export declare let ast_to_type_checker: (_: ParserRes) => (_: CallingContext) => CSharp.Stmt;

@@ -12,7 +12,7 @@ import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
 import * as DebuggerStream from "./csharp_debugger_stream"
-import { mk_parser_state } from "./CSharpTypeChecker/grammar";
+import { mk_parser_state, global_calling_context } from "./CSharpTypeChecker/grammar";
 import { CallingContext } from "./main";
 
 export module ImpLanguageWithSuspend {
@@ -185,7 +185,7 @@ class B {
 }
 
 A.s_x = 100;
-int z = A.s_x;
+var z = A.s_x;
 B b = new B();
 b.a.scale(2);
 A.incr();
@@ -200,7 +200,7 @@ A.incr();
 
     //console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
-    let p = ast_to_type_checker(res.value.value.fst)({ kind:"global scope" })
+    let p = ast_to_type_checker(res.value.value.fst)(global_calling_context)
 
     let output = ""
     let log = function(s:string,x:any) {

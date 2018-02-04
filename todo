@@ -1,37 +1,27 @@
 [ ] C#
-  [ ] Classes
-    [ ] Generics
-    [ ] Polymorphism
-      [ ] Inheritance
-      [ ] Covariance/contravariance in function calls and variable assignments
-    [ ] Access modifiers
-      [ ] public
-      [ ] private
-      [ ] static
-      [ ] protected
-      [ ] virtual
-      [ ] override
-    [ ] Structs
-    [ ] Tuples
-    [ ] Records (C# 7 tuples)
-    [ ] Static methods
-      [ ] Definition
-      [ ] Call
-    [ ] Extension methods
-  [ ] Functions
-    [ ] Lambda's (requires Func and generics in type-checker)
-    [ ] Closure
-  [ ] Statements
-    [ ] arrays
-      [ ] lookup
-      [ ] assignment
-    [ ] For
-    [ ] ForEach
-    [ ] LINQ
-    [ ] yield return
-    [ ] async/await
-    [ ] C# 7 pattern matching
-    [ ] `var`
+  [ ] Tuples
+  [ ] Records (C# 7 tuples)
+  [ ] Func
+  [ ] Closures
+  [ ] Generics
+  [ ] For
+  [ ] arrays
+  [ ] Inheritance
+    [ ] Extends
+    [ ] Interface
+    [ ] abstract
+    [ ] protected
+    [ ] virtual
+    [ ] override
+  [ ] Covariance/contravariance in function calls and variable assignments
+  [ ] Access modifiers: incompatibility errors do not bubble up correctly
+  [ ] ForEach
+  [ ] C# 7 pattern matching
+  [ ] LINQ
+  [ ] yield return
+  [ ] async/await
+  [ ] Structs
+  [ ] Extension methods
 
 [ ] Issues/quality assurance
   [ ] comments
@@ -50,30 +40,6 @@
 [ ] Highlighting
   [ ] Use both start and end
   [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value
-
-[ ] Type checker
-  [ ] Var
-  [ ] For
-  [ ] Generics
-  [ ] Tuples
-  [ ] Records (C# 7 tuples)
-  [ ] Func
-  [ ] Inheritance
-    [ ] Extends
-    [ ] Interface
-    [ ] abstract
-    [ ] protected
-    [ ] virtual
-    [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
-  [ ] Access modifiers: incompatibility errors do not bubble up correctly
-  [ ] ForEach
-  [ ] C# 7 pattern matching
-  [ ] LINQ
-  [ ] yield return
-  [ ] async/await
-  [ ] Structs
-  [ ] `var`
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`

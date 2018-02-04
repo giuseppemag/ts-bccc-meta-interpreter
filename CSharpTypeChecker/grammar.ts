@@ -164,6 +164,7 @@ export interface IdAST { kind: "id", value: string }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
 export interface DeclAST { kind: "decl", l:ParserRes, r:{value:string, range:SourceRange} }
+export interface DeclAndInitAST { kind: "decl and init", l:ParserRes, r:{value:string, range:SourceRange}, v:ParserRes }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
@@ -187,7 +188,7 @@ export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Arr
 export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
 
 export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
-                | AssignAST | DeclAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
+                | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
@@ -204,6 +205,7 @@ let mk_noop = () : ParserRes => ({ range:mk_range(-1,-1,-1,-1), ast:{ kind: "noo
 
 let mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
 let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
+let mk_decl_and_init = (l:ParserRes,r:string,v:ParserRes, r_range:SourceRange) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:{value:r, range:r_range}, v:v })
 let mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
 let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
@@ -671,18 +673,18 @@ let semicolon = ignore_whitespace(semicolon_sign)
 let comma = ignore_whitespace(comma_sign)
 let with_semicolon = <A>(p:Coroutine<ParserState, ParserError, A>) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
-let assign_left : (l:ParserRes) => Parser = (l) =>
+let assign_right = () : Parser =>
   no_match.then(_ =>
   equal_sign.then(_ =>
   partial_match.then(_ =>
   expr().then(r =>
   full_match.then(_ =>
-  co_unit(mk_assign(l,r))
+  co_unit(r)
   )))))
 
 let assign : () => Parser = () =>
   parser_or<ParserRes>(field_ref(),identifier).then(l =>
-  assign_left(l)
+  assign_right().then(r => co_unit(mk_assign(l,r)))
   )
 
 let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
@@ -690,9 +692,9 @@ let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   identifier.then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
-  assign_left(mk_identifier(r.id, l.range)).then(a =>
+  assign_right().then(v =>
   full_match.then(_ =>
-  co_unit(mk_semicolon({ range: l.range, ast:mk_decl(l, r.id, r.range) }, a))))))))
+  co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(l.range, v.range), ast:mk_decl_and_init(l, r.id, v, r.range) })))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
@@ -918,7 +920,10 @@ let string_to_csharp_type : (_:string) => CSharp.Type = s =>
   : s == "void" ? CSharp.unit_type
   : s == "RenderGrid" ? CSharp.render_grid_type
   : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+  : s == "var" ? CSharp.var_type
   : CSharp.ref_type(s)
+
+export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
@@ -992,6 +997,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
     )
   : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
     CSharp.decl_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
+  : n.ast.kind == "decl and init" && n.ast.l.ast.kind == "id" ?
+    CSharp.decl_and_init_v(n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value), ast_to_type_checker(n.ast.v)(context))
   : n.ast.kind == "dbg" ?
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?

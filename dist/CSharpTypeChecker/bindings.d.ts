@@ -22,6 +22,8 @@ export declare type Type = {
 } | {
     kind: "bool";
 } | {
+    kind: "var";
+} | {
     kind: "int";
 } | {
     kind: "float";
@@ -50,6 +52,7 @@ export declare let render_grid_type: Type;
 export declare let render_grid_pixel_type: Type;
 export declare let unit_type: Type;
 export declare let int_type: Type;
+export declare let var_type: Type;
 export declare let string_type: Type;
 export declare let bool_type: Type;
 export declare let float_type: Type;
@@ -77,6 +80,7 @@ export interface Stmt extends Coroutine<State, Err, Typing> {
 }
 export declare let get_v: (v: string) => Stmt;
 export declare let decl_v: (v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
+export declare let decl_and_init_v: (v: string, t: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_const: (c: string, t: Type, e: Stmt) => Stmt;
 export declare let set_v: (v: string, e: Stmt) => Stmt;
 export declare let bool: (b: boolean) => Stmt;

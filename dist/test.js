@@ -79,7 +79,7 @@ var ImpLanguageWithSuspend;
         return output;
     };
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass A {\n  static public int s_x;\n  static public void incr() {\n    A.s_x = A.s_x + 1;\n  }\n\n  private int x;\n\n  public A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  public void scale(int k) {\n    this.x = this.get_x() * k;\n  }\n\n  public int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  public A a;\n\n  public B() {\n    this.a = new A(10);\n  }\n}\n\nA.s_x = 100;\nint z = A.s_x;\nB b = new B();\nb.a.scale(2);\nA.incr();\n";
+        var source = "\nclass A {\n  static public int s_x;\n  static public void incr() {\n    A.s_x = A.s_x + 1;\n  }\n\n  private int x;\n\n  public A(int x) {\n    this.x = x;\n    while (x > 0) {\n      x = x - 1;\n    }\n  }\n\n  public void scale(int k) {\n    this.x = this.get_x() * k;\n  }\n\n  public int get_x() {\n    return this.x;\n  }\n}\n\nclass B {\n  public A a;\n\n  public B() {\n    this.a = new A(10);\n  }\n}\n\nA.s_x = 100;\nvar z = A.s_x;\nB b = new B();\nb.a.scale(2);\nA.incr();\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -90,7 +90,7 @@ var ImpLanguageWithSuspend;
             return "Parse error: " + JSON.stringify(res.value);
         //console.log(JSON.stringify(res.value.value.fst)) // ast
         var hrstart = process.hrtime();
-        var p = csharp_1.ast_to_type_checker(res.value.value.fst)({ kind: "global scope" });
+        var p = csharp_1.ast_to_type_checker(res.value.value.fst)(grammar_1.global_calling_context);
         var output = "";
         var log = function (s, x) {
             output = output + s + JSON.stringify(x) + "\n\n";

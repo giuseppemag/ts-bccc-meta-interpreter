@@ -13,13 +13,14 @@ export type Name = string
 export type Err = string
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
-export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
+export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
                  | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
+export let var_type : Type = { kind:"var" }
 export let string_type : Type = { kind:"string" }
 export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
@@ -75,6 +76,16 @@ export let decl_v = function(v:Name, t:Type, is_constant?:boolean) : Stmt {
   let g = curry(f)
   let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args))
+}
+export let decl_and_init_v = function(v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
+  return e.then(e_val => {
+    let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
+    let g = curry(f)
+    let actual_t = t.kind == "var" ? e_val.type : t
+    let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...actual_t, is_constant:is_constant != undefined ? is_constant : false})), {})
+    return type_equals(e_val.type, actual_t) ? mk_coroutine<State,Err,Typing>(apply(g, args))
+           : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}`)
+  })
 }
 export let decl_const = function(c:Name, t:Type, e:Stmt) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)

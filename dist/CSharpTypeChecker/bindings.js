@@ -19,6 +19,7 @@ exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
+exports.var_type = { kind: "var" };
 exports.string_type = { kind: "string" };
 exports.bool_type = { kind: "bool" };
 exports.float_type = { kind: "float" };
@@ -62,6 +63,16 @@ exports.decl_v = function (v, t, is_constant) {
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+};
+exports.decl_and_init_v = function (v, t, e, is_constant) {
+    return e.then(function (e_val) {
+        var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
+        var g = ts_bccc_1.curry(f);
+        var actual_t = t.kind == "var" ? e_val.type : t;
+        var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+        return type_equals(e_val.type, actual_t) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
+            : ts_bccc_2.co_error("Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e_val) + ": type " + JSON.stringify(actual_t) + " does not match " + JSON.stringify(e_val.type));
+    });
 };
 exports.decl_const = function (c, t, e) {
     var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(c, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(wrap_co);
