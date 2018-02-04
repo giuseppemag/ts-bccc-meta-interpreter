@@ -66,6 +66,14 @@ var z = A.s_x;
 B b = new B();
 b.a.scale(2);
 A.incr();
+
+int f(int x) {
+  return x + A.s_x;
+}
+
+Func<int, int> g = f;
+
+z = g(10);
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

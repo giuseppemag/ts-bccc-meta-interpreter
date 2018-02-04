@@ -16,6 +16,7 @@ export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
                  | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
+                 | { kind:"generic type decl", f:Type, args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
 export let unit_type : Type = { kind:"unit" }
@@ -28,6 +29,7 @@ export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, ou
 export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
 export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_name:C_name })
+export let generic_type_decl = (f:Type, args:Array<Type>) : Type => ({ kind:"generic type decl", f:f, args:args })
 export type TypeInformation = Type & { is_constant:boolean }
 export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }

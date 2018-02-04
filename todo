@@ -1,7 +1,7 @@
 [ ] C#
+  [ ] Func
   [ ] Tuples
   [ ] Records (C# 7 tuples)
-  [ ] Func
   [ ] Closures
   [ ] Generics
   [ ] For
@@ -27,6 +27,7 @@
 
 [ ] Issues/quality assurance
   [ ] initial values of the proper type for variables at declaration when no value is specified
+  [ ] a variable can be declared twice: this should not be allowed!
   [ ] new B(new A(10)) does not work
   [ ] comments
   [ ] constructor with wrong name is accepted: `class A { public B() { ... } }`

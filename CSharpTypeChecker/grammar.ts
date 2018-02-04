@@ -187,7 +187,12 @@ export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Arr
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
 
+export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
+let mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
+  ({ range:r, ast:{ kind:"generic type decl", f:f, args:args } })
+
 export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
+                | GenericTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
@@ -347,12 +352,12 @@ let symbol = (token_kind:string, token_name:string) : Coroutine<ParserState,Pars
   }
 }))
 
-let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,Unit> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+let binop_sign: (_:BinOpKind) => Coroutine<ParserState,ParserError,SourceRange> = k => ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.tokens.isEmpty())
     return co_error({ range:mk_range(-1,0,0,0), priority:s.branch_priority, message:`found empty state, expected ${k}` })
   let i = s.tokens.first()
   if (i.kind == k) {
-    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit({}))
+    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(i.range))
   }
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected '${k}'` })
 }))
@@ -687,9 +692,31 @@ let assign : () => Parser = () =>
   assign_right().then(r => co_unit(mk_assign(l,r)))
   )
 
+let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
+  parser_or<Array<ParserRes>>(
+    type_decl().then(a =>
+    parser_or<Array<ParserRes>>(
+      comma.then(_ =>
+       actuals().then(as =>
+      co_unit([a, ...as]))),
+      co_unit([a]))),
+    co_unit(Array<ParserRes>()))
+
+let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
+  identifier.then(i =>
+  parser_or<ParserRes>(
+    lt_op.then(_ =>
+    partial_match.then(_ =>
+    type_args().then(args =>
+    gt_op.then(end_range =>
+    co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
+    )))),
+    co_unit(i)
+  ))
+
 let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   no_match.then(_ =>
-  identifier.then(l =>
+  type_decl().then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
   assign_right().then(v =>
@@ -698,7 +725,7 @@ let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
-  identifier.then(l =>
+  type_decl().then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
   co_unit(mk_decl(l, r.id, r.range))))))
@@ -913,15 +940,19 @@ export let program_prs : () => Parser = () =>
   eof.then(_ => co_unit(s)))
 
 
-let string_to_csharp_type : (_:string) => CSharp.Type = s =>
-  s == "int" ? CSharp.int_type
-  : s == "bool" ? CSharp.bool_type
-  : s == "string" ? CSharp.string_type
-  : s == "void" ? CSharp.unit_type
-  : s == "RenderGrid" ? CSharp.render_grid_type
-  : s == "RenderGridPixel" ? CSharp.render_grid_pixel_type
-  : s == "var" ? CSharp.var_type
-  : CSharp.ref_type(s)
+let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
+  s.ast.kind == "id" ?
+    s.ast.value == "int" ? CSharp.int_type
+    : s.ast.value == "bool" ? CSharp.bool_type
+    : s.ast.value == "string" ? CSharp.string_type
+    : s.ast.value == "void" ? CSharp.unit_type
+    : s.ast.value == "RenderGrid" ? CSharp.render_grid_type
+    : s.ast.value == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+    : s.ast.value == "var" ? CSharp.var_type
+    : CSharp.ref_type(s.ast.value)
+  : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
+    CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
+  : (() => { console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); throw new Error(`Unsupported ast type: ${JSON.stringify(s)}`)})()
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 
@@ -961,23 +992,20 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "method_call" &&
     n.ast.name.ast.kind == "id" ?
     CSharp.call_method(n.range, context, ast_to_type_checker(n.ast.object)(context), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
-  : n.ast.kind == "func_decl" &&
-    n.ast.return_type.ast.kind == "id" ?
+  : n.ast.kind == "func_decl" ?
     CSharp.def_fun(n.range,
       { name:n.ast.name,
-        return_t:string_to_csharp_type(n.ast.return_type.ast.value),
-        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.value, type:string_to_csharp_type((d.l.ast as IdAST).value)})),
+        return_t:ast_to_csharp_type(n.ast.return_type),
+        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.value, type:ast_to_csharp_type(d.l)})),
         body:ast_to_type_checker(n.ast.body)(context),
         range:n.range },
         [])
-  : n.ast.kind == "class"
-    && !n.ast.methods.some(m => !m || m.decl.return_type.ast.kind != "id" || m.decl.arg_decls.some(a => !a || a.l.ast.kind != "id"))
-    && !n.ast.fields.some(f => !f || f.decl.l.ast.kind != "id") ?
+  : n.ast.kind == "class" ?
     CSharp.def_class(n.range, n.ast.C_name,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
-          return_t:string_to_csharp_type((m.decl.return_type.ast as IdAST).value),
-          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          return_t:ast_to_csharp_type(m.decl.return_type),
+          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(m.decl.body)(context),
           range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
           modifiers:m.modifiers.toArray().map(mod => mod.ast.kind)
@@ -985,21 +1013,21 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
           return_t:CSharp.unit_type,
-          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:string_to_csharp_type((a.l.ast as IdAST).value) })),
+          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(c.decl.body)(context),
           range:c.decl.body.range,
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind)
         })) ),
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.value,
-        type:string_to_csharp_type((f.decl.l.ast as IdAST).value),
+        type:ast_to_csharp_type(f.decl.l),
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind)
       }))
     )
-  : n.ast.kind == "decl" && n.ast.l.ast.kind == "id" ?
-    CSharp.decl_v(n.range, n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value))
-  : n.ast.kind == "decl and init" && n.ast.l.ast.kind == "id" ?
-    CSharp.decl_and_init_v(n.range, n.ast.r.value, string_to_csharp_type(n.ast.l.ast.value), ast_to_type_checker(n.ast.v)(context))
+  : n.ast.kind == "decl" ?
+    CSharp.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
+  : n.ast.kind == "decl and init" ?
+    CSharp.decl_and_init_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l), ast_to_type_checker(n.ast.v)(context))
   : n.ast.kind == "dbg" ?
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?

@@ -50,6 +50,10 @@ export declare type Type = {
 } | {
     kind: "tuple";
     args: Array<Type>;
+} | {
+    kind: "generic type decl";
+    f: Type;
+    args: Array<Type>;
 };
 export declare let render_grid_type: Type;
 export declare let render_grid_pixel_type: Type;
@@ -63,6 +67,7 @@ export declare let fun_type: (i: Type, o: Type) => Type;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
 export declare let ref_type: (C_name: string) => Type;
+export declare let generic_type_decl: (f: Type, args: Type[]) => Type;
 export declare type TypeInformation = Type & {
     is_constant: boolean;
 };

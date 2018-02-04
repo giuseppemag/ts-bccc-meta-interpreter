@@ -27,6 +27,7 @@ exports.fun_type = function (i, o) { return ({ kind: "fun", in: i, out: o }); };
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 exports.ref_type = function (C_name) { return ({ kind: "ref", C_name: C_name }); };
+exports.generic_type_decl = function (f, args) { return ({ kind: "generic type decl", f: f, args: args }); };
 var mk_typing = function (t, s, is_constant) { return ({ type: __assign({}, t, { is_constant: is_constant == undefined ? false : is_constant }), sem: s }); };
 var mk_typing_cat = ts_bccc_1.fun2(mk_typing);
 var mk_typing_cat_full = ts_bccc_1.fun2(function (t, s) { return mk_typing(t, s, t.is_constant); });
