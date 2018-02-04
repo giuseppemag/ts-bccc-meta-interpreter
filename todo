@@ -36,6 +36,7 @@
 [ ] Issues/quality assurance
   [ ] comments
   [ ] new B(new A(10)) does not work
+  [ ] constructor with wrong name is accepted: `class A { public B() { ... } }`
   [ ] methods/functions without body
   [ ] initial values of the proper type for variables at declaration when no value is specified
   [ ] errors
@@ -52,7 +53,6 @@
 
 [ ] Type checker
   [ ] Var
-  [ ] static methods
   [ ] For
   [ ] Generics
   [ ] Tuples

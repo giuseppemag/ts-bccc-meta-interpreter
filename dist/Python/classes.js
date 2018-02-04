@@ -77,6 +77,12 @@ exports.call_method_rt = function (M_name, this_addr, args) {
             });
         });
 };
+exports.call_static_method_expr_rt = function (C_name, M_name, args) {
+    return memory_1.get_class_def_rt(C_name).then(function (C_def) {
+        var f = ts_bccc_1.fun(function (m) { return python_1.call_lambda_expr_rt(m, args); }).plus(ts_bccc_1.constant(expressions_1.unit_expr()));
+        return ts_bccc_1.apply(f, exports.resolve_method_rt(M_name, C_def));
+    });
+};
 exports.call_method_expr_rt = function (M_name, this_expr, args) {
     return this_expr.then(function (this_addr) { return exports.call_method_rt(M_name, this_addr.value, args); });
 };

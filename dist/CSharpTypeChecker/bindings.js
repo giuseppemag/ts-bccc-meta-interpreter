@@ -428,8 +428,8 @@ exports.def_fun = function (def, closure_parameters) {
     });
 };
 exports.def_method = function (C_name, def) {
-    var parameters_with_this = [{ name: "this", type: exports.ref_type(C_name) }];
-    def.parameters = def.parameters.concat(parameters_with_this);
+    def.parameters = def.modifiers.some(function (m) { return m == "static"; }) ? def.parameters
+        : def.parameters.concat(Array({ name: "this", type: exports.ref_type(C_name) }));
     var parameters = def.parameters;
     var return_t = def.return_t;
     var body = def.body;
@@ -635,7 +635,6 @@ exports.call_cons = function (context, C_name, arg_values) {
         if (C_def.kind != "obj")
             return ts_bccc_2.co_error("Error: type  " + C_name + " is not a class");
         if (!C_def.methods.has(C_name)) {
-            console.log(JSON.stringify(C_def));
             return ts_bccc_2.co_error("Error: class " + C_name + " does not have constructors");
         }
         var lambda_t = C_def.methods.get(C_name);
@@ -668,8 +667,9 @@ exports.call_cons = function (context, C_name, arg_values) {
 exports.call_method = function (context, this_ref, M_name, arg_values) {
     return this_ref.then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
-            if (this_ref_t.type.kind != "ref")
-                return ts_bccc_2.co_error("Error: this must be a reference");
+            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+                return ts_bccc_2.co_error("Error: expected reference or class name when calling method " + M_name + ".");
+            }
             var C_name = this_ref_t.type.C_name;
             if (!bindings.bindings.has(C_name))
                 return ts_bccc_2.co_error("Error: class " + C_name + " is undefined");
@@ -692,15 +692,21 @@ exports.call_method = function (context, this_ref, M_name, arg_values) {
                 else if (context.C_name != C_name)
                     return ts_bccc_2.co_error("Error: cannot call non-public method " + C_name + "::" + JSON.stringify(M_name) + " from " + context.C_name);
             }
+            if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
+                return ts_bccc_2.co_error("Error: cannot call static method " + JSON.stringify(M_name) + " from reference.");
+            }
             return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
                 check_arguments.then(function (args_t) {
                     return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-                        arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
+                        arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
                         args_t.some(function (arg_t, i) { return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                             !type_equals(arg_t.type, lambda_t.typing.type.in.args[i]); }) ?
                         ts_bccc_2.co_error("Error: parameter type mismatch when calling method " + JSON.stringify(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t))
                         :
-                            ts_bccc_2.co_unit(mk_typing(lambda_t.typing.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                            ts_bccc_2.co_unit(mk_typing(lambda_t.typing.type.out, lambda_t.modifiers.has("static") ?
+                                Sem.call_static_method_expr_rt(C_name, M_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))
+                                :
+                                    Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
                 })
                 : ts_bccc_2.co_error("Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.typing.type));
         });

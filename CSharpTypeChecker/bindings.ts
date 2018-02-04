@@ -455,9 +455,9 @@ export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>)
 
 }
 
-export let def_method = function(C_name:string, def:FunDefinition) : Stmt {
-  let parameters_with_this:Array<Parameter> = [{ name:"this", type:ref_type(C_name)}]
-  def.parameters = def.parameters.concat(parameters_with_this)
+export let def_method = function(C_name:string, def:MethodDefinition) : Stmt {
+  def.parameters = def.modifiers.some(m => m == "static") ? def.parameters
+                   : def.parameters.concat(Array<Parameter>({ name:"this", type:ref_type(C_name)}))
 
   let parameters = def.parameters
   let return_t = def.return_t
@@ -674,7 +674,6 @@ export let call_cons = function(context:CallingContext, C_name:string, arg_value
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
     if (!C_def.methods.has(C_name)) {
-      console.log(JSON.stringify(C_def))
       return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
     }
     let lambda_t = C_def.methods.get(C_name)
@@ -711,38 +710,48 @@ export let call_cons = function(context:CallingContext, C_name:string, arg_value
 export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
   return this_ref.then(this_ref_t =>
     co_get_state<State, Err>().then(bindings => {
-      if (this_ref_t.type.kind != "ref") return co_error<State,Err,Typing>(`Error: this must be a reference`)
+      if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+        return co_error<State,Err,Typing>(`Error: expected reference or class name when calling method ${M_name}.`)
+      }
       let C_name = this_ref_t.type.C_name
-    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
-    let C_def = bindings.bindings.get(C_name)
-    if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
-    if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have method ${M_name}`)
-    let lambda_t = C_def.methods.get(M_name)
+      if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+      let C_def = bindings.bindings.get(C_name)
+      if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
+      if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have method ${M_name}`)
+      let lambda_t = C_def.methods.get(M_name)
 
-    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
-      arg.then(arg_t =>
-      args.then(args_t =>
-      co_unit(args_t.push(arg_t))
-      )),
-      co_unit(Immutable.List<Typing>()))
+      let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
+        arg.then(arg_t =>
+        args.then(args_t =>
+        co_unit(args_t.push(arg_t))
+        )),
+        co_unit(Immutable.List<Typing>()))
 
-    if (!lambda_t.modifiers.has("public")) {
-      if (context.kind == "global scope")
-        return co_error<State,Err,Typing>(`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`)
-      else if (context.C_name != C_name)
-        return co_error<State,Err,Typing>(`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`)
-    }
+      if (!lambda_t.modifiers.has("public")) {
+        if (context.kind == "global scope")
+          return co_error<State,Err,Typing>(`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`)
+        else if (context.C_name != C_name)
+          return co_error<State,Err,Typing>(`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`)
+      }
 
-    return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
-        check_arguments.then(args_t =>
-          lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-          arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
-          args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                                    !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
-            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
-          :
-            co_unit(mk_typing(lambda_t.typing.type.out, Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
-        )
-      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
+      if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
+        return co_error<State,Err,Typing>(`Error: cannot call static method ${JSON.stringify(M_name)} from reference.`)
+      }
+
+      return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
+          check_arguments.then(args_t =>
+            lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+            arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
+            args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                                      !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
+              co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
+            :
+              co_unit(mk_typing(lambda_t.typing.type.out,
+                lambda_t.modifiers.has("static") ?
+                  Sem.call_static_method_expr_rt(C_name, M_name, args_t.toArray().map(arg_t => arg_t.sem))
+                :
+                  Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+          )
+        : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
   }))
 }

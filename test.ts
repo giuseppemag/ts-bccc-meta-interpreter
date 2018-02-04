@@ -154,6 +154,10 @@ export let test_imp = function () {
     let source = `
 class A {
   static public int s_x;
+  static public void incr() {
+    A.s_x = A.s_x + 1;
+  }
+
   private int x;
 
   public A(int x) {
@@ -184,6 +188,7 @@ A.s_x = 100;
 int z = A.s_x;
 B b = new B();
 b.a.scale(2);
+A.incr();
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

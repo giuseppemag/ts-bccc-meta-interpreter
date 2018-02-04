@@ -81,6 +81,13 @@ export let call_method_rt = function(M_name:ValueName, this_addr:Val, args:Array
   })
 }
 
+export let call_static_method_expr_rt = function(C_name:ValueName, M_name:ValueName, args:Array<ExprRt<Sum<Val, Val>>>) : ExprRt<Sum<Val, Val>> {
+  return get_class_def_rt(C_name).then(C_def => {
+    let f = fun((m:StmtRt) => call_lambda_expr_rt(m, args)).plus(constant<Unit, ExprRt<Sum<Val, Val>>>(unit_expr()))
+    return apply(f, resolve_method_rt(M_name, C_def))
+  })
+}
+
 export let call_method_expr_rt = function(M_name:ValueName, this_expr:ExprRt<Sum<Val, Val>>, args:Array<ExprRt<Sum<Val, Val>>>) : ExprRt<Sum<Val, Val>> {
   return this_expr.then(this_addr => call_method_rt(M_name, this_addr.value, args))
 }
