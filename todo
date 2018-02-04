@@ -22,16 +22,17 @@
   [ ] async/await
   [ ] Structs
   [ ] Extension methods
+  [ ] properties
+  [ ] (System.Diagnostics.GC) Garbage collection (and `heap_alloc` fills in the gaps)
 
 [ ] Issues/quality assurance
-  [ ] comments
+  [ ] initial values of the proper type for variables at declaration when no value is specified
   [ ] new B(new A(10)) does not work
+  [ ] comments
   [ ] constructor with wrong name is accepted: `class A { public B() { ... } }`
   [ ] methods/functions without body
-  [ ] initial values of the proper type for variables at declaration when no value is specified
-  [ ] errors
-    [ ] are lambda arguments properly checked at both run-time and compile-time?
-    [ ] type-checker error = { priority:number, message:string, range:SourceRange }
+  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
   [ ] Split into multiple files
     [ ] Bindings.ts becomes a whole directory of files
     [ ] Grammar.ts becomes a whole directory of files
@@ -39,7 +40,7 @@
 
 [ ] Highlighting
   [ ] Use both start and end
-  [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value
+  [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value?
 
 [ ] Performance optimisations
   [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
@@ -47,10 +48,8 @@
   [ ] Invoke statically typed semantics
 [ ] Cleanup/whishlist
   [ ] Move ccc_aux to CCC repo
-  [ ] parser: operator handling is very repetitive
   [ ] `while` with fixpoint
   [ ] `resolve_method` with fixpoint
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
-  [ ] Garbage collection (and `heap_alloc` fills in the gaps)
   [ ] Memory values as sums (of basic types)
   [ ] breakpoint right after return (`ret_break?`)

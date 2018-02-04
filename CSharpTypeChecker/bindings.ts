@@ -10,7 +10,7 @@ import { comm_list_coroutine } from "../ccc_aux";
 // Bindings
 
 export type Name = string
-export type Err = string
+export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
@@ -58,9 +58,9 @@ let type_equals = (t1:Type,t2:Type) : boolean =>
 let wrap_co_res = Co.value<State,Err,Typing>().then(Co.result<State,Err,Typing>())
 let wrap_co = wrap_co_res.then(Co.no_error())
 export interface Stmt extends Coroutine<State, Err, Typing> {}
-export let get_v = function(v:Name) : Stmt {
+export let get_v = function(r:SourceRange, v:Name) : Stmt {
   let f = load.then(
-    constant<Unit,Err>(`Error: variable ${v} does not exist.`).map_plus(
+    constant<Unit,Err>({ range:r, message:`Error: variable ${v} does not exist.` }).map_plus(
     (id<TypeInformation>().times(constant<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>>(Sem.get_v_rt(v)))).then(mk_typing_cat_full)
   ))
   let g = snd<Name,State>().times(f).then(distribute_sum_prod())
@@ -71,45 +71,44 @@ export let get_v = function(v:Name) : Stmt {
   let h = apply(curry(g1), v)
   return mk_coroutine<State,Err,Typing>(h)
 }
-export let decl_v = function(v:Name, t:Type, is_constant?:boolean) : Stmt {
+export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args))
 }
-export let decl_and_init_v = function(v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
+export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
   return e.then(e_val => {
     let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
     let g = curry(f)
     let actual_t = t.kind == "var" ? e_val.type : t
     let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...actual_t, is_constant:is_constant != undefined ? is_constant : false})), {})
     return type_equals(e_val.type, actual_t) ? mk_coroutine<State,Err,Typing>(apply(g, args))
-           : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}`)
+           : co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}` })
   })
 }
-export let decl_const = function(c:Name, t:Type, e:Stmt) : Stmt {
+export let decl_const = function(r:SourceRange, c:Name, t:Type, e:Stmt) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(c).times(constant<Unit,TypeInformation>({...t, is_constant:true})), {})
   return mk_coroutine<State,Err,Typing>(apply(g, args)).then(_ =>
          e.then(e_val =>
-         get_v(c).then(c_val =>
-         // console.log(`Initialising constant ${v} (${JSON.stringify(v_val.type)})`) ||
+         get_v(r, c).then(c_val =>
          type_equals(e_val.type, c_val.type) ?
            co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(c, e_val.sem)))
-         : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(c)} to ${JSON.stringify(e)}: type ${JSON.stringify(c_val.type)} does not match ${JSON.stringify(e_val.type)}`)
+         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(c)} to ${JSON.stringify(e)}: type ${JSON.stringify(c_val.type)} does not match ${JSON.stringify(e_val.type)}` })
          )))
 }
 
-export let set_v = function(v:Name, e:Stmt) : Stmt {
+export let set_v = function(r:SourceRange, v:Name, e:Stmt) : Stmt {
   return e.then(e_val =>
-         get_v(v).then(v_val =>
+         get_v(r, v).then(v_val =>
          // console.log(`Assigning ${v} (${JSON.stringify(v_val.type)})`) ||
          type_equals(e_val.type, v_val.type) && !v_val.type.is_constant ?
            co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
          : v_val.type.is_constant ?
-           co_error<State,Err,Typing>(`Error: cannot assign anything to ${v}: it is a constant.`)
-         : co_error<State,Err,Typing>(`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}`)
+           co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign anything to ${v}: it is a constant.` })
+         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}` })
          ))
 }
 
@@ -125,7 +124,7 @@ export let int = function(i:number) : Stmt {
   return co_unit(mk_typing(int_type, Sem.int_expr(i)))
 }
 
-export let gt = function(a:Stmt, b:Stmt) : Stmt {
+export let gt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -133,12 +132,12 @@ export let gt = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (>)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let lt = function(a:Stmt, b:Stmt) : Stmt {
+export let lt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -146,12 +145,12 @@ export let lt = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (<)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let geq = function(a:Stmt, b:Stmt) : Stmt {
+export let geq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -159,12 +158,12 @@ export let geq = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (>=)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>=)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let leq = function(a:Stmt, b:Stmt) : Stmt {
+export let leq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -172,12 +171,12 @@ export let leq = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (<=)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<=)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let eq = function(a:Stmt, b:Stmt) : Stmt {
+export let eq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -189,12 +188,12 @@ export let eq = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.bool_eq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, string_type) ?
              co_unit(mk_typing(bool_type, Sem.string_eq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (==)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (==)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let neq = function(a:Stmt, b:Stmt) : Stmt {
+export let neq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -206,42 +205,42 @@ export let neq = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.string_neq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (!=)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (!=)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let xor = function(a:Stmt, b:Stmt) : Stmt {
+export let xor = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (^)!")
-          : co_error<State,Err,Typing>("Error: cannot compare expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (^)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
 }
 
-export let mk_empty_render_grid = function(w:Stmt, h:Stmt) : Stmt {
+export let mk_empty_render_grid = function(r:SourceRange, w:Stmt, h:Stmt) : Stmt {
   return w.then(w_t =>
          h.then(h_t =>
           type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) ?
             co_unit(mk_typing(render_grid_type, Sem.mk_empty_render_grid_rt(w_t.sem, h_t.sem)))
-          : co_error<State,Err,Typing>("Error: unsupported types for empty grid creation.")
+          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for empty grid creation." })
          ))
 }
 
-export let mk_render_grid_pixel = function(w:Stmt, h:Stmt, st:Stmt) : Stmt {
+export let mk_render_grid_pixel = function(r:SourceRange, w:Stmt, h:Stmt, st:Stmt) : Stmt {
   return w.then(w_t =>
          h.then(h_t =>
          st.then(st_t =>
           type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) && type_equals(st_t.type, bool_type) ?
             co_unit(mk_typing(render_grid_pixel_type, Sem.mk_render_grid_pixel_rt(w_t.sem, h_t.sem, st_t.sem)))
-          : co_error<State,Err,Typing>("Error: unsupported types for empty grid creation.")
+          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for empty grid creation." })
          )))
 }
 
-export let plus = function(a:Stmt, b:Stmt) : Stmt {
+export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -251,14 +250,14 @@ export let plus = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(int_type, Sem.float_plus_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, string_type) ?
              co_unit(mk_typing(string_type, Sem.string_plus_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (+)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (+)!" })
           : type_equals(a_t.type, render_grid_type) && type_equals(b_t.type, render_grid_pixel_type) ?
             co_unit(mk_typing(render_grid_type, Sem.render_grid_plus_rt(a_t.sem, b_t.sem)))
-          : co_error<State,Err,Typing>("Error: cannot sum expressions of non-compatible types! (" +  a_t.type.kind + "," + b_t.type.kind + ")")
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot sum expressions of non-compatible types! (" +  a_t.type.kind + "," + b_t.type.kind + ")" })
         ))
 }
 
-export let minus = function(a:Stmt, b:Stmt) : Stmt {
+export let minus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -266,12 +265,12 @@ export let minus = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(int_type, Sem.int_minus_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_minus_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (-)!")
-          : co_error<State,Err,Typing>("Error: cannot subtract expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (-)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot subtract expressions of different types!" })
         ))
 }
 
-export let div = function(a:Stmt, b:Stmt) : Stmt {
+export let div = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -279,12 +278,12 @@ export let div = function(a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_div_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (/)!")
-          : co_error<State,Err,Typing>("Error: cannot divide expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (/)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot divide expressions of different types!" })
         ))
 }
 
-export let times = function(a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
+export let times = function(r:SourceRange, a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
@@ -292,94 +291,94 @@ export let times = function(a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
              co_unit(mk_typing(int_type, Sem.int_times_rt(a_t.sem, b_t.sem, sr)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_times_rt(a_t.sem, b_t.sem, sr)))
-            : co_error<State,Err,Typing>(`Error (${sr.to_string()}): unsupported types for operator (*)!`)
-          : co_error<State,Err,Typing>(`Error (${sr.to_string()}): cannot multiply expressions of incompatible types!`)
+            : co_error<State,Err,Typing>({ range:r, message:`Error (${sr.to_string()}): unsupported types for operator (*)!` })
+          : co_error<State,Err,Typing>({ range:r, message:`Error (${sr.to_string()}): cannot multiply expressions of incompatible types!` })
         ))
 }
 
-export let mod = function(a:Stmt, b:Stmt) : Stmt {
+export let mod = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(int_type, Sem.int_mod_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (-)!")
-          : co_error<State,Err,Typing>("Error: cannot mod expressions of different types!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (-)!" })
+          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot mod expressions of different types!" })
         ))
 }
 
-export let minus_unary = function(a:Stmt) : Stmt {
+export let minus_unary = function(r:SourceRange, a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(int_type, Sem.int_minus_unary_rt(a_t.sem)))
             : type_equals(a_t.type, float_type) ?
              co_unit(mk_typing(float_type, Sem.float_minus_unary_rt(a_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported type for unary operator (-)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (-)!" })
         )
 }
 
-export let or = function(a:Stmt, b:Stmt) : Stmt {
+export let or = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_plus_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (||)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (||)!" })
         ))
 }
 
-export let and = function(a:Stmt, b:Stmt) : Stmt {
+export let and = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return a.then(a_t =>
          b.then(b_t =>
           type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_times_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported types for operator (&&)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (&&)!" })
         ))
 }
 
-export let not = function(a:Stmt) : Stmt {
+export let not = function(r:SourceRange, a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, bool_type) ?
              co_unit(mk_typing(bool_type, Sem.bool_not_rt(a_t.sem)))
-            : co_error<State,Err,Typing>("Error: unsupported type for unary operator (!)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (!)!" })
         )
 }
 
-export let length = function(a:Stmt) : Stmt {
+export let length = function(r:SourceRange, a:Stmt) : Stmt {
   return a.then(a_t =>
             type_equals(a_t.type, string_type) ?
              co_unit(mk_typing(int_type, Sem.string_length_rt(a_t.sem)))
             : a_t.type.kind == "arr" ?
              co_unit(mk_typing(int_type, a_t.sem.then(a_val => Sem.get_arr_len_rt(a_val.value))))
-            : co_error<State,Err,Typing>("Error: unsupported type for unary operator (-)!")
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (-)!" })
         )
 }
 
-export let get_index = function(a:Stmt, i:Stmt) : Stmt {
+export let get_index = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
   return a.then(a_t =>
          i.then(i_t =>
           a_t.type.kind == "arr" && type_equals(i_t.type, int_type) ?
             co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-          : co_error<State,Err,Typing>("Error: unsupported types for array lookup!")
+          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for array lookup!" })
         ))
 }
 
-export let set_index = function(a:Stmt, i:Stmt, e:Stmt) : Stmt {
+export let set_index = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return a.then(a_t =>
          i.then(i_t =>
          e.then(e_t =>
           a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
             co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-          : co_error<State,Err,Typing>("Error: unsupported types for writing in an array!")
+          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for writing in an array!" })
         )))
 }
 
 // Debugger statements
 export let breakpoint = function(r:SourceRange) : (_:Stmt) => Stmt {
-  return p => semicolon(co_unit(mk_typing(unit_type, Sem.dbg_rt(r)(apply(inl<Sem.Val,Sem.Val>(), Sem.mk_unit_val)))), p)
+  return p => semicolon(r, co_unit(mk_typing(unit_type, Sem.dbg_rt(r)(apply(inl<Sem.Val,Sem.Val>(), Sem.mk_unit_val)))), p)
 }
 
 export let typechecker_breakpoint = function(range:SourceRange) : (_:Stmt) => Stmt {
-  return p => semicolon(semicolon(set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done_rt)))), p)
+  return p => semicolon(range, semicolon(range, set_highlighting(range), Co.suspend<State,Err>().then(_ => co_unit<State,Err,Typing>(mk_typing(unit_type,Sem.done_rt)))), p)
 }
 
 export let highlight : Fun<Prod<SourceRange, State>, State> = fun(x => ({...x.snd, highlighting:x.fst }))
@@ -398,27 +397,27 @@ export let lub = (t1:TypeInformation, t2:TypeInformation) : Sum<TypeInformation,
          apply(inr<TypeInformation, Unit>(), {})
 }
 
-export let if_then_else = function(c:Stmt, t:Stmt, e:Stmt) : Stmt {
+export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt {
   return c.then(c_t =>
-         c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
+         c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
          t.then(t_t =>
          e.then(e_t => {
 
           let on_type : Fun<TypeInformation, Stmt> = fun(t_i => co_unit(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
-          let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(co_error<State,Err,Typing>("Error: the branches of a conditional should have compatible types!"))
+          let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types!" }))
 
           return apply(on_type.plus(on_error), lub(t_t.type, e_t.type))
          })))
 }
 
-export let while_do = function(c:Stmt, b:Stmt) : Stmt {
+export let while_do = function(r:SourceRange, c:Stmt, b:Stmt) : Stmt {
   return c.then(c_t =>
-         c_t.type.kind != "bool" ? co_error<State,Err,Typing>("Error: condition has the wrong type!") :
+         c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
          b.then(t_t => co_unit(mk_typing(t_t.type,Sem.while_do_rt(c_t.sem, t_t.sem)))
          ))
 }
 
-export let semicolon = function(p:Stmt, q:Stmt) : Stmt {
+export let semicolon = function(r:SourceRange, p:Stmt, q:Stmt) : Stmt {
   return p.then(p_t =>
          q.then(q_t =>
            co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
@@ -439,12 +438,12 @@ export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:st
 export let mk_param = function(name:Name, type:Type) {
   return { name:name, type:type }
 }
-export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<Name>, range:SourceRange) : Stmt {
+export let mk_lambda = function(r:SourceRange, def:LambdaDefinition, closure_parameters:Array<Name>, range:SourceRange) : Stmt {
   let parameters = def.parameters
   let return_t = def.return_t
   let body = def.body
-  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type, false), acc),
-                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(get_v(cp).then(cp_t => decl_v(cp, cp_t.type, true)), acc), done))
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
+                     closure_parameters.reduce<Stmt>((acc, cp) => semicolon(r, get_v(r, cp).then(cp_t => decl_v(r, cp, cp_t.type, true)), acc), done))
   return  Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings.then(_ =>
           body.then(body_t =>
@@ -452,28 +451,28 @@ export let mk_lambda = function(def:LambdaDefinition, closure_parameters:Array<N
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
           :
-            co_error<State,Err,Typing>(`Error: return type does not match declaration`)
+            co_error<State,Err,Typing>({ range:r, message:`Error: return type does not match declaration`})
           )))
 }
 // export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 // export interface State { highlighting:SourceRange, bindings:Bindings }
-export let def_fun = function(def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
+export let def_fun = function(r:SourceRange, def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
   return co_get_state<State, Err>().then(s =>
          co_set_state<State, Err>({...s, bindings:s.bindings.set(def.name, {...fun_type(tuple_type(def.parameters.map(p => p.type)), def.return_t), is_constant:true})}).then(_ =>
-         mk_lambda(def, closure_parameters, def.range).then(l =>
+         mk_lambda(r, def, closure_parameters, def.range).then(l =>
          co_set_state<State, Err>(s).then(_ =>
-         decl_const(def.name, l.type, co_unit(l))))))
+         decl_const(r, def.name, l.type, co_unit(l))))))
 
 }
 
-export let def_method = function(C_name:string, def:MethodDefinition) : Stmt {
+export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinition) : Stmt {
   def.parameters = def.modifiers.some(m => m == "static") ? def.parameters
                    : def.parameters.concat(Array<Parameter>({ name:"this", type:ref_type(C_name)}))
 
   let parameters = def.parameters
   let return_t = def.return_t
   let body = def.body
-  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(decl_v(par.name, par.type, false), acc), done)
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc), done)
   return  Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings.then(_ =>
           body.then(body_t =>
@@ -482,11 +481,11 @@ export let def_method = function(C_name:string, def:MethodDefinition) : Stmt {
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
                               Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range))))
           :
-            co_error<State,Err,Typing>(`Error: return type does not match declaration`)
+            co_error<State,Err,Typing>({ range:r, message:`Error: return type does not match declaration`})
           )))
 }
 
-export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
+export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
   let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
     arg.then(arg_t =>
     args.then(args_t =>
@@ -501,59 +500,59 @@ export let call_lambda = function(lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
         arg_values.length != lambda_t.type.in.args.length ||
         args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                                   !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
-          co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`)
+          co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`})
         :
           co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
       )
-    : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`)
+    : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`})
     )
 }
 
-export let call_by_name = function(f_n:Name, args:Array<Stmt>) : Stmt {
-  return call_lambda(get_v(f_n), args)
+export let call_by_name = function(r:SourceRange, f_n:Name, args:Array<Stmt>) : Stmt {
+  return call_lambda(r, get_v(r, f_n), args)
 }
 
-export let ret = function(p:Stmt) : Stmt {
+export let ret = function(r:SourceRange, p:Stmt) : Stmt {
   return p.then(p_t =>
          co_unit(mk_typing(p_t.type, Sem.return_rt(p_t.sem))
          ))
 }
 
-export let new_array = function(type:Type, len:Stmt) {
+export let new_array = function(r:SourceRange, type:Type, len:Stmt) {
   return len.then(len_t =>
          type_equals(len_t.type, int_type) ?
            co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
-         : co_error<State,Err,Typing>(`Error: argument of array constructor must be of type int`))
+         : co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`}))
 }
 
-export let get_arr_len = function(a:Stmt) {
+export let get_arr_len = function(r:SourceRange, a:Stmt) {
   return a.then(a_t =>
          a_t.type.kind == "arr"  ?
            co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
-         : co_error<State,Err,Typing>(`Error: array length requires an array`)
+         : co_error<State,Err,Typing>({ range:r, message:`Error: array length requires an array`})
         )
 }
 
-export let get_arr_el = function(a:Stmt, i:Stmt) {
+export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) {
   return a.then(a_t =>
          i.then(i_t =>
          a_t.type.kind == "arr" && type_equals(i_t.type, int_type)  ?
            co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-         : co_error<State,Err,Typing>(`Error: array getter requires an array and an integer as arguments`)
+         : co_error<State,Err,Typing>({ range:r, message:`Error: array getter requires an array and an integer as arguments`})
         ))
 }
 
-export let set_arr_el = function(a:Stmt, i:Stmt, e:Stmt) {
+export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) {
   return a.then(a_t =>
          i.then(i_t =>
          e.then(e_t =>
          a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
            co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-         : co_error<State,Err,Typing>(`Error: array setter requires an array and an integer as arguments`)
+         : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
         )))
 }
 
-export let def_class = function(C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>) : Stmt {
+export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>) : Stmt {
   let context:CallingContext = { kind:"class", C_name:C_name }
   let methods = methods_from_context.map(m => m(context))
   let fields = fields_from_context.map(f => f(context))
@@ -586,7 +585,7 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
 
   return co_get_state<State, Err>().then(initial_bindings =>
           co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type_placeholder, is_constant:true}) }).then(_ =>
-          comm_list_coroutine(Immutable.List<Stmt>(methods.map(m => def_method(C_name, m)))).then(methods_t => {
+          comm_list_coroutine(Immutable.List<Stmt>(methods.map(m => def_method(m.range, C_name, m)))).then(methods_t => {
           let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<MethodDefinition>(methods)).toArray()
           let C_type:Type = {
             kind: "obj",
@@ -620,24 +619,24 @@ export let def_class = function(C_name:string, methods_from_context:Array<(_:Cal
           )))
 }
 
-export let field_get = function(context:CallingContext, this_ref:Stmt, F_name:string) : Stmt {
+export let field_get = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:string) : Stmt {
   return this_ref.then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-             return co_error<State,Err,Typing>(`Error: expected reference or class name when setting field ${F_name}.`)
+             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name}.`})
            }
            let C_name = this_ref_t.type.C_name
-           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is undefined`)
+           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} is undefined`})
            let C_def = bindings.bindings.get(this_ref_t.type.C_name)
-           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} is not a clas`)
-           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${this_ref_t.type.C_name} is not a class`})
+           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} does not contain field ${F_name}`})
            let F_def = C_def.fields.get(F_name)
 
            if (!F_def.modifiers.has("public")) {
             if (context.kind == "global scope")
-              return co_error<State,Err,Typing>(`Error: cannot get non-public field ${JSON.stringify(F_name)} from global scope`)
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${JSON.stringify(F_name)} from global scope`})
             else if (context.C_name != C_name)
-              return co_error<State,Err,Typing>(`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`)
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`})
            }
 
            return co_unit(mk_typing(F_def.type,
@@ -648,28 +647,28 @@ export let field_get = function(context:CallingContext, this_ref:Stmt, F_name:st
          ))
 }
 
-export let field_set = function(context:CallingContext, this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
+export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
   return this_ref.then(this_ref_t =>
          new_value.then(new_value_t =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-             return co_error<State,Err,Typing>(`Error: expected reference or class name when setting field ${F_name}.`)
+             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name}.`})
            }
            let C_name:string = this_ref_t.type.C_name
-           if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+           if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
-           if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type ${C_name} is not a class`)
-           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not contain field ${F_name}`)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type ${C_name} is not a class`})
+           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name}`})
            let F_def = C_def.fields.get(F_name)
 
            if (!F_def.modifiers.has("public")) {
             if (context.kind == "global scope")
-              return co_error<State,Err,Typing>(`Error: cannot set non-public field ${JSON.stringify(F_name)} from global scope`)
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${JSON.stringify(F_name)} from global scope`})
             else if (context.C_name != C_name)
-              return co_error<State,Err,Typing>(`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`)
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`})
            }
 
-           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>(`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`)
+           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
            return co_unit(mk_typing(unit_type,
                     F_def.modifiers.has("static") ?
                         Sem.static_field_set_expr_rt(C_name, F_name, new_value_t.sem)
@@ -679,13 +678,13 @@ export let field_set = function(context:CallingContext, this_ref:Stmt, F_name:st
 }
 
 
-export let call_cons = function(context:CallingContext, C_name:string, arg_values:Array<Stmt>) : Stmt {
+export let call_cons = function(r:SourceRange, context:CallingContext, C_name:string, arg_values:Array<Stmt>) : Stmt {
   return co_get_state<State, Err>().then(bindings => {
-    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
     let C_def = bindings.bindings.get(C_name)
-    if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
+    if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class`})
     if (!C_def.methods.has(C_name)) {
-      return co_error<State,Err,Typing>(`Error: class ${C_name} does not have constructors`)
+      return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have constructors`})
     }
     let lambda_t = C_def.methods.get(C_name)
 
@@ -698,9 +697,9 @@ export let call_cons = function(context:CallingContext, C_name:string, arg_value
 
     if (!lambda_t.modifiers.has("public")) {
       if (context.kind == "global scope")
-        return co_error<State,Err,Typing>(`Error: cannot call non-public constructor ${C_name} from global scope`)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from global scope`})
       else if (context.C_name != C_name)
-        return co_error<State,Err,Typing>(`Error: cannot call non-public constructor ${C_name} from ${context.C_name}`)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from ${context.C_name}`})
     }
 
     return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
@@ -709,26 +708,26 @@ export let call_cons = function(context:CallingContext, C_name:string, arg_value
           arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
           args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                                     !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
-            co_error<State,Err,Typing>(`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
+            co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem))))
         )
-      : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
+      : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
   })
 }
 
 
-export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
+export let call_method = function(r:SourceRange, context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
   return this_ref.then(this_ref_t =>
     co_get_state<State, Err>().then(bindings => {
       if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-        return co_error<State,Err,Typing>(`Error: expected reference or class name when calling method ${M_name}.`)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when calling method ${M_name}.`})
       }
       let C_name = this_ref_t.type.C_name
-      if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} is undefined`)
+      if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
       let C_def = bindings.bindings.get(C_name)
-      if (C_def.kind != "obj") return co_error<State,Err,Typing>(`Error: type  ${C_name} is not a class`)
-      if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>(`Error: class ${C_name} does not have method ${M_name}`)
+      if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class`})
+      if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have method ${M_name}`})
       let lambda_t = C_def.methods.get(M_name)
 
       let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
@@ -740,13 +739,13 @@ export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:
 
       if (!lambda_t.modifiers.has("public")) {
         if (context.kind == "global scope")
-          return co_error<State,Err,Typing>(`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`)
+          return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`})
         else if (context.C_name != C_name)
-          return co_error<State,Err,Typing>(`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`)
+          return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`})
       }
 
       if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
-        return co_error<State,Err,Typing>(`Error: cannot call static method ${JSON.stringify(M_name)} from reference.`)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call static method ${JSON.stringify(M_name)} from reference.`})
       }
 
       return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
@@ -755,7 +754,7 @@ export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:
             arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
             args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                                       !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
-              co_error<State,Err,Typing>(`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`)
+              co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
             :
               co_unit(mk_typing(lambda_t.typing.type.out,
                 lambda_t.modifiers.has("static") ?
@@ -763,6 +762,6 @@ export let call_method = function(context:CallingContext, this_ref:Stmt, M_name:
                 :
                   Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
           )
-        : co_error<State,Err,Typing>(`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`)
+        : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
   }))
 }

@@ -1,3 +1,4 @@
+import { SourceRange } from "./source_range";
 import * as Py from "./Python/python";
 import * as CSharp from "./CSharpTypeChecker/csharp";
 import { ParserRes } from "./CSharpTypeChecker/csharp";
@@ -18,6 +19,7 @@ export declare type DebuggerStream = ({
     } | {
         kind: "message";
         message: string;
+        range: SourceRange;
     };
 };
 export declare let get_stream: (source: string) => DebuggerStream;

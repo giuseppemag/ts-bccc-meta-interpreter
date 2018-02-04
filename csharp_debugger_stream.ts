@@ -5,7 +5,7 @@ import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { mk_range, zero_range } from "./source_range";
+import { mk_range, zero_range, SourceRange } from "./source_range";
 
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
@@ -18,21 +18,22 @@ export type DebuggerStream =
   { kind:"step", next:() => DebuggerStream }) &
   { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                { kind:"bindings", state:CSharp.State, ast:ParserRes } |
-               { kind:"message", message:string } }
+               { kind:"message", message:string, range:SourceRange } }
 import { mk_parser_state, global_calling_context } from "./CSharpTypeChecker/grammar";
 
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
   if (parse_result.kind == "left") {
     let error = parse_result.value
-    return { kind:"error", show:() => ({ kind:"message", message:error }) }
+    return { kind:"error", show:() => ({ kind:"message", message:error, range:mk_range(0,0,0,0) }) }
   }
 
   let tokens = Immutable.List<CSharp.Token>(parse_result.value)
   let res = co_run_to_end(CSharp.program_prs(), mk_parser_state(tokens))
   if (res.kind != "right") {
-    let error = `Parser error (${res.value.range.to_string()}): ${res.value.message}`
-    return { kind:"error", show:() => ({ kind:"message", message:error }) }
+    let msg = res.value.message
+    let range = res.value.range
+    return { kind:"error", show:() => ({ kind:"message", message:msg, range:range }) }
   }
 
   let ast = res.value.fst
@@ -46,7 +47,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value
-        return { kind:"error", show:() => ({ kind:"message", message:error }) }
+        return { kind:"error", show:() => ({ kind:"message", message:error, range:mk_range(0,0,0,0) }) }
       }
       if (k.value.kind == "left") {
         return runtime_stream(k.value.value)
@@ -65,7 +66,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       let k = apply(p.run, s)
       if (k.kind == "left") {
         let error = k.value
-        return { kind:"error", show:() => ({ kind:"message", message:error }) }
+        return { kind:"error", show:() => ({ kind:"message", message:error.message, range:error.range }) }
       }
       if (k.value.kind == "left") {
         return typechecker_stream(k.value.value)

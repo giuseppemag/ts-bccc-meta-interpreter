@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
+var source_range_1 = require("./source_range");
 var Py = require("./Python/python");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
@@ -11,13 +12,14 @@ exports.get_stream = function (source) {
     var parse_result = CSharp.GrammarBasics.tokenize(source);
     if (parse_result.kind == "left") {
         var error_1 = parse_result.value;
-        return { kind: "error", show: function () { return ({ kind: "message", message: error_1 }); } };
+        return { kind: "error", show: function () { return ({ kind: "message", message: error_1, range: source_range_1.mk_range(0, 0, 0, 0) }); } };
     }
     var tokens = Immutable.List(parse_result.value);
     var res = ccc_aux_1.co_run_to_end(CSharp.program_prs(), grammar_1.mk_parser_state(tokens));
     if (res.kind != "right") {
-        var error_2 = "Parser error (" + res.value.range.to_string() + "): " + res.value.message;
-        return { kind: "error", show: function () { return ({ kind: "message", message: error_2 }); } };
+        var msg_1 = res.value.message;
+        var range_1 = res.value.range;
+        return { kind: "error", show: function () { return ({ kind: "message", message: msg_1, range: range_1 }); } };
     }
     var ast = res.value.fst;
     var p = csharp_1.ast_to_type_checker(ast)(grammar_1.global_calling_context);
@@ -28,8 +30,8 @@ exports.get_stream = function (source) {
             var s = state.snd;
             var k = ts_bccc_1.apply(p.run, s);
             if (k.kind == "left") {
-                var error_3 = k.value;
-                return { kind: "error", show: function () { return ({ kind: "message", message: error_3 }); } };
+                var error_2 = k.value;
+                return { kind: "error", show: function () { return ({ kind: "message", message: error_2, range: source_range_1.mk_range(0, 0, 0, 0) }); } };
             }
             if (k.value.kind == "left") {
                 return runtime_stream(k.value.value);
@@ -46,8 +48,8 @@ exports.get_stream = function (source) {
             var s = state.snd;
             var k = ts_bccc_1.apply(p.run, s);
             if (k.kind == "left") {
-                var error_4 = k.value;
-                return { kind: "error", show: function () { return ({ kind: "message", message: error_4 }); } };
+                var error_3 = k.value;
+                return { kind: "error", show: function () { return ({ kind: "message", message: error_3.message, range: error_3.range }); } };
             }
             if (k.value.kind == "left") {
                 return typechecker_stream(k.value.value);
