@@ -22,7 +22,7 @@ exports.get_stream = function (source) {
         return { kind: "error", show: function () { return ({ kind: "message", message: msg_1, range: range_1 }); } };
     }
     var ast = res.value.fst;
-    var p = csharp_1.ast_to_type_checker(ast)(grammar_1.global_calling_context);
+    var p = csharp_1.ast_to_type_checker(ast)(grammar_1.global_calling_context)(CSharp.no_constraints);
     var runtime_stream = function (state) { return ({
         kind: "step",
         next: function () {

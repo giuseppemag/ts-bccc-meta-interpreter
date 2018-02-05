@@ -37,7 +37,7 @@ export let get_stream = (source:string) : DebuggerStream => {
   }
 
   let ast = res.value.fst
-  let p = ast_to_type_checker(ast)(global_calling_context)
+  let p = ast_to_type_checker(ast)(global_calling_context)(CSharp.no_constraints)
 
   let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
     kind:"step",
@@ -58,7 +58,7 @@ export let get_stream = (source:string) : DebuggerStream => {
     show:() => ({ kind:"memory", memory:state.snd, ast:ast })
   })
 
-  let typechecker_stream = (state:Prod<CSharp.Stmt,CSharp.State>) : DebuggerStream => ({
+  let typechecker_stream = (state:Prod<Coroutine<CSharp.State,CSharp.Err,CSharp.Typing>,CSharp.State>) : DebuggerStream => ({
     kind:"step",
     next:() => {
       let p = state.fst
@@ -77,7 +77,7 @@ export let get_stream = (source:string) : DebuggerStream => {
     show:() => ({ kind:"bindings", state:state.snd, ast:ast })
   })
 
-  let initial_compiler_state = apply(constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
+  let initial_compiler_state = apply(constant<Unit,Coroutine<CSharp.State,CSharp.Err,CSharp.Typing>>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
   return typechecker_stream(initial_compiler_state)
 }
 

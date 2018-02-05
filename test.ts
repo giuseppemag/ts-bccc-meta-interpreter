@@ -92,7 +92,7 @@ z = g(10);
       output = output + s + JSON.stringify(x) + "\n\n"
     }
 
-    let compiler_res = apply((constant<Unit,CSharp.Stmt>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
+    let compiler_res = apply((constant<Unit,Coroutine<CSharp.State, CSharp.Err, CSharp.Typing>>(p(CSharp.no_constraints)).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
     if (compiler_res.kind == "left") {
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]

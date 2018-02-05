@@ -34,7 +34,7 @@ var ImpLanguageWithSuspend;
         var log = function (s, x) {
             output = output + s + JSON.stringify(x) + "\n\n";
         };
-        var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
+        var compiler_res = ts_bccc_1.apply((ts_bccc_1.constant(p(CSharp.no_constraints)).times(ts_bccc_1.constant(CSharp.empty_state))).then(run_to_end()), {});
         if (compiler_res.kind == "left") {
             var hrdiff = process.hrtime(hrstart);
             var time_in_ns = hrdiff[0] * 1e9 + hrdiff[1];

@@ -38,6 +38,7 @@
     [ ] Bindings.ts becomes a whole directory of files
     [ ] Grammar.ts becomes a whole directory of files
   [ ] Syntax highlighting
+  [ ] double check tokens: disallowed variable names, underscores, number separators
 
 [ ] Highlighting
   [ ] Use both start and end

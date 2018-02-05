@@ -1,5 +1,5 @@
 import * as Immutable from "immutable";
-import { Unit, Fun, Prod, Sum } from "ts-bccc";
+import { Unit, Fun, Prod, Sum, Option } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
@@ -84,8 +84,9 @@ export interface Typing {
 export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
 export declare let store: Fun<Prod<Prod<string, TypeInformation>, State>, State>;
-export interface Stmt extends Coroutine<State, Err, Typing> {
-}
+export declare type TypeConstraints = Option<Type>;
+export declare let no_constraints: TypeConstraints;
+export declare type Stmt = (constraints: TypeConstraints) => Coroutine<State, Err, Typing>;
 export declare let get_v: (r: SourceRange, v: string) => Stmt;
 export declare let decl_v: (r: SourceRange, v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_and_init_v: (r: SourceRange, v: string, t: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
@@ -160,10 +161,10 @@ export declare let def_method: (r: SourceRange, C_name: string, def: MethodDefin
 export declare let call_lambda: (r: SourceRange, lambda: Stmt, arg_values: Stmt[]) => Stmt;
 export declare let call_by_name: (r: SourceRange, f_n: string, args: Stmt[]) => Stmt;
 export declare let ret: (r: SourceRange, p: Stmt) => Stmt;
-export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Coroutine<State, Err, Typing>;
-export declare let get_arr_len: (r: SourceRange, a: Stmt) => Coroutine<State, Err, Typing>;
-export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Coroutine<State, Err, Typing>;
-export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Coroutine<State, Err, Typing>;
+export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
+export declare let get_arr_len: (r: SourceRange, a: Stmt) => Stmt;
+export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
+export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
 export declare let def_class: (r: SourceRange, C_name: string, methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[]) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: string) => Stmt;
 export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: string, new_value: Stmt) => Stmt;
