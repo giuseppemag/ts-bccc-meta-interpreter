@@ -29,51 +29,10 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class A {
-  static public int s_x;
-  static public void incr() {
-    A.s_x = A.s_x + 1;
-  }
+Func<int, Func<int,int>> f = x => (y => x + y);
 
-  private int x;
-
-  public A(int x) {
-    this.x = x;
-    while (x > 0) {
-      x = x - 1;
-    }
-  }
-
-  public void scale(int k) {
-    this.x = this.get_x() * k;
-  }
-
-  public int get_x() {
-    return this.x;
-  }
-}
-
-class B {
-  public A a;
-
-  public B() {
-    this.a = new A(10);
-  }
-}
-
-A.s_x = 100;
-var z = A.s_x;
-B b = new B();
-b.a.scale(2);
-A.incr();
-
-int f(int x) {
-  return x + A.s_x;
-}
-
-Func<int, int> g = f;
-
-z = g(10);
+var g = f(10);
+var z = g(2);
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

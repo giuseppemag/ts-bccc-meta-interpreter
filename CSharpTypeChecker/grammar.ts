@@ -5,9 +5,9 @@ import { SourceRange, join_source_ranges, mk_range, zero_range, max_source_range
 import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end, co_lookup } from "../ccc_aux"
 import * as CSharp from "./csharp"
-import { CallingContext } from "./bindings";
+import { CallingContext, var_type } from "./bindings";
 
-export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||" | "xor"
+export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"
 export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
@@ -91,6 +91,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^>=/, (s,r) => ({range:r, kind:"<="})),
     parse_prefix_regex(/^</, (s,r) => ({range:r, kind:"<"})),
     parse_prefix_regex(/^>/, (s,r) => ({range:r, kind:">"})),
+    parse_prefix_regex(/^=>/, (s,r) => ({range:r, kind:"=>"})),
     parse_prefix_regex(/^==/, (s,r) => ({range:r, kind:"=="})),
     parse_prefix_regex(/^!=/, (s,r) => ({range:r, kind:"!="})),
     parse_prefix_regex(/^&&/, (s,r) => ({range:r, kind:"&&"})),
@@ -133,7 +134,7 @@ export module GrammarBasics {
 
 
 
-let proprity_operators_table =
+let priority_operators_table =
   Immutable.Map<string, number>()
   .set(".", 11)
   .set("*", 10)
@@ -151,6 +152,7 @@ let proprity_operators_table =
   .set("xor", 4)
   .set("&&", 4)
   .set("||", 4)
+  .set("=>", 4)
 
 export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
 
@@ -221,6 +223,7 @@ let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source
 
 
 let mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
+let mk_arrow = mk_bin_op("=>")
 let mk_plus = mk_bin_op("+")
 let mk_minus = mk_bin_op("-")
 let mk_times = mk_bin_op("*")
@@ -504,6 +507,8 @@ let and_op = binop_sign("&&")
 let or_op = binop_sign("||")
 let xor_op = binop_sign("xor")
 
+let arrow_op = binop_sign("=>")
+
 let not_op = unaryop_sign("not")
 
 let eof: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
@@ -624,7 +629,7 @@ let expr_after_op = (symbols:Immutable.Stack<ParserRes>,
                                                                                                                         ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}> =>
     {
       if(ops.count() >= 1 &&
-         symbols.count() >= 2 && proprity_operators_table.get(ops.peek().fst) >= proprity_operators_table.get(current_op)){
+         symbols.count() >= 2 && priority_operators_table.get(ops.peek().fst) >= priority_operators_table.get(current_op)){
         let res = reduce_table_2(symbols, ops, false)
         return expr_after_op(res.symbols, res.ops, current_op, compose_current)
       }
@@ -637,6 +642,7 @@ type SymTable = {symbols:Immutable.Stack<ParserRes>,
 let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<ParserState, ParserError, SymTable> =>
   term().then(l =>
+    parser_or<SymTable>(arrow_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "=>", (l,r)=> mk_arrow(l,r))),
     parser_or<SymTable>(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))),
     parser_or<SymTable>(minus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "-", (l,r)=> mk_minus(l,r))),
     parser_or<SymTable>(times_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "*", (l,r)=> mk_times(l,r))),
@@ -652,7 +658,7 @@ let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
     parser_or<SymTable>(or_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "||", (l,r)=> mk_or(l,r))),
     parser_or<SymTable>(xor_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "xor", (l,r)=> mk_xor(l,r))),
     co_unit({...table, symbols:table.symbols.push(l)})
-    )))))))))))))))
+    ))))))))))))))))
 
 let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range =>
@@ -697,7 +703,7 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
     type_decl().then(a =>
     parser_or<Array<ParserRes>>(
       comma.then(_ =>
-       actuals().then(as =>
+        type_args().then(as =>
       co_unit([a, ...as]))),
       co_unit([a]))),
     co_unit(Array<ParserRes>()))
@@ -979,6 +985,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "not" ? CSharp.not(n.range, ast_to_type_checker(n.ast.e)(context))
   : n.ast.kind == "&&" ? CSharp.and(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "||" ? CSharp.or(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [ { name:n.ast.l.ast.value, type:var_type } ], ast_to_type_checker(n.ast.r)(context))
+
   : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)

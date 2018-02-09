@@ -82,7 +82,7 @@ export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean
   return _ => mk_coroutine<State,Err,Typing>(apply(g, args))
 }
 export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
-  return _ => e(no_constraints).then(e_val => {
+  return _ => e(apply(inl(), t)).then(e_val => {
     let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
     let g = curry(f)
     let actual_t = t.kind == "var" ? e_val.type : t
@@ -337,6 +337,21 @@ export let and = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(bool_type, Sem.bool_times_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (&&)!" })
         ))
+}
+
+export let arrow = function(r:SourceRange, parameters:Array<Parameter>, body:Stmt) : Stmt {
+  return constraints => {
+    if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: wrong context when defining anonymous function (=>)!" })
+    let expected_type = constraints.value
+    if (expected_type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: expected ${expected_type.kind}, found function.` })
+    let input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in]
+    let output = expected_type.out
+    let parameter_declarations = parameters.map((p,p_i) => ({...p, type:input[p_i]})).map(p => decl_v(r, p.name, p.type, true)).reduce((p,q) => semicolon(r, p, q), done)
+    return parameter_declarations(no_constraints).then(decls =>
+        body(apply(inl<Type,Unit>(), output)).then(b_t =>
+        co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(p => p.name), [], r)))
+      ))
+    }
 }
 
 export let not = function(r:SourceRange, a:Stmt) : Stmt {

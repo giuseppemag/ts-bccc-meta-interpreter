@@ -3,7 +3,7 @@ import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as CSharp from "./csharp";
 import { CallingContext } from "./bindings";
-export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor";
+export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>";
 export declare type UnaryOpKind = "not";
 export declare type Token = ({
     kind: "string";

@@ -67,7 +67,7 @@ exports.decl_v = function (r, v, t, is_constant) {
     return function (_) { return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)); };
 };
 exports.decl_and_init_v = function (r, v, t, e, is_constant) {
-    return function (_) { return e(exports.no_constraints).then(function (e_val) {
+    return function (_) { return e(ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
         var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
         var g = ts_bccc_1.curry(f);
         var actual_t = t.kind == "var" ? e_val.type : t;
@@ -321,6 +321,23 @@ exports.and = function (r, a, b) {
                 : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (&&)!" });
         });
     }); };
+};
+exports.arrow = function (r, parameters, body) {
+    return function (constraints) {
+        if (constraints.kind == "right")
+            return ts_bccc_2.co_error({ range: r, message: "Error: wrong context when defining anonymous function (=>)!" });
+        var expected_type = constraints.value;
+        if (expected_type.kind != "fun")
+            return ts_bccc_2.co_error({ range: r, message: "Error: expected " + expected_type.kind + ", found function." });
+        var input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in];
+        var output = expected_type.out;
+        var parameter_declarations = parameters.map(function (p, p_i) { return (__assign({}, p, { type: input[p_i] })); }).map(function (p) { return exports.decl_v(r, p.name, p.type, true); }).reduce(function (p, q) { return exports.semicolon(r, p, q); }, exports.done);
+        return parameter_declarations(exports.no_constraints).then(function (decls) {
+            return body(ts_bccc_1.apply(ts_bccc_1.inl(), output)).then(function (b_t) {
+                return ts_bccc_2.co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(function (p) { return p.name; }), [], r)));
+            });
+        });
+    };
 };
 exports.not = function (r, a) {
     return function (_) { return a(exports.no_constraints).then(function (a_t) {

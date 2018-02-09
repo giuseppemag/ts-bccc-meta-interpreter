@@ -1,11 +1,16 @@
 [ ] C#
   [g] Func
+    [ ] Currying
+    [ ] HOF's (pass constraints from parameter typechecking)
+  [g] Closures
   [g] Tuples
+    [ ] As func argument
   [g] Records (C# 7 tuples)
   [g] Generics
   [g] Access modifiers: incompatibility errors do not bubble up correctly
   [g] Structs
-  [m] Closures
+  [m] Right-associativity of => (x => y => x + y)
+  [m] Parsing of curried application (f(5)(10))
   [m] For
   [m] arrays
   [m] Inheritance
@@ -34,6 +39,7 @@
     [ ] Laser (with color)
 
 [ ] Issues/quality assurance
+  [m] function parameters should have a range
   [m] initial values of the proper type for variables at declaration when no value is specified
   [m] a variable can be declared twice: this should not be allowed!
   [m] new B(new A(10)) does not work

@@ -24,11 +24,6 @@
     "typescript": "^2.6.1"
   },
   "dependencies": {
-    "gulp": "^3.9.1",
-    "gulp-autoprefixer": "^4.1.0",
-    "gulp-clean-css": "^3.9.2",
-    "gulp-merge-media-queries": "^0.2.1",
-    "gulp-rename": "^1.2.2",
     "immutable": "^3.8.2",
     "ts-bccc": "^1.0.10"
   }

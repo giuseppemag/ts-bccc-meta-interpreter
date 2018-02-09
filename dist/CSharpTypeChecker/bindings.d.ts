@@ -112,6 +112,7 @@ export declare let mod: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus_unary: (r: SourceRange, a: Stmt) => Stmt;
 export declare let or: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let and: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
+export declare let arrow: (r: SourceRange, parameters: Parameter[], body: Stmt) => Stmt;
 export declare let not: (r: SourceRange, a: Stmt) => Stmt;
 export declare let length: (r: SourceRange, a: Stmt) => Stmt;
 export declare let get_index: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
