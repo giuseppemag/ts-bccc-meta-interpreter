@@ -1,53 +1,61 @@
 [ ] C#
-  [ ] Func
-  [ ] Tuples
-  [ ] Records (C# 7 tuples)
-  [ ] Closures
-  [ ] Generics
-  [ ] For
-  [ ] arrays
-  [ ] Inheritance
+  [g] Func
+  [g] Tuples
+  [g] Records (C# 7 tuples)
+  [g] Generics
+  [g] Access modifiers: incompatibility errors do not bubble up correctly
+  [g] Structs
+  [m] Closures
+  [m] For
+  [m] arrays
+  [m] Inheritance
     [ ] Extends
     [ ] Interface
     [ ] abstract
     [ ] protected
     [ ] virtual
     [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
-  [ ] Access modifiers: incompatibility errors do not bubble up correctly
-  [ ] ForEach
-  [ ] C# 7 pattern matching
-  [ ] LINQ
-  [ ] yield return
-  [ ] async/await
-  [ ] Structs
-  [ ] Extension methods
-  [ ] properties
+    [ ] Covariance/contravariance in function calls and variable assignments
+  [m] properties
+  [m] yield return
+  [m] ForEach
+  [m] LINQ
+  [m] C# 7 pattern matching
+  [m] async/await
+  [m] Extension methods
   [ ] (System.Diagnostics.GC) Garbage collection (and `heap_alloc` fills in the gaps)
+  [m] Renderers
+    [ ] Surface
+    [ ] Circle (with color)
+    [ ] Square (with color)
+    [ ] Spline (with color)
+    [ ] Spaceship (with color)
+    [ ] Asteroid (with color)
+    [ ] Laser (with color)
 
 [ ] Issues/quality assurance
-  [ ] initial values of the proper type for variables at declaration when no value is specified
-  [ ] a variable can be declared twice: this should not be allowed!
-  [ ] new B(new A(10)) does not work
-  [ ] comments
-  [ ] constructor with wrong name is accepted: `class A { public B() { ... } }`
-  [ ] methods/functions without body
-  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [ ] Split into multiple files
+  [m] initial values of the proper type for variables at declaration when no value is specified
+  [m] a variable can be declared twice: this should not be allowed!
+  [m] new B(new A(10)) does not work
+  [m] constructor with wrong name is accepted: `class A { public B() { ... } }`
+  [m] methods/functions without body
+  [m] comments
+  [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [g] Split into multiple files
     [ ] Bindings.ts becomes a whole directory of files
     [ ] Grammar.ts becomes a whole directory of files
-  [ ] Syntax highlighting
-  [ ] double check tokens: disallowed variable names, underscores, number separators
+  [m] Syntax highlighting
+  [m] double check tokens: disallowed variable names, underscores, number separators
 
-[ ] Highlighting
+[m] Highlighting
   [ ] Use both start and end
   [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value?
 
 [ ] Performance optimisations
-  [ ] Use mutable state, then clone it to the immutable memory upon `dbg`
-  [ ] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
-  [ ] Invoke statically typed semantics
+  [g] Use mutable state, then clone it to the immutable memory upon `dbg`
+  [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
+  [g] Invoke statically typed semantics
 [ ] Cleanup/whishlist
   [ ] Move ccc_aux to CCC repo
   [ ] `while` with fixpoint
