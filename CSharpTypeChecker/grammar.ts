@@ -213,9 +213,9 @@ let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast
 let mk_decl_and_init = (l:ParserRes,r:string,v:ParserRes, r_range:SourceRange) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:{value:r, range:r_range}, v:v })
 let mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
-let mk_while = (c:ParserRes,b:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, b.range), ast:{ kind: "while", c:c, b:b }})
-let mk_if_then = (c:ParserRes,t:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
-let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes) : ParserRes => ({ range:join_source_ranges(c.range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
+let mk_while = (c:ParserRes,b:ParserRes, while_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(while_keyword_range, b.range), ast:{ kind: "while", c:c, b:b }})
+let mk_if_then = (c:ParserRes,t:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
+let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, e.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
 let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
 
@@ -763,7 +763,7 @@ let return_statement : () => Parser = () =>
 
 let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
-  if_keyword.then(_ =>
+  if_keyword.then(if_keyword =>
   partial_match.then(_ =>
   expr().then(c =>
   stmt().then(t =>
@@ -771,26 +771,26 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
     else_keyword.then(_ =>
     stmt().then(e =>
     full_match.then(_ =>
-    co_unit(mk_if_then_else(c, t, e))))),
-    co_unit(mk_if_then(c, t))))))))
+    co_unit(mk_if_then_else(c, t, e, if_keyword))))),
+    co_unit(mk_if_then(c, t, if_keyword))))))))
 
 let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
-  while_keyword.then(_ =>
+  while_keyword.then(while_keyword_range =>
   partial_match.then(_ =>
   expr().then(c =>
   stmt().then(b =>
   full_match.then(_ =>
-  co_unit(mk_while(c, b))))))))
+  co_unit(mk_while(c, b, while_keyword_range))))))))
 
 let bracketized_statement = () =>
   no_match.then(_ =>
-  left_curly_bracket.then(_ =>
+  left_curly_bracket.then(l_b_r =>
   partial_match.then(_ =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(s =>
-  right_curly_bracket.then(_ =>
+  right_curly_bracket.then(r_b_r =>
   full_match.then(_ =>
-  co_unit(s)))))))
+  co_unit({...s, range:join_source_ranges(l_b_r, r_b_r)})))))))
 
 let constructor_declaration = () =>
   no_match.then(_ =>
