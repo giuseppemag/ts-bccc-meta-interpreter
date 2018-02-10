@@ -5,7 +5,8 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
-import { comm_list_coroutine } from "../ccc_aux";
+import { comm_list_coroutine, co_stateless } from "../ccc_aux";
+import { ValueName } from "../main";
 
 // Bindings
 
@@ -339,7 +340,7 @@ export let and = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
         ))
 }
 
-export let arrow = function(r:SourceRange, parameters:Array<Parameter>, body:Stmt) : Stmt {
+export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:Array<ValueName>, body:Stmt) : Stmt {
   return constraints => {
     if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: wrong context when defining anonymous function (=>)!" })
     let expected_type = constraints.value
@@ -347,10 +348,10 @@ export let arrow = function(r:SourceRange, parameters:Array<Parameter>, body:Stm
     let input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in]
     let output = expected_type.out
     let parameter_declarations = parameters.map((p,p_i) => ({...p, type:input[p_i]})).map(p => decl_v(r, p.name, p.type, true)).reduce((p,q) => semicolon(r, p, q), done)
-    return parameter_declarations(no_constraints).then(decls =>
+    return co_stateless<State,Err,Typing>(parameter_declarations(no_constraints).then(decls =>
         body(apply(inl<Type,Unit>(), output)).then(b_t =>
-        co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(p => p.name), [], r)))
-      ))
+        co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(p => p.name), closure, r)))
+      )))
     }
 }
 
@@ -418,9 +419,9 @@ export let lub = (t1:TypeInformation, t2:TypeInformation) : Sum<TypeInformation,
 
 export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt {
   return _ => c(no_constraints).then(c_t =>
-         c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
-         t(no_constraints).then(t_t =>
-         e(no_constraints).then(e_t => {
+          c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
+          co_stateless<State,Err,Typing>(t(no_constraints)).then(t_t =>
+          co_stateless<State,Err,Typing>(e(no_constraints)).then(e_t => {
 
           let on_type : Fun<TypeInformation, Stmt> = fun(t_i => (_:TypeConstraints) => co_unit<State,Err,Typing>(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
           let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(_ => co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types!" }))
@@ -432,10 +433,10 @@ export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt
 }
 
 export let while_do = function(r:SourceRange, c:Stmt, b:Stmt) : Stmt {
-  return _ => c(no_constraints).then(c_t =>
+  return _ => co_stateless<State,Err,Typing>(c(no_constraints).then(c_t =>
          c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
          b(no_constraints).then(t_t => co_unit(mk_typing(t_t.type,Sem.while_do_rt(c_t.sem, t_t.sem)))
-         ))
+         )))
 }
 
 export let semicolon = function(r:SourceRange, p:Stmt, q:Stmt) : Stmt {
@@ -508,26 +509,30 @@ export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinit
 }
 
 export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
-  let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
-    arg(no_constraints).then(arg_t =>
-    args.then(args_t =>
-    co_unit(args_t.push(arg_t))
-    )),
-    co_unit(Immutable.List<Typing>()))
+  return _ => lambda(no_constraints).then(lambda_t => {
+    if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
+    return co_error<State,Err,Typing>({ range:r, message:`Error: invalid lambda type ${JSON.stringify(lambda_t.type)}`})
 
-  return _ => lambda(no_constraints).then(lambda_t =>
-    lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
-      check_arguments.then(args_t =>
-        lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
-        arg_values.length != lambda_t.type.in.args.length ||
-        args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                                  !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
-          co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`})
-        :
-          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
-      )
-    : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.type)}`})
+    let expected_args = lambda_t.type.in.args
+
+    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+      arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
+      args.then(args_t =>
+      co_unit(args_t.push(arg_t))
+      )),
+      co_unit(Immutable.List<Typing>()))
+
+
+    return check_arguments.then(args_t =>
+      lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+      arg_values.length != lambda_t.type.in.args.length ||
+      args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+      !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
+      co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`})
+      :
+      co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
     )
+  })
 }
 
 export let call_by_name = function(r:SourceRange, f_n:Name, args:Array<Stmt>) : Stmt {
@@ -710,8 +715,13 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
     }
     let lambda_t = C_def.methods.get(C_name)
 
-    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
-      arg(no_constraints).then(arg_t =>
+    if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
+      return co_error<State,Err,Typing>({ range:r, message:`Error: invalid constructor type ${JSON.stringify(lambda_t.typing.type)}`})
+
+    let expected_args = lambda_t.typing.type.in.args
+
+    let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+      arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
       args.then(args_t =>
       co_unit(args_t.push(arg_t))
       )),
@@ -752,8 +762,13 @@ export let call_method = function(r:SourceRange, context:CallingContext, this_re
       if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have method ${M_name}`})
       let lambda_t = C_def.methods.get(M_name)
 
-      let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg) =>
-        arg(no_constraints).then(arg_t =>
+      if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
+        return co_error<State,Err,Typing>({ range:r, message:`Error: invalid method type ${JSON.stringify(lambda_t.typing.type)}`})
+
+      let expected_args = lambda_t.typing.type.in.args
+
+      let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+        arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
         args.then(args_t =>
         co_unit(args_t.push(arg_t))
         )),

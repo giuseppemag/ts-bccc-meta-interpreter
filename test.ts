@@ -16,10 +16,10 @@ import { mk_parser_state, global_calling_context } from "./CSharpTypeChecker/gra
 import { CallingContext } from "./main";
 
 export module ImpLanguageWithSuspend {
-  let run_to_end = <S,E,A>() : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
+  let run_to_end = <S,E,A>(log:(s:string,x:any) => void) : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> => {
       let f : CCC.Fun<Prod<Coroutine<S,E,A>, S>, CCC.Sum<E,CCC.Prod<A,S>>> =
-          CCC.fun(p => run_to_end<S,E,A>().f(p))
-      return (co_run<S,E,A>().map_times(fun<S,S>(s => console.log("Intermediate step:", JSON.stringify(s)) ||
+          CCC.fun(p => run_to_end<S,E,A>(log).f(p))
+      return (co_run<S,E,A>().map_times(fun<S,S>(s => log("Intermediate step:", JSON.stringify(s)) ||
                 s))).then(CCC.apply_pair<S, Co.CoPreRes<S,E,A>>()).then(
                 CCC.inl<E,CCC.Prod<A,S>>().plus(
                   f.plus(CCC.inr<E,CCC.Prod<A,S>>())))
@@ -33,6 +33,13 @@ Func<int, Func<int,int>> f = x => (y => x + y);
 
 var g = f(10);
 var z = g(2);
+var w = g(3);
+
+int hof(Func<int,int> h) {
+  return h(2);
+}
+
+var p = hof(g);
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -51,17 +58,19 @@ var z = g(2);
       output = output + s + JSON.stringify(x) + "\n\n"
     }
 
-    let compiler_res = apply((constant<Unit,Coroutine<CSharp.State, CSharp.Err, CSharp.Typing>>(p(CSharp.no_constraints)).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end()), {})
+    // log("\n\nStarting typechecking\n\n", {})
+    let compiler_res = apply((constant<Unit,Coroutine<CSharp.State, CSharp.Err, CSharp.Typing>>(p(CSharp.no_constraints)).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end(log)), {})
     if (compiler_res.kind == "left") {
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
       log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
     } else {
-      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt))).then(run_to_end()), {})
+      log(`Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
+      // log("\n\nStarting runtime\n\n", "")
+      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt))).then(run_to_end(log)), {})
       let hrdiff = process.hrtime(hrstart)
       let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      log(`Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
       log(`Runtime result: `, JSON.stringify(runtime_res))
       log(`Timer: ${time_in_ns / 1000000}ms\n `, "")
     }

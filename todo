@@ -1,17 +1,22 @@
 [ ] C#
-  [g] Func
-    [ ] Currying
-    [ ] HOF's (pass constraints from parameter typechecking)
-  [g] Closures
   [g] Tuples
     [ ] As func argument
   [g] Records (C# 7 tuples)
-  [g] Generics
+  [g] `For` loops
   [g] Access modifiers: incompatibility errors do not bubble up correctly
+  [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [g] Generics
   [g] Structs
+  [g] Split into multiple files
+    [ ] Bindings.ts becomes a whole directory of files
+    [ ] Grammar.ts becomes a whole directory of files
+  [g] `Python` semantics should be properly called `C#` semantics
+
+  [m] Complete cases of `free_variables` (see grammar.ts)
   [m] Right-associativity of => (x => y => x + y)
   [m] Parsing of curried application (f(5)(10))
-  [m] For
+  [m] Closures in regular functions
   [m] arrays
   [m] Inheritance
     [ ] Extends
@@ -22,8 +27,19 @@
     [ ] override
     [ ] Covariance/contravariance in function calls and variable assignments
   [m] properties
+  [m] function parameters should have a range
+  [m] initial values of the proper type for variables at declaration when no value is specified
+  [m] a variable with the same name can be declared twice: this should not be allowed!
+  [m] new B(new A(10)) does not work
+  [m] constructor with wrong name is accepted: `class A { public B() { ... } }`
+  [m] methods/functions without body
+  [m] comments
+  [m] Syntax highlighting
+  [m] add multiple highlightings for function calls
+  [m] double check tokens: disallowed variable names, underscores, number separators
   [m] yield return
   [m] ForEach
+
   [m] LINQ
   [m] C# 7 pattern matching
   [m] async/await
@@ -37,26 +53,7 @@
     [ ] Spaceship (with color)
     [ ] Asteroid (with color)
     [ ] Laser (with color)
-
-[ ] Issues/quality assurance
-  [m] function parameters should have a range
-  [m] initial values of the proper type for variables at declaration when no value is specified
-  [m] a variable can be declared twice: this should not be allowed!
-  [m] new B(new A(10)) does not work
-  [m] constructor with wrong name is accepted: `class A { public B() { ... } }`
-  [m] methods/functions without body
-  [m] comments
-  [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [g] Split into multiple files
-    [ ] Bindings.ts becomes a whole directory of files
-    [ ] Grammar.ts becomes a whole directory of files
-  [m] Syntax highlighting
-  [m] double check tokens: disallowed variable names, underscores, number separators
-
-[m] Highlighting
-  [ ] Use both start and end
-  [ ] Add highlighting to current stack frame/a stack of highlighting values, not a single global value?
+  [ ] Old-style tuples (System.Tuple<T1, T2, ...>)
 
 [ ] Performance optimisations
   [g] Use mutable state, then clone it to the immutable memory upon `dbg`
@@ -69,3 +66,4 @@
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
   [ ] Memory values as sums (of basic types)
   [ ] breakpoint right after return (`ret_break?`)
+

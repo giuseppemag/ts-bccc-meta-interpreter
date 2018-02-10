@@ -12,3 +12,4 @@ export declare let co_lookup: <S, E, A>(p: Coroutine<S, E, A>) => Coroutine<S, E
 export declare let co_not: <S, E, A>(e: E) => (p: Coroutine<S, E, A>) => Coroutine<S, E, Unit>;
 export declare let co_catch: <S, E, A>(merge_errors: (e1: E, e2: E) => E) => (p: Coroutine<S, E, A>) => (on_err: Coroutine<S, E, A>) => Coroutine<S, E, A>;
 export declare let co_map_error: <S, E, E1, A>(f: (_: E) => E1) => (p: Coroutine<S, E, A>) => Coroutine<S, E1, A>;
+export declare let co_stateless: <S, E, A>(p: Coroutine<S, E, A>) => Coroutine<S, E, A>;

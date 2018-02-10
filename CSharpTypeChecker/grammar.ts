@@ -6,6 +6,7 @@ import * as Lexer from "../lexer";
 import { some, none, option_plus, comm_list_coroutine, co_catch, co_repeat, co_run_to_end, co_lookup } from "../ccc_aux"
 import * as CSharp from "./csharp"
 import { CallingContext, var_type } from "./bindings";
+import { ValueName } from "../main";
 
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"
 export type UnaryOpKind = "not"
@@ -962,6 +963,16 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 
+let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.Set<ValueName> =>
+  n.ast.kind == ";" || n.ast.kind == "+" || n.ast.kind == "-" || n.ast.kind == "/" || n.ast.kind == "*"
+  || n.ast.kind == "%" || n.ast.kind == "<" || n.ast.kind == ">" || n.ast.kind == "<=" || n.ast.kind == ">="
+  || n.ast.kind == "==" || n.ast.kind == "!=" || n.ast.kind == "xor" || n.ast.kind == "&&" || n.ast.kind == "||" ?
+    free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
+  : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
+  : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
+  : n.ast.kind == "id" && !bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value])
+  : Immutable.Set<ValueName>()
+
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
   : n.ast.kind == "string" ? CSharp.str(n.ast.value)
@@ -985,7 +996,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "not" ? CSharp.not(n.range, ast_to_type_checker(n.ast.e)(context))
   : n.ast.kind == "&&" ? CSharp.and(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "||" ? CSharp.or(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [ { name:n.ast.l.ast.value, type:var_type } ], ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [ { name:n.ast.l.ast.value, type:var_type } ], free_variables(n.ast.r, Immutable.Set<ValueName>([n.ast.l.ast.value])).toArray(), ast_to_type_checker(n.ast.r)(context))
 
   : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))

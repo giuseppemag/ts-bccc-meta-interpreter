@@ -322,7 +322,7 @@ exports.and = function (r, a, b) {
         });
     }); };
 };
-exports.arrow = function (r, parameters, body) {
+exports.arrow = function (r, parameters, closure, body) {
     return function (constraints) {
         if (constraints.kind == "right")
             return ts_bccc_2.co_error({ range: r, message: "Error: wrong context when defining anonymous function (=>)!" });
@@ -332,11 +332,11 @@ exports.arrow = function (r, parameters, body) {
         var input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in];
         var output = expected_type.out;
         var parameter_declarations = parameters.map(function (p, p_i) { return (__assign({}, p, { type: input[p_i] })); }).map(function (p) { return exports.decl_v(r, p.name, p.type, true); }).reduce(function (p, q) { return exports.semicolon(r, p, q); }, exports.done);
-        return parameter_declarations(exports.no_constraints).then(function (decls) {
+        return ccc_aux_1.co_stateless(parameter_declarations(exports.no_constraints).then(function (decls) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), output)).then(function (b_t) {
-                return ts_bccc_2.co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(function (p) { return p.name; }), [], r)));
+                return ts_bccc_2.co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(function (p) { return p.name; }), closure, r)));
             });
-        });
+        }));
     };
 };
 exports.not = function (r, a) {
@@ -397,8 +397,8 @@ exports.lub = function (t1, t2) {
 exports.if_then_else = function (r, c, t, e) {
     return function (_) { return c(exports.no_constraints).then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error({ range: r, message: "Error: condition has the wrong type!" }) :
-            t(exports.no_constraints).then(function (t_t) {
-                return e(exports.no_constraints).then(function (e_t) {
+            ccc_aux_1.co_stateless(t(exports.no_constraints)).then(function (t_t) {
+                return ccc_aux_1.co_stateless(e(exports.no_constraints)).then(function (e_t) {
                     var on_type = ts_bccc_1.fun(function (t_i) { return function (_) { return ts_bccc_2.co_unit(mk_typing(t_i, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))); }; });
                     var on_error = ts_bccc_1.constant(function (_) { return ts_bccc_2.co_error({ range: r, message: "Error: the branches of a conditional should have compatible types!" }); });
                     var res = ts_bccc_1.apply(on_type.plus(on_error), exports.lub(t_t.type, e_t.type));
@@ -408,10 +408,10 @@ exports.if_then_else = function (r, c, t, e) {
     }); };
 };
 exports.while_do = function (r, c, b) {
-    return function (_) { return c(exports.no_constraints).then(function (c_t) {
+    return function (_) { return ccc_aux_1.co_stateless(c(exports.no_constraints).then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error({ range: r, message: "Error: condition has the wrong type!" }) :
             b(exports.no_constraints).then(function (t_t) { return ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem))); });
-    }); };
+    })); };
 };
 exports.semicolon = function (r, p, q) {
     return function (_) { return p(exports.no_constraints).then(function (p_t) {
@@ -480,25 +480,26 @@ exports.def_method = function (r, C_name, def) {
     }); };
 };
 exports.call_lambda = function (r, lambda, arg_values) {
-    var check_arguments = arg_values.reduce(function (args, arg) {
-        return arg(exports.no_constraints).then(function (arg_t) {
-            return args.then(function (args_t) {
-                return ts_bccc_2.co_unit(args_t.push(arg_t));
-            });
-        });
-    }, ts_bccc_2.co_unit(Immutable.List()));
     return function (_) { return lambda(exports.no_constraints).then(function (lambda_t) {
-        return lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" ?
-            check_arguments.then(function (args_t) {
-                return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
-                    arg_values.length != lambda_t.type.in.args.length ||
-                    args_t.some(function (arg_t, i) { return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                        !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
-                    ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) })
-                    :
-                        ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
-            })
-            : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.type) });
+        if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
+            return ts_bccc_2.co_error({ range: r, message: "Error: invalid lambda type " + JSON.stringify(lambda_t.type) });
+        var expected_args = lambda_t.type.in.args;
+        var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
+            return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
+                return args.then(function (args_t) {
+                    return ts_bccc_2.co_unit(args_t.push(arg_t));
+                });
+            });
+        }, ts_bccc_2.co_unit(Immutable.List()));
+        return check_arguments.then(function (args_t) {
+            return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
+                arg_values.length != lambda_t.type.in.args.length ||
+                args_t.some(function (arg_t, i) { return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                    !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
+                ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) })
+                :
+                    ts_bccc_2.co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+        });
     }); };
 };
 exports.call_by_name = function (r, f_n, args) {
@@ -670,8 +671,11 @@ exports.call_cons = function (r, context, C_name, arg_values) {
             return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not have constructors" });
         }
         var lambda_t = C_def.methods.get(C_name);
-        var check_arguments = arg_values.reduce(function (args, arg) {
-            return arg(exports.no_constraints).then(function (arg_t) {
+        if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
+            return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + JSON.stringify(lambda_t.typing.type) });
+        var expected_args = lambda_t.typing.type.in.args;
+        var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
+            return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
                 return args.then(function (args_t) {
                     return ts_bccc_2.co_unit(args_t.push(arg_t));
                 });
@@ -711,8 +715,11 @@ exports.call_method = function (r, context, this_ref, M_name, arg_values) {
             if (!C_def.methods.has(M_name))
                 return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not have method " + M_name });
             var lambda_t = C_def.methods.get(M_name);
-            var check_arguments = arg_values.reduce(function (args, arg) {
-                return arg(exports.no_constraints).then(function (arg_t) {
+            if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
+                return ts_bccc_2.co_error({ range: r, message: "Error: invalid method type " + JSON.stringify(lambda_t.typing.type) });
+            var expected_args = lambda_t.typing.type.in.args;
+            var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
+                return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
                     return args.then(function (args_t) {
                         return ts_bccc_2.co_unit(args_t.push(arg_t));
                     });

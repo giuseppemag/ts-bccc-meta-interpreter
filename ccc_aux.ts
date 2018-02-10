@@ -104,3 +104,10 @@ export let co_map_error = <S, E, E1, A>(f:(_:E) => E1) => (p:Coroutine<S,E,A>) :
     let h:CoPreRes<S,E1,A> = apply(inr<E1,CoRes<S,E1,A>>().after(inr<CoCont<S,E1,A>,CoRet<S,E1,A>>()), actual_res)
     return h
   }))
+
+export let co_stateless = <S, E, A>(p:Coroutine<S,E,A>) : Coroutine<S, E, A> => {
+  return  co_get_state<S,E>().then(s =>
+          p.then(p_res =>
+          co_set_state<S,E>(s).then(_ =>
+          co_unit(p_res))))
+}

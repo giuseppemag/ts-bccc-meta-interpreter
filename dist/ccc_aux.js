@@ -100,3 +100,12 @@ exports.co_map_error = function (f) { return function (p) {
         return h;
     }));
 }; };
+exports.co_stateless = function (p) {
+    return ts_bccc_1.co_get_state().then(function (s) {
+        return p.then(function (p_res) {
+            return ts_bccc_1.co_set_state(s).then(function (_) {
+                return ts_bccc_2.co_unit(p_res);
+            });
+        });
+    });
+};
