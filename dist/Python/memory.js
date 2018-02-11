@@ -23,6 +23,7 @@ exports.mk_string_val = function (v) { return ({ v: v, k: "s" }); };
 exports.mk_int_val = function (v) { return ({ v: Math.floor(v), k: "i" }); };
 exports.mk_float_val = function (v) { return ({ v: v, k: "f" }); };
 exports.mk_arr_val = function (v) { return ({ v: v, k: "arr" }); };
+exports.mk_tuple_val = function (v) { return ({ v: v, k: "tuple" }); };
 exports.mk_bool_val = function (v) { return ({ v: v, k: "b" }); };
 exports.mk_lambda_val = function (l) { return ({ v: l, k: "lambda" }); };
 exports.mk_obj_val = function (o) { return ({ v: o, k: "obj" }); };

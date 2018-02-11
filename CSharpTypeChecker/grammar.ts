@@ -8,7 +8,7 @@ import * as CSharp from "./csharp"
 import { CallingContext, var_type } from "./bindings";
 import { ValueName } from "../main";
 
-export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"
+export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","
 export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
@@ -107,7 +107,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^\]/, (s,r) => ({range:r, kind:"]"})),
     parse_prefix_regex(/^{/, (s,r) => ({range:r, kind:"{"})),
     parse_prefix_regex(/^}/, (s,r) => ({range:r, kind:"}"})),
-    parse_prefix_regex(/^".*"/, (s,r) => ({range:r,  kind:"string", v:s })),
+    parse_prefix_regex(/^"[^"]*"/, (s,r) => ({range:r,  kind:"string", v:s })),
     parse_prefix_regex(/^[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) })),
     parse_prefix_regex(/^((true)|(false))/, (s,r) => ({range:r,  kind:"bool", v:(s == "true") })),
     parse_prefix_regex(/^[0-9]+.[0-9]+/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) })),
@@ -154,6 +154,7 @@ let priority_operators_table =
   .set("&&", 4)
   .set("||", 4)
   .set("=>", 4)
+  .set(",", 3)
 
 export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
 
@@ -194,8 +195,12 @@ export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, arg
 let mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
   ({ range:r, ast:{ kind:"generic type decl", f:f, args:args } })
 
+export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes> }
+  let mk_tuple_type_decl = (r:SourceRange, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
+  ({ range:r, ast:{ kind:"tuple type decl", args:args } })
+
 export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
-                | GenericTypeDeclAST
+                | GenericTypeDeclAST | TupleTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
@@ -224,6 +229,7 @@ let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source
 
 
 let mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
+let mk_pair = mk_bin_op(",")
 let mk_arrow = mk_bin_op("=>")
 let mk_plus = mk_bin_op("+")
 let mk_minus = mk_bin_op("-")
@@ -643,6 +649,7 @@ type SymTable = {symbols:Immutable.Stack<ParserRes>,
 let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<ParserState, ParserError, SymTable> =>
   term().then(l =>
+    parser_or<SymTable>(comma.then(_ => expr_after_op(table.symbols.push(l), table.ops, ",", (l,r)=> mk_pair(l,r))),
     parser_or<SymTable>(arrow_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "=>", (l,r)=> mk_arrow(l,r))),
     parser_or<SymTable>(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))),
     parser_or<SymTable>(minus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "-", (l,r)=> mk_minus(l,r))),
@@ -659,7 +666,7 @@ let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
     parser_or<SymTable>(or_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "||", (l,r)=> mk_or(l,r))),
     parser_or<SymTable>(xor_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "xor", (l,r)=> mk_xor(l,r))),
     co_unit({...table, symbols:table.symbols.push(l)})
-    ))))))))))))))))
+    )))))))))))))))))
 
 let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range =>
@@ -674,8 +681,7 @@ let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(
-      res
-    ,
+      res,
       cons_call()
     )
   }
@@ -710,6 +716,12 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
     co_unit(Array<ParserRes>()))
 
 let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
+  parser_or<ParserRes>(
+  left_bracket.then(lb =>
+  type_args().then(as =>
+  right_bracket.then(rb =>
+  co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)
+  )))),
   identifier.then(i =>
   parser_or<ParserRes>(
     lt_op.then(_ =>
@@ -719,7 +731,7 @@ let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
     co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
     )))),
     co_unit(i)
-  ))
+  )))
 
 let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   no_match.then(_ =>
@@ -959,6 +971,8 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
     : CSharp.ref_type(s.ast.value)
   : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
     CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
+  : s.ast.kind == "tuple type decl" ?
+    CSharp.tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
   : (() => { console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); throw new Error(`Unsupported ast type: ${JSON.stringify(s)}`)})()
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
@@ -966,12 +980,17 @@ export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.Set<ValueName> =>
   n.ast.kind == ";" || n.ast.kind == "+" || n.ast.kind == "-" || n.ast.kind == "/" || n.ast.kind == "*"
   || n.ast.kind == "%" || n.ast.kind == "<" || n.ast.kind == ">" || n.ast.kind == "<=" || n.ast.kind == ">="
-  || n.ast.kind == "==" || n.ast.kind == "!=" || n.ast.kind == "xor" || n.ast.kind == "&&" || n.ast.kind == "||" ?
+  || n.ast.kind == "==" || n.ast.kind == "!=" || n.ast.kind == "xor" || n.ast.kind == "&&" || n.ast.kind == "||"
+  || n.ast.kind == "," ?
     free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
   : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" && !bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value])
   : Immutable.Set<ValueName>()
+
+export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
+  n.ast.kind == "," ? [...extract_tuple_args(n.ast.l), n.ast.r]
+  : [n]
 
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
@@ -998,6 +1017,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "||" ? CSharp.or(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [ { name:n.ast.l.ast.value, type:var_type } ], free_variables(n.ast.r, Immutable.Set<ValueName>([n.ast.l.ast.value])).toArray(), ast_to_type_checker(n.ast.r)(context))
 
+  : n.ast.kind == "," ? CSharp.tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)

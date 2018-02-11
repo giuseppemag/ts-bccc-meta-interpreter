@@ -3,7 +3,7 @@ import { Option, Sum, Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as CSharp from "./csharp";
 import { CallingContext } from "./bindings";
-export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>";
+export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>" | ",";
 export declare type UnaryOpKind = "not";
 export declare type Token = ({
     kind: "string";
@@ -267,7 +267,11 @@ export interface GenericTypeDeclAST {
     f: ParserRes;
     args: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
+export interface TupleTypeDeclAST {
+    kind: "tuple type decl";
+    args: Array<ParserRes>;
+}
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -288,4 +292,5 @@ export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
 };
 export declare let program_prs: () => Parser;
 export declare let global_calling_context: CallingContext;
+export declare let extract_tuple_args: (n: ParserRes) => ParserRes[];
 export declare let ast_to_type_checker: (_: ParserRes) => (_: CallingContext) => CSharp.Stmt;

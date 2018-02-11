@@ -129,6 +129,20 @@ export let int = function(i:number) : Stmt {
   return _ => co_unit(mk_typing(int_type, Sem.int_expr(i)))
 }
 
+export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
+  return constraints => {
+    // console.log("Typechecking tuple value with constraints", constraints)
+    if (constraints.kind == "left" && constraints.value.kind != "tuple")
+      return co_error<State,Err,Typing>({ range:r, message:`Error: wrong constraints ${constraints} when typechecking tuple.` })
+    let check_args = comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(args.map((a, a_i) =>
+      a(constraints.kind == "left" && constraints.value.kind == "tuple" ? apply(inl(), constraints.value.args[a_i])
+        : no_constraints))))
+    return check_args.then(arg_ts => co_unit(mk_typing(
+      tuple_type(arg_ts.toArray().map(a_t => a_t.type)),
+      Sem.tuple_expr_rt(arg_ts.toArray().map(a_t => a_t.sem)))))
+    }
+}
+
 export let gt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          b(no_constraints).then(b_t =>
@@ -650,7 +664,19 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
   return _ => this_ref(no_constraints).then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name}.`})
+            let item = /^Item/
+            let m = F_name.match(item)
+            if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
+              try {
+                let item_index = parseInt(F_name.replace(item, "")) - 1
+                return co_unit(mk_typing(this_ref_t.type.args[item_index],
+                        Sem.tuple_get_rt(r, this_ref_t.sem, item_index)))
+              } catch (error) {
+                return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_name}.`})
+              }
+            } else {
+              return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_name}.`})
+            }
            }
            let C_name = this_ref_t.type.C_name
            if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} is undefined`})

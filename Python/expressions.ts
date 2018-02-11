@@ -15,9 +15,10 @@ import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
   mk_obj_val, mk_ref_val, Scope,
   mk_string_val,
   mk_unit_val, get_arr_len_rt, get_arr_el_rt, get_class_def_rt, get_fun_def_rt,
-  get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt } from "./memory"
+  get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, mk_tuple_val } from "./memory"
 import { SourceRange } from "../source_range";
 import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel } from "./python";
+import { comm_list_coroutine } from "../ccc_aux";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
 export let FalseCat:BoolCat = unit<Unit>().then(inl<Unit,Unit>())
@@ -29,6 +30,7 @@ export let str_expr = (s:string) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(in
 export let float_expr = (n:number) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_float_val(n))))
 export let int_expr = (n:number) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_int_val(n))))
 export let arr_expr = (a:ArrayVal) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_arr_val(a))))
+export let tuple_expr = (a:Array<Val>) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_tuple_val(a))))
 export let bool_expr = (s:boolean) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_bool_val(s))))
 export let lambda_expr = (l:Lambda) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_lambda_val(l))))
 export let obj_expr = (o:Scope) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_obj_val(o))))
@@ -42,6 +44,17 @@ let lift_binary_operation = function<a,b> (a: ExprRt<Sum<Val,Val>>, b:ExprRt<Sum
     apply(fun(check_types).then((fun(actual_operation).then(inl<Val,Val>()).then(fun<Sum<Val,Val>, ExprRt<Sum<Val,Val>>>(co_unit))).plus(
       constant<Unit,ExprRt<Sum<Val,Val>>>(runtime_error(`Type error: cannot perform ${operator_name} on ${a_val.value.v} and ${b_val.value.v}.`)))), { fst:a_val.value, snd:b_val.value })))
 }
+export let tuple_expr_rt = (args:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> => {
+  let eval_args = comm_list_coroutine(Immutable.List<ExprRt<Sum<Val,Val>>>(args))
+  return eval_args.then(arg_vals => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_tuple_val(arg_vals.toArray().map(a => a.value))))))
+}
+
+export let tuple_get_rt = (r:SourceRange, t:ExprRt<Sum<Val,Val>>, item_index:number) : ExprRt<Sum<Val,Val>> => {
+  return t.then(t_val =>
+        t_val.value.k == "tuple" ? co_unit(apply(inl<Val,Val>(), t_val.value.v[item_index]))
+        : runtime_error(`Type error: cannot lookup item ${item_index} on non-tuple value ${t_val.value}.`))
+}
+
 export let mk_empty_render_grid_rt = function (width: ExprRt<Sum<Val,Val>>, height:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
   return width.then(w => height.then(h =>
     w.value.k == "i" && h.value.k == "i" ? render_grid_expr({ width:w.value.v, height:h.value.v, pixels:Immutable.Map<number, Immutable.Set<number>>() })

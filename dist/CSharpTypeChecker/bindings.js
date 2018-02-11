@@ -111,6 +111,18 @@ exports.str = function (s) {
 exports.int = function (i) {
     return function (_) { return ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_expr(i))); };
 };
+exports.tuple_value = function (r, args) {
+    return function (constraints) {
+        // console.log("Typechecking tuple value with constraints", constraints)
+        if (constraints.kind == "left" && constraints.value.kind != "tuple")
+            return ts_bccc_2.co_error({ range: r, message: "Error: wrong constraints " + constraints + " when typechecking tuple." });
+        var check_args = ccc_aux_1.comm_list_coroutine(Immutable.List(args.map(function (a, a_i) {
+            return a(constraints.kind == "left" && constraints.value.kind == "tuple" ? ts_bccc_1.apply(ts_bccc_1.inl(), constraints.value.args[a_i])
+                : exports.no_constraints);
+        })));
+        return check_args.then(function (arg_ts) { return ts_bccc_2.co_unit(mk_typing(exports.tuple_type(arg_ts.toArray().map(function (a_t) { return a_t.type; })), Sem.tuple_expr_rt(arg_ts.toArray().map(function (a_t) { return a_t.sem; })))); });
+    };
+};
 exports.gt = function (r, a, b) {
     return function (_) { return a(exports.no_constraints).then(function (a_t) {
         return b(exports.no_constraints).then(function (b_t) {
@@ -606,7 +618,20 @@ exports.field_get = function (r, context, this_ref, F_name) {
     return function (_) { return this_ref(exports.no_constraints).then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
             if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-                return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when setting field " + F_name + "." });
+                var item = /^Item/;
+                var m = F_name.match(item);
+                if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
+                    try {
+                        var item_index = parseInt(F_name.replace(item, "")) - 1;
+                        return ts_bccc_2.co_unit(mk_typing(this_ref_t.type.args[item_index], Sem.tuple_get_rt(r, this_ref_t.sem, item_index)));
+                    }
+                    catch (error) {
+                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_name + "." });
+                    }
+                }
+                else {
+                    return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_name + "." });
+                }
             }
             var C_name = this_ref_t.type.C_name;
             if (!bindings.bindings.has(this_ref_t.type.C_name))

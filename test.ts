@@ -40,6 +40,14 @@ int hof(Func<int,int> h) {
 }
 
 var p = hof(g);
+
+(string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => (y => x * y))));
+var h = v.Item3.Item2;
+var whoa = h(2);
+var wwhoa = whoa(3);
+
+Func<(string,string),string> fst = p => p.Item1;
+var a = fst(("first item", "second item"));
 `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -49,7 +57,7 @@ var p = hof(g);
     let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
 
-    //console.log(JSON.stringify(res.value.value.fst)) // ast
+    // console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)(global_calling_context)
 

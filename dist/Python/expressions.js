@@ -13,6 +13,7 @@ var ts_bccc_1 = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var memory_1 = require("./memory");
 var python_1 = require("./python");
+var ccc_aux_1 = require("../ccc_aux");
 exports.FalseCat = ts_bccc_1.unit().then(ts_bccc_1.inl());
 exports.TrueCat = ts_bccc_1.unit().then(ts_bccc_1.inr());
 exports.bool_to_boolcat = ts_bccc_1.fun(function (b) { return b ? exports.TrueCat : exports.FalseCat; });
@@ -21,6 +22,7 @@ exports.str_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_b
 exports.float_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_float_val(n)))); };
 exports.int_expr = function (n) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_int_val(n)))); };
 exports.arr_expr = function (a) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_arr_val(a)))); };
+exports.tuple_expr = function (a) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_tuple_val(a)))); };
 exports.bool_expr = function (s) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_bool_val(s)))); };
 exports.lambda_expr = function (l) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_lambda_val(l)))); };
 exports.obj_expr = function (o) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_obj_val(o)))); };
@@ -32,6 +34,16 @@ var lift_binary_operation = function (a, b, check_types, actual_operation, opera
     return a.then(function (a_val) { return b.then(function (b_val) {
         return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.value.v + " and " + b_val.value.v + ".")))), { fst: a_val.value, snd: b_val.value });
     }); });
+};
+exports.tuple_expr_rt = function (args) {
+    var eval_args = ccc_aux_1.comm_list_coroutine(Immutable.List(args));
+    return eval_args.then(function (arg_vals) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk_tuple_val(arg_vals.toArray().map(function (a) { return a.value; }))))); });
+};
+exports.tuple_get_rt = function (r, t, item_index) {
+    return t.then(function (t_val) {
+        return t_val.value.k == "tuple" ? ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), t_val.value.v[item_index]))
+            : memory_1.runtime_error("Type error: cannot lookup item " + item_index + " on non-tuple value " + t_val.value + ".");
+    });
 };
 exports.mk_empty_render_grid_rt = function (width, height) {
     return width.then(function (w) { return height.then(function (h) {

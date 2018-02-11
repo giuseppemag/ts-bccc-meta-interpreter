@@ -55,6 +55,9 @@ export declare type Val = {
 } | {
     v: Lambda;
     k: "lambda";
+} | {
+    v: Array<Val>;
+    k: "tuple";
 } | HeapRef | {
     v: RenderGrid;
     k: "render-grid";
@@ -79,6 +82,7 @@ export declare let mk_string_val: (_: string) => Val;
 export declare let mk_int_val: (_: number) => Val;
 export declare let mk_float_val: (_: number) => Val;
 export declare let mk_arr_val: (_: ArrayVal) => Val;
+export declare let mk_tuple_val: (_: Array<Val>) => Val;
 export declare let mk_bool_val: (_: boolean) => Val;
 export declare let mk_lambda_val: (_: Lambda) => Val;
 export declare let mk_obj_val: (_: Scope) => Val;

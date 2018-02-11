@@ -95,6 +95,7 @@ export declare let set_v: (r: SourceRange, v: string, e: Stmt) => Stmt;
 export declare let bool: (b: boolean) => Stmt;
 export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
+export declare let tuple_value: (r: SourceRange, args: Stmt[]) => Stmt;
 export declare let gt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let lt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let geq: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

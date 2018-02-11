@@ -18,7 +18,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nFunc<int, Func<int,int>> f = x => (y => x + y);\n\nvar g = f(10);\nvar z = g(2);\nvar w = g(3);\n\nint hof(Func<int,int> h) {\n  return h(2);\n}\n\nvar p = hof(g);\n";
+        var source = "\nFunc<int, Func<int,int>> f = x => (y => x + y);\n\nvar g = f(10);\nvar z = g(2);\nvar w = g(3);\n\nint hof(Func<int,int> h) {\n  return h(2);\n}\n\nvar p = hof(g);\n\n(string,string,(string,Func<int,Func<int,int>>)) v = (\"Hello\", \"world\", (\"!\",(x => (y => x * y))));\nvar h = v.Item3.Item2;\nvar whoa = h(2);\nvar wwhoa = whoa(3);\n\nFunc<(string,string),string> fst = p => p.Item1;\nvar a = fst((\"first item\", \"second item\"));\n";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -27,7 +27,7 @@ var ImpLanguageWithSuspend;
         var res = CSharp.program_prs().run.f(grammar_1.mk_parser_state(tokens));
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + JSON.stringify(res.value);
-        //console.log(JSON.stringify(res.value.value.fst)) // ast
+        // console.log(JSON.stringify(res.value.value.fst)) // ast
         var hrstart = process.hrtime();
         var p = csharp_1.ast_to_type_checker(res.value.value.fst)(grammar_1.global_calling_context);
         var output = "";

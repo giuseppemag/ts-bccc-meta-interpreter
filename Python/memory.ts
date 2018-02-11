@@ -19,6 +19,7 @@ export type ValueName = string
 export type NestingLevel = number
 export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" }
                 | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" }
+                | { v:Array<Val>, k:"tuple" }
                 | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
 export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
@@ -30,6 +31,7 @@ export let mk_string_val : (_:string) => Val = v => ({ v:v, k:"s" })
 export let mk_int_val : (_:number) => Val = v => ({ v:Math.floor(v), k:"i" })
 export let mk_float_val : (_:number) => Val = v => ({ v:v, k:"f" })
 export let mk_arr_val : (_:ArrayVal) => Val = v => ({ v:v, k:"arr" })
+export let mk_tuple_val : (_:Array<Val>) => Val = v => ({ v:v, k:"tuple" })
 export let mk_bool_val : (_:boolean) => Val = v => ({ v:v, k:"b" })
 export let mk_lambda_val : (_:Lambda) => Val = l => ({ v:l, k:"lambda" })
 export let mk_obj_val : (_:Scope) => Val = o => ({ v:o, k:"obj" })
