@@ -1,3 +1,6 @@
+[g] Typechecker vs scope (if, while, for)
+[g] Return value from inside method disappears
+
 [g] Records (C# 7 tuples)
 [g] `For` loops (watch scope!)
 [g] Access modifiers: incompatibility errors do not bubble up correctly
@@ -33,6 +36,8 @@
 [m] a variable with the same name can be declared twice: this should not be allowed!
 [m] new B(new A(10)) does not work
 [m] constructor with wrong name is accepted: `class A { public B() { ... } }`
+[m] negative numbers are not parsed
+[m] float numbers do not work
 [m] methods/functions without body
 [m] comments
 [m] add multiple highlightings (along the stack) for function calls
