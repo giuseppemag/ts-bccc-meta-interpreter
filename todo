@@ -1,19 +1,19 @@
-[g] Typechecker vs scope (if, while, for)
 [g] Return value from inside method disappears
 
-[g] Records (C# 7 tuples)
 [g] `For` loops (watch scope!)
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-[g] Generics
-[g] Structs
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
-[g] destructuring assignment of records and tuples
 [g] Move ccc_aux to CCC repo
+[g] Complete cases of `free_variables` (see grammar.ts)
+[g] destructuring assignment of records and tuples
+[g] Structs
+[g] Generics
+[g] Records (C# 7 tuples)
 
 [g] Use mutable state, then clone it to the immutable memory upon `dbg`
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
@@ -51,7 +51,6 @@
   [ ] Asteroid (with color)
   [ ] Laser (with color)
 
-[m] Complete cases of `free_variables` (see grammar.ts)
 [m] Right-associativity of => (x => y => x + y)
 [m] Parsing of curried application (f(5)(10))
 [m] Getters vs function application (test example below):
