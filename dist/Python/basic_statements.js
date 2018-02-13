@@ -14,6 +14,9 @@ exports.if_then_else_rt = function (c, f, g) {
             push_new_context.then(function (_) { return f.then(function (res) { return pop_current_context.then(function (_) { return ts_bccc_2.co_unit(res); }); }); }) :
             push_new_context.then(function (_) { return g.then(function (res) { return pop_current_context.then(function (_) { return ts_bccc_2.co_unit(res); }); }); }); });
 };
-exports.while_do_rt = function (p, k) {
-    return exports.if_then_else_rt(p, push_new_context.then(function (_) { return k.then(function (res) { return pop_current_context.then(function (_) { return exports.while_do_rt(p, k); }); }); }), exports.done_rt);
+exports.while_do_rt = function (c, k) {
+    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error("Error: conditional expression " + c_val + " is not a boolean.")
+        : c_val.value.v ?
+            push_new_context.then(function (_) { return k.then(function (k_res) { return pop_current_context.then(function (_) { return exports.while_do_rt(c, k); }); }); }) :
+            exports.done_rt; });
 };
