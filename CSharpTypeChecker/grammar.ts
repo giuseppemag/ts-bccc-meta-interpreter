@@ -90,7 +90,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^\//, (s,r) => ({range:r, kind:"/"})),
     parse_prefix_regex(/^%/, (s,r) => ({range:r, kind:"%"})),
     parse_prefix_regex(/^<=/, (s,r) => ({range:r, kind:"<="})),
-    parse_prefix_regex(/^>=/, (s,r) => ({range:r, kind:"<="})),
+    parse_prefix_regex(/^>=/, (s,r) => ({range:r, kind:">="})),
     parse_prefix_regex(/^</, (s,r) => ({range:r, kind:"<"})),
     parse_prefix_regex(/^>/, (s,r) => ({range:r, kind:">"})),
     parse_prefix_regex(/^=>/, (s,r) => ({range:r, kind:"=>"})),

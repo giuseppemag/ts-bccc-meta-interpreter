@@ -68,7 +68,7 @@ var GrammarBasics;
         parse_prefix_regex(/^\//, function (s, r) { return ({ range: r, kind: "/" }); }),
         parse_prefix_regex(/^%/, function (s, r) { return ({ range: r, kind: "%" }); }),
         parse_prefix_regex(/^<=/, function (s, r) { return ({ range: r, kind: "<=" }); }),
-        parse_prefix_regex(/^>=/, function (s, r) { return ({ range: r, kind: "<=" }); }),
+        parse_prefix_regex(/^>=/, function (s, r) { return ({ range: r, kind: ">=" }); }),
         parse_prefix_regex(/^</, function (s, r) { return ({ range: r, kind: "<" }); }),
         parse_prefix_regex(/^>/, function (s, r) { return ({ range: r, kind: ">" }); }),
         parse_prefix_regex(/^=>/, function (s, r) { return ({ range: r, kind: "=>" }); }),
