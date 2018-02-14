@@ -29,26 +29,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-Func<int, Func<int,int>> f = x => (y => x + y);
-
-var g = f(10);
-var z = g(2);
-var w = g(3);
-
-int hof(Func<int,int> h) {
-  return h(2);
+int x = 0;
+for (int i = 0; i < 10; i = i + 1) {
+  x = x + i;
 }
-
-var p = hof(g);
-
-(string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => (y => x * y))));
-var h = v.Item3.Item2;
-var whoa = h(2);
-var wwhoa = whoa(3);
-
-Func<(string,string),string> fst = p => p.Item1;
-var a = fst(("first item", "second item"));
-`
+    `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 

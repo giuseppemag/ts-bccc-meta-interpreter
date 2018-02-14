@@ -126,6 +126,7 @@ export declare let done: Stmt;
 export declare let lub: (t1: TypeInformation, t2: TypeInformation) => Sum<TypeInformation, Unit>;
 export declare let if_then_else: (r: SourceRange, c: Stmt, t: Stmt, e: Stmt) => Stmt;
 export declare let while_do: (r: SourceRange, c: Stmt, b: Stmt) => Stmt;
+export declare let for_loop: (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (r: SourceRange, p: Stmt, q: Stmt) => Stmt;
 export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override";
 export interface Parameter {

@@ -20,3 +20,14 @@ exports.while_do_rt = function (c, k) {
             push_new_context.then(function (_) { return k.then(function (k_res) { return pop_current_context.then(function (_) { return exports.while_do_rt(c, k); }); }); }) :
             exports.done_rt; });
 };
+exports.for_loop_rt = function (i, c, s, b) {
+    return push_new_context.then(function (_) {
+        return i.then(function (_) {
+            return exports.while_do_rt(c, b.then(function (_) { return s; })).then(function (_) {
+                return pop_current_context.then(function (_) {
+                    return exports.done_rt;
+                });
+            });
+        });
+    });
+};

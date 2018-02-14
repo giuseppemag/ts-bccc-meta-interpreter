@@ -1,35 +1,27 @@
-[g] Typechecker vs scope (if, while, for)
-[g] Return value from inside method disappears
-
-[g] Records (C# 7 tuples)
-[g] `For` loops (watch scope!)
+[g] toString operators
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-[g] Generics
-[g] Structs
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
-[g] destructuring assignment of records and tuples
 [g] Move ccc_aux to CCC repo
+[g] Complete cases of `free_variables` (see grammar.ts)
+[g] destructuring assignment of records and tuples
+[g] Structs
+[g] Generics
+[g] Records (C# 7 tuples)
 
 [g] Use mutable state, then clone it to the immutable memory upon `dbg`
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
-
 [m] arrays
 [m] Closures in regular functions
-[m] Inheritance
-  [ ] Extends
-  [ ] Interface
-  [ ] abstract
-  [ ] protected
-  [ ] virtual
-  [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
+[m] ++ operator
+  [ ] i++
+  [ ] ++i
 [m] properties
 [m] function parameters should have a range
 [m] initial values of the proper type for variables at declaration when no value is specified
@@ -51,7 +43,6 @@
   [ ] Asteroid (with color)
   [ ] Laser (with color)
 
-[m] Complete cases of `free_variables` (see grammar.ts)
 [m] Right-associativity of => (x => y => x + y)
 [m] Parsing of curried application (f(5)(10))
 [m] Getters vs function application (test example below):
@@ -60,7 +51,20 @@
   var y = h(2);
 
 [m] Syntax highlighting
-[m] double check tokens: disallowed variable names, underscores, number separators
+[m] double check tokens
+  [ ] disallowed variable names
+  [ ] underscores
+  [ ] number separators
+  [ ] identifiers starting with keywords (`new_id` gets stuck in the token as `new`)
+
+[m] Inheritance
+  [ ] Extends
+  [ ] Interface
+  [ ] abstract
+  [ ] protected
+  [ ] virtual
+  [ ] override
+  [ ] Covariance/contravariance in function calls and variable assignments
 [m] yield return
 [m] ForEach
 [m] allow specification of associativity of operators (left vs right)

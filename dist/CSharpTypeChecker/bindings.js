@@ -425,6 +425,16 @@ exports.while_do = function (r, c, b) {
             b(exports.no_constraints).then(function (t_t) { return ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.while_do_rt(c_t.sem, t_t.sem))); });
     })); };
 };
+exports.for_loop = function (r, i, c, s, b) {
+    return function (_) { return ccc_aux_1.co_stateless(i(exports.no_constraints).then(function (i_t) {
+        return c(exports.no_constraints).then(function (c_t) {
+            return c_t.type.kind != "bool" ? ts_bccc_2.co_error({ range: r, message: "Error: condition has the wrong type!" }) :
+                s(exports.no_constraints).then(function (s_t) {
+                    return b(exports.no_constraints).then(function (t_t) { return ts_bccc_2.co_unit(mk_typing(t_t.type, Sem.for_loop_rt(i_t.sem, c_t.sem, s_t.sem, t_t.sem))); });
+                });
+        });
+    })); };
+};
 exports.semicolon = function (r, p, q) {
     return function (_) { return p(exports.no_constraints).then(function (p_t) {
         return q(exports.no_constraints).then(function (q_t) {
