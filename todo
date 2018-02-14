@@ -5,7 +5,7 @@
 [g] Records (C# 7 tuples)
 [g] Complete cases of `free_variables` (see grammar.ts)
 
-[m] Renderers
+[g] Renderers
   [ ] Surface
   [ ] Circle (with color)
   [ ] Square (with color)
