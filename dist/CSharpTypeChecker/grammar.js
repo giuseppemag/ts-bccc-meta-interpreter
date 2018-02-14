@@ -86,7 +86,7 @@ var GrammarBasics;
         parse_prefix_regex(/^\]/, function (s, r) { return ({ range: r, kind: "]" }); }),
         parse_prefix_regex(/^{/, function (s, r) { return ({ range: r, kind: "{" }); }),
         parse_prefix_regex(/^}/, function (s, r) { return ({ range: r, kind: "}" }); }),
-        parse_prefix_regex(/^"[^"]*"/, function (s, r) { return ({ range: r, kind: "string", v: s }); }),
+        parse_prefix_regex(/^"[^"]*"/, function (s, r) { return ({ range: r, kind: "string", v: s.replace(/^"/, "").replace(/"$/, "") }); }),
         parse_prefix_regex(/^[0-9]+/, function (s, r) { return ({ range: r, kind: "int", v: parseInt(s) }); }),
         parse_prefix_regex(/^((true)|(false))/, function (s, r) { return ({ range: r, kind: "bool", v: (s == "true") }); }),
         parse_prefix_regex(/^[0-9]+.[0-9]+/, function (s, r) { return ({ range: r, kind: "float", v: parseFloat(s) }); }),

@@ -108,7 +108,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^\]/, (s,r) => ({range:r, kind:"]"})),
     parse_prefix_regex(/^{/, (s,r) => ({range:r, kind:"{"})),
     parse_prefix_regex(/^}/, (s,r) => ({range:r, kind:"}"})),
-    parse_prefix_regex(/^"[^"]*"/, (s,r) => ({range:r,  kind:"string", v:s })),
+    parse_prefix_regex(/^"[^"]*"/, (s,r) => ({range:r,  kind:"string", v:s.replace(/^"/, "").replace(/"$/, "") })),
     parse_prefix_regex(/^[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) })),
     parse_prefix_regex(/^((true)|(false))/, (s,r) => ({range:r,  kind:"bool", v:(s == "true") })),
     parse_prefix_regex(/^[0-9]+.[0-9]+/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) })),
