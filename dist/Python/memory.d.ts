@@ -18,6 +18,45 @@ export interface ArrayVal {
     elements: Immutable.Map<number, Val>;
     length: number;
 }
+export interface Canvas {
+    operations: Immutable.List<CanvasOperation>;
+    width: number;
+    height: number;
+}
+export declare type CanvasOperation = {
+    kind: "circle";
+    x: number;
+    y: number;
+    radius: number;
+    color: string;
+} | {
+    kind: "square";
+    x: number;
+    y: number;
+    side: number;
+    color: string;
+} | {
+    kind: "rectangle";
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+} | {
+    kind: "polygon";
+    points: Array<{
+        x: number;
+        y: number;
+    }>;
+    color: string;
+} | {
+    kind: "ellipse";
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    color: string;
+};
 export interface RenderGrid {
     pixels: Immutable.Map<number, Immutable.Set<number>>;
     width: number;

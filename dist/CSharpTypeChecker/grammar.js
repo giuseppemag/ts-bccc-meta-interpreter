@@ -692,7 +692,7 @@ var for_loop = function (stmt) {
                                     return right_bracket.then(function (rb) {
                                         return stmt().then(function (b) {
                                             return full_match.then(function (_) {
-                                                return ts_bccc_1.co_unit(mk_for(i, c, b, s, for_keyword_range));
+                                                return ts_bccc_1.co_unit(mk_for(i, c, s, b, for_keyword_range));
                                             });
                                         });
                                     });

@@ -11,6 +11,13 @@ export type Bool = boolean
 export interface Lambda { body:ExprRt<Sum<Val,Val>>, parameters:Array<ValueName>, closure: Scope, range:SourceRange }
 export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
+export interface Canvas { operations:Immutable.List<CanvasOperation>, width:number, height:number }
+export type CanvasOperation = { kind:"circle", x:number, y:number, radius:number, color:string }
+                            | { kind:"square", x:number, y:number, side:number, color:string }
+                            | { kind:"rectangle", x:number, y:number, width:number, height:number, color:string }
+                            | { kind:"polygon", points:Array<{x:number, y:number}>, color:string }
+                            | { kind:"ellipse", x:number, y:number, width:number, height:number, color:string }
+
 export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }
 export interface RenderGridPixel { x:number, y:number, status:boolean }
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, mk_unit_val])), length:len })

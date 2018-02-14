@@ -27,8 +27,8 @@ export let while_do_rt = function (c: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
 
 export let for_loop_rt = function (i: ExprRt<Sum<Val,Val>>, c: ExprRt<Sum<Val,Val>>, s: ExprRt<Sum<Val,Val>>, b: StmtRt): StmtRt {
   return push_new_context.then(_ =>
-         i.then(_ =>
-        while_do_rt(c, b.then(_ => s)).then(_ =>
-        pop_current_context.then(_ =>
-        done_rt))))
+          i.then(_ =>
+          while_do_rt(c, b.then(_ => s)).then(_ =>
+          pop_current_context.then(_ =>
+          done_rt))))
 }

@@ -459,7 +459,7 @@ export let for_loop = function(r:SourceRange, i:Stmt, c:Stmt, s:Stmt, b:Stmt) : 
           c(no_constraints).then(c_t =>
           c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
           s(no_constraints).then(s_t =>
-          b(no_constraints).then(t_t => co_unit(mk_typing(t_t.type,Sem.for_loop_rt(i_t.sem, c_t.sem, s_t.sem, t_t.sem)))
+          b(no_constraints).then(b_t => co_unit(mk_typing(b_t.type,Sem.for_loop_rt(i_t.sem, c_t.sem, s_t.sem, b_t.sem)))
           )))))
 }
 

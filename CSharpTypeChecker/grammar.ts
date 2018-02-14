@@ -810,7 +810,7 @@ let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) =>
   right_bracket.then(rb =>
   stmt().then(b =>
   full_match.then(_ =>
-  co_unit(mk_for(i, c, b, s, for_keyword_range)))))))))))))
+  co_unit(mk_for(i, c, s, b, for_keyword_range)))))))))))))
 
 let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
