@@ -453,6 +453,16 @@ export let while_do = function(r:SourceRange, c:Stmt, b:Stmt) : Stmt {
          )))
 }
 
+export let for_loop = function(r:SourceRange, i:Stmt, c:Stmt, s:Stmt, b:Stmt) : Stmt {
+  return _ => co_stateless<State,Err,Typing>(
+          i(no_constraints).then(i_t =>
+          c(no_constraints).then(c_t =>
+          c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
+          s(no_constraints).then(s_t =>
+          b(no_constraints).then(t_t => co_unit(mk_typing(t_t.type,Sem.for_loop_rt(i_t.sem, c_t.sem, s_t.sem, t_t.sem)))
+          )))))
+}
+
 export let semicolon = function(r:SourceRange, p:Stmt, q:Stmt) : Stmt {
   return _ => p(no_constraints).then(p_t =>
          q(no_constraints).then(q_t =>

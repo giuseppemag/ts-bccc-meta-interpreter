@@ -1,6 +1,6 @@
-[g] Return value from inside method disappears
-
 [g] `For` loops (watch scope!)
+  [ ] remove semicolon from last statement
+[g] toString operators
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
@@ -19,17 +19,11 @@
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
-
 [m] arrays
 [m] Closures in regular functions
-[m] Inheritance
-  [ ] Extends
-  [ ] Interface
-  [ ] abstract
-  [ ] protected
-  [ ] virtual
-  [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
+[m] ++ operator
+  [ ] i++
+  [ ] ++i
 [m] properties
 [m] function parameters should have a range
 [m] initial values of the proper type for variables at declaration when no value is specified
@@ -59,7 +53,20 @@
   var y = h(2);
 
 [m] Syntax highlighting
-[m] double check tokens: disallowed variable names, underscores, number separators
+[m] double check tokens
+  [ ] disallowed variable names
+  [ ] underscores
+  [ ] number separators
+  [ ] identifiers starting with keywords (`new_id` gets stuck in the token as `new`)
+
+[m] Inheritance
+  [ ] Extends
+  [ ] Interface
+  [ ] abstract
+  [ ] protected
+  [ ] virtual
+  [ ] override
+  [ ] Covariance/contravariance in function calls and variable assignments
 [m] yield return
 [m] ForEach
 [m] allow specification of associativity of operators (left vs right)

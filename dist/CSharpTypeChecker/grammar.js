@@ -10,6 +10,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
+var CCC = require("ts-bccc");
 var source_range_1 = require("../source_range");
 var ccc_aux_1 = require("../ccc_aux");
 var CSharp = require("./csharp");
@@ -46,6 +47,7 @@ var GrammarBasics;
         parse_prefix_regex(/^class/, function (s, r) { return ({ range: r, kind: "class" }); }),
         parse_prefix_regex(/^new/, function (s, r) { return ({ range: r, kind: "new" }); }),
         parse_prefix_regex(/^return/, function (s, r) { return ({ range: r, kind: "return" }); }),
+        parse_prefix_regex(/^for/, function (s, r) { return ({ range: r, kind: "for" }); }),
         parse_prefix_regex(/^while/, function (s, r) { return ({ range: r, kind: "while" }); }),
         parse_prefix_regex(/^if/, function (s, r) { return ({ range: r, kind: "if" }); }),
         parse_prefix_regex(/^else/, function (s, r) { return ({ range: r, kind: "else" }); }),
@@ -144,6 +146,7 @@ var mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", valu
 var mk_decl_and_init = function (l, r, v, r_range) { return ({ kind: "decl and init", l: l, r: { value: r, range: r_range }, v: v }); };
 var mk_decl = function (l, r, r_range) { return ({ kind: "decl", l: l, r: { value: r, range: r_range } }); };
 var mk_assign = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "=", l: l, r: r } }); };
+var mk_for = function (i, c, s, b, for_keyword_range) { return ({ range: source_range_1.join_source_ranges(for_keyword_range, b.range), ast: { kind: "for", i: i, c: c, s: s, b: b } }); };
 var mk_while = function (c, b, while_keyword_range) { return ({ range: source_range_1.join_source_ranges(while_keyword_range, b.range), ast: { kind: "while", c: c, b: b } }); };
 var mk_if_then = function (c, t, if_keyword_range) { return ({ range: source_range_1.join_source_ranges(if_keyword_range, t.range), ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.none(), {}) } }); };
 var mk_if_then_else = function (c, t, e, if_keyword_range) { return ({ range: source_range_1.join_source_ranges(if_keyword_range, e.range), ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.some(), e) } }); };
@@ -370,6 +373,7 @@ var identifier = ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });
 }));
 var return_sign = symbol("return", "return");
+var for_keyword = symbol("for", "for");
 var while_keyword = symbol("while", "while");
 var if_keyword = symbol("if", "if");
 var else_keyword = symbol("else", "else");
@@ -676,6 +680,31 @@ var if_conditional = function (stmt) {
         });
     });
 };
+var for_loop = function (stmt) {
+    return no_match.then(function (_) {
+        return for_keyword.then(function (for_keyword_range) {
+            return partial_match.then(function (_) {
+                return left_bracket.then(function (lb) {
+                    return stmt().then(function (i) {
+                        return expr().then(function (c) {
+                            return semicolon.then(function (_) {
+                                return stmt(true).then(function (s) {
+                                    return right_bracket.then(function (rb) {
+                                        return stmt().then(function (b) {
+                                            return full_match.then(function (_) {
+                                                return ts_bccc_1.co_unit(mk_for(i, c, b, s, for_keyword_range));
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
 var while_loop = function (stmt) {
     return no_match.then(function (_) {
         return while_keyword.then(function (while_keyword_range) {
@@ -778,13 +807,14 @@ var outer_statement = function () {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(fun_decl.return_type.range, fun_decl.body.range), ast: fun_decl });
     }), parser_or(class_declaration(), inner_statement()));
 };
-var inner_statement = function () {
-    return parser_or(with_semicolon(ts_bccc_1.co_unit(mk_noop())), parser_or(bracketized_statement(), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or(with_semicolon(call()), parser_or(with_semicolon(method_call()), parser_or(with_semicolon(decl().then(function (d) {
+var unchanged = CCC.id().f;
+var inner_statement = function (skip_semicolon) {
+    return parser_or(with_semicolon(ts_bccc_1.co_unit(mk_noop())), parser_or(bracketized_statement(), parser_or(for_loop(function_statement), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or((skip_semicolon ? unchanged : with_semicolon)(call()), parser_or((skip_semicolon ? unchanged : with_semicolon)(method_call()), parser_or((skip_semicolon ? unchanged : with_semicolon)(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d });
-    })), parser_or(with_semicolon(decl_init()), parser_or(with_semicolon(assign()), parser_or(with_semicolon(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
+    })), parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; })))))))))))));
 };
-var function_statement = function () {
-    return parser_or(with_semicolon(return_statement()), inner_statement());
+var function_statement = function (skip_semicolon) {
+    return parser_or(with_semicolon(return_statement()), inner_statement(skip_semicolon));
 };
 var generic_statements = function (stmt, check_trailer) {
     return stmt().then(function (l) {
@@ -880,75 +910,76 @@ exports.ast_to_type_checker = function (n) { return function (context) {
         : n.ast.kind == "string" ? CSharp.str(n.ast.value)
             : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
                 : n.ast.kind == ";" ? CSharp.semicolon(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                    : n.ast.kind == "while" ? CSharp.while_do(n.range, exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.b)(context))
-                        : n.ast.kind == "if" ? CSharp.if_then_else(n.range, exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.t)(context), n.ast.e.kind == "right" ? CSharp.done : exports.ast_to_type_checker(n.ast.e.value)(context))
-                            : n.ast.kind == "+" ? CSharp.plus(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                : n.ast.kind == "-" ? CSharp.minus(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                    : n.ast.kind == "*" ? CSharp.times(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context), n.range)
-                                        : n.ast.kind == "/" ? CSharp.div(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                            : n.ast.kind == "%" ? CSharp.mod(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                : n.ast.kind == "<" ? CSharp.lt(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                    : n.ast.kind == ">" ? CSharp.gt(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                        : n.ast.kind == "<=" ? CSharp.leq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                            : n.ast.kind == ">=" ? CSharp.geq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                : n.ast.kind == "==" ? CSharp.eq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                    : n.ast.kind == "!=" ? CSharp.neq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                        : n.ast.kind == "xor" ? CSharp.xor(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                            : n.ast.kind == "not" ? CSharp.not(n.range, exports.ast_to_type_checker(n.ast.e)(context))
-                                                                                : n.ast.kind == "&&" ? CSharp.and(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                                    : n.ast.kind == "||" ? CSharp.or(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                                        : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [{ name: n.ast.l.ast.value, type: bindings_1.var_type }], free_variables(n.ast.r, Immutable.Set([n.ast.l.ast.value])).toArray(), exports.ast_to_type_checker(n.ast.r)(context))
-                                                                                            : n.ast.kind == "," ? CSharp.tuple_value(n.range, exports.extract_tuple_args(n.ast.l).concat([n.ast.r]).map(function (a) { return exports.ast_to_type_checker(a)(context); }))
-                                                                                                : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
-                                                                                                    : n.ast.kind == "return" ? CSharp.ret(n.range, exports.ast_to_type_checker(n.ast.value)(context))
-                                                                                                        : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, exports.ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
-                                                                                                            : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r)(context))
-                                                                                                                : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(n.range, context, exports.ast_to_type_checker(n.ast.l.ast.l)(context), n.ast.l.ast.r.ast.value, exports.ast_to_type_checker(n.ast.r)(context))
-                                                                                                                    : n.ast.kind == "cons_call" ?
-                                                                                                                        CSharp.call_cons(n.range, context, n.ast.name, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
-                                                                                                                        : n.ast.kind == "func_call" &&
-                                                                                                                            n.ast.name.ast.kind == "id" ?
-                                                                                                                            CSharp.call_by_name(n.range, n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
-                                                                                                                            : n.ast.kind == "method_call" &&
+                    : n.ast.kind == "for" ? CSharp.for_loop(n.range, exports.ast_to_type_checker(n.ast.i)(context), exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.b)(context))
+                        : n.ast.kind == "while" ? CSharp.while_do(n.range, exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.b)(context))
+                            : n.ast.kind == "if" ? CSharp.if_then_else(n.range, exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.t)(context), n.ast.e.kind == "right" ? CSharp.done : exports.ast_to_type_checker(n.ast.e.value)(context))
+                                : n.ast.kind == "+" ? CSharp.plus(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                    : n.ast.kind == "-" ? CSharp.minus(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                        : n.ast.kind == "*" ? CSharp.times(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context), n.range)
+                                            : n.ast.kind == "/" ? CSharp.div(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                : n.ast.kind == "%" ? CSharp.mod(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                    : n.ast.kind == "<" ? CSharp.lt(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                        : n.ast.kind == ">" ? CSharp.gt(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                            : n.ast.kind == "<=" ? CSharp.leq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                : n.ast.kind == ">=" ? CSharp.geq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                    : n.ast.kind == "==" ? CSharp.eq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                        : n.ast.kind == "!=" ? CSharp.neq(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                            : n.ast.kind == "xor" ? CSharp.xor(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                : n.ast.kind == "not" ? CSharp.not(n.range, exports.ast_to_type_checker(n.ast.e)(context))
+                                                                                    : n.ast.kind == "&&" ? CSharp.and(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                        : n.ast.kind == "||" ? CSharp.or(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                            : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [{ name: n.ast.l.ast.value, type: bindings_1.var_type }], free_variables(n.ast.r, Immutable.Set([n.ast.l.ast.value])).toArray(), exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                                : n.ast.kind == "," ? CSharp.tuple_value(n.range, exports.extract_tuple_args(n.ast.l).concat([n.ast.r]).map(function (a) { return exports.ast_to_type_checker(a)(context); }))
+                                                                                                    : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
+                                                                                                        : n.ast.kind == "return" ? CSharp.ret(n.range, exports.ast_to_type_checker(n.ast.value)(context))
+                                                                                                            : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, exports.ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
+                                                                                                                : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                                                    : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(n.range, context, exports.ast_to_type_checker(n.ast.l.ast.l)(context), n.ast.l.ast.r.ast.value, exports.ast_to_type_checker(n.ast.r)(context))
+                                                                                                                        : n.ast.kind == "cons_call" ?
+                                                                                                                            CSharp.call_cons(n.range, context, n.ast.name, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
+                                                                                                                            : n.ast.kind == "func_call" &&
                                                                                                                                 n.ast.name.ast.kind == "id" ?
-                                                                                                                                CSharp.call_method(n.range, context, exports.ast_to_type_checker(n.ast.object)(context), n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
-                                                                                                                                : n.ast.kind == "func_decl" ?
-                                                                                                                                    CSharp.def_fun(n.range, { name: n.ast.name,
-                                                                                                                                        return_t: ast_to_csharp_type(n.ast.return_type),
-                                                                                                                                        parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r.value, type: ast_to_csharp_type(d.l) }); }),
-                                                                                                                                        body: exports.ast_to_type_checker(n.ast.body)(context),
-                                                                                                                                        range: n.range }, [])
-                                                                                                                                    : n.ast.kind == "class" ?
-                                                                                                                                        CSharp.def_class(n.range, n.ast.C_name, n.ast.methods.toArray().map(function (m) { return function (context) { return ({
-                                                                                                                                            name: m.decl.name,
-                                                                                                                                            return_t: ast_to_csharp_type(m.decl.return_type),
-                                                                                                                                            parameters: m.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: ast_to_csharp_type(a.l) }); }),
-                                                                                                                                            body: exports.ast_to_type_checker(m.decl.body)(context),
-                                                                                                                                            range: source_range_1.join_source_ranges(m.decl.return_type.range, m.decl.body.range),
-                                                                                                                                            modifiers: m.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
-                                                                                                                                        }); }; }).concat(n.ast.constructors.toArray().map(function (c) { return function (context) { return ({
-                                                                                                                                            name: c.decl.name,
-                                                                                                                                            return_t: CSharp.unit_type,
-                                                                                                                                            parameters: c.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: ast_to_csharp_type(a.l) }); }),
-                                                                                                                                            body: exports.ast_to_type_checker(c.decl.body)(context),
-                                                                                                                                            range: c.decl.body.range,
-                                                                                                                                            modifiers: c.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
-                                                                                                                                        }); }; })), n.ast.fields.toArray().map(function (f) { return function (context) { return ({
-                                                                                                                                            name: f.decl.r.value,
-                                                                                                                                            type: ast_to_csharp_type(f.decl.l),
-                                                                                                                                            modifiers: f.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
-                                                                                                                                        }); }; }))
-                                                                                                                                        : n.ast.kind == "decl" ?
-                                                                                                                                            CSharp.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
-                                                                                                                                            : n.ast.kind == "decl and init" ?
-                                                                                                                                                CSharp.decl_and_init_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l), exports.ast_to_type_checker(n.ast.v)(context))
-                                                                                                                                                : n.ast.kind == "dbg" ?
-                                                                                                                                                    CSharp.breakpoint(n.range)(CSharp.done)
-                                                                                                                                                    : n.ast.kind == "tc-dbg" ?
-                                                                                                                                                        CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                                                                        : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                                                                            CSharp.mk_empty_render_grid(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
-                                                                                                                                                            : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                                                                CSharp.mk_render_grid_pixel(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
-                                                                                                                                                                : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                                                                                CSharp.call_by_name(n.range, n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
+                                                                                                                                : n.ast.kind == "method_call" &&
+                                                                                                                                    n.ast.name.ast.kind == "id" ?
+                                                                                                                                    CSharp.call_method(n.range, context, exports.ast_to_type_checker(n.ast.object)(context), n.ast.name.ast.value, n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(a)(context); }))
+                                                                                                                                    : n.ast.kind == "func_decl" ?
+                                                                                                                                        CSharp.def_fun(n.range, { name: n.ast.name,
+                                                                                                                                            return_t: ast_to_csharp_type(n.ast.return_type),
+                                                                                                                                            parameters: n.ast.arg_decls.toArray().map(function (d) { return ({ name: d.r.value, type: ast_to_csharp_type(d.l) }); }),
+                                                                                                                                            body: exports.ast_to_type_checker(n.ast.body)(context),
+                                                                                                                                            range: n.range }, [])
+                                                                                                                                        : n.ast.kind == "class" ?
+                                                                                                                                            CSharp.def_class(n.range, n.ast.C_name, n.ast.methods.toArray().map(function (m) { return function (context) { return ({
+                                                                                                                                                name: m.decl.name,
+                                                                                                                                                return_t: ast_to_csharp_type(m.decl.return_type),
+                                                                                                                                                parameters: m.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: ast_to_csharp_type(a.l) }); }),
+                                                                                                                                                body: exports.ast_to_type_checker(m.decl.body)(context),
+                                                                                                                                                range: source_range_1.join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+                                                                                                                                                modifiers: m.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
+                                                                                                                                            }); }; }).concat(n.ast.constructors.toArray().map(function (c) { return function (context) { return ({
+                                                                                                                                                name: c.decl.name,
+                                                                                                                                                return_t: CSharp.unit_type,
+                                                                                                                                                parameters: c.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.value, type: ast_to_csharp_type(a.l) }); }),
+                                                                                                                                                body: exports.ast_to_type_checker(c.decl.body)(context),
+                                                                                                                                                range: c.decl.body.range,
+                                                                                                                                                modifiers: c.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
+                                                                                                                                            }); }; })), n.ast.fields.toArray().map(function (f) { return function (context) { return ({
+                                                                                                                                                name: f.decl.r.value,
+                                                                                                                                                type: ast_to_csharp_type(f.decl.l),
+                                                                                                                                                modifiers: f.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
+                                                                                                                                            }); }; }))
+                                                                                                                                            : n.ast.kind == "decl" ?
+                                                                                                                                                CSharp.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
+                                                                                                                                                : n.ast.kind == "decl and init" ?
+                                                                                                                                                    CSharp.decl_and_init_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l), exports.ast_to_type_checker(n.ast.v)(context))
+                                                                                                                                                    : n.ast.kind == "dbg" ?
+                                                                                                                                                        CSharp.breakpoint(n.range)(CSharp.done)
+                                                                                                                                                        : n.ast.kind == "tc-dbg" ?
+                                                                                                                                                            CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+                                                                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                                                                CSharp.mk_empty_render_grid(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
+                                                                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                                                                    CSharp.mk_render_grid_pixel(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
+                                                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 }; };

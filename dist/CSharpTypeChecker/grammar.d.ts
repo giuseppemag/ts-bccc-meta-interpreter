@@ -18,6 +18,8 @@ export declare type Token = ({
     kind: "bool";
     v: boolean;
 } | {
+    kind: "for";
+} | {
     kind: "while";
 } | {
     kind: "if";
@@ -130,6 +132,13 @@ export interface IntAST {
 export interface IdAST {
     kind: "id";
     value: string;
+}
+export interface ForAST {
+    kind: "for";
+    i: ParserRes;
+    c: ParserRes;
+    s: ParserRes;
+    b: ParserRes;
 }
 export interface WhileAST {
     kind: "while";
@@ -271,7 +280,7 @@ export interface TupleTypeDeclAST {
     kind: "tuple type decl";
     args: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

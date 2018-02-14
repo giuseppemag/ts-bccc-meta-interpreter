@@ -18,7 +18,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass Counter {\n  private int cnt;\n  public Counter() {\n    this.cnt = 0;\n  }\n\n  public bool tick() {\n    this.cnt = this.cnt + 1;\n    return this.cnt > 0;\n  }\n}\n\nCounter c = new Counter();\nvar x = c.tick();\nx = c.tick();\nx = c.tick();\n";
+        var source = "\nint x = 0;\nfor (int i = 0; i < 10; i = i + 1) {\n  x = x + i;\n}\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

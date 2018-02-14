@@ -13,14 +13,22 @@ let pop_current_context = mk_coroutine(apply(pop_inner_scope_rt, empty_scope_val
 
 export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
   return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
-                         : c_val.value.v ? 
-                push_new_context.then(_ => f.then(res => pop_current_context.then(_ => co_unit(res)))) : 
+                         : c_val.value.v ?
+                push_new_context.then(_ => f.then(res => pop_current_context.then(_ => co_unit(res)))) :
                 push_new_context.then(_ => g.then(res => pop_current_context.then(_ => co_unit(res)))))
 }
 
 export let while_do_rt = function (c: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
   return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
-                         : c_val.value.v ? 
-                push_new_context.then(_ => k.then(k_res => pop_current_context.then(_ => while_do_rt(c,k)))) : 
+                         : c_val.value.v ?
+                push_new_context.then(_ => k.then(k_res => pop_current_context.then(_ => while_do_rt(c,k)))) :
                 done_rt)
+}
+
+export let for_loop_rt = function (i: ExprRt<Sum<Val,Val>>, c: ExprRt<Sum<Val,Val>>, s: ExprRt<Sum<Val,Val>>, b: StmtRt): StmtRt {
+  return push_new_context.then(_ =>
+         i.then(_ =>
+        while_do_rt(c, b.then(_ => s)).then(_ =>
+        pop_current_context.then(_ =>
+        done_rt))))
 }

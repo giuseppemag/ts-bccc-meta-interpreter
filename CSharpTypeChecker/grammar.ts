@@ -12,7 +12,7 @@ export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||
 export type UnaryOpKind = "not"
 
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
-  | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
+  | { kind:"for" } | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
   | { kind:"class" } | { kind:"new" }
   | { kind:"id", v:string }
@@ -68,6 +68,7 @@ export module GrammarBasics {
     parse_prefix_regex(/^new/, (s,r) => ({range:r, kind:"new"})),
     parse_prefix_regex(/^return/, (s,r) => ({range:r, kind:"return"})),
 
+    parse_prefix_regex(/^for/, (s,r) => ({range:r, kind:"for"})),
     parse_prefix_regex(/^while/, (s,r) => ({range:r, kind:"while"})),
     parse_prefix_regex(/^if/, (s,r) => ({range:r, kind:"if"})),
     parse_prefix_regex(/^else/, (s,r) => ({range:r, kind:"else"})),
@@ -165,6 +166,7 @@ export interface StringAST { kind: "string", value:string }
 export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
 export interface IdAST { kind: "id", value: string }
+export interface ForAST { kind: "for", i:ParserRes, c:ParserRes, s:ParserRes, b:ParserRes }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
 export interface DeclAST { kind: "decl", l:ParserRes, r:{value:string, range:SourceRange} }
@@ -201,7 +203,7 @@ export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes
 
 export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | GenericTypeDeclAST | TupleTypeDeclAST
-                | AssignAST | DeclAST | DeclAndInitAST | IfAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
+                | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
@@ -221,6 +223,7 @@ let mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast
 let mk_decl_and_init = (l:ParserRes,r:string,v:ParserRes, r_range:SourceRange) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:{value:r, range:r_range}, v:v })
 let mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
 let mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
+let mk_for = (i:ParserRes,c:ParserRes,s:ParserRes,b:ParserRes, for_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(for_keyword_range, b.range), ast:{ kind: "for", i:i, c:c, s:s, b:b }})
 let mk_while = (c:ParserRes,b:ParserRes, while_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(while_keyword_range, b.range), ast:{ kind: "while", c:c, b:b }})
 let mk_if_then = (c:ParserRes,t:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
 let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, e.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
@@ -463,6 +466,8 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
 }))
 
 let return_sign = symbol("return", "return")
+
+let for_keyword = symbol("for", "for")
 
 let while_keyword = symbol("while", "while")
 
@@ -793,6 +798,20 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
     co_unit(mk_if_then_else(c, t, e, if_keyword))))),
     co_unit(mk_if_then(c, t, if_keyword))))))))
 
+let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) => Parser) =>
+  no_match.then(_ =>
+  for_keyword.then(for_keyword_range =>
+  partial_match.then(_ =>
+  left_bracket.then(lb =>
+  stmt().then(i =>
+  expr().then(c =>
+  semicolon.then(_ =>
+  stmt(true).then(s =>
+  right_bracket.then(rb =>
+  stmt().then(b =>
+  full_match.then(_ =>
+  co_unit(mk_for(i, c, b, s, for_keyword_range)))))))))))))
+
 let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
   while_keyword.then(while_keyword_range =>
@@ -868,23 +887,26 @@ let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(class_declaration(),
   inner_statement()))
 
-let inner_statement : () => Parser = () =>
+let unchanged = CCC.id<Coroutine<ParserState, ParserError, ParserRes>>().f
+
+let inner_statement = (skip_semicolon?:boolean) : Parser =>
   parser_or<ParserRes>(with_semicolon(co_unit(mk_noop())),
   parser_or<ParserRes>(bracketized_statement(),
+  parser_or<ParserRes>(for_loop(function_statement),
   parser_or<ParserRes>(while_loop(function_statement),
   parser_or<ParserRes>(if_conditional(function_statement),
-  parser_or<ParserRes>(with_semicolon(call()),
-  parser_or<ParserRes>(with_semicolon(method_call()),
-  parser_or<ParserRes>(with_semicolon(decl().then(d =>
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(call()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(method_call()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl().then(d =>
     co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))),
-  parser_or<ParserRes>(with_semicolon(decl_init()),
-  parser_or<ParserRes>(with_semicolon(assign()),
-  parser_or<ParserRes>(with_semicolon(no_match.then(_ => dbg)),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl_init()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(assign()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(no_match.then(_ => dbg)),
   with_semicolon(no_match.then(_ => tc_dbg))
-  ))))))))))
+  )))))))))))
 
-let function_statement : () => Parser = () =>
-  parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement())
+let function_statement = (skip_semicolon?:boolean) : Parser =>
+  parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement(skip_semicolon))
 
 let generic_statements = (stmt: () => Parser, check_trailer: Coroutine<ParserState,ParserError,Unit>) : Parser =>
     stmt().then(l =>
@@ -997,6 +1019,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "string" ? CSharp.str(n.ast.value)
   : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
   : n.ast.kind == ";" ? CSharp.semicolon(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "for" ? CSharp.for_loop(n.range, ast_to_type_checker(n.ast.i)(context), ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.b)(context))
   : n.ast.kind == "while" ? CSharp.while_do(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.b)(context))
   : n.ast.kind == "if" ? CSharp.if_then_else(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.t)(context),
                             n.ast.e.kind == "right" ? CSharp.done : ast_to_type_checker(n.ast.e.value)(context))

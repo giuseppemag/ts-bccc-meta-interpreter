@@ -29,23 +29,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class Counter {
-  private int cnt;
-  public Counter() {
-    this.cnt = 0;
-  }
-
-  public bool tick() {
-    this.cnt = this.cnt + 1;
-    return this.cnt > 0;
-  }
+int x = 0;
+for (int i = 0; i < 10; i = i + 1) {
+  x = x + i;
 }
-
-Counter c = new Counter();
-var x = c.tick();
-x = c.tick();
-x = c.tick();
-`
+    `
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
 
