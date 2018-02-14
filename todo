@@ -2,21 +2,32 @@
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+[g] Records (C# 7 tuples)
+[g] Complete cases of `free_variables` (see grammar.ts)
+
+[m] Renderers
+  [ ] Surface
+  [ ] Circle (with color)
+  [ ] Square (with color)
+  [ ] Spline (with color)
+  [ ] Spaceship (with color)
+  [ ] Asteroid (with color)
+  [ ] Laser (with color)
+
+[g] destructuring assignment of records and tuples
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
 [g] Move ccc_aux to CCC repo
-[g] Complete cases of `free_variables` (see grammar.ts)
-[g] destructuring assignment of records and tuples
 [g] Structs
 [g] Generics
-[g] Records (C# 7 tuples)
-
 [g] Use mutable state, then clone it to the immutable memory upon `dbg`
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
+[m] editor does not save code properly and breaks the mode
+[m] errors with range over code in editor
 [m] arrays
 [m] Closures in regular functions
 [m] ++ operator
@@ -33,15 +44,6 @@
 [m] methods/functions without body
 [m] comments
 [m] add multiple highlightings (along the stack) for function calls
-
-[m] Renderers
-  [ ] Surface
-  [ ] Circle (with color)
-  [ ] Square (with color)
-  [ ] Spline (with color)
-  [ ] Spaceship (with color)
-  [ ] Asteroid (with color)
-  [ ] Laser (with color)
 
 [m] Right-associativity of => (x => y => x + y)
 [m] Parsing of curried application (f(5)(10))
