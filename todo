@@ -56,7 +56,7 @@
   [ ] underscores
   [ ] number separators
   [ ] identifiers starting with keywords (`new_id` gets stuck in the token as `new`)
-  [ ] quotes, special characters
+  [ ] quotes, special characters, "\n"
 
 [m] Inheritance
   [ ] Extends
