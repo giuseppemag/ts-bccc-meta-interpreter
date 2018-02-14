@@ -1,5 +1,3 @@
-[g] `For` loops (watch scope!)
-  [ ] remove semicolon from last statement
 [g] toString operators
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
