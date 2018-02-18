@@ -19,7 +19,17 @@ var ImpLanguageWithSuspend;
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
         // Func<int,int,bool> d = x,y => x > y;
-        var source = "\nsurface s = empty_surface 200 200 \"white\";\ns = s + circle 50 50 20 \"blue\";\ns = s + square 150 150 20 \"yellow\";\ns = s + rectangle 150 50 20 40 \"green\";\ns = s + ellipse 150 150 40 20 \"red\";\n\nsurface l = empty_surface 400 400 \"white\";\nl = l + other_surface s 0 0;\nl = l + other_surface s 200 200;\n  ";
+        //   let source = `
+        // surface s = empty_surface 200 200 "white";
+        // s = s + circle 50 50 20 "blue";
+        // s = s + square 150 150 20 "yellow";
+        // s = s + rectangle 150 50 20 40 "green";
+        // s = s + ellipse 150 150 40 20 "red";
+        // surface l = empty_surface 400 400 "white";
+        // l = l + other_surface s 0 0;
+        // l = l + other_surface s 200 200;
+        //   `
+        var source = "Func<int,int> d = x => x * 2;\n    Func<int,int> p2 = x => x + 2;\n\n    Func<int,int> then(Func<int,int> f, Func<int,int> g) {\n      typechecker_debugger;\n      return x => g(f(x));\n    }\n\n    var d_p2 = then(d, p2);\n    typechecker_debugger;\n    int z = d_p2(5);\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
