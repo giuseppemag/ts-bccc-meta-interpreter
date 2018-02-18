@@ -847,7 +847,7 @@ let constructor_declaration = () =>
 
 let function_declaration = () =>
   no_match.then(_ =>
-  identifier.then(return_type =>
+  type_decl().then(return_type =>
   identifier_token.then(function_name =>
   left_bracket.then(_ =>
   partial_match.then(_ =>
@@ -999,6 +999,12 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 
+let union_many = <a>(a:Array<Immutable.Set<a>>) : Immutable.Set<a> => {
+  let res = Immutable.Set<a>()
+  a.forEach(x => { res = res.union(x)})
+  return res
+}
+
 let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.Set<ValueName> =>
   n.ast.kind == ";" || n.ast.kind == "+" || n.ast.kind == "-" || n.ast.kind == "/" || n.ast.kind == "*"
   || n.ast.kind == "%" || n.ast.kind == "<" || n.ast.kind == ">" || n.ast.kind == "<=" || n.ast.kind == ">="
@@ -1007,8 +1013,11 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
     free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
   : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
-  : n.ast.kind == "id" && !bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value])
-  : Immutable.Set<ValueName>()
+  : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
+  : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" ? Immutable.Set<ValueName>()
+  : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
+  : (() => { console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`(FV) Unsupported ast node: ${JSON.stringify(n)}`)})()
+
 
 export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
   n.ast.kind == "," ? [...extract_tuple_args(n.ast.l), n.ast.r]

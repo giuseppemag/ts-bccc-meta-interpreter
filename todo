@@ -1,18 +1,25 @@
+[g] multiparameter lambda's (`Func<int,string,string>`)
 [g] toString operators and automated casting
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] Records (C# 7 tuples)
-[g] Complete cases of `free_variables` (see grammar.ts)
+
 
 [g] Renderers
   [ ] Surface
   [ ] Circle (with color)
   [ ] Square (with color)
   [ ] Spline (with color)
+  [ ] Polygon (with color)
   [ ] Spaceship (with color)
   [ ] Asteroid (with color)
   [ ] Laser (with color)
+
+[g] HTML renderers for server simulator
+
+[g] Files
+[g] Databases
 
 [g] destructuring assignment of records and tuples
 [g] Restructure project
@@ -26,31 +33,46 @@
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
-[m] editor does not save code properly and breaks the mode
+[m] use something visual instead of debugger and typechecker_debugger
+[m] editor does not save code properly, breaks the mode, and prevents saving the rest of the reader
 [m] errors with range over code in editor
-[m] arrays
-[m] Closures in regular functions
-[m] ++ operator
-  [ ] i++
-  [ ] ++i
-[m] properties
-[m] function parameters should have a range
-[m] initial values of the proper type for variables at declaration when no value is specified
-[m] a variable with the same name can be declared twice: this should not be allowed!
-[m] new B(new A(10)) does not work
-[m] constructor with wrong name is accepted: `class A { public B() { ... } }`
-[m] negative numbers are not parsed
-[m] float numbers do not work
-[m] methods/functions without body
-[m] comments
-[m] add multiple highlightings (along the stack) for function calls
-
+  [ ] Print properly (no `JSON.stringify`)
 [m] Right-associativity of => (x => y => x + y)
 [m] Parsing of curried application (f(5)(10))
 [m] Getters vs function application (test example below):
   (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => (y => x * y))));
   var h = v.Item3.Item2(3);
   var y = h(2);
+[m] ++ operator
+  [ ] i++
+  [ ] ++i
+[m] function parameters should have a range
+[m] constructor with wrong name is accepted: `class A { public B() { ... } }`
+[m] negative numbers are not parsed
+[m] float numbers do not work
+[m] methods/functions without body
+[m] comments
+[m] highlighting with proper style
+[m] procedures (functions returning `void`)
+[m] `int z = then(d, p2)(5);` does not work (function call should be integrated into expression parser)
+
+[m] does not parse:
+int factorial(int x) {
+  if (x <= 0) {
+    return 1;
+  } else {
+    return x * factorial(x-1);
+  }
+}
+
+[m] arrays
+[m] Closures in regular functions
+[m] properties
+[m] initial values of the proper type for variables at declaration when no value is specified
+[m] a variable with the same name can be declared twice: this should not be allowed!
+[m] new B(new A(10)) does not work
+[m] add multiple highlightings (along the stack) for function calls
+
 
 [m] Syntax highlighting
 [m] double check tokens
@@ -80,6 +102,11 @@
 [m] Old-style tuples (System.Tuple<T1, T2, ...>)
 
 [m] string interpolation
+
+[m] Standard library
+  [ ] Collections
+  [ ] strings
+  [ ] files
 
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint

@@ -464,8 +464,8 @@ export let for_loop = function(r:SourceRange, i:Stmt, c:Stmt, s:Stmt, b:Stmt) : 
 }
 
 export let semicolon = function(r:SourceRange, p:Stmt, q:Stmt) : Stmt {
-  return _ => p(no_constraints).then(p_t =>
-         q(no_constraints).then(q_t =>
+  return constraints => p(constraints).then(p_t =>
+         q(constraints).then(q_t =>
            co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
             let f:Sem.ExprRt<Sum<Sem.Val,Sem.Val>> = co_unit(apply(inr<Sem.Val,Sem.Val>(), res.value))
             return res.kind == "left" ? q_t.sem : f
@@ -493,7 +493,7 @@ export let mk_lambda = function(r:SourceRange, def:LambdaDefinition, closure_par
                       semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
   return  _ => Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings(no_constraints).then(_ =>
-          body(no_constraints).then(body_t =>
+          body(apply(inl(), return_t)).then(body_t =>
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
             co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
@@ -564,7 +564,7 @@ export let call_by_name = function(r:SourceRange, f_n:Name, args:Array<Stmt>) : 
 }
 
 export let ret = function(r:SourceRange, p:Stmt) : Stmt {
-  return _ => p(no_constraints).then(p_t =>
+  return constraints => p(constraints).then(p_t =>
          co_unit(mk_typing(p_t.type, Sem.return_rt(p_t.sem))
          ))
 }

@@ -436,8 +436,8 @@ exports.for_loop = function (r, i, c, s, b) {
     })); };
 };
 exports.semicolon = function (r, p, q) {
-    return function (_) { return p(exports.no_constraints).then(function (p_t) {
-        return q(exports.no_constraints).then(function (q_t) {
+    return function (constraints) { return p(constraints).then(function (p_t) {
+        return q(constraints).then(function (q_t) {
             return ts_bccc_2.co_unit(mk_typing(q_t.type, p_t.sem.then(function (res) {
                 var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
                 return res.kind == "left" ? q_t.sem : f;
@@ -457,7 +457,7 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
     }, exports.done));
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(exports.no_constraints).then(function (_) {
-            return body(exports.no_constraints).then(function (body_t) {
+            return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
                         return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
@@ -528,7 +528,7 @@ exports.call_by_name = function (r, f_n, args) {
     return exports.call_lambda(r, exports.get_v(r, f_n), args);
 };
 exports.ret = function (r, p) {
-    return function (_) { return p(exports.no_constraints).then(function (p_t) {
+    return function (constraints) { return p(constraints).then(function (p_t) {
         return ts_bccc_2.co_unit(mk_typing(p_t.type, Sem.return_rt(p_t.sem)));
     }); };
 };

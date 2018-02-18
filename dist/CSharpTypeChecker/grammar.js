@@ -760,7 +760,7 @@ var constructor_declaration = function () {
 };
 var function_declaration = function () {
     return no_match.then(function (_) {
-        return identifier.then(function (return_type) {
+        return type_decl().then(function (return_type) {
             return identifier_token.then(function (function_name) {
                 return left_bracket.then(function (_) {
                     return partial_match.then(function (_) {
@@ -891,6 +891,11 @@ var ast_to_csharp_type = function (s) {
                 : (function () { console.log("Error: unsupported ast type: " + JSON.stringify(s)); throw new Error("Unsupported ast type: " + JSON.stringify(s)); })();
 };
 exports.global_calling_context = ({ kind: "global scope" });
+var union_many = function (a) {
+    var res = Immutable.Set();
+    a.forEach(function (x) { res = res.union(x); });
+    return res;
+};
 var free_variables = function (n, bound) {
     return n.ast.kind == ";" || n.ast.kind == "+" || n.ast.kind == "-" || n.ast.kind == "/" || n.ast.kind == "*"
         || n.ast.kind == "%" || n.ast.kind == "<" || n.ast.kind == ">" || n.ast.kind == "<=" || n.ast.kind == ">="
@@ -899,8 +904,10 @@ var free_variables = function (n, bound) {
         free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
         : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
             : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
-                : n.ast.kind == "id" && !bound.has(n.ast.value) ? Immutable.Set([n.ast.value])
-                    : Immutable.Set();
+                : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set([n.ast.value]) : Immutable.Set())
+                    : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" ? Immutable.Set()
+                        : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); })))
+                            : (function () { console.log("Error (FV): unsupported ast node: " + JSON.stringify(n)); throw new Error("(FV) Unsupported ast node: " + JSON.stringify(n)); })();
 };
 exports.extract_tuple_args = function (n) {
     return n.ast.kind == "," ? exports.extract_tuple_args(n.ast.l).concat([n.ast.r]) : [n];
