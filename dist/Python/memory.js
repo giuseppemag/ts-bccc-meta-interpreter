@@ -30,6 +30,13 @@ exports.mk_obj_val = function (o) { return ({ v: o, k: "obj" }); };
 exports.mk_ref_val = function (r) { return ({ v: r, k: "ref" }); };
 exports.mk_render_grid_val = function (r) { return ({ v: r, k: "render-grid" }); };
 exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
+exports.mk_render_surface_val = function (s) { return ({ v: s, k: "render surface" }); };
+exports.mk_circle_op = function (x, y, radius, color) { return ({ kind: "circle", x: x, y: y, radius: radius, color: color }); };
+exports.mk_square_op = function (x, y, side, color) { return ({ kind: "square", x: x, y: y, side: side, color: color }); };
+exports.mk_ellipse_op = function (x, y, width, height, color) { return ({ kind: "ellipse", x: x, y: y, width: width, height: height, color: color }); };
+exports.mk_rectangle_op = function (x, y, width, height, color) { return ({ kind: "rectangle", x: x, y: y, width: width, height: height, color: color }); };
+exports.mk_other_surface_op = function (s, dx, dy, sx, sy) { return ({ kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy }); };
+exports.mk_render_surface_operation_val = function (s) { return ({ v: s, k: "render surface operation" }); };
 var find_last_scope = function (scopes, p) {
     var i = scopes.count() - 1;
     for (var index = i; index >= 0; index--) {

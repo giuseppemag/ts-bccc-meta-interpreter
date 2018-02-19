@@ -51,6 +51,12 @@ var GrammarBasics;
         parse_prefix_regex(/^while/, function (s, r) { return ({ range: r, kind: "while" }); }),
         parse_prefix_regex(/^if/, function (s, r) { return ({ range: r, kind: "if" }); }),
         parse_prefix_regex(/^else/, function (s, r) { return ({ range: r, kind: "else" }); }),
+        parse_prefix_regex(/^other_surface/, function (s, r) { return ({ range: r, kind: "other_surface" }); }),
+        parse_prefix_regex(/^empty_surface/, function (s, r) { return ({ range: r, kind: "empty_surface" }); }),
+        parse_prefix_regex(/^ellipse/, function (s, r) { return ({ range: r, kind: "ellipse" }); }),
+        parse_prefix_regex(/^circle/, function (s, r) { return ({ range: r, kind: "circle" }); }),
+        parse_prefix_regex(/^rectangle/, function (s, r) { return ({ range: r, kind: "rectangle" }); }),
+        parse_prefix_regex(/^square/, function (s, r) { return ({ range: r, kind: "square" }); }),
         parse_prefix_regex(/^empty_render_grid/, function (s, r) { return ({ range: r, kind: "mk_empty_render_grid" }); }),
         parse_prefix_regex(/^pixel/, function (s, r) { return ({ range: r, kind: "pixel" }); }),
         parse_prefix_regex(/^debugger/, function (s, r) { return ({ range: r, kind: "dbg" }); }),
@@ -202,6 +208,12 @@ var mk_dbg = function (sr) { return ({ range: sr, ast: { kind: "dbg" } }); };
 var mk_tc_dbg = function (sr) { return ({ range: sr, ast: { kind: "tc-dbg" } }); };
 var mk_empty_render_grid = function (w, h) { return ({ range: source_range_1.join_source_ranges(w.range, h.range), ast: { kind: "mk-empty-render-grid", w: w, h: h } }); };
 var mk_render_grid_pixel = function (w, h, status) { return ({ range: source_range_1.join_source_ranges(w.range, source_range_1.join_source_ranges(h.range, status.range)), ast: { kind: "mk-render-grid-pixel", w: w, h: h, status: status } }); };
+var mk_empty_surface = function (sr, w, h, col) { return ({ range: sr, ast: { kind: "empty surface", w: w, h: h, color: col } }); };
+var mk_circle = function (sr, cx, cy, r, col) { return ({ range: sr, ast: { kind: "circle", cx: cx, cy: cy, r: r, color: col } }); };
+var mk_square = function (sr, cx, cy, s, col) { return ({ range: sr, ast: { kind: "square", cx: cx, cy: cy, s: s, color: col } }); };
+var mk_ellipse = function (sr, cx, cy, w, h, col) { return ({ range: sr, ast: { kind: "ellipse", cx: cx, cy: cy, w: w, h: h, color: col } }); };
+var mk_rectangle = function (sr, cx, cy, w, h, col) { return ({ range: sr, ast: { kind: "rectangle", cx: cx, cy: cy, w: w, h: h, color: col } }); };
+var mk_other_surface = function (sr, s, dx, dy, sx, sy) { return ({ range: sr, ast: { kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy } }); };
 exports.mk_parser_state = function (tokens) { return ({ tokens: tokens, branch_priority: 0 }); };
 var no_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 0 })); });
 var partial_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 50 })); });
@@ -382,6 +394,13 @@ var semicolon_sign = symbol(";", "semicolon");
 var comma_sign = symbol(",", "comma");
 var class_keyword = symbol("class", "class");
 var new_keyword = symbol("new", "new");
+var surface_keyword = symbol("surface", "surface");
+var empty_surface_keyword = symbol("empty_surface", "empty_surface");
+var circle_keyword = symbol("circle", "circle");
+var square_keyword = symbol("square", "square");
+var rectangle_keyword = symbol("rectangle", "rectangle");
+var ellipse_keyword = symbol("ellipse", "ellipse");
+var other_surface_keyword = symbol("other_surface", "other_surface");
 var left_bracket = symbol("(", "(");
 var right_bracket = symbol(")", ")");
 var left_square_bracket = symbol("[", "[");
@@ -450,14 +469,96 @@ var render_grid_pixel_prs = function () {
         });
     });
 };
+var mk_empty_surface_prs = function () {
+    return empty_surface_keyword.then(function (esk) {
+        return expr().then(function (l) {
+            return expr().then(function (r) {
+                return expr().then(function (col) {
+                    return ts_bccc_1.co_unit(mk_empty_surface(source_range_1.join_source_ranges(esk, col.range), l, r, col));
+                });
+            });
+        });
+    });
+};
+var mk_circle_prs = function () {
+    return circle_keyword.then(function (kw) {
+        return expr().then(function (cx) {
+            return expr().then(function (cy) {
+                return expr().then(function (r) {
+                    return expr().then(function (col) {
+                        return ts_bccc_1.co_unit(mk_circle(source_range_1.join_source_ranges(kw, col.range), cx, cy, r, col));
+                    });
+                });
+            });
+        });
+    });
+};
+var mk_square_prs = function () {
+    return square_keyword.then(function (kw) {
+        return expr().then(function (cx) {
+            return expr().then(function (cy) {
+                return expr().then(function (r) {
+                    return expr().then(function (col) {
+                        return ts_bccc_1.co_unit(mk_square(source_range_1.join_source_ranges(kw, col.range), cx, cy, r, col));
+                    });
+                });
+            });
+        });
+    });
+};
+var mk_ellipse_prs = function () {
+    return ellipse_keyword.then(function (kw) {
+        return expr().then(function (cx) {
+            return expr().then(function (cy) {
+                return expr().then(function (w) {
+                    return expr().then(function (h) {
+                        return expr().then(function (col) {
+                            return ts_bccc_1.co_unit(mk_ellipse(source_range_1.join_source_ranges(kw, col.range), cx, cy, w, h, col));
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
+var mk_rectangle_prs = function () {
+    return rectangle_keyword.then(function (kw) {
+        return expr().then(function (cx) {
+            return expr().then(function (cy) {
+                return expr().then(function (w) {
+                    return expr().then(function (h) {
+                        return expr().then(function (col) {
+                            return ts_bccc_1.co_unit(mk_rectangle(source_range_1.join_source_ranges(kw, col.range), cx, cy, w, h, col));
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
+var mk_other_surface_prs = function () {
+    return other_surface_keyword.then(function (kw) {
+        return expr().then(function (s) {
+            return expr().then(function (dx) {
+                return expr().then(function (dy) {
+                    return expr().then(function (sx) {
+                        return expr().then(function (sy) {
+                            return ts_bccc_1.co_unit(mk_other_surface(source_range_1.join_source_ranges(kw, sy.range), s, dx, dy, sx, sy));
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
 var term = function () {
-    return parser_or(mk_empty_render_grid_prs(), parser_or(render_grid_pixel_prs(), parser_or(bool, parser_or(int, parser_or(string, parser_or(call(), parser_or(method_call(), parser_or(field_ref(), parser_or(identifier, parser_or(unary_expr(), left_bracket.then(function (_) {
+    return parser_or(mk_empty_surface_prs(), parser_or(mk_circle_prs(), parser_or(mk_square_prs(), parser_or(mk_ellipse_prs(), parser_or(mk_rectangle_prs(), parser_or(mk_other_surface_prs(), parser_or(mk_empty_render_grid_prs(), parser_or(render_grid_pixel_prs(), parser_or(bool, parser_or(int, parser_or(string, parser_or(call(), parser_or(method_call(), parser_or(field_ref(), parser_or(identifier, parser_or(unary_expr(), left_bracket.then(function (_) {
         return expr().then(function (e) {
             return right_bracket.then(function (_) {
                 return ts_bccc_1.co_unit(e);
             });
         });
-    })))))))))));
+    })))))))))))))))));
 };
 var unary_expr = function () {
     return not_op.then(function (_) {
@@ -882,8 +983,13 @@ var ast_to_csharp_type = function (s) {
                     : s.ast.value == "void" ? CSharp.unit_type
                         : s.ast.value == "RenderGrid" ? CSharp.render_grid_type
                             : s.ast.value == "RenderGridPixel" ? CSharp.render_grid_pixel_type
-                                : s.ast.value == "var" ? CSharp.var_type
-                                    : CSharp.ref_type(s.ast.value)
+                                : s.ast.value == "surface" ? CSharp.render_surface_type
+                                    : s.ast.value == "circle" ? CSharp.circle_type
+                                        : s.ast.value == "square" ? CSharp.square_type
+                                            : s.ast.value == "ellipse" ? CSharp.ellipse_type
+                                                : s.ast.value == "rectangle" ? CSharp.rectangle_type
+                                                    : s.ast.value == "var" ? CSharp.var_type
+                                                        : CSharp.ref_type(s.ast.value)
         : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
             CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
             : s.ast.kind == "tuple type decl" ?
@@ -984,9 +1090,21 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                         CSharp.breakpoint(n.range)(CSharp.done)
                                                                                                                                                         : n.ast.kind == "tc-dbg" ?
                                                                                                                                                             CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-                                                                                                                                                            : n.ast.kind == "mk-empty-render-grid" ?
-                                                                                                                                                                CSharp.mk_empty_render_grid(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
-                                                                                                                                                                : n.ast.kind == "mk-render-grid-pixel" ?
-                                                                                                                                                                    CSharp.mk_render_grid_pixel(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
-                                                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                                                                                                            : n.ast.kind == "empty surface" ?
+                                                                                                                                                                CSharp.mk_empty_surface(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.color)(context))
+                                                                                                                                                                : n.ast.kind == "circle" ?
+                                                                                                                                                                    CSharp.mk_circle(n.range, exports.ast_to_type_checker(n.ast.cx)(context), exports.ast_to_type_checker(n.ast.cy)(context), exports.ast_to_type_checker(n.ast.r)(context), exports.ast_to_type_checker(n.ast.color)(context))
+                                                                                                                                                                    : n.ast.kind == "square" ?
+                                                                                                                                                                        CSharp.mk_square(n.range, exports.ast_to_type_checker(n.ast.cx)(context), exports.ast_to_type_checker(n.ast.cy)(context), exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.color)(context))
+                                                                                                                                                                        : n.ast.kind == "ellipse" ?
+                                                                                                                                                                            CSharp.mk_ellipse(n.range, exports.ast_to_type_checker(n.ast.cx)(context), exports.ast_to_type_checker(n.ast.cy)(context), exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.color)(context))
+                                                                                                                                                                            : n.ast.kind == "rectangle" ?
+                                                                                                                                                                                CSharp.mk_rectangle(n.range, exports.ast_to_type_checker(n.ast.cx)(context), exports.ast_to_type_checker(n.ast.cy)(context), exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.color)(context))
+                                                                                                                                                                                : n.ast.kind == "other surface" ?
+                                                                                                                                                                                    CSharp.mk_other_surface(n.range, exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.dx)(context), exports.ast_to_type_checker(n.ast.dy)(context), exports.ast_to_type_checker(n.ast.sx)(context), exports.ast_to_type_checker(n.ast.sy)(context))
+                                                                                                                                                                                    : n.ast.kind == "mk-empty-render-grid" ?
+                                                                                                                                                                                        CSharp.mk_empty_render_grid(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context))
+                                                                                                                                                                                        : n.ast.kind == "mk-render-grid-pixel" ?
+                                                                                                                                                                                            CSharp.mk_render_grid_pixel(n.range, exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.status)(context))
+                                                                                                                                                                                            : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n)); })();
 }; };

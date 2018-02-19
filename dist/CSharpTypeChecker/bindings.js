@@ -17,6 +17,12 @@ var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
+exports.render_surface_type = { kind: "render surface" };
+exports.circle_type = { kind: "circle" };
+exports.square_type = { kind: "square" };
+exports.ellipse_type = { kind: "ellipse" };
+exports.rectangle_type = { kind: "rectangle" };
+exports.other_render_surface_type = { kind: "other surface" };
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
 exports.var_type = { kind: "var" };
@@ -236,6 +242,96 @@ exports.mk_render_grid_pixel = function (r, w, h, st) {
                 return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(st_t.type, exports.bool_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.render_grid_pixel_type, Sem.mk_render_grid_pixel_rt(w_t.sem, h_t.sem, st_t.sem)))
                     : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for empty grid creation." });
+            });
+        });
+    }); };
+};
+exports.mk_empty_surface = function (r, w, h, col) {
+    return function (_) { return w(exports.no_constraints).then(function (w_t) {
+        return h(exports.no_constraints).then(function (h_t) {
+            return col(exports.no_constraints).then(function (col_t) {
+                return type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.render_surface_type, Sem.mk_empty_render_surface_rt(w_t.sem, h_t.sem, col_t.sem)))
+                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for empty grid creation." });
+            });
+        });
+    }); };
+};
+exports.mk_circle = function (r, x, y, radius, col) {
+    return function (_) { return x(exports.no_constraints).then(function (x_t) {
+        return y(exports.no_constraints).then(function (y_t) {
+            return radius(exports.no_constraints).then(function (r_t) {
+                return col(exports.no_constraints).then(function (col_t) {
+                    return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                        type_equals(r_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.circle_type, Sem.mk_circle_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for circle creation." });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_square = function (r, x, y, radius, col) {
+    return function (_) { return x(exports.no_constraints).then(function (x_t) {
+        return y(exports.no_constraints).then(function (y_t) {
+            return radius(exports.no_constraints).then(function (r_t) {
+                return col(exports.no_constraints).then(function (col_t) {
+                    return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                        type_equals(r_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for square creation." });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_ellipse = function (r, x, y, w, h, col) {
+    return function (_) { return x(exports.no_constraints).then(function (x_t) {
+        return y(exports.no_constraints).then(function (y_t) {
+            return w(exports.no_constraints).then(function (w_t) {
+                return h(exports.no_constraints).then(function (h_t) {
+                    return col(exports.no_constraints).then(function (col_t) {
+                        return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                            type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
+                            type_equals(col_t.type, exports.string_type) ?
+                            ts_bccc_2.co_unit(mk_typing(exports.ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for ellipse creation." });
+                    });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_rectangle = function (r, x, y, w, h, col) {
+    return function (_) { return x(exports.no_constraints).then(function (x_t) {
+        return y(exports.no_constraints).then(function (y_t) {
+            return w(exports.no_constraints).then(function (w_t) {
+                return h(exports.no_constraints).then(function (h_t) {
+                    return col(exports.no_constraints).then(function (col_t) {
+                        return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                            type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
+                            type_equals(col_t.type, exports.string_type) ?
+                            ts_bccc_2.co_unit(mk_typing(exports.rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for rectangle creation." });
+                    });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_other_surface = function (r, s, dx, dy, sx, sy) {
+    return function (_) { return dx(exports.no_constraints).then(function (dx_t) {
+        return dy(exports.no_constraints).then(function (dy_t) {
+            return sx(exports.no_constraints).then(function (sx_t) {
+                return sy(exports.no_constraints).then(function (sy_t) {
+                    return s(exports.no_constraints).then(function (s_t) {
+                        return type_equals(dx_t.type, exports.int_type) && type_equals(dy_t.type, exports.int_type) &&
+                            type_equals(sx_t.type, exports.int_type) && type_equals(sy_t.type, exports.int_type) &&
+                            type_equals(s_t.type, exports.render_surface_type) ?
+                            ts_bccc_2.co_unit(mk_typing(exports.other_render_surface_type, Sem.mk_other_surface_rt(dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, s_t.sem)))
+                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for other surface displacement." });
+                    });
+                });
             });
         });
     }); };

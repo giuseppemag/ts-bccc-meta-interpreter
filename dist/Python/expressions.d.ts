@@ -1,8 +1,8 @@
 import { Unit, Fun, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
-import { ExprRt, MemRt, Val, Lambda, Bool, ArrayVal, Scope } from "./memory";
+import { ExprRt, MemRt, Val, Lambda, Bool, ArrayVal, Scope, RenderSurface } from "./memory";
 import { SourceRange } from "../source_range";
-import { RenderGrid, RenderGridPixel } from "./python";
+import { RenderGrid, RenderGridPixel, RenderSurfaceOperation } from "./python";
 export interface BoolCat extends Fun<Unit, Sum<Unit, Unit>> {
 }
 export declare let FalseCat: BoolCat;
@@ -21,11 +21,19 @@ export declare let ref_expr: (r: string) => Coroutine<MemRt, string, Sum<Val, Va
 export declare let val_expr: (v: Sum<Val, Val>) => Coroutine<MemRt, string, Sum<Val, Val>>;
 export declare let render_grid_expr: (v: RenderGrid) => Coroutine<MemRt, string, Sum<Val, Val>>;
 export declare let render_grid_pixel_expr: (v: RenderGridPixel) => Coroutine<MemRt, string, Sum<Val, Val>>;
+export declare let render_surface_expr: (v: RenderSurface) => Coroutine<MemRt, string, Sum<Val, Val>>;
+export declare let render_surface_operation_expr: (v: RenderSurfaceOperation) => Coroutine<MemRt, string, Sum<Val, Val>>;
 export declare let tuple_expr_rt: (args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
 export declare let tuple_get_rt: (r: SourceRange, t: ExprRt<Sum<Val, Val>>, item_index: number) => ExprRt<Sum<Val, Val>>;
 export declare let mk_empty_render_grid_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_render_grid_pixel_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, status: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let render_grid_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_empty_render_surface_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_circle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, r: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_square_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, s: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_rectangle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_ellipse_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_other_surface_rt: (s: ExprRt<Sum<Val, Val>>, dx: ExprRt<Sum<Val, Val>>, dy: ExprRt<Sum<Val, Val>>, sx: ExprRt<Sum<Val, Val>>, sy: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let bool_times_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let bool_plus_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let int_plus_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;

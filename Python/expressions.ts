@@ -15,9 +15,9 @@ import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
   mk_obj_val, mk_ref_val, Scope,
   mk_string_val,
   mk_unit_val, get_arr_len_rt, get_arr_el_rt, get_class_def_rt, get_fun_def_rt,
-  get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, mk_tuple_val } from "./memory"
+  get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, mk_tuple_val, RenderSurface } from "./memory"
 import { SourceRange } from "../source_range";
-import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel } from "./python";
+import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel, mk_render_surface_val, RenderSurfaceOperation, mk_render_surface_operation_val, mk_circle_op, mk_square_op, mk_rectangle_op, mk_ellipse_op, mk_other_surface_op } from "./python";
 import { comm_list_coroutine } from "../ccc_aux";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
@@ -38,6 +38,8 @@ export let ref_expr = (r:ValueName) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply
 export let val_expr = (v:Sum<Val,Val>) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(v))
 export let render_grid_expr = (v:RenderGrid) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_render_grid_val(v))))
 export let render_grid_pixel_expr = (v:RenderGridPixel) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(),mk_render_grid_pixel_val(v))))
+export let render_surface_expr = (v:RenderSurface) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_render_surface_val(v))))
+export let render_surface_operation_expr = (v:RenderSurfaceOperation) => (co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_render_surface_operation_val(v))))
 
 let lift_binary_operation = function<a,b> (a: ExprRt<Sum<Val,Val>>, b:ExprRt<Sum<Val,Val>>, check_types:(ab:Prod<Val,Val>) => Sum<Prod<a,b>, Unit>, actual_operation:(_:Prod<a,b>)=>Val, operator_name?:string): ExprRt<Sum<Val,Val>> {
   return a.then(a_val => b.then(b_val =>
@@ -89,6 +91,54 @@ export let render_grid_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Su
             }
             return mk_render_grid_val({...rg, pixels: pixels })
           }, "(+)")
+}
+
+export let mk_empty_render_surface_rt = function (width: ExprRt<Sum<Val,Val>>, height:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return width.then(w => height.then(h => color.then(col =>
+    w.value.k == "i" && h.value.k == "i" && col.value.k == "s" ?
+      render_surface_expr({ width:w.value.v, height:h.value.v, operations:Immutable.List<RenderSurfaceOperation>([{ kind:"rectangle", x:0, y:0, width:w.value.v, height:h.value.v, color:col.value.v }]) })
+    : runtime_error(`Type error: cannot create empty render surface with ${w.value.v}, ${h.value.v}, and ${col.value.v}.`)
+  )))
+}
+
+export let mk_circle_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, r:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return x.then(x_v => y.then(y_v => r.then(r_v => color.then(col =>
+    x_v.value.k == "i" && y_v.value.k == "i" && r_v.value.k == "i" && col.value.k == "s" ?
+      render_surface_operation_expr(mk_circle_op(x_v.value.v, y_v.value.v, r_v.value.v, col.value.v))
+    : runtime_error(`Type error: cannot create circle with ${x_v.value.v}, ${y_v.value.v}, ${r_v.value.v} and ${col.value.v}.`)
+  ))))
+}
+
+export let mk_square_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, s:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return x.then(x_v => y.then(y_v => s.then(s_v => color.then(col =>
+    x_v.value.k == "i" && y_v.value.k == "i" && s_v.value.k == "i" && col.value.k == "s" ?
+      render_surface_operation_expr(mk_square_op(x_v.value.v, y_v.value.v, s_v.value.v, col.value.v))
+    : runtime_error(`Type error: cannot create square with ${x_v.value.v}, ${y_v.value.v}, ${s_v.value.v} and ${col.value.v}.`)
+  ))))
+}
+
+export let mk_rectangle_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return x.then(x_v => y.then(y_v => w.then(w_v => h.then(h_v => color.then(col =>
+    x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
+      render_surface_operation_expr(mk_rectangle_op(x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
+    : runtime_error(`Type error: cannot create rectangle with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${col.value.v}.`)
+  )))))
+}
+
+export let mk_ellipse_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return x.then(x_v => y.then(y_v => w.then(w_v => h.then(h_v => color.then(col =>
+    x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
+      render_surface_operation_expr(mk_ellipse_op(x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
+    : runtime_error(`Type error: cannot create ellipse with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${col.value.v}.`)
+  )))))
+}
+
+export let mk_other_surface_rt = function (s:ExprRt<Sum<Val,Val>>, dx: ExprRt<Sum<Val,Val>>, dy:ExprRt<Sum<Val,Val>>, sx:ExprRt<Sum<Val,Val>>, sy:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return dx.then(dx_v => dy.then(dy_v => sx.then(sx_v => sy.then(sy_v => s.then(s_v =>
+    dx_v.value.k == "i" && dy_v.value.k == "i" && sx_v.value.k == "i" && sy_v.value.k == "i" && s_v.value.k == "render surface" ?
+      render_surface_operation_expr(mk_other_surface_op(s_v.value.v, dx_v.value.v, dy_v.value.v, sx_v.value.v, sy_v.value.v))
+    : runtime_error(`Type error: cannot create ellipse with ${dx_v.value.v}, ${dy_v.value.v}, ${sx_v.value.v}, ${sy_v.value.v} and ${s_v.value.v}.`)
+  )))))
 }
 
 export let bool_times_rt = function (a: ExprRt<Sum<Val, Val>>, b:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {

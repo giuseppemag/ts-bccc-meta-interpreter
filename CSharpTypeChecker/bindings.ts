@@ -14,12 +14,23 @@ export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
-export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"} | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
+export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"} | { kind:"other surface"}
+export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
+                 | { kind:"render surface"} | RenderOperationType
+                 | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
                  | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
                  | { kind:"generic type decl", f:Type, args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
+
+export let render_surface_type : Type = { kind:"render surface" }
+export let circle_type : Type = { kind:"circle" }
+export let square_type : Type = { kind:"square" }
+export let ellipse_type : Type = { kind:"ellipse" }
+export let rectangle_type : Type = { kind:"rectangle" }
+export let other_render_surface_type : Type = { kind:"other surface" }
+
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let var_type : Type = { kind:"var" }
@@ -257,6 +268,82 @@ export let mk_render_grid_pixel = function(r:SourceRange, w:Stmt, h:Stmt, st:Stm
             co_unit(mk_typing(render_grid_pixel_type, Sem.mk_render_grid_pixel_rt(w_t.sem, h_t.sem, st_t.sem)))
           : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for empty grid creation." })
          )))
+}
+
+export let mk_empty_surface = function(r:SourceRange, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+  return _ => w(no_constraints).then(w_t =>
+              h(no_constraints).then(h_t =>
+              col(no_constraints).then(col_t =>
+                type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) && type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(render_surface_type, Sem.mk_empty_render_surface_rt(w_t.sem, h_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for empty grid creation." })
+            )))
+}
+
+export let mk_circle = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:Stmt) : Stmt {
+  return _ => x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              radius(no_constraints).then(r_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(r_t.type, int_type) && type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(circle_type, Sem.mk_circle_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for circle creation." })
+              ))))
+}
+
+export let mk_square = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:Stmt) : Stmt {
+  return _ => x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              radius(no_constraints).then(r_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(r_t.type, int_type) && type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for square creation." })
+              ))))
+}
+
+export let mk_ellipse = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+  return _ => x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              w(no_constraints).then(w_t =>
+              h(no_constraints).then(h_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
+              type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for ellipse creation." })
+              )))))
+}
+
+export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+  return _ => x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              w(no_constraints).then(w_t =>
+              h(no_constraints).then(h_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
+              type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for rectangle creation." })
+              )))))
+}
+
+export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, sx:Stmt, sy:Stmt) : Stmt {
+  return _ => dx(no_constraints).then(dx_t =>
+              dy(no_constraints).then(dy_t =>
+              sx(no_constraints).then(sx_t =>
+              sy(no_constraints).then(sy_t =>
+              s(no_constraints).then(s_t =>
+              type_equals(dx_t.type, int_type) && type_equals(dy_t.type, int_type) &&
+              type_equals(sx_t.type, int_type) && type_equals(sy_t.type, int_type) &&
+              type_equals(s_t.type, render_surface_type) ?
+                co_unit(mk_typing(other_render_surface_type, Sem.mk_other_surface_rt(dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, s_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for other surface displacement." })
+              )))))
 }
 
 export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {

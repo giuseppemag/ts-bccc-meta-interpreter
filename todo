@@ -5,7 +5,6 @@
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] Records (C# 7 tuples)
 
-
 [g] Renderers
   [ ] Surface
   [ ] Circle (with color)
@@ -55,6 +54,7 @@
 [m] highlighting with proper style
 [m] procedures (functions returning `void`)
 [m] `int z = then(d, p2)(5);` does not work (function call should be integrated into expression parser)
+[m] show function body upon click/on mouse over
 
 [m] does not parse:
 int factorial(int x) {

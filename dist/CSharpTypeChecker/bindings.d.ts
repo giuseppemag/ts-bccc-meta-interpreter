@@ -16,11 +16,24 @@ export interface FieldType {
     type: Type;
     modifiers: Immutable.Set<Modifier>;
 }
+export declare type RenderOperationType = {
+    kind: "circle";
+} | {
+    kind: "square";
+} | {
+    kind: "rectangle";
+} | {
+    kind: "ellipse";
+} | {
+    kind: "other surface";
+};
 export declare type Type = {
     kind: "render-grid-pixel";
 } | {
     kind: "render-grid";
 } | {
+    kind: "render surface";
+} | RenderOperationType | {
     kind: "unit";
 } | {
     kind: "bool";
@@ -57,6 +70,12 @@ export declare type Type = {
 };
 export declare let render_grid_type: Type;
 export declare let render_grid_pixel_type: Type;
+export declare let render_surface_type: Type;
+export declare let circle_type: Type;
+export declare let square_type: Type;
+export declare let ellipse_type: Type;
+export declare let rectangle_type: Type;
+export declare let other_render_surface_type: Type;
 export declare let unit_type: Type;
 export declare let int_type: Type;
 export declare let var_type: Type;
@@ -105,6 +124,12 @@ export declare let neq: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let xor: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let mk_empty_render_grid: (r: SourceRange, w: Stmt, h: Stmt) => Stmt;
 export declare let mk_render_grid_pixel: (r: SourceRange, w: Stmt, h: Stmt, st: Stmt) => Stmt;
+export declare let mk_empty_surface: (r: SourceRange, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_circle: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
+export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
+export declare let mk_ellipse: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_rectangle: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let div: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

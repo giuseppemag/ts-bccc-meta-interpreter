@@ -30,29 +30,17 @@ export let get_stream = DebuggerStream.get_stream
 export let test_parser = () => {
   // Func<int,int,bool> d = x,y => x > y;
 
-//   let source = `
-// surface s = empty_surface 200 200 "white";
-// s = s + circle 50 50 20 "blue";
-// s = s + square 150 150 20 "yellow";
-// s = s + rectangle 150 50 20 40 "green";
-// s = s + ellipse 150 150 40 20 "red";
+    let source = `
+surface s = empty_surface 200 200 "white";
+s = s + circle 50 50 20 "blue";
+s = s + square 150 150 20 "yellow";
+s = s + rectangle 150 50 20 40 "green";
+s = s + ellipse 150 150 40 20 "red";
 
-// surface l = empty_surface 400 400 "white";
-// l = l + other_surface s 0 0;
-// l = l + other_surface s 200 200;
-//   `
-    let source = `Func<int,int> d = x => x * 2;
-    Func<int,int> p2 = x => x + 2;
-
-    Func<int,int> then(Func<int,int> f, Func<int,int> g) {
-      typechecker_debugger;
-      return x => g(f(x));
-    }
-
-    var d_p2 = then(d, p2);
-    typechecker_debugger;
-    int z = d_p2(5);
-    `
+surface l = empty_surface 400 400 "white";
+l = l + other_surface s 0 0 1 1;
+l = l + other_surface s 200 200 1 1;
+`
 
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value

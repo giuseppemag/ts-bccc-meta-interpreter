@@ -81,6 +81,8 @@ export declare type Token = ({
 } | {
     kind: ",";
 } | {
+    kind: RenderingKind;
+} | {
     kind: "RenderGrid";
     v: number;
 } | {
@@ -92,6 +94,7 @@ export declare type Token = ({
 }) & {
     range: SourceRange;
 };
+export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "other_surface";
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
 }
@@ -231,17 +234,6 @@ export interface UnaryOpAST {
     kind: UnaryOpKind;
     e: ParserRes;
 }
-export interface MkEmptyRenderGrid {
-    kind: "mk-empty-render-grid";
-    w: ParserRes;
-    h: ParserRes;
-}
-export interface MkRenderGridPixel {
-    kind: "mk-render-grid-pixel";
-    w: ParserRes;
-    h: ParserRes;
-    status: ParserRes;
-}
 export interface ConstructorDeclarationAST {
     kind: "cons_decl";
     name: string;
@@ -271,6 +263,62 @@ export interface MethodCallAST {
     name: ParserRes;
     actuals: Array<ParserRes>;
 }
+export interface MkEmptyRenderGrid {
+    kind: "mk-empty-render-grid";
+    w: ParserRes;
+    h: ParserRes;
+}
+export interface MkRenderGridPixel {
+    kind: "mk-render-grid-pixel";
+    w: ParserRes;
+    h: ParserRes;
+    status: ParserRes;
+}
+export interface EmptySurface {
+    kind: "empty surface";
+    w: ParserRes;
+    h: ParserRes;
+    color: ParserRes;
+}
+export interface Circle {
+    kind: "circle";
+    cx: ParserRes;
+    cy: ParserRes;
+    r: ParserRes;
+    color: ParserRes;
+}
+export interface Square {
+    kind: "square";
+    cx: ParserRes;
+    cy: ParserRes;
+    s: ParserRes;
+    color: ParserRes;
+}
+export interface Ellipse {
+    kind: "ellipse";
+    cx: ParserRes;
+    cy: ParserRes;
+    w: ParserRes;
+    h: ParserRes;
+    color: ParserRes;
+}
+export interface Rectangle {
+    kind: "rectangle";
+    cx: ParserRes;
+    cy: ParserRes;
+    w: ParserRes;
+    h: ParserRes;
+    color: ParserRes;
+}
+export interface OtherSurface {
+    kind: "other surface";
+    s: ParserRes;
+    dx: ParserRes;
+    dy: ParserRes;
+    sx: ParserRes;
+    sy: ParserRes;
+}
+export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | OtherSurface;
 export interface GenericTypeDeclAST {
     kind: "generic type decl";
     f: ParserRes;
@@ -280,7 +328,7 @@ export interface TupleTypeDeclAST {
     kind: "tuple type decl";
     args: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | ModifierAST;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ModifierAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

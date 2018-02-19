@@ -11,12 +11,12 @@ export type Bool = boolean
 export interface Lambda { body:ExprRt<Sum<Val,Val>>, parameters:Array<ValueName>, closure: Scope, range:SourceRange }
 export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
-export interface Canvas { operations:Immutable.List<CanvasOperation>, width:number, height:number }
-export type CanvasOperation = { kind:"circle", x:number, y:number, radius:number, color:string }
+export interface RenderSurface { operations:Immutable.List<RenderSurfaceOperation>, width:number, height:number }
+export type RenderSurfaceOperation = { kind:"circle", x:number, y:number, radius:number, color:string }
                             | { kind:"square", x:number, y:number, side:number, color:string }
                             | { kind:"rectangle", x:number, y:number, width:number, height:number, color:string }
-                            | { kind:"polygon", points:Array<{x:number, y:number}>, color:string }
                             | { kind:"ellipse", x:number, y:number, width:number, height:number, color:string }
+                            | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number }
 
 export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }
 export interface RenderGridPixel { x:number, y:number, status:boolean }
@@ -28,6 +28,7 @@ export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } 
                 | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" }
                 | { v:Array<Val>, k:"tuple" }
                 | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
+                | { v:RenderSurface, k:"render surface" } | { v:RenderSurfaceOperation, k:"render surface operation" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
 export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
 export interface Interface { base:Sum<Interface, Unit>, static_methods:Immutable.Map<ValueName, StmtRt>, methods:Immutable.Map<ValueName, StmtRt>, static_fields:Immutable.Map<ValueName, Val> }
@@ -45,6 +46,13 @@ export let mk_obj_val : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let mk_ref_val : (_:ValueName) => Val = r => ({ v:r, k:"ref" })
 export let mk_render_grid_val : (_:RenderGrid) => Val = r => ({ v:r, k:"render-grid" })
 export let mk_render_grid_pixel_val : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
+export let mk_render_surface_val = (s:RenderSurface) : Val => ({ v:s, k:"render surface" })
+export let mk_circle_op = (x:number, y:number, radius:number, color:string) : RenderSurfaceOperation => ({ kind:"circle", x, y, radius, color })
+export let mk_square_op = (x:number, y:number, side:number, color:string) : RenderSurfaceOperation => ({ kind:"square", x, y, side, color })
+export let mk_ellipse_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"ellipse", x, y, width, height, color })
+export let mk_rectangle_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"rectangle", x, y, width, height, color })
+export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy })
+export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val => ({ v:s, k:"render surface operation" })
 
 export type ErrVal = string
 

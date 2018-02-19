@@ -30,6 +30,8 @@ exports.ref_expr = function (r) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_b
 exports.val_expr = function (v) { return (ts_bccc_2.co_unit(v)); };
 exports.render_grid_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_val(v)))); };
 exports.render_grid_pixel_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_grid_pixel_val(v)))); };
+exports.render_surface_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_surface_val(v)))); };
+exports.render_surface_operation_expr = function (v) { return (ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_render_surface_operation_val(v)))); };
 var lift_binary_operation = function (a, b, check_types, actual_operation, operator_name) {
     return a.then(function (a_val) { return b.then(function (b_val) {
         return ts_bccc_1.apply(ts_bccc_1.fun(check_types).then((ts_bccc_1.fun(actual_operation).then(ts_bccc_1.inl()).then(ts_bccc_1.fun(ts_bccc_2.co_unit))).plus(ts_bccc_1.constant(memory_1.runtime_error("Type error: cannot perform " + operator_name + " on " + a_val.value.v + " and " + b_val.value.v + ".")))), { fst: a_val.value, snd: b_val.value });
@@ -80,6 +82,48 @@ exports.render_grid_plus_rt = function (r, p) {
         }
         return python_1.mk_render_grid_val(__assign({}, rg, { pixels: pixels }));
     }, "(+)");
+};
+exports.mk_empty_render_surface_rt = function (width, height, color) {
+    return width.then(function (w) { return height.then(function (h) { return color.then(function (col) {
+        return w.value.k == "i" && h.value.k == "i" && col.value.k == "s" ?
+            exports.render_surface_expr({ width: w.value.v, height: h.value.v, operations: Immutable.List([{ kind: "rectangle", x: 0, y: 0, width: w.value.v, height: h.value.v, color: col.value.v }]) })
+            : memory_1.runtime_error("Type error: cannot create empty render surface with " + w.value.v + ", " + h.value.v + ", and " + col.value.v + ".");
+    }); }); });
+};
+exports.mk_circle_rt = function (x, y, r, color) {
+    return x.then(function (x_v) { return y.then(function (y_v) { return r.then(function (r_v) { return color.then(function (col) {
+        return x_v.value.k == "i" && y_v.value.k == "i" && r_v.value.k == "i" && col.value.k == "s" ?
+            exports.render_surface_operation_expr(python_1.mk_circle_op(x_v.value.v, y_v.value.v, r_v.value.v, col.value.v))
+            : memory_1.runtime_error("Type error: cannot create circle with " + x_v.value.v + ", " + y_v.value.v + ", " + r_v.value.v + " and " + col.value.v + ".");
+    }); }); }); });
+};
+exports.mk_square_rt = function (x, y, s, color) {
+    return x.then(function (x_v) { return y.then(function (y_v) { return s.then(function (s_v) { return color.then(function (col) {
+        return x_v.value.k == "i" && y_v.value.k == "i" && s_v.value.k == "i" && col.value.k == "s" ?
+            exports.render_surface_operation_expr(python_1.mk_square_op(x_v.value.v, y_v.value.v, s_v.value.v, col.value.v))
+            : memory_1.runtime_error("Type error: cannot create square with " + x_v.value.v + ", " + y_v.value.v + ", " + s_v.value.v + " and " + col.value.v + ".");
+    }); }); }); });
+};
+exports.mk_rectangle_rt = function (x, y, w, h, color) {
+    return x.then(function (x_v) { return y.then(function (y_v) { return w.then(function (w_v) { return h.then(function (h_v) { return color.then(function (col) {
+        return x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
+            exports.render_surface_operation_expr(python_1.mk_rectangle_op(x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
+            : memory_1.runtime_error("Type error: cannot create rectangle with " + x_v.value.v + ", " + y_v.value.v + ", " + w_v.value.v + ", " + h_v.value.v + " and " + col.value.v + ".");
+    }); }); }); }); });
+};
+exports.mk_ellipse_rt = function (x, y, w, h, color) {
+    return x.then(function (x_v) { return y.then(function (y_v) { return w.then(function (w_v) { return h.then(function (h_v) { return color.then(function (col) {
+        return x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
+            exports.render_surface_operation_expr(python_1.mk_ellipse_op(x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
+            : memory_1.runtime_error("Type error: cannot create ellipse with " + x_v.value.v + ", " + y_v.value.v + ", " + w_v.value.v + ", " + h_v.value.v + " and " + col.value.v + ".");
+    }); }); }); }); });
+};
+exports.mk_other_surface_rt = function (s, dx, dy, sx, sy) {
+    return dx.then(function (dx_v) { return dy.then(function (dy_v) { return sx.then(function (sx_v) { return sy.then(function (sy_v) { return s.then(function (s_v) {
+        return dx_v.value.k == "i" && dy_v.value.k == "i" && sx_v.value.k == "i" && sy_v.value.k == "i" && s_v.value.k == "render surface" ?
+            exports.render_surface_operation_expr(python_1.mk_other_surface_op(s_v.value.v, dx_v.value.v, dy_v.value.v, sx_v.value.v, sy_v.value.v))
+            : memory_1.runtime_error("Type error: cannot create ellipse with " + dx_v.value.v + ", " + dy_v.value.v + ", " + sx_v.value.v + ", " + sy_v.value.v + " and " + s_v.value.v + ".");
+    }); }); }); }); });
 };
 exports.bool_times_rt = function (a, b) {
     return lift_binary_operation(a, b, function (ab) { return ab.fst.k != "b" || ab.snd.k != "b" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) { return memory_1.mk_bool_val(ab_val.fst && ab_val.snd); }, "(&&)");

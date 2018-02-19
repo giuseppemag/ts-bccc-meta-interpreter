@@ -25,8 +25,12 @@ export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { 
   | { kind:"eof" } | { kind:"nl" }
   | { kind:" " }
   | { kind:"," }
+  | { kind:RenderingKind }
   | { kind:"RenderGrid", v:number } | { kind:"mk_empty_render_grid" } | { kind:"pixel" } | {kind:"return"}
   ) & { range:SourceRange }
+
+export type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "other_surface"
+
 
 export module GrammarBasics {
   type LexerError = string
@@ -72,6 +76,13 @@ export module GrammarBasics {
     parse_prefix_regex(/^while/, (s,r) => ({range:r, kind:"while"})),
     parse_prefix_regex(/^if/, (s,r) => ({range:r, kind:"if"})),
     parse_prefix_regex(/^else/, (s,r) => ({range:r, kind:"else"})),
+
+    parse_prefix_regex(/^other_surface/, (s,r) => ({range:r, kind:"other_surface"})),
+    parse_prefix_regex(/^empty_surface/, (s,r) => ({range:r, kind:"empty_surface"})),
+    parse_prefix_regex(/^ellipse/, (s,r) => ({range:r, kind:"ellipse"})),
+    parse_prefix_regex(/^circle/, (s,r) => ({range:r, kind:"circle"})),
+    parse_prefix_regex(/^rectangle/, (s,r) => ({range:r, kind:"rectangle"})),
+    parse_prefix_regex(/^square/, (s,r) => ({range:r, kind:"square"})),
 
     parse_prefix_regex(/^empty_render_grid/, (s,r) => ({range:r, kind:"mk_empty_render_grid"})),
     parse_prefix_regex(/^pixel/, (s,r) => ({range:r, kind:"pixel"})),
@@ -161,6 +172,7 @@ export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"stati
 
 export interface DebuggerAST { kind: "dbg" }
 export interface TCDebuggerAST { kind: "tc-dbg" }
+
 export interface UnitAST { kind: "unit" }
 export interface StringAST { kind: "string", value:string }
 export interface BoolAST { kind: "bool", value: boolean }
@@ -185,13 +197,22 @@ export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
-export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
-export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 export interface ConstructorDeclarationAST { kind:"cons_decl", name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionDeclarationAST { kind:"func_decl", name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
+
+export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
+export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
+
+export interface EmptySurface { kind: "empty surface", w:ParserRes, h:ParserRes, color:ParserRes }
+export interface Circle { kind: "circle", cx:ParserRes, cy:ParserRes, r:ParserRes, color:ParserRes }
+export interface Square { kind: "square", cx:ParserRes, cy:ParserRes, s:ParserRes, color:ParserRes }
+export interface Ellipse { kind: "ellipse", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, color:ParserRes }
+export interface Rectangle { kind: "rectangle", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, color:ParserRes }
+export interface OtherSurface { kind: "other surface", s:ParserRes, dx:ParserRes, dy:ParserRes, sx:ParserRes, sy:ParserRes }
+export type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | OtherSurface
 
 export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
 let mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
@@ -208,6 +229,7 @@ export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | ClassAST | ConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
+                | RenderSurfaceAST
                 | ModifierAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
@@ -229,7 +251,6 @@ let mk_if_then = (c:ParserRes,t:ParserRes, if_keyword_range:SourceRange) : Parse
 let mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, e.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
 let mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 let mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
-
 
 let mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
 let mk_pair = mk_bin_op(",")
@@ -282,9 +303,16 @@ let mk_virtual = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({
 
 let mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "dbg" }})
 let mk_tc_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "tc-dbg" }})
+
 let mk_empty_render_grid = (w:ParserRes, h:ParserRes) : ParserRes => ({ range:join_source_ranges(w.range, h.range), ast:{ kind: "mk-empty-render-grid", w:w, h:h }})
 let mk_render_grid_pixel = (w:ParserRes, h:ParserRes, status:ParserRes) : ParserRes => ({ range:join_source_ranges(w.range, join_source_ranges(h.range, status.range)), ast:{ kind: "mk-render-grid-pixel", w:w, h:h, status:status }})
 
+let mk_empty_surface = (sr:SourceRange, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "empty surface", w:w, h:h, color:col } })
+let mk_circle = (sr:SourceRange, cx:ParserRes, cy:ParserRes, r:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "circle", cx:cx, cy:cy, r:r, color:col } })
+let mk_square = (sr:SourceRange, cx:ParserRes, cy:ParserRes, s:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "square", cx:cx, cy:cy, s:s, color:col } })
+let mk_ellipse = (sr:SourceRange, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "ellipse", cx:cx, cy:cy, w:w, h:h, color:col } })
+let mk_rectangle = (sr:SourceRange, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "rectangle", cx:cx, cy:cy, w:w, h:h, color:col } })
+let mk_other_surface = (sr:SourceRange, s:ParserRes, dx:ParserRes, dy:ParserRes, sx:ParserRes, sy:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "other surface", s:s, dx:dx, dy:dy, sx:sx, sy:sy } })
 
 export interface ParserError { priority:number, message:string, range:SourceRange }
 export interface ParserState { tokens:Immutable.List<Token>, branch_priority:number }
@@ -466,24 +494,23 @@ let identifier: Parser = ignore_whitespace(co_get_state<ParserState, ParserError
 }))
 
 let return_sign = symbol("return", "return")
-
 let for_keyword = symbol("for", "for")
-
 let while_keyword = symbol("while", "while")
-
 let if_keyword = symbol("if", "if")
-
 let else_keyword = symbol("else", "else")
-
 let equal_sign = symbol("=", "=")
-
 let semicolon_sign = symbol(";", "semicolon")
-
 let comma_sign = symbol(",", "comma")
-
 let class_keyword = symbol("class", "class")
-
 let new_keyword = symbol("new", "new")
+
+let surface_keyword = symbol("surface", "surface")
+let empty_surface_keyword = symbol("empty_surface", "empty_surface")
+let circle_keyword = symbol("circle", "circle")
+let square_keyword = symbol("square", "square")
+let rectangle_keyword = symbol("rectangle", "rectangle")
+let ellipse_keyword = symbol("ellipse", "ellipse")
+let other_surface_keyword = symbol("other_surface", "other_surface")
 
 let left_bracket = symbol("(", "(")
 let right_bracket = symbol(")", ")")
@@ -555,8 +582,70 @@ let render_grid_pixel_prs : () => Parser = () =>
   co_unit(mk_render_grid_pixel(l,r,st))
   ))))
 
+let mk_empty_surface_prs : () => Parser = () =>
+  empty_surface_keyword.then(esk =>
+  expr().then(l =>
+  expr().then(r =>
+  expr().then(col =>
+  co_unit(mk_empty_surface(join_source_ranges(esk, col.range), l,r,col))
+  ))))
+
+let mk_circle_prs : () => Parser = () =>
+  circle_keyword.then(kw =>
+  expr().then(cx =>
+  expr().then(cy =>
+  expr().then(r =>
+  expr().then(col =>
+  co_unit(mk_circle(join_source_ranges(kw, col.range), cx, cy, r, col))
+  )))))
+
+let mk_square_prs : () => Parser = () =>
+  square_keyword.then(kw =>
+  expr().then(cx =>
+  expr().then(cy =>
+  expr().then(r =>
+  expr().then(col =>
+  co_unit(mk_square(join_source_ranges(kw, col.range), cx, cy, r, col))
+  )))))
+
+let mk_ellipse_prs : () => Parser = () =>
+  ellipse_keyword.then(kw =>
+  expr().then(cx =>
+  expr().then(cy =>
+  expr().then(w =>
+  expr().then(h =>
+  expr().then(col =>
+  co_unit(mk_ellipse(join_source_ranges(kw, col.range), cx, cy, w, h, col))
+  ))))))
+
+let mk_rectangle_prs : () => Parser = () =>
+  rectangle_keyword.then(kw =>
+  expr().then(cx =>
+  expr().then(cy =>
+  expr().then(w =>
+  expr().then(h =>
+  expr().then(col =>
+  co_unit(mk_rectangle(join_source_ranges(kw, col.range), cx, cy, w, h, col))
+  ))))))
+
+let mk_other_surface_prs : () => Parser = () =>
+  other_surface_keyword.then(kw =>
+  expr().then(s =>
+  expr().then(dx =>
+  expr().then(dy =>
+  expr().then(sx =>
+  expr().then(sy =>
+  co_unit(mk_other_surface(join_source_ranges(kw, sy.range), s, dx, dy, sx, sy))
+  ))))))
 
 let term : () => Parser = () : Parser =>
+  parser_or<ParserRes>(mk_empty_surface_prs(),
+  parser_or<ParserRes>(mk_circle_prs(),
+  parser_or<ParserRes>(mk_square_prs(),
+  parser_or<ParserRes>(mk_ellipse_prs(),
+  parser_or<ParserRes>(mk_rectangle_prs(),
+  parser_or<ParserRes>(mk_other_surface_prs(),
+
   parser_or<ParserRes>(mk_empty_render_grid_prs(),
   parser_or<ParserRes>(render_grid_pixel_prs(),
   parser_or<ParserRes>(bool,
@@ -571,7 +660,7 @@ let term : () => Parser = () : Parser =>
   expr().then(e =>
   right_bracket.then(_ =>
   co_unit(e)))
-  )))))))))))
+  )))))))))))))))))
 
 let unary_expr : () => Parser = () =>
   not_op.then(_ =>
@@ -989,6 +1078,11 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
     : s.ast.value == "void" ? CSharp.unit_type
     : s.ast.value == "RenderGrid" ? CSharp.render_grid_type
     : s.ast.value == "RenderGridPixel" ? CSharp.render_grid_pixel_type
+    : s.ast.value == "surface" ? CSharp.render_surface_type
+    : s.ast.value == "circle" ? CSharp.circle_type
+    : s.ast.value == "square" ? CSharp.square_type
+    : s.ast.value == "ellipse" ? CSharp.ellipse_type
+    : s.ast.value == "rectangle" ? CSharp.rectangle_type
     : s.ast.value == "var" ? CSharp.var_type
     : CSharp.ref_type(s.ast.value)
   : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
@@ -1103,6 +1197,20 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?
     CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+
+  : n.ast.kind == "empty surface" ?
+    CSharp.mk_empty_surface(n.range, ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
+  : n.ast.kind == "circle" ?
+    CSharp.mk_circle(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.r)(context), ast_to_type_checker(n.ast.color)(context))
+  : n.ast.kind == "square" ?
+    CSharp.mk_square(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.color)(context))
+  : n.ast.kind == "ellipse" ?
+    CSharp.mk_ellipse(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
+  : n.ast.kind == "rectangle" ?
+    CSharp.mk_rectangle(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
+  : n.ast.kind == "other surface" ?
+    CSharp.mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context))
+
   : n.ast.kind == "mk-empty-render-grid" ?
     CSharp.mk_empty_render_grid(n.range, ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context))
   : n.ast.kind == "mk-render-grid-pixel" ?
