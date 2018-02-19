@@ -93,6 +93,43 @@ export let render_grid_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Su
           }, "(+)")
 }
 
+export let render_surface_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
+  return lift_binary_operation<RenderSurface,RenderSurfaceOperation>(r, p,
+          ab => ab.fst.k != "render surface" || ab.snd.k != "render surface operation" ? inr<Prod<RenderGrid,RenderGridPixel>, Unit>().f({}) : inl<Prod<RenderGrid,RenderGridPixel>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab_val => {
+            let s = ab_val.fst
+            let op = ab_val.snd
+            let operations = s.operations
+            if (op.kind == "other surface") {
+              let dx = op.dx
+              let dy = op.dy
+              let sx = op.sx
+              let sy = op.sy
+              let translate = (o:RenderSurfaceOperation,dx:number,dy:number) : RenderSurfaceOperation =>
+                o.kind == "circle" ? ({...o, x:o.x+dx, y:o.y+dy})
+                : o.kind == "square" ? ({...o, x:o.x+dx, y:o.y+dy})
+                : o.kind == "ellipse" ? ({...o, x:o.x+dx, y:o.y+dy})
+                : o.kind == "rectangle" ? ({...o, x:o.x+dx, y:o.y+dy})
+                : o
+              let scale = (o:RenderSurfaceOperation,sx:number,sy:number) : RenderSurfaceOperation =>
+                o.kind == "circle" ?
+                  sx == sy ? ({...o, radius:o.radius*sx})
+                  : ({ kind:"ellipse", x:o.x, y:o.y, width:o.radius*sx, height:o.radius*sy, color:o.color})
+                : o.kind == "square" ?
+                  sx == sy ? ({...o, side:o.side*sx})
+                  : ({ kind:"rectangle", x:o.x, y:o.y, width:o.side*sx, height:o.side*sy, color:o.color})
+                : o.kind == "ellipse" ? ({...o, width:o.width*sx, height:o.height*sy})
+                : o.kind == "rectangle" ? ({...o, width:o.width*sx, height:o.height*sy})
+                : o
+
+              operations = operations.concat(op.s.operations.map(op1 => op1 && translate(scale(op1, sx, sy), dx, dy))).toList()
+            } else {
+              operations = operations.push(op)
+            }
+            return mk_render_surface_val({...s, operations:operations })
+          }, "(+)")
+}
+
 export let mk_empty_render_surface_rt = function (width: ExprRt<Sum<Val,Val>>, height:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
   return width.then(w => height.then(h => color.then(col =>
     w.value.k == "i" && h.value.k == "i" && col.value.k == "s" ?
@@ -137,7 +174,7 @@ export let mk_other_surface_rt = function (s:ExprRt<Sum<Val,Val>>, dx: ExprRt<Su
   return dx.then(dx_v => dy.then(dy_v => sx.then(sx_v => sy.then(sy_v => s.then(s_v =>
     dx_v.value.k == "i" && dy_v.value.k == "i" && sx_v.value.k == "i" && sy_v.value.k == "i" && s_v.value.k == "render surface" ?
       render_surface_operation_expr(mk_other_surface_op(s_v.value.v, dx_v.value.v, dy_v.value.v, sx_v.value.v, sy_v.value.v))
-    : runtime_error(`Type error: cannot create ellipse with ${dx_v.value.v}, ${dy_v.value.v}, ${sx_v.value.v}, ${sy_v.value.v} and ${s_v.value.v}.`)
+    : runtime_error(`Type error: cannot create other surface with ${dx_v.value.v}, ${dy_v.value.v}, ${sx_v.value.v}, ${sy_v.value.v} and ${s_v.value.v}.`)
   )))))
 }
 

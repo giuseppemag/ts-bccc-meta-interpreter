@@ -341,7 +341,7 @@ export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, 
               type_equals(dx_t.type, int_type) && type_equals(dy_t.type, int_type) &&
               type_equals(sx_t.type, int_type) && type_equals(sy_t.type, int_type) &&
               type_equals(s_t.type, render_surface_type) ?
-                co_unit(mk_typing(other_render_surface_type, Sem.mk_other_surface_rt(dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, s_t.sem)))
+                co_unit(mk_typing(other_render_surface_type, Sem.mk_other_surface_rt(s_t.sem, dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem)))
               : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for other surface displacement." })
               )))))
 }
@@ -359,6 +359,11 @@ export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (+)!" })
           : type_equals(a_t.type, render_grid_type) && type_equals(b_t.type, render_grid_pixel_type) ?
             co_unit(mk_typing(render_grid_type, Sem.render_grid_plus_rt(a_t.sem, b_t.sem)))
+          : type_equals(a_t.type, render_surface_type) &&
+            (type_equals(b_t.type, circle_type) || type_equals(b_t.type, square_type)
+            || type_equals(b_t.type, ellipse_type) || type_equals(b_t.type, rectangle_type)
+            || type_equals(b_t.type, other_render_surface_type)) ?
+            co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot sum expressions of non-compatible types! (" +  a_t.type.kind + "," + b_t.type.kind + ")" })
         ))
 }

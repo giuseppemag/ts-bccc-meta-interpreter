@@ -328,7 +328,7 @@ exports.mk_other_surface = function (r, s, dx, dy, sx, sy) {
                         return type_equals(dx_t.type, exports.int_type) && type_equals(dy_t.type, exports.int_type) &&
                             type_equals(sx_t.type, exports.int_type) && type_equals(sy_t.type, exports.int_type) &&
                             type_equals(s_t.type, exports.render_surface_type) ?
-                            ts_bccc_2.co_unit(mk_typing(exports.other_render_surface_type, Sem.mk_other_surface_rt(dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, s_t.sem)))
+                            ts_bccc_2.co_unit(mk_typing(exports.other_render_surface_type, Sem.mk_other_surface_rt(s_t.sem, dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem)))
                             : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for other surface displacement." });
                     });
                 });
@@ -349,7 +349,12 @@ exports.plus = function (r, a, b) {
                             : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (+)!" })
                 : type_equals(a_t.type, exports.render_grid_type) && type_equals(b_t.type, exports.render_grid_pixel_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.render_grid_type, Sem.render_grid_plus_rt(a_t.sem, b_t.sem)))
-                    : ts_bccc_2.co_error({ range: r, message: "Error: cannot sum expressions of non-compatible types! (" + a_t.type.kind + "," + b_t.type.kind + ")" });
+                    : type_equals(a_t.type, exports.render_surface_type) &&
+                        (type_equals(b_t.type, exports.circle_type) || type_equals(b_t.type, exports.square_type)
+                            || type_equals(b_t.type, exports.ellipse_type) || type_equals(b_t.type, exports.rectangle_type)
+                            || type_equals(b_t.type, exports.other_render_surface_type)) ?
+                        ts_bccc_2.co_unit(mk_typing(exports.render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
+                        : ts_bccc_2.co_error({ range: r, message: "Error: cannot sum expressions of non-compatible types! (" + a_t.type.kind + "," + b_t.type.kind + ")" });
         });
     }); };
 };

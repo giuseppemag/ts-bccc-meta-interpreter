@@ -28,6 +28,7 @@ export declare let tuple_get_rt: (r: SourceRange, t: ExprRt<Sum<Val, Val>>, item
 export declare let mk_empty_render_grid_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_render_grid_pixel_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, status: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let render_grid_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let render_surface_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_empty_render_surface_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_circle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, r: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_square_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, s: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;

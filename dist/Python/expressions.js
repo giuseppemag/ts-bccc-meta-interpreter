@@ -83,6 +83,42 @@ exports.render_grid_plus_rt = function (r, p) {
         return python_1.mk_render_grid_val(__assign({}, rg, { pixels: pixels }));
     }, "(+)");
 };
+exports.render_surface_plus_rt = function (r, p) {
+    return lift_binary_operation(r, p, function (ab) { return ab.fst.k != "render surface" || ab.snd.k != "render surface operation" ? ts_bccc_1.inr().f({}) : ts_bccc_1.inl().f({ fst: ab.fst.v, snd: ab.snd.v }); }, function (ab_val) {
+        var s = ab_val.fst;
+        var op = ab_val.snd;
+        var operations = s.operations;
+        if (op.kind == "other surface") {
+            var dx_1 = op.dx;
+            var dy_1 = op.dy;
+            var sx_1 = op.sx;
+            var sy_1 = op.sy;
+            var translate_1 = function (o, dx, dy) {
+                return o.kind == "circle" ? (__assign({}, o, { x: o.x + dx, y: o.y + dy }))
+                    : o.kind == "square" ? (__assign({}, o, { x: o.x + dx, y: o.y + dy }))
+                        : o.kind == "ellipse" ? (__assign({}, o, { x: o.x + dx, y: o.y + dy }))
+                            : o.kind == "rectangle" ? (__assign({}, o, { x: o.x + dx, y: o.y + dy }))
+                                : o;
+            };
+            var scale_1 = function (o, sx, sy) {
+                return o.kind == "circle" ?
+                    sx == sy ? (__assign({}, o, { radius: o.radius * sx }))
+                        : ({ kind: "ellipse", x: o.x, y: o.y, width: o.radius * sx, height: o.radius * sy, color: o.color })
+                    : o.kind == "square" ?
+                        sx == sy ? (__assign({}, o, { side: o.side * sx }))
+                            : ({ kind: "rectangle", x: o.x, y: o.y, width: o.side * sx, height: o.side * sy, color: o.color })
+                        : o.kind == "ellipse" ? (__assign({}, o, { width: o.width * sx, height: o.height * sy }))
+                            : o.kind == "rectangle" ? (__assign({}, o, { width: o.width * sx, height: o.height * sy }))
+                                : o;
+            };
+            operations = operations.concat(op.s.operations.map(function (op1) { return op1 && translate_1(scale_1(op1, sx_1, sy_1), dx_1, dy_1); })).toList();
+        }
+        else {
+            operations = operations.push(op);
+        }
+        return python_1.mk_render_surface_val(__assign({}, s, { operations: operations }));
+    }, "(+)");
+};
 exports.mk_empty_render_surface_rt = function (width, height, color) {
     return width.then(function (w) { return height.then(function (h) { return color.then(function (col) {
         return w.value.k == "i" && h.value.k == "i" && col.value.k == "s" ?
@@ -122,7 +158,7 @@ exports.mk_other_surface_rt = function (s, dx, dy, sx, sy) {
     return dx.then(function (dx_v) { return dy.then(function (dy_v) { return sx.then(function (sx_v) { return sy.then(function (sy_v) { return s.then(function (s_v) {
         return dx_v.value.k == "i" && dy_v.value.k == "i" && sx_v.value.k == "i" && sy_v.value.k == "i" && s_v.value.k == "render surface" ?
             exports.render_surface_operation_expr(python_1.mk_other_surface_op(s_v.value.v, dx_v.value.v, dy_v.value.v, sx_v.value.v, sy_v.value.v))
-            : memory_1.runtime_error("Type error: cannot create ellipse with " + dx_v.value.v + ", " + dy_v.value.v + ", " + sx_v.value.v + ", " + sy_v.value.v + " and " + s_v.value.v + ".");
+            : memory_1.runtime_error("Type error: cannot create other surface with " + dx_v.value.v + ", " + dy_v.value.v + ", " + sx_v.value.v + ", " + sy_v.value.v + " and " + s_v.value.v + ".");
     }); }); }); }); });
 };
 exports.bool_times_rt = function (a, b) {
