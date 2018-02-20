@@ -1126,9 +1126,12 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "while" ? CSharp.while_do(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.b)(context))
   : n.ast.kind == "if" ? CSharp.if_then_else(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.t)(context),
                             n.ast.e.kind == "right" ? CSharp.done : ast_to_type_checker(n.ast.e.value)(context))
-  : n.ast.kind == "+" ? CSharp.plus(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "-" ? CSharp.minus(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "*" ? CSharp.times(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context), n.range)
+  : n.ast.kind == "+" ? CSharp.plus(n.range, ast_to_type_checker(n.ast.l)(context),
+                                             ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "-" ? CSharp.minus(n.range, ast_to_type_checker(n.ast.l)(context),
+                                              ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "*" ? CSharp.times(n.range, ast_to_type_checker(n.ast.l)(context),
+                                              ast_to_type_checker(n.ast.r)(context), n.range)
   : n.ast.kind == "/" ? CSharp.div(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "%" ? CSharp.mod(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "<" ? CSharp.lt(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
@@ -1141,8 +1144,23 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "not" ? CSharp.not(n.range, ast_to_type_checker(n.ast.e)(context))
   : n.ast.kind == "&&" ? CSharp.and(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "||" ? CSharp.or(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? CSharp.arrow(n.range, [ { name:n.ast.l.ast.value, type:var_type } ], free_variables(n.ast.r, Immutable.Set<ValueName>([n.ast.l.ast.value])).toArray(), ast_to_type_checker(n.ast.r)(context))
-
+  : n.ast.kind == "=>" ? CSharp.arrow(n.range,
+      extract_tuple_args(n.ast.l).map(a => {
+        if (a.ast.kind != "id") {
+          console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
+          throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)
+        }
+        return { name:a.ast.value, type:var_type }
+      }),
+      // [ { name:n.ast.l.ast.value, type:var_type } ],
+      free_variables(n.ast.r, Immutable.Set<ValueName>(      extract_tuple_args(n.ast.l).map(a => {
+        if (a.ast.kind != "id") {
+          console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
+          throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)
+        }
+        return a.ast.value
+      }))).toArray(), ast_to_type_checker(n.ast.r)(context))
+    // : n.ast.l.ast.kind == "tuple type decl"
   : n.ast.kind == "," ? CSharp.tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))

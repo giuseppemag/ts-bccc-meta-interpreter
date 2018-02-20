@@ -95,7 +95,7 @@ export let render_grid_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Su
 
 export let render_surface_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {
   return lift_binary_operation<RenderSurface,RenderSurfaceOperation>(r, p,
-          ab => ab.fst.k != "render surface" || ab.snd.k != "render surface operation" ? inr<Prod<RenderGrid,RenderGridPixel>, Unit>().f({}) : inl<Prod<RenderGrid,RenderGridPixel>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
+          ab => ab.fst.k != "render surface" || ab.snd.k != "render surface operation" ? inr<Prod<RenderSurface,RenderSurfaceOperation>, Unit>().f({}) : inl<Prod<RenderSurface,RenderSurfaceOperation>, Unit>().f({ fst:ab.fst.v, snd:ab.snd.v }),
           ab_val => {
             let s = ab_val.fst
             let op = ab_val.snd

@@ -19,7 +19,7 @@ var ImpLanguageWithSuspend;
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
         // Func<int,int,bool> d = x,y => x > y;
-        var source = "\nsurface s = empty_surface 200 200 \"white\";\ns = s + circle 50 50 20 \"blue\";\ns = s + square 150 150 20 \"yellow\";\ns = s + rectangle 150 50 20 40 \"green\";\ns = s + ellipse 150 150 40 20 \"red\";\n\nsurface l = empty_surface 400 400 \"white\";\nl = l + other_surface s 0 0 1 1;\nl = l + other_surface s 200 200 1 1;\n";
+        var source = "\nFunc<int,int,bool> d = (x,y) => x > y;\nvar z = d(100,20);\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

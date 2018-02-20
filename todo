@@ -1,4 +1,3 @@
-[g] multiparameter lambda's (`Func<int,string,string>`)
 [g] toString operators and automated casting
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
@@ -6,11 +5,6 @@
 [g] Records (C# 7 tuples)
 
 [g] Renderers
-  [ ] Surface
-  [ ] Circle (with color)
-  [ ] Square (with color)
-  [ ] Ellipse
-  [ ] Rectangle
   [ ] Spline (with color)
   [ ] Polygon (with color)
   [ ] Spaceship (with color)

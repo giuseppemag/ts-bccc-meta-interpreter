@@ -31,16 +31,9 @@ export let test_parser = () => {
   // Func<int,int,bool> d = x,y => x > y;
 
     let source = `
-surface s = empty_surface 200 200 "white";
-s = s + circle 50 50 20 "blue";
-s = s + square 150 150 20 "yellow";
-s = s + rectangle 150 50 20 40 "green";
-s = s + ellipse 150 150 40 20 "red";
-
-surface l = empty_surface 400 400 "white";
-l = l + other_surface s 0 0 1 1;
-l = l + other_surface s 200 200 1 1;
-`
+Func<int,int,bool> d = (x,y) => x > y;
+var z = d(100,20);
+    `
 
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
