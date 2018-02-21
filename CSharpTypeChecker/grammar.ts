@@ -201,7 +201,11 @@ export interface ConstructorDeclarationAST { kind:"cons_decl", name:string, arg_
 export interface FunctionDeclarationAST { kind:"func_decl", name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
+export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
+
 export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
+export interface GetArrayValueAtAST {kind:"get_array_value_at", array:ParserRes, index:ParserRes }
+
 
 export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
@@ -215,8 +219,16 @@ export interface OtherSurface { kind: "other surface", s:ParserRes, dx:ParserRes
 export type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | OtherSurface
 
 export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
+export interface ArrayTypeDeclAST { kind:"array decl", t:ParserRes }
+
 let mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
   ({ range:r, ast:{ kind:"generic type decl", f:f, args:args } })
+
+let mk_get_array_value_at = (r:SourceRange, a:ParserRes, actual:ParserRes) : { range:SourceRange, ast:AST } =>
+  ({ range:r, ast:{ kind:"get_array_value_at", array:a, index:actual } })
+
+let mk_array_decl = (r:SourceRange, t:ParserRes) : { range:SourceRange, ast:AST } =>
+  ({ range:r, ast:{ kind:"array decl", t:t } })
 
 export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes> }
   let mk_tuple_type_decl = (r:SourceRange, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
@@ -226,11 +238,11 @@ export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | GenericTypeDeclAST | TupleTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
-                | ClassAST | ConstructorCallAST | MethodCallAST
+                | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
-                | RenderSurfaceAST
-                | ModifierAST
+                | RenderSurfaceAST | ArrayTypeDeclAST
+                | ModifierAST | GetArrayValueAtAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
@@ -283,6 +295,9 @@ let mk_method_call = (obj:ParserRes, f_name:ParserRes, actuals:Array<ParserRes>)
 
 let mk_constructor_call = (new_range:SourceRange, C_name:string, actuals:Array<ParserRes>) : ParserRes =>
   ({ range:new_range, ast:{ kind:"cons_call", name:C_name, actuals:actuals } })
+
+let mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actual:ParserRes) : ParserRes =>
+  ({ range:new_range, ast:{ kind:"array_cons_call", type:_type, actual:actual } })
 
 let mk_constructor_declaration = (function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
   ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body})
@@ -742,7 +757,16 @@ type SymTable = {symbols:Immutable.Stack<ParserRes>,
 
 let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<ParserState, ParserError, SymTable> =>
-  term().then(l =>
+  
+  term().then(from =>
+    parser_or<ParserRes>(
+      left_square_bracket.then(_ =>
+        term().then(actual =>
+        right_square_bracket.then(rs =>
+          co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
+        ))),
+      co_unit(from)))
+  .then(l => 
     parser_or<SymTable>(comma.then(_ => expr_after_op(table.symbols.push(l), table.ops, ",", (l,r)=> mk_pair(l,r))),
     parser_or<SymTable>(arrow_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "=>", (l,r)=> mk_arrow(l,r))),
     parser_or<SymTable>(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))),
@@ -771,12 +795,22 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     co_unit(mk_constructor_call(new_range, class_name.id, actuals))
     )))))
 
+let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
+    new_keyword.then(new_range  =>
+    identifier.then(array_type =>
+    left_square_bracket.then(_ =>
+    term().then((actual:ParserRes) =>
+    right_square_bracket.then(rs =>
+    co_unit(mk_array_cons_call(join_source_ranges(new_range, rs), array_type, actual))
+    )))))
+
+
 let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(
       res,
-      cons_call()
+      parser_or<ParserRes>(cons_call(),array_new())
     )
   }
 
@@ -795,9 +829,19 @@ let assign_right = () : Parser =>
   )))))
 
 let assign : () => Parser = () =>
-  parser_or<ParserRes>(field_ref(),identifier).then(l =>
-  assign_right().then(r => co_unit(mk_assign(l,r)))
-  )
+  parser_or<ParserRes>(
+    field_ref(),
+    parser_or<ParserRes>(
+      identifier.then(from => 
+        left_square_bracket.then(_ =>
+        term().then(actual =>
+        right_square_bracket.then(rs =>
+          co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
+        )))),
+      identifier)
+  ).then(l =>
+      assign_right().then(r => co_unit(mk_assign(l,r)))
+    )
 
 let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
@@ -811,21 +855,26 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
 
 let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
   parser_or<ParserRes>(
-  left_bracket.then(lb =>
-  type_args().then(as =>
-  right_bracket.then(rb =>
-  co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)
-  )))),
-  identifier.then(i =>
-  parser_or<ParserRes>(
-    lt_op.then(_ =>
-    partial_match.then(_ =>
-    type_args().then(args =>
-    gt_op.then(end_range =>
-    co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
-    )))),
-    co_unit(i)
-  )))
+    left_bracket.then(lb =>
+      type_args().then(as =>
+      right_bracket.then(rb =>
+      co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as))))),
+    identifier.then(i =>
+      parser_or<ParserRes>(
+        lt_op.then(_ =>
+          partial_match.then(_ =>
+          type_args().then(args =>
+          gt_op.then(end_range =>
+          co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
+        )))),
+        parser_or<ParserRes>(
+          left_square_bracket.then(_ =>
+            partial_match.then(_ =>
+            right_square_bracket.then(end_range =>
+            co_unit(mk_array_decl(join_source_ranges(i.range, end_range), i))
+          ))),
+          co_unit(i))
+      )))
 
 let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
   no_match.then(_ =>
@@ -1084,7 +1133,8 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
     : s.ast.value == "ellipse" ? CSharp.ellipse_type
     : s.ast.value == "rectangle" ? CSharp.rectangle_type
     : s.ast.value == "var" ? CSharp.var_type
-    : CSharp.ref_type(s.ast.value)
+    : CSharp.ref_type(s.ast.value) :
+  s.ast.kind == "array decl" ? CSharp.arr_type(ast_to_csharp_type(s.ast.t))
   : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
     CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
   : s.ast.kind == "tuple type decl" ?
@@ -1160,13 +1210,35 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
         }
         return a.ast.value
       }))).toArray(), ast_to_type_checker(n.ast.r)(context))
-    // : n.ast.l.ast.kind == "tuple type decl"
   : n.ast.kind == "," ? CSharp.tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "id" ? CSharp.get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
+
+  
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ? 
+    CSharp.set_arr_el(n.range, 
+                      ast_to_type_checker(n.ast.l.ast.array)(context),
+                      ast_to_type_checker(n.ast.l.ast.index)(context),
+                      ast_to_type_checker(n.ast.r)(context))
+
+  // : n.ast.kind == "=" && 
+  //   n.ast.l.ast.kind == "." && 
+  //   n.ast.l.ast.r.ast.kind == "get_array_value_at" ?
+
+  //   CSharp.set_arr_el(n.range, 
+  //                     ast_to_type_checker(n.ast.l.ast.array)(context),
+  //                     ast_to_type_checker(n.ast.l.ast.r.ast.index)(context), ??? a.b.c[i] = v
+  //                     ast_to_type_checker(n.ast.r)(context))
+              
+    
+
+
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), n.ast.l.ast.r.ast.value, ast_to_type_checker(n.ast.r)(context))
+
+
+
   : n.ast.kind == "cons_call" ?
     CSharp.call_cons(n.range, context, n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "func_call" &&
@@ -1207,6 +1279,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind)
       }))
     )
+    
   : n.ast.kind == "decl" ?
     CSharp.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
   : n.ast.kind == "decl and init" ?
@@ -1215,6 +1288,13 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?
     CSharp.typechecker_breakpoint(n.range)(CSharp.done)
+    
+  : n.ast.kind == "array_cons_call" ?
+    CSharp.new_array(n.range, ast_to_csharp_type(n.ast.type), ast_to_type_checker(n.ast.actual)(context))
+  : n.ast.kind == "get_array_value_at" ?
+    CSharp.get_arr_el(n.range, ast_to_type_checker(n.ast.array)(context), ast_to_type_checker(n.ast.index)(context))
+  
+    
 
   : n.ast.kind == "empty surface" ?
     CSharp.mk_empty_surface(n.range, ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))

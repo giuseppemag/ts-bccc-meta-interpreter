@@ -31,9 +31,15 @@ export let test_parser = () => {
   // Func<int,int,bool> d = x,y => x > y;
 
     let source = `
-Func<int,int,bool> d = (x,y) => x > y;
-var z = d(100,20);
+int[] a = new int[5];
+a[0] = 5;
+a[1] = a[0];
+a[2] = a[1] + 5;
+var x = a[2];
     `
+    
+
+
 
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") return parse_result.value
@@ -43,7 +49,7 @@ var z = d(100,20);
     let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
 
-    // console.log(JSON.stringify(res.value.value.fst)) // ast
+    console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)(global_calling_context)
 
