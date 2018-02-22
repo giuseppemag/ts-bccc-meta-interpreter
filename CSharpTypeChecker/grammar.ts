@@ -14,7 +14,7 @@ export type UnaryOpKind = "not"
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"for" } | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
-  | { kind:"class" } | { kind:"new" }
+  | { kind:"class" } | { kind:"new" } 
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:BinOpKind } | {kind:UnaryOpKind}
   | { kind:";" } | { kind:"." }
@@ -189,6 +189,7 @@ export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
 export interface ReturnAST { kind: "return", value:ParserRes }
 export interface NoopAST { kind: "noop" }
 export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
+export interface BracketAST { kind:"bracket", e:ParserRes }
 
 export interface FieldAST { decl:DeclAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
@@ -242,10 +243,11 @@ export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | MkEmptyRenderGrid | MkRenderGridPixel
                 | RenderSurfaceAST | ArrayTypeDeclAST
-                | ModifierAST | GetArrayValueAtAST
+                | ModifierAST | GetArrayValueAtAST | BracketAST
 export interface ParserRes { range:SourceRange, ast:AST }
 
 let mk_string = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "string", value:v }})
+let mk_braket = (e:ParserRes, r:SourceRange) : ParserRes => ({ range:r, ast:{ kind: "bracket", e:e }})
 let mk_unit = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "unit" }})
 let mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "bool", value:v }})
 let mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
@@ -671,10 +673,10 @@ let term : () => Parser = () : Parser =>
   parser_or<ParserRes>(field_ref(),
   parser_or<ParserRes>(identifier,
   parser_or<ParserRes>(unary_expr(),
-  left_bracket.then(_ =>
+  left_bracket.then(lb =>
   expr().then(e =>
-  right_bracket.then(_ =>
-  co_unit(e)))
+  right_bracket.then(rb =>
+  co_unit(mk_braket(e, join_source_ranges(lb, rb)))))
   )))))))))))))))))
 
 let unary_expr : () => Parser = () =>
@@ -1170,6 +1172,7 @@ export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
   n.ast.kind == "int" ? CSharp.int(n.ast.value)
   : n.ast.kind == "string" ? CSharp.str(n.ast.value)
+  : n.ast.kind == "bracket" ? ast_to_type_checker(n.ast.e)(context)
   : n.ast.kind == "bool" ? CSharp.bool(n.ast.value)
   : n.ast.kind == ";" ? CSharp.semicolon(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "for" ? CSharp.for_loop(n.range, ast_to_type_checker(n.ast.i)(context), ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.b)(context))
