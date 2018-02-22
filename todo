@@ -62,6 +62,7 @@ int factorial(int x) {
 }
 
 [m] arrays
+[m] multidimensional array + array in class attributes
 [m] Closures in regular functions
 [m] properties
 [m] initial values of the proper type for variables at declaration when no value is specified
