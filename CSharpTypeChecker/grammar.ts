@@ -763,7 +763,7 @@ let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
   term().then(from =>
     parser_or<ParserRes>(
       left_square_bracket.then(_ =>
-        term().then(actual =>
+        expr().then(actual =>
         right_square_bracket.then(rs =>
           co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
         ))),
@@ -1160,7 +1160,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
-  : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" ? Immutable.Set<ValueName>()
+  : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "bracket"  ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
   : (() => { console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`(FV) Unsupported ast node: ${JSON.stringify(n)}`)})()
 

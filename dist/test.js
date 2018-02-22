@@ -19,7 +19,7 @@ var ImpLanguageWithSuspend;
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
         // Func<int,int,bool> d = x,y => x > y;
-        var source = "\nint[] a = new int[5];\na[0] = 5;\na[1] = a[0];\na[2] = a[1] + 5;\nvar x = a[2];\n    ";
+        var source = "\nFunc<int,Func<int,Func<int, int>>> f = x => (y => (z => z + y + x));\nint[] a = new int[3];\na[0] = 5;\na[1] = a[0] + 5;\na[2] = a[0 + 1];\n\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

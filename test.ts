@@ -31,11 +31,12 @@ export let test_parser = () => {
   // Func<int,int,bool> d = x,y => x > y;
 
     let source = `
-int[] a = new int[5];
+Func<int,Func<int,Func<int, int>>> f = x => (y => (z => z + y + x));
+int[] a = new int[3];
 a[0] = 5;
-a[1] = a[0];
-a[2] = a[1] + 5;
-var x = a[2];
+a[1] = a[0] + 5;
+a[2] = a[0 + 1];
+
     `
     
 

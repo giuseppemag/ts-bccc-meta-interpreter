@@ -649,7 +649,7 @@ var expr_after_op = function (symbols, ops, current_op, compose_current) {
 var expr_AUX = function (table) {
     return term().then(function (from) {
         return parser_or(left_square_bracket.then(function (_) {
-            return term().then(function (actual) {
+            return expr().then(function (actual) {
                 return right_square_bracket.then(function (rs) {
                     return ts_bccc_1.co_unit(mk_get_array_value_at(source_range_1.join_source_ranges(from.range, rs), from, actual));
                 });
@@ -1058,7 +1058,7 @@ var free_variables = function (n, bound) {
         : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
             : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
                 : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set([n.ast.value]) : Immutable.Set())
-                    : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" ? Immutable.Set()
+                    : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "bracket" ? Immutable.Set()
                         : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); })))
                             : (function () { console.log("Error (FV): unsupported ast node: " + JSON.stringify(n)); throw new Error("(FV) Unsupported ast node: " + JSON.stringify(n)); })();
 };
