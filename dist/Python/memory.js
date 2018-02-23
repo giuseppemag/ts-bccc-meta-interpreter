@@ -27,6 +27,7 @@ exports.mk_tuple_val = function (v) { return ({ v: v, k: "tuple" }); };
 exports.mk_bool_val = function (v) { return ({ v: v, k: "b" }); };
 exports.mk_lambda_val = function (l) { return ({ v: l, k: "lambda" }); };
 exports.mk_obj_val = function (o) { return ({ v: o, k: "obj" }); };
+exports.mk_record_val = function (o) { return ({ v: o, k: "record" }); };
 exports.mk_ref_val = function (r) { return ({ v: r, k: "ref" }); };
 exports.mk_render_grid_val = function (r) { return ({ v: r, k: "render-grid" }); };
 exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
@@ -37,6 +38,8 @@ exports.mk_ellipse_op = function (x, y, width, height, color) { return ({ kind: 
 exports.mk_rectangle_op = function (x, y, width, height, color) { return ({ kind: "rectangle", x: x, y: y, width: width, height: height, color: color }); };
 exports.mk_other_surface_op = function (s, dx, dy, sx, sy) { return ({ kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy }); };
 exports.mk_render_surface_operation_val = function (s) { return ({ v: s, k: "render surface operation" }); };
+exports.tuple_to_record = function (v, labels) { return v.k == "tuple" ?
+    exports.mk_record_val(Immutable.Map(v.v.map(function (a, a_i) { return [labels[a_i], a]; }))) : v; };
 var find_last_scope = function (scopes, p) {
     var i = scopes.count() - 1;
     for (var index = i; index >= 0; index--) {

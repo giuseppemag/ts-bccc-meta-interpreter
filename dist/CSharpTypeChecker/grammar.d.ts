@@ -346,7 +346,11 @@ export interface TupleTypeDeclAST {
     kind: "tuple type decl";
     args: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
+export interface RecordTypeDeclAST {
+    kind: "record type decl";
+    args: Array<DeclAST>;
+}
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

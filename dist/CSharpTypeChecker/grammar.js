@@ -147,6 +147,9 @@ var mk_array_decl = function (r, t) {
 var mk_tuple_type_decl = function (r, args) {
     return ({ range: r, ast: { kind: "tuple type decl", args: args } });
 };
+var mk_record_type_decl = function (r, args) {
+    return ({ range: r, ast: { kind: "record type decl", args: args } });
+};
 var mk_string = function (v, sr) { return ({ range: sr, ast: { kind: "string", value: v } }); };
 var mk_braket = function (e, r) { return ({ range: r, ast: { kind: "bracket", e: e } }); };
 var mk_unit = function (sr) { return ({ range: sr, ast: { kind: "unit" } }); };
@@ -741,11 +744,15 @@ var type_args = function () {
 };
 var type_decl = function () {
     return parser_or(left_bracket.then(function (lb) {
-        return type_args().then(function (as) {
+        return parser_or(type_args().then(function (as) {
             return right_bracket.then(function (rb) {
                 return ts_bccc_1.co_unit(mk_tuple_type_decl(source_range_1.join_source_ranges(lb, rb), as));
             });
-        });
+        }), arg_decls().then(function (as) {
+            return right_bracket.then(function (rb) {
+                return ts_bccc_1.co_unit(mk_record_type_decl(source_range_1.join_source_ranges(lb, rb), as));
+            });
+        }));
     }), identifier.then(function (i) {
         return parser_or(lt_op.then(function (_) {
             return partial_match.then(function (_) {
@@ -1052,7 +1059,9 @@ var ast_to_csharp_type = function (s) {
                 CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
                 : s.ast.kind == "tuple type decl" ?
                     CSharp.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
-                    : (function () { console.log("Error: unsupported ast type: " + JSON.stringify(s)); throw new Error("Unsupported ast type: " + JSON.stringify(s)); })();
+                    : s.ast.kind == "record type decl" ?
+                        CSharp.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.value, ast_to_csharp_type(a.l)]; })))
+                        : (function () { console.log("Error: unsupported ast type: " + JSON.stringify(s)); throw new Error("Unsupported ast type: " + JSON.stringify(s)); })();
 };
 exports.global_calling_context = ({ kind: "global scope" });
 var union_many = function (a) {
@@ -1074,7 +1083,8 @@ var free_variables = function (n, bound) {
                             : (function () { console.log("Error (FV): unsupported ast node: " + JSON.stringify(n)); throw new Error("(FV) Unsupported ast node: " + JSON.stringify(n)); })();
 };
 exports.extract_tuple_args = function (n) {
-    return n.ast.kind == "," ? exports.extract_tuple_args(n.ast.l).concat([n.ast.r]) : [n];
+    return n.ast.kind == "," ? exports.extract_tuple_args(n.ast.l).concat([n.ast.r]) : n.ast.kind == "bracket" ? exports.extract_tuple_args(n.ast.e)
+        : [n];
 };
 exports.ast_to_type_checker = function (n) { return function (context) {
     return n.ast.kind == "int" ? CSharp.int(n.ast.value)

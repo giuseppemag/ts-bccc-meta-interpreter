@@ -64,6 +64,9 @@ export declare type Type = {
     kind: "tuple";
     args: Array<Type>;
 } | {
+    kind: "record";
+    args: Immutable.Map<Name, Type>;
+} | {
     kind: "generic type decl";
     f: Type;
     args: Array<Type>;
@@ -85,6 +88,7 @@ export declare let float_type: Type;
 export declare let fun_type: (i: Type, o: Type) => Type;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
+export declare let record_type: (args: Immutable.Map<Name, Type>) => Type;
 export declare let ref_type: (C_name: string) => Type;
 export declare let generic_type_decl: (f: Type, args: Type[]) => Type;
 export declare type TypeInformation = Type & {

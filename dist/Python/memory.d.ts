@@ -92,6 +92,9 @@ export declare type Val = {
     v: Scope;
     k: "obj";
 } | {
+    v: Scope;
+    k: "record";
+} | {
     v: Lambda;
     k: "lambda";
 } | {
@@ -131,6 +134,7 @@ export declare let mk_tuple_val: (_: Array<Val>) => Val;
 export declare let mk_bool_val: (_: boolean) => Val;
 export declare let mk_lambda_val: (_: Lambda) => Val;
 export declare let mk_obj_val: (_: Scope) => Val;
+export declare let mk_record_val: (_: Scope) => Val;
 export declare let mk_ref_val: (_: ValueName) => Val;
 export declare let mk_render_grid_val: (_: RenderGrid) => Val;
 export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
@@ -141,6 +145,7 @@ export declare let mk_ellipse_op: (x: number, y: number, width: number, height: 
 export declare let mk_rectangle_op: (x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
 export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number) => RenderSurfaceOperation;
 export declare let mk_render_surface_operation_val: (s: RenderSurfaceOperation) => Val;
+export declare let tuple_to_record: (v: Val, labels: string[]) => Val;
 export declare type ErrVal = string;
 export interface MemRt {
     highlighting: SourceRange;

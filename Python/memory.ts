@@ -25,7 +25,7 @@ export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements
 export type ValueName = string
 export type NestingLevel = number
 export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" }
-                | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Lambda, k:"lambda" }
+                | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Scope, k:"record" } | { v:Lambda, k:"lambda" }
                 | { v:Array<Val>, k:"tuple" }
                 | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
                 | { v:RenderSurface, k:"render surface" } | { v:RenderSurfaceOperation, k:"render surface operation" }
@@ -43,6 +43,7 @@ export let mk_tuple_val : (_:Array<Val>) => Val = v => ({ v:v, k:"tuple" })
 export let mk_bool_val : (_:boolean) => Val = v => ({ v:v, k:"b" })
 export let mk_lambda_val : (_:Lambda) => Val = l => ({ v:l, k:"lambda" })
 export let mk_obj_val : (_:Scope) => Val = o => ({ v:o, k:"obj" })
+export let mk_record_val : (_:Scope) => Val = o => ({ v:o, k:"record" })
 export let mk_ref_val : (_:ValueName) => Val = r => ({ v:r, k:"ref" })
 export let mk_render_grid_val : (_:RenderGrid) => Val = r => ({ v:r, k:"render-grid" })
 export let mk_render_grid_pixel_val : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
@@ -53,6 +54,8 @@ export let mk_ellipse_op = (x:number, y:number, width:number, height:number, col
 export let mk_rectangle_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"rectangle", x, y, width, height, color })
 export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy })
 export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val => ({ v:s, k:"render surface operation" })
+export let tuple_to_record = (v:Val, labels:Array<string>) : Val => v.k == "tuple" ?
+  mk_record_val(Immutable.Map<ValueName, Val>(v.v.map((a,a_i) => [labels[a_i], a]))) : v
 
 export type ErrVal = string
 

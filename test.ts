@@ -28,19 +28,14 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
-  // Func<int,int,bool> d = x,y => x > y;
-
     let source = `
-class A {
-  public int[] elems;
-  public A(){
-    this.elems = new int[5];
-    this.elems[1] = 80085;
-  }
-}
-A a = new A();
+(string Name, string Surname, Func<int,int> MyFunc) person = ("Giuseppe", "Maggiore", x => x + 1);
+person = ("Giulia", "Costantini", x => x - 1);
+var name = person.Name;
+var f = person.MyFunc;
+var y = f(5);
     `
-    
+
 
 
 
@@ -52,7 +47,7 @@ A a = new A();
     let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
     if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
 
-    console.log(JSON.stringify(res.value.value.fst)) // ast
+    // console.log(JSON.stringify(res.value.value.fst)) // ast
     let hrstart = process.hrtime()
     let p = ast_to_type_checker(res.value.value.fst)(global_calling_context)
 

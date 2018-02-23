@@ -18,8 +18,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        // Func<int,int,bool> d = x,y => x > y;
-        var source = "\nclass A {\n  public int[] elems;\n  public A(){\n    this.elems = new int[5];\n    this.elems[1] = 80085;\n  }\n}\nA a = new A();\n    ";
+        var source = "\n(string Name, string Surname, Func<int,int> MyFunc) person = (\"Giuseppe\", \"Maggiore\", x => x + 1);\nperson = (\"Giulia\", \"Costantini\", x => x - 1);\nvar name = person.Name;\nvar f = person.MyFunc;\nvar y = f(5);\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;
@@ -28,7 +27,7 @@ var ImpLanguageWithSuspend;
         var res = CSharp.program_prs().run.f(grammar_1.mk_parser_state(tokens));
         if (res.kind != "right" || res.value.kind != "right")
             return "Parse error: " + JSON.stringify(res.value);
-        console.log(JSON.stringify(res.value.value.fst)); // ast
+        // console.log(JSON.stringify(res.value.value.fst)) // ast
         var hrstart = process.hrtime();
         var p = csharp_1.ast_to_type_checker(res.value.value.fst)(grammar_1.global_calling_context);
         var output = "";

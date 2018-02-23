@@ -25,6 +25,7 @@ export declare let render_surface_expr: (v: RenderSurface) => Coroutine<MemRt, s
 export declare let render_surface_operation_expr: (v: RenderSurfaceOperation) => Coroutine<MemRt, string, Sum<Val, Val>>;
 export declare let tuple_expr_rt: (args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
 export declare let tuple_get_rt: (r: SourceRange, t: ExprRt<Sum<Val, Val>>, item_index: number) => ExprRt<Sum<Val, Val>>;
+export declare let record_get_rt: (r: SourceRange, t: ExprRt<Sum<Val, Val>>, F_name: string) => ExprRt<Sum<Val, Val>>;
 export declare let mk_empty_render_grid_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_render_grid_pixel_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, status: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let render_grid_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;

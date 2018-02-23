@@ -1,20 +1,4 @@
-```
-Func<int,Func<int,Func<int,int>>> add_mul = x => y => z => x * y + z;
-var add_double = add_mul (2);
-var add_triple = add_mul (3);
-typechecker_debugger;
-var f = add_double (4);
-debugger;
-var a = f (2);
-debugger;
-var g = add_triple (5);
-debugger;
-var b = f (1);
-debugger;
-typechecker_debugger;
-```
-[g] toString operators and automated casting
-[g] Records (C# 7 tuples)
+[g] toString operators and automated casting (float to int)
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
@@ -43,6 +27,7 @@ typechecker_debugger;
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
+[m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
 [m] use something visual instead of debugger and typechecker_debugger
 [m] errors with range over code in editor
   [ ] Print properly (no `JSON.stringify`)
@@ -114,10 +99,18 @@ int factorial(int x) {
 
 [m] string interpolation
 
+[m] Exceptions
+  [ ] Inheritance of exceptions
+  [ ] Nested exception handlers
+  [ ] Multiple `catch` statements
+  [ ] `finally`
+
 [m] Standard library
   [ ] Collections
   [ ] strings
   [ ] files
+
+[m] `using` statement and `IDisposable`
 
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint

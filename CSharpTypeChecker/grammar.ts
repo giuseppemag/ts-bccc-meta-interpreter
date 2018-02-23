@@ -14,7 +14,7 @@ export type UnaryOpKind = "not"
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:"for" } | { kind:"while" } | { kind:"if" } | { kind:"then" } | { kind:"else" }
   | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
-  | { kind:"class" } | { kind:"new" } 
+  | { kind:"class" } | { kind:"new" }
   | { kind:"id", v:string }
   | { kind:"=" } | { kind:BinOpKind } | {kind:UnaryOpKind}
   | { kind:";" } | { kind:"." }
@@ -232,11 +232,15 @@ let mk_array_decl = (r:SourceRange, t:ParserRes) : { range:SourceRange, ast:AST 
   ({ range:r, ast:{ kind:"array decl", t:t } })
 
 export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes> }
-  let mk_tuple_type_decl = (r:SourceRange, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
+let mk_tuple_type_decl = (r:SourceRange, args:Array<ParserRes>) : { range:SourceRange, ast:AST } =>
   ({ range:r, ast:{ kind:"tuple type decl", args:args } })
 
+export interface RecordTypeDeclAST { kind:"record type decl", args:Array<DeclAST> }
+let mk_record_type_decl = (r:SourceRange, args:Array<DeclAST>) : { range:SourceRange, ast:AST } =>
+  ({ range:r, ast:{ kind:"record type decl", args:args } })
+
 export type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST
-                | GenericTypeDeclAST | TupleTypeDeclAST
+                | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
                 | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST
@@ -588,7 +592,7 @@ let field_ref_elements = (identifiers:Immutable.List<ParserRes>) : Coroutine<Par
     field_ref_elements(identifiers.push(l)))),
   co_unit(identifiers))
 
-let field_ref:  () => Parser = () => 
+let field_ref:  () => Parser = () =>
   parser_or<ParserRes>(index_of, identifier).then(first =>
   dot_sign.then(_ =>
   field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
@@ -769,7 +773,7 @@ type SymTable = {symbols:Immutable.Stack<ParserRes>,
 
 let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<ParserState, ParserError, SymTable> =>
-  
+
   term().then(from =>
     parser_or<ParserRes>(
       left_square_bracket.then(_ =>
@@ -778,7 +782,7 @@ let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
           co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
         ))),
       co_unit(from)))
-  .then(l => 
+  .then(l =>
     parser_or<SymTable>(comma.then(_ => expr_after_op(table.symbols.push(l), table.ops, ",", (l,r)=> mk_pair(l,r))),
     parser_or<SymTable>(arrow_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "=>", (l,r)=> mk_arrow(l,r))),
     parser_or<SymTable>(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))),
@@ -844,7 +848,7 @@ let assign : () => Parser = () =>
   parser_or<ParserRes>(
     field_ref(),
     parser_or<ParserRes>(
-      identifier.then(from => 
+      identifier.then(from =>
         left_square_bracket.then(_ =>
         term().then(actual =>
         right_square_bracket.then(rs =>
@@ -868,9 +872,14 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
 let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
   parser_or<ParserRes>(
     left_bracket.then(lb =>
-      type_args().then(as =>
-      right_bracket.then(rb =>
-      co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as))))),
+      parser_or<ParserRes>(type_args().then(as =>
+        right_bracket.then(rb =>
+        co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)))),
+        arg_decls().then(as =>
+        right_bracket.then(rb =>
+        co_unit(mk_record_type_decl(join_source_ranges(lb, rb), as))))
+      )
+    ),
     identifier.then(i =>
       parser_or<ParserRes>(
         lt_op.then(_ =>
@@ -1151,6 +1160,8 @@ let ast_to_csharp_type = (s:ParserRes) : CSharp.Type =>
     CSharp.fun_type(CSharp.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]))
   : s.ast.kind == "tuple type decl" ?
     CSharp.tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
+  : s.ast.kind == "record type decl" ?
+    CSharp.record_type(Immutable.Map<string,CSharp.Type>(s.ast.args.map(a => [a.r.value, ast_to_csharp_type(a.l)])))
   : (() => { console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); throw new Error(`Unsupported ast type: ${JSON.stringify(s)}`)})()
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
@@ -1179,6 +1190,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
 
 export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
   n.ast.kind == "," ? [...extract_tuple_args(n.ast.l), n.ast.r]
+  : n.ast.kind == "bracket" ? extract_tuple_args(n.ast.e)
   : [n]
 
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.Stmt = n => context =>
@@ -1230,28 +1242,28 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "return" ? CSharp.ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? CSharp.field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
 
-  
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ? 
-    CSharp.set_arr_el(n.range, 
+
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ?
+    CSharp.set_arr_el(n.range,
                       ast_to_type_checker(n.ast.l.ast.array)(context),
                       ast_to_type_checker(n.ast.l.ast.index)(context),
                       ast_to_type_checker(n.ast.r)(context))
 
-  : n.ast.kind == "=" && 
-    n.ast.l.ast.kind == "." && 
+  : n.ast.kind == "=" &&
+    n.ast.l.ast.kind == "." &&
     n.ast.l.ast.r.ast.kind == "get_array_value_at" &&
     n.ast.l.ast.r.ast.array.ast.kind == "id" ?
 
     //(this.b)[i] = c
     //set([this.b], i, c)
     //set(ref(T), i, c)
-    CSharp.set_arr_el(n.range, 
+    CSharp.set_arr_el(n.range,
       ast_to_type_checker({...n.ast.l, ast: {...n.ast.l.ast, r: {...n.ast.l.ast.r, ast:n.ast.l.ast.r.ast.array.ast}}})(context),
       ast_to_type_checker(n.ast.l.ast.r.ast.index)(context),
       ast_to_type_checker(n.ast.r)(context))
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? 
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ?
     CSharp.field_set(n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), {att_name:n.ast.l.ast.r.ast.value, kind:"att"}, ast_to_type_checker(n.ast.r)(context))
 
 
@@ -1296,7 +1308,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind)
       }))
     )
-    
+
   : n.ast.kind == "decl" ?
     CSharp.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
   : n.ast.kind == "decl and init" ?
@@ -1305,13 +1317,13 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
     CSharp.breakpoint(n.range)(CSharp.done)
   : n.ast.kind == "tc-dbg" ?
     CSharp.typechecker_breakpoint(n.range)(CSharp.done)
-    
+
   : n.ast.kind == "array_cons_call" ?
     CSharp.new_array(n.range, ast_to_csharp_type(n.ast.type), ast_to_type_checker(n.ast.actual)(context))
   : n.ast.kind == "get_array_value_at" ?
     CSharp.get_arr_el(n.range, ast_to_type_checker(n.ast.array)(context), ast_to_type_checker(n.ast.index)(context))
-  
-    
+
+
 
   : n.ast.kind == "empty surface" ?
     CSharp.mk_empty_surface(n.range, ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))

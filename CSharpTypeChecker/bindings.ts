@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless } from "../ccc_aux";
-import { ValueName } from "../main";
+import { ValueName, tuple_to_record } from "../main";
 
 // Bindings
 
@@ -20,6 +20,7 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
                  | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
+                 | { kind:"record", args:Immutable.Map<Name, Type> }
                  | { kind:"generic type decl", f:Type, args:Array<Type> }
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
@@ -40,6 +41,7 @@ export let float_type : Type = { kind:"float" }
 export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, out:o })
 export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
+export let record_type : (args:Immutable.Map<Name, Type>) => Type = (args) => ({ kind:"record", args:args })
 export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_name:C_name })
 export let generic_type_decl = (f:Type, args:Array<Type>) : Type => ({ kind:"generic type decl", f:f, args:args })
 export type TypeInformation = Type & { is_constant:boolean }
@@ -59,14 +61,17 @@ export let load: Fun<Prod<string, State>, Sum<Unit,TypeInformation>> = fun(x =>
 export let store: Fun<Prod<Prod<string, TypeInformation>, State>, State> = fun(x =>
     ({...x.snd, bindings:x.snd.bindings.set(x.fst.fst, x.fst.snd) }))
 
-let type_equals = (t1:Type,t2:Type) : boolean =>
-  (t1.kind == "fun" && t2.kind == "fun" && type_equals(t1.in,t2.in) && type_equals(t1.out,t2.out))
-  || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i])))
-  || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg,t2.arg))
-  || (t1.kind == "obj" && t2.kind == "obj" &&
-      !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type)) &&
-      !t2.methods.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.methods.has(k2)))
-  || t1.kind == t2.kind
+let type_equals = (t1:Type,t2:Type) : boolean => {
+  if (t1.kind == "fun" && t2.kind == "fun") return type_equals(t1.in,t2.in) && type_equals(t1.out,t2.out)
+  if (t1.kind == "tuple" && t2.kind == "tuple") return t1.args.length == t2.args.length &&
+    t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i]))
+  if (t1.kind == "record" && t2.kind == "record") return t1.args.count() == t2.args.count() &&
+    t1.args.every((t1_arg,i) => t1_arg != undefined && i != undefined && t2.args.has(i) && type_equals(t1_arg, t2.args.get(i)))
+  if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
+  if (t1.kind == "obj" && t2.kind == "obj") return !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type)) &&
+      !t2.methods.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.methods.has(k2))
+  return t1.kind == t2.kind
+}
 
 // Basic statements and expressions
 let wrap_co_res = Co.value<State,Err,Typing>().then(Co.result<State,Err,Typing>())
@@ -95,12 +100,24 @@ export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean
 }
 export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
   return _ => e(apply(inl(), t)).then(e_val => {
-    let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
-    let g = curry(f)
     let actual_t = t.kind == "var" ? e_val.type : t
-    let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...actual_t, is_constant:is_constant != undefined ? is_constant : false})), {})
-    return type_equals(e_val.type, actual_t) ? mk_coroutine<State,Err,Typing>(apply(g, args))
-           : co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}` })
+    if (type_equals(e_val.type, actual_t)) {
+      let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
+      let g = curry(f)
+      let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...actual_t, is_constant:is_constant != undefined ? is_constant : false})), {})
+      return mk_coroutine<State,Err,Typing>(apply(g, args))
+    } else {
+      if (e_val.type.kind == "tuple" && actual_t.kind == "record" && type_equals(e_val.type, tuple_type(actual_t.args.toArray()))) {
+        console.log("apparently these two are equal to each other", JSON.stringify([e_val.type, tuple_type(actual_t.args.toArray())]))
+        let record_labels = actual_t.args.keySeq().toArray()
+        let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), tuple_to_record(e_val.value, record_labels)))))).times(id())).then(wrap_co)
+        let g = curry(f)
+        let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...actual_t, is_constant:is_constant != undefined ? is_constant : false})), {})
+        return mk_coroutine<State,Err,Typing>(apply(g, args))
+      } else {
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}` })
+      }
+    }
   })
 }
 export let decl_const = function(r:SourceRange, c:Name, t:Type, e:Stmt) : Stmt {
@@ -117,15 +134,24 @@ export let decl_const = function(r:SourceRange, c:Name, t:Type, e:Stmt) : Stmt {
 }
 
 export let set_v = function(r:SourceRange, v:Name, e:Stmt) : Stmt {
-  return _ => e(no_constraints).then(e_val =>
-         get_v(r, v)(no_constraints).then(v_val =>
-         // console.log(`Assigning ${v} (${JSON.stringify(v_val.type)})`) ||
-         type_equals(e_val.type, v_val.type) && !v_val.type.is_constant ?
-           co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
-         : v_val.type.is_constant ?
-           co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign anything to ${v}: it is a constant.` })
-         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}` })
-         ))
+  return _ => get_v(r, v)(no_constraints).then(v_val =>
+          e(apply(inl(), v_val.type)).then(e_val => {
+           if (type_equals(e_val.type, v_val.type) && !v_val.type.is_constant) {
+             return co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
+            } else if (v_val.type.is_constant) {
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign anything to ${v}: it is a constant.` })
+            } else if (e_val.type.kind == "tuple" && v_val.type.kind == "record" && type_equals(e_val.type, tuple_type(v_val.type.args.toArray()))) {
+              let record_labels = v_val.type.args.keySeq().toArray()
+              let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.set_v_rt(v, apply(inl(), tuple_to_record(e_val.value, record_labels)))))).times(id())).then(wrap_co)
+              let g = curry(f)
+              let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...v_val.type, is_constant:false})), {})
+              return mk_coroutine<State,Err,Typing>(apply(g, args))
+            } else {
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e)}: type ${JSON.stringify(v_val.type)} does not match ${JSON.stringify(e_val.type)}` })
+            }
+          }
+
+        ))
 }
 
 export let bool = function(b:boolean) : Stmt {
@@ -142,6 +168,8 @@ export let int = function(i:number) : Stmt {
 
 export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
   return constraints => {
+    if (constraints.kind == "left" && constraints.value.kind == "record")
+      constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))
     // console.log("Typechecking tuple value with constraints", constraints)
     if (constraints.kind == "left" && constraints.value.kind != "tuple")
       return co_error<State,Err,Typing>({ range:r, message:`Error: wrong constraints ${constraints} when typechecking tuple.` })
@@ -448,7 +476,7 @@ export let and = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
 
 export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:Array<ValueName>, body:Stmt) : Stmt {
   return constraints => {
-    if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: wrong context when defining anonymous function (=>)!" })
+    if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: empty context when defining anonymous function (=>)!" })
     let expected_type = constraints.value
     if (expected_type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: expected ${expected_type.kind}, found function.` })
     let input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in]
@@ -491,10 +519,12 @@ export let get_index = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
 export let set_index = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          i(no_constraints).then(i_t =>
-         e(no_constraints).then(e_t =>
-          a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
-            co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for writing in an array!" })
+          a_t.type.kind != "arr" ?
+            co_error<State,Err,Typing>({ range:r, message:"Error: array set operation is only permitted on arrays!" })
+          : e(apply(inl(), a_t.type.arg)).then(e_t =>
+            a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
+              co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for writing in an array!" })
         )))
 }
 
@@ -777,7 +807,17 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                 return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_name}.`})
               }
             } else {
-              return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_name}.`})
+              console.log("Checking getter on", JSON.stringify(this_ref_t.type))
+              if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_name)) {
+                try {
+                  return co_unit(mk_typing(this_ref_t.type.args.get(F_name),
+                          Sem.record_get_rt(r, this_ref_t.sem, F_name)))
+                } catch (error) {
+                  return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_name}.`})
+                }
+              } else {
+                return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_name}.`})
+              }
             }
            }
            let C_name = this_ref_t.type.C_name
@@ -802,10 +842,9 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
          ))
 }
 
-export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:{att_name:string, kind:"att"} | 
+export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:{att_name:string, kind:"att"} |
                                                                                              {att_name:string, kind:"att_arr", index:Stmt}, new_value:Stmt) : Stmt {
   return _ => this_ref(no_constraints).then(this_ref_t =>
-         new_value(no_constraints).then(new_value_t =>
          (F_name.kind == "att_arr" ? F_name.index(no_constraints) : co_unit<State, Err, Typing>(mk_typing(bool_type, Sem.bool_expr(false)))).then(maybe_index =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
@@ -824,13 +863,15 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
             else if (context.C_name != C_name)
               return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name.att_name)} from ${context.C_name}`})
            }
-           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
-           return co_unit(mk_typing(unit_type,
-                    F_def.modifiers.has("static") ?
-                        Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
-                      : Sem.field_set_expr_rt(F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem, this_ref_t.sem)))
+           return new_value(apply(inl(), F_def.type)).then(new_value_t => {
+             if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
+             return co_unit(mk_typing(unit_type,
+              F_def.modifiers.has("static") ?
+              Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
+              : Sem.field_set_expr_rt(F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem, this_ref_t.sem)))
+            })
           }
-         ))))
+         )))
 }
 
 

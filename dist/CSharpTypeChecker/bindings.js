@@ -15,6 +15,7 @@ var Co = require("ts-bccc");
 var source_range_1 = require("../source_range");
 var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
+var main_1 = require("../main");
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
 exports.render_surface_type = { kind: "render surface" };
@@ -32,6 +33,7 @@ exports.float_type = { kind: "float" };
 exports.fun_type = function (i, o) { return ({ kind: "fun", in: i, out: o }); };
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
+exports.record_type = function (args) { return ({ kind: "record", args: args }); };
 exports.ref_type = function (C_name) { return ({ kind: "ref", C_name: C_name }); };
 exports.generic_type_decl = function (f, args) { return ({ kind: "generic type decl", f: f, args: args }); };
 var mk_typing = function (t, s, is_constant) { return ({ type: __assign({}, t, { is_constant: is_constant == undefined ? false : is_constant }), sem: s }); };
@@ -47,13 +49,20 @@ exports.store = ts_bccc_1.fun(function (x) {
     return (__assign({}, x.snd, { bindings: x.snd.bindings.set(x.fst.fst, x.fst.snd) }));
 });
 var type_equals = function (t1, t2) {
-    return (t1.kind == "fun" && t2.kind == "fun" && type_equals(t1.in, t2.in) && type_equals(t1.out, t2.out))
-        || (t1.kind == "tuple" && t2.kind == "tuple" && t1.args.length == t2.args.length && t1.args.every(function (t1_arg, i) { return type_equals(t1_arg, t2.args[i]); }))
-        || (t1.kind == "arr" && t2.kind == "arr" && type_equals(t1.arg, t2.arg))
-        || (t1.kind == "obj" && t2.kind == "obj" &&
-            !t1.methods.some(function (v1, k1) { return v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type); }) &&
-            !t2.methods.some(function (v2, k2) { return v2 == undefined || k2 == undefined || !t1.methods.has(k2); }))
-        || t1.kind == t2.kind;
+    if (t1.kind == "fun" && t2.kind == "fun")
+        return type_equals(t1.in, t2.in) && type_equals(t1.out, t2.out);
+    if (t1.kind == "tuple" && t2.kind == "tuple")
+        return t1.args.length == t2.args.length &&
+            t1.args.every(function (t1_arg, i) { return type_equals(t1_arg, t2.args[i]); });
+    if (t1.kind == "record" && t2.kind == "record")
+        return t1.args.count() == t2.args.count() &&
+            t1.args.every(function (t1_arg, i) { return t1_arg != undefined && i != undefined && t2.args.has(i) && type_equals(t1_arg, t2.args.get(i)); });
+    if (t1.kind == "arr" && t2.kind == "arr")
+        return type_equals(t1.arg, t2.arg);
+    if (t1.kind == "obj" && t2.kind == "obj")
+        return !t1.methods.some(function (v1, k1) { return v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type); }) &&
+            !t2.methods.some(function (v2, k2) { return v2 == undefined || k2 == undefined || !t1.methods.has(k2); });
+    return t1.kind == t2.kind;
 };
 // Basic statements and expressions
 var wrap_co_res = Co.value().then(Co.result());
@@ -74,12 +83,26 @@ exports.decl_v = function (r, v, t, is_constant) {
 };
 exports.decl_and_init_v = function (r, v, t, e, is_constant) {
     return function (_) { return e(ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
-        var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
-        var g = ts_bccc_1.curry(f);
         var actual_t = t.kind == "var" ? e_val.type : t;
-        var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-        return type_equals(e_val.type, actual_t) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
-            : ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e_val) + ": type " + JSON.stringify(actual_t) + " does not match " + JSON.stringify(e_val.type) });
+        if (type_equals(e_val.type, actual_t)) {
+            var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
+            var g = ts_bccc_1.curry(f);
+            var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+        }
+        else {
+            if (e_val.type.kind == "tuple" && actual_t.kind == "record" && type_equals(e_val.type, exports.tuple_type(actual_t.args.toArray()))) {
+                console.log("apparently these two are equal to each other", JSON.stringify([e_val.type, exports.tuple_type(actual_t.args.toArray())]));
+                var record_labels_1 = actual_t.args.keySeq().toArray();
+                var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_val.value, record_labels_1))); }))).times(ts_bccc_1.id())).then(wrap_co);
+                var g = ts_bccc_1.curry(f);
+                var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+                return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+            }
+            else {
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e_val) + ": type " + JSON.stringify(actual_t) + " does not match " + JSON.stringify(e_val.type) });
+            }
+        }
     }); };
 };
 exports.decl_const = function (r, c, t, e) {
@@ -97,14 +120,24 @@ exports.decl_const = function (r, c, t, e) {
     }); };
 };
 exports.set_v = function (r, v, e) {
-    return function (_) { return e(exports.no_constraints).then(function (e_val) {
-        return exports.get_v(r, v)(exports.no_constraints).then(function (v_val) {
-            // console.log(`Assigning ${v} (${JSON.stringify(v_val.type)})`) ||
-            return type_equals(e_val.type, v_val.type) && !v_val.type.is_constant ?
-                ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
-                : v_val.type.is_constant ?
-                    ts_bccc_2.co_error({ range: r, message: "Error: cannot assign anything to " + v + ": it is a constant." })
-                    : ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e) + ": type " + JSON.stringify(v_val.type) + " does not match " + JSON.stringify(e_val.type) });
+    return function (_) { return exports.get_v(r, v)(exports.no_constraints).then(function (v_val) {
+        return e(ts_bccc_1.apply(ts_bccc_1.inl(), v_val.type)).then(function (e_val) {
+            if (type_equals(e_val.type, v_val.type) && !v_val.type.is_constant) {
+                return ts_bccc_2.co_unit(mk_typing(exports.unit_type, Sem.set_v_expr_rt(v, e_val.sem)));
+            }
+            else if (v_val.type.is_constant) {
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign anything to " + v + ": it is a constant." });
+            }
+            else if (e_val.type.kind == "tuple" && v_val.type.kind == "record" && type_equals(e_val.type, exports.tuple_type(v_val.type.args.toArray()))) {
+                var record_labels_2 = v_val.type.args.keySeq().toArray();
+                var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.set_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_val.value, record_labels_2))); }))).times(ts_bccc_1.id())).then(wrap_co);
+                var g = ts_bccc_1.curry(f);
+                var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, v_val.type, { is_constant: false }))), {});
+                return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+            }
+            else {
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e) + ": type " + JSON.stringify(v_val.type) + " does not match " + JSON.stringify(e_val.type) });
+            }
         });
     }); };
 };
@@ -119,6 +152,8 @@ exports.int = function (i) {
 };
 exports.tuple_value = function (r, args) {
     return function (constraints) {
+        if (constraints.kind == "left" && constraints.value.kind == "record")
+            constraints = ts_bccc_1.apply(ts_bccc_1.inl(), exports.tuple_type(constraints.value.args.toArray()));
         // console.log("Typechecking tuple value with constraints", constraints)
         if (constraints.kind == "left" && constraints.value.kind != "tuple")
             return ts_bccc_2.co_error({ range: r, message: "Error: wrong constraints " + constraints + " when typechecking tuple." });
@@ -438,7 +473,7 @@ exports.and = function (r, a, b) {
 exports.arrow = function (r, parameters, closure, body) {
     return function (constraints) {
         if (constraints.kind == "right")
-            return ts_bccc_2.co_error({ range: r, message: "Error: wrong context when defining anonymous function (=>)!" });
+            return ts_bccc_2.co_error({ range: r, message: "Error: empty context when defining anonymous function (=>)!" });
         var expected_type = constraints.value;
         if (expected_type.kind != "fun")
             return ts_bccc_2.co_error({ range: r, message: "Error: expected " + expected_type.kind + ", found function." });
@@ -480,11 +515,13 @@ exports.get_index = function (r, a, i) {
 exports.set_index = function (r, a, i, e) {
     return function (_) { return a(exports.no_constraints).then(function (a_t) {
         return i(exports.no_constraints).then(function (i_t) {
-            return e(exports.no_constraints).then(function (e_t) {
-                return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
-                    ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for writing in an array!" });
-            });
+            return a_t.type.kind != "arr" ?
+                ts_bccc_2.co_error({ range: r, message: "Error: array set operation is only permitted on arrays!" })
+                : e(ts_bccc_1.apply(ts_bccc_1.inl(), a_t.type.arg)).then(function (e_t) {
+                    return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
+                        ts_bccc_2.co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for writing in an array!" });
+                });
         });
     }); };
 };
@@ -741,7 +778,18 @@ exports.field_get = function (r, context, this_ref, F_name) {
                     }
                 }
                 else {
-                    return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_name + "." });
+                    console.log("Checking getter on", JSON.stringify(this_ref_t.type));
+                    if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_name)) {
+                        try {
+                            return ts_bccc_2.co_unit(mk_typing(this_ref_t.type.args.get(F_name), Sem.record_get_rt(r, this_ref_t.sem, F_name)));
+                        }
+                        catch (error) {
+                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_name + "." });
+                        }
+                    }
+                    else {
+                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_name + "." });
+                    }
                 }
             }
             var C_name = this_ref_t.type.C_name;
@@ -767,29 +815,29 @@ exports.field_get = function (r, context, this_ref, F_name) {
 };
 exports.field_set = function (r, context, this_ref, F_name, new_value) {
     return function (_) { return this_ref(exports.no_constraints).then(function (this_ref_t) {
-        return new_value(exports.no_constraints).then(function (new_value_t) {
-            return (F_name.kind == "att_arr" ? F_name.index(exports.no_constraints) : ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_expr(false)))).then(function (maybe_index) {
-                return ts_bccc_1.co_get_state().then(function (bindings) {
-                    if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when setting field " + F_name.att_name + "." });
-                    }
-                    var C_name = this_ref_t.type.C_name;
-                    if (!bindings.bindings.has(C_name))
-                        return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
-                    var C_def = bindings.bindings.get(C_name);
-                    if (C_def.kind != "obj")
-                        return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
-                    if (!C_def.fields.has(F_name.att_name))
-                        return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain field " + F_name.att_name });
-                    var F_def = C_def.fields.get(F_name.att_name);
-                    if (!F_def.modifiers.has("public")) {
-                        if (context.kind == "global scope")
-                            return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + JSON.stringify(F_name.att_name) + " from global scope" });
-                        else if (context.C_name != C_name)
-                            return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + JSON.stringify(F_name.att_name) + " from " + context.C_name });
-                    }
+        return (F_name.kind == "att_arr" ? F_name.index(exports.no_constraints) : ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.bool_expr(false)))).then(function (maybe_index) {
+            return ts_bccc_1.co_get_state().then(function (bindings) {
+                if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+                    return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when setting field " + F_name.att_name + "." });
+                }
+                var C_name = this_ref_t.type.C_name;
+                if (!bindings.bindings.has(C_name))
+                    return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
+                var C_def = bindings.bindings.get(C_name);
+                if (C_def.kind != "obj")
+                    return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
+                if (!C_def.fields.has(F_name.att_name))
+                    return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain field " + F_name.att_name });
+                var F_def = C_def.fields.get(F_name.att_name);
+                if (!F_def.modifiers.has("public")) {
+                    if (context.kind == "global scope")
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + JSON.stringify(F_name.att_name) + " from global scope" });
+                    else if (context.C_name != C_name)
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + JSON.stringify(F_name.att_name) + " from " + context.C_name });
+                }
+                return new_value(ts_bccc_1.apply(ts_bccc_1.inl(), F_def.type)).then(function (new_value_t) {
                     if (!type_equals(F_def.type, new_value_t.type))
-                        return ts_bccc_2.co_error({ range: r, message: "Error: field " + this_ref_t.type.C_name + "::" + F_name.att_name + " cannot be assigned to value of type " + JSON.stringify(new_value_t.type) });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: field " + C_name + "::" + F_name.att_name + " cannot be assigned to value of type " + JSON.stringify(new_value_t.type) });
                     return ts_bccc_2.co_unit(mk_typing(exports.unit_type, F_def.modifiers.has("static") ?
                         Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem)
                         : Sem.field_set_expr_rt(F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem, this_ref_t.sem)));

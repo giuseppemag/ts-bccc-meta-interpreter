@@ -47,6 +47,12 @@ exports.tuple_get_rt = function (r, t, item_index) {
             : memory_1.runtime_error("Type error: cannot lookup item " + item_index + " on non-tuple value " + t_val.value + ".");
     });
 };
+exports.record_get_rt = function (r, t, F_name) {
+    return t.then(function (t_val) {
+        return t_val.value.k == "record" && t_val.value.v.has(F_name) ? ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), t_val.value.v.get(F_name)))
+            : memory_1.runtime_error("Type error: cannot lookup item " + F_name + " on " + t_val.value + ".");
+    });
+};
 exports.mk_empty_render_grid_rt = function (width, height) {
     return width.then(function (w) { return height.then(function (h) {
         return w.value.k == "i" && h.value.k == "i" ? exports.render_grid_expr({ width: w.value.v, height: h.value.v, pixels: Immutable.Map() })

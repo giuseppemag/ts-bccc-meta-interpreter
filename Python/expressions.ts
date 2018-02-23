@@ -57,6 +57,12 @@ export let tuple_get_rt = (r:SourceRange, t:ExprRt<Sum<Val,Val>>, item_index:num
         : runtime_error(`Type error: cannot lookup item ${item_index} on non-tuple value ${t_val.value}.`))
 }
 
+export let record_get_rt = (r:SourceRange, t:ExprRt<Sum<Val,Val>>, F_name:string) : ExprRt<Sum<Val,Val>> => {
+  return t.then(t_val =>
+        t_val.value.k == "record" && t_val.value.v.has(F_name) ? co_unit(apply(inl<Val,Val>(), t_val.value.v.get(F_name)))
+        : runtime_error(`Type error: cannot lookup item ${F_name} on ${t_val.value}.`))
+}
+
 export let mk_empty_render_grid_rt = function (width: ExprRt<Sum<Val,Val>>, height:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
   return width.then(w => height.then(h =>
     w.value.k == "i" && h.value.k == "i" ? render_grid_expr({ width:w.value.v, height:h.value.v, pixels:Immutable.Map<number, Immutable.Set<number>>() })
