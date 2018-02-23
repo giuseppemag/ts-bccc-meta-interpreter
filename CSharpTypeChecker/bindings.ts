@@ -685,16 +685,6 @@ export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
         ))
 }
 
-// export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
-//   return _ => a(no_constraints).then(a_t =>
-//          i(no_constraints).then(i_t =>
-//          e(no_constraints).then(e_t =>
-//          a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
-//            co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-//          : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
-//         )))
-// }
-
 export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          i(no_constraints).then(i_t =>
@@ -834,8 +824,7 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
             else if (context.C_name != C_name)
               return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name.att_name)} from ${context.C_name}`})
            }
-          //improve
-           //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
+           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
            return co_unit(mk_typing(unit_type,
                     F_def.modifiers.has("static") ?
                         Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
