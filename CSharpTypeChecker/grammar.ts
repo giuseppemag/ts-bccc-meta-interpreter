@@ -573,16 +573,26 @@ let eof: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_g
   return co_error({ range:s.tokens.first().range, message:`expected eof, found ${s.tokens.first().kind}`, priority:s.branch_priority })
 }))
 
+
+let index_of : Coroutine<ParserState,ParserError,ParserRes> = identifier.then(from =>
+                left_square_bracket.then(_ =>
+                  expr().then(actual =>
+                  right_square_bracket.then(rs =>
+                    co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
+                  ))))
+
 let field_ref_elements = (identifiers:Immutable.List<ParserRes>) : Coroutine<ParserState,ParserError,Immutable.List<ParserRes>> =>
-  parser_or<Immutable.List<ParserRes>>(identifier.then(l =>
-  dot_sign.then(_ =>
-  field_ref_elements(identifiers.push(l)))),
+  parser_or<Immutable.List<ParserRes>>(
+    parser_or<ParserRes>(index_of, identifier).then(l =>
+    dot_sign.then(_ =>
+    field_ref_elements(identifiers.push(l)))),
   co_unit(identifiers))
 
-let field_ref:  () => Parser = () => identifier.then(first =>
+let field_ref:  () => Parser = () => 
+  parser_or<ParserRes>(index_of, identifier).then(first =>
   dot_sign.then(_ =>
   field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
-  identifier.then(last => co_unit(identifiers.push(last).toArray().reduce((l,r) => mk_field_ref(l,r)))))))
+  parser_or<ParserRes>(index_of, identifier).then(last => co_unit(identifiers.push(last).toArray().reduce((l,r) => mk_field_ref(l,r)))))))
 
 let mk_empty_render_grid_prs : () => Parser = () =>
   mk_empty_render_grid_sign.then(_ =>
@@ -1157,10 +1167,12 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   || n.ast.kind == "==" || n.ast.kind == "!=" || n.ast.kind == "xor" || n.ast.kind == "&&" || n.ast.kind == "||"
   || n.ast.kind == "," ?
     free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
-  : n.ast.kind == "not" ? free_variables(n.ast.e, bound)
+
+  : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
+  
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
-  : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "bracket"  ?  Immutable.Set<ValueName>()
+  : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool"   ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
   : (() => { console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`(FV) Unsupported ast node: ${JSON.stringify(n)}`)})()
 
@@ -1225,20 +1237,22 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
                       ast_to_type_checker(n.ast.l.ast.index)(context),
                       ast_to_type_checker(n.ast.r)(context))
 
-  // : n.ast.kind == "=" && 
-  //   n.ast.l.ast.kind == "." && 
-  //   n.ast.l.ast.r.ast.kind == "get_array_value_at" ?
-
-  //   CSharp.set_arr_el(n.range, 
-  //                     ast_to_type_checker(n.ast.l.ast.array)(context),
-  //                     ast_to_type_checker(n.ast.l.ast.r.ast.index)(context), ??? a.b.c[i] = v
-  //                     ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=" && 
+    n.ast.l.ast.kind == "." && 
+    n.ast.l.ast.r.ast.kind == "get_array_value_at" &&
+    n.ast.l.ast.r.ast.array.ast.kind == "id" ?
+    CSharp.field_set( n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), 
+                      { att_name:n.ast.l.ast.r.ast.array.ast.value, 
+                        kind:"att_arr", 
+                        index:ast_to_type_checker(n.ast.l.ast.r.ast.index)(context) }, 
+                      ast_to_type_checker(n.ast.r)(context))  
               
     
 
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? CSharp.field_set(n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), n.ast.l.ast.r.ast.value, ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? 
+    CSharp.field_set(n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), {att_name:n.ast.l.ast.r.ast.value, kind:"att"}, ast_to_type_checker(n.ast.r)(context))
 
 
 

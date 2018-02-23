@@ -35,7 +35,8 @@ exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
         return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
             if (this_val.value.k != "obj")
                 return memory_1.runtime_error("runtime type error: this is not a reference when looking " + F_name + " up.");
-            var new_this_val = __assign({}, this_val.value, { v: this_val.value.v.set(F_name, new_val.value) });
+            //improve
+            var new_this_val = __assign({}, this_val.value, { v: this_val.value.v.set(F_name.att_name, new_val.value) });
             return memory_1.set_heap_v_rt(this_addr.v, new_this_val).then(function (_) { return basic_statements_1.done_rt; });
         });
     });
@@ -48,7 +49,8 @@ exports.static_field_get_expr_rt = function (C_name, F_name) {
 exports.static_field_set_expr_rt = function (C_name, F_name, new_val_expr) {
     return new_val_expr.then(function (new_val) {
         return memory_1.get_class_def_rt(C_name).then(function (C_def) {
-            var new_C_def = __assign({}, C_def, { static_fields: C_def.static_fields.set(F_name, new_val.value) });
+            //improve
+            var new_C_def = __assign({}, C_def, { static_fields: C_def.static_fields.set(F_name.att_name, new_val.value) });
             return memory_1.set_class_def_rt(C_name, new_C_def);
         });
     });
@@ -90,7 +92,7 @@ exports.call_cons_rt = function (C_name, args) {
     return memory_1.get_class_def_rt(C_name).then(function (C_def) {
         return memory_1.new_obj_rt().then(function (this_addr) {
             return this_addr.value.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
-                exports.field_set_rt("class", expressions_1.str_expr(C_name), this_addr.value).then(function (_) {
+                exports.field_set_rt({ att_name: "class", kind: "att" }, expressions_1.str_expr(C_name), this_addr.value).then(function (_) {
                     return python_1.call_lambda_expr_rt(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
                         return ts_bccc_2.co_unit(this_addr);
                     });

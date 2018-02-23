@@ -802,9 +802,11 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
          ))
 }
 
-export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:string, new_value:Stmt) : Stmt {
+export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:{att_name:string, kind:"att"} | 
+                                                                                             {att_name:string, kind:"att_arr", index:Stmt}, new_value:Stmt) : Stmt {
   return _ => this_ref(no_constraints).then(this_ref_t =>
          new_value(no_constraints).then(new_value_t =>
+         (F_name.kind == "att_arr" ? F_name.index(no_constraints) : co_unit<State, Err, Typing>(mk_typing(bool_type, Sem.bool_expr(false)))).then(maybe_index =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
              return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name}.`})
@@ -813,8 +815,8 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
            if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type ${C_name} is not a class`})
-           if (!C_def.fields.has(F_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name}`})
-           let F_def = C_def.fields.get(F_name)
+           if (!C_def.fields.has(F_name.att_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name}`})
+           let F_def = C_def.fields.get(F_name.att_name)
 
            if (!F_def.modifiers.has("public")) {
             if (context.kind == "global scope")
@@ -826,10 +828,10 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
            if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
            return co_unit(mk_typing(unit_type,
                     F_def.modifiers.has("static") ?
-                        Sem.static_field_set_expr_rt(C_name, F_name, new_value_t.sem)
-                      : Sem.field_set_expr_rt(F_name, new_value_t.sem, this_ref_t.sem)))
+                        Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
+                      : Sem.field_set_expr_rt(F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem, this_ref_t.sem)))
           }
-         )))
+         ))))
 }
 
 

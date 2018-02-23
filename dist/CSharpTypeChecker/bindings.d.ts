@@ -195,6 +195,13 @@ export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
 export declare let def_class: (r: SourceRange, C_name: string, methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[]) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: string) => Stmt;
-export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: string, new_value: Stmt) => Stmt;
+export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: {
+    att_name: string;
+    kind: "att";
+} | {
+    att_name: string;
+    kind: "att_arr";
+    index: Stmt;
+}, new_value: Stmt) => Stmt;
 export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[]) => Stmt;
 export declare let call_method: (r: SourceRange, context: CallingContext, this_ref: Stmt, M_name: string, arg_values: Stmt[]) => Stmt;
