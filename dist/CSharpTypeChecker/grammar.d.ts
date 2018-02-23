@@ -197,6 +197,10 @@ export interface ArgsAST {
     kind: "args";
     value: Immutable.List<DeclAST>;
 }
+export interface BracketAST {
+    kind: "bracket";
+    e: ParserRes;
+}
 export interface FieldAST {
     decl: DeclAST;
     modifiers: Immutable.List<{
@@ -257,11 +261,21 @@ export interface ConstructorCallAST {
     name: string;
     actuals: Array<ParserRes>;
 }
+export interface ArrayConstructorCallAST {
+    kind: "array_cons_call";
+    type: ParserRes;
+    actual: ParserRes;
+}
 export interface MethodCallAST {
     kind: "method_call";
     object: ParserRes;
     name: ParserRes;
     actuals: Array<ParserRes>;
+}
+export interface GetArrayValueAtAST {
+    kind: "get_array_value_at";
+    array: ParserRes;
+    index: ParserRes;
 }
 export interface MkEmptyRenderGrid {
     kind: "mk-empty-render-grid";
@@ -324,11 +338,15 @@ export interface GenericTypeDeclAST {
     f: ParserRes;
     args: Array<ParserRes>;
 }
+export interface ArrayTypeDeclAST {
+    kind: "array decl";
+    t: ParserRes;
+}
 export interface TupleTypeDeclAST {
     kind: "tuple type decl";
     args: Array<ParserRes>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ModifierAST;
+export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
