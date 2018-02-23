@@ -1169,7 +1169,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
     free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
 
   : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
-  
+
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "string" || n.ast.kind == "bool"   ?  Immutable.Set<ValueName>()
@@ -1241,14 +1241,14 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
     n.ast.l.ast.kind == "." && 
     n.ast.l.ast.r.ast.kind == "get_array_value_at" &&
     n.ast.l.ast.r.ast.array.ast.kind == "id" ?
-    CSharp.field_set( n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), 
-                      { att_name:n.ast.l.ast.r.ast.array.ast.value, 
-                        kind:"att_arr", 
-                        index:ast_to_type_checker(n.ast.l.ast.r.ast.index)(context) }, 
-                      ast_to_type_checker(n.ast.r)(context))  
-              
-    
 
+    //(this.b)[i] = c
+    //set([this.b], i, c)
+    //set(ref(T), i, c)
+    CSharp.set_arr_el(n.range, 
+      ast_to_type_checker({...n.ast.l, ast: {...n.ast.l.ast, r: {...n.ast.l.ast.r, ast:n.ast.l.ast.r.ast.array.ast}}})(context),
+      ast_to_type_checker(n.ast.l.ast.r.ast.index)(context),
+      ast_to_type_checker(n.ast.r)(context))
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ? 

@@ -685,6 +685,16 @@ export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
         ))
 }
 
+// export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
+//   return _ => a(no_constraints).then(a_t =>
+//          i(no_constraints).then(i_t =>
+//          e(no_constraints).then(e_t =>
+//          a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
+//            co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+//          : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
+//         )))
+// }
+
 export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          i(no_constraints).then(i_t =>
@@ -809,23 +819,23 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
          (F_name.kind == "att_arr" ? F_name.index(no_constraints) : co_unit<State, Err, Typing>(mk_typing(bool_type, Sem.bool_expr(false)))).then(maybe_index =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name}.`})
+             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name.att_name}.`})
            }
            let C_name:string = this_ref_t.type.C_name
            if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type ${C_name} is not a class`})
-           if (!C_def.fields.has(F_name.att_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name}`})
+           if (!C_def.fields.has(F_name.att_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name.att_name}`})
            let F_def = C_def.fields.get(F_name.att_name)
 
            if (!F_def.modifiers.has("public")) {
             if (context.kind == "global scope")
-              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${JSON.stringify(F_name)} from global scope`})
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${JSON.stringify(F_name.att_name)} from global scope`})
             else if (context.C_name != C_name)
-              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name)} from ${context.C_name}`})
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name.att_name)} from ${context.C_name}`})
            }
-
-           if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
+          //improve
+           //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${this_ref_t.type.C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
            return co_unit(mk_typing(unit_type,
                     F_def.modifiers.has("static") ?
                         Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)

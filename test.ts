@@ -31,25 +31,14 @@ export let test_parser = () => {
   // Func<int,int,bool> d = x,y => x > y;
 
     let source = `
-Func<int, Func<int, Func<int, int>>> add_mul = x => (y => (z => x * (y + z)));
-
-Func<int, Func<int, int>> add_double = add_mul(2);
-Func<int, Func<int, int>> add_triple = add_mul(3);
-
-typechecker_debugger;
-
-Func<int, int> f = add_double(4);
-debugger;
-int a = f(2);
-
-debugger;
-
-Func<int, int> g = add_triple(5);
-debugger;
-int b = g(1);
-debugger;
-
-typechecker_debugger;
+class A {
+  public int[] elems;
+  public A(){
+    this.elems = new int[5];
+    this.elems[1] = 80085;
+  }
+}
+A a = new A();
     `
     
 
