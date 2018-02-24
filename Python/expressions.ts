@@ -17,7 +17,7 @@ import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
   mk_unit_val, get_arr_len_rt, get_arr_el_rt, get_class_def_rt, get_fun_def_rt,
   get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, mk_tuple_val, RenderSurface } from "./memory"
 import { SourceRange } from "../source_range";
-import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel, mk_render_surface_val, RenderSurfaceOperation, mk_render_surface_operation_val, mk_circle_op, mk_square_op, mk_rectangle_op, mk_ellipse_op, mk_other_surface_op } from "./python";
+import { RenderGrid, mk_render_grid_val, mk_render_grid_pixel_val, RenderGridPixel, mk_render_surface_val, RenderSurfaceOperation, mk_render_surface_operation_val, mk_circle_op, mk_square_op, mk_rectangle_op, mk_ellipse_op, mk_other_surface_op, mk_sprite_op } from "./python";
 import { comm_list_coroutine } from "../ccc_aux";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
@@ -116,6 +116,7 @@ export let render_surface_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt
                 : o.kind == "square" ? ({...o, x:o.x+dx, y:o.y+dy})
                 : o.kind == "ellipse" ? ({...o, x:o.x+dx, y:o.y+dy})
                 : o.kind == "rectangle" ? ({...o, x:o.x+dx, y:o.y+dy})
+                : o.kind == "sprite" ? ({...o, x:o.x+dx, y:o.y+dy})
                 : o
               let scale = (o:RenderSurfaceOperation,sx:number,sy:number) : RenderSurfaceOperation =>
                 o.kind == "circle" ?
@@ -126,6 +127,7 @@ export let render_surface_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt
                   : ({ kind:"rectangle", x:o.x, y:o.y, width:o.side*sx, height:o.side*sy, color:o.color})
                 : o.kind == "ellipse" ? ({...o, width:o.width*sx, height:o.height*sy})
                 : o.kind == "rectangle" ? ({...o, width:o.width*sx, height:o.height*sy})
+                : o.kind == "sprite" ? ({...o, width:o.width*sx, height:o.height*sy})
                 : o
 
               operations = operations.concat(op.s.operations.map(op1 => op1 && translate(scale(op1, sx, sy), dx, dy))).toList()
@@ -166,6 +168,14 @@ export let mk_rectangle_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val
       render_surface_operation_expr(mk_rectangle_op(x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
     : runtime_error(`Type error: cannot create rectangle with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${col.value.v}.`)
   )))))
+}
+
+export let mk_sprite_rt = function (sprite: ExprRt<Sum<Val,Val>>, x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return sprite.then(sprite_v => x.then(x_v => y.then(y_v => w.then(w_v => h.then(h_v => color.then(col =>
+    sprite_v.value.k == "s" && x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
+      render_surface_operation_expr(mk_sprite_op(sprite_v.value.v, x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
+    : runtime_error(`Type error: cannot create rectangle with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${col.value.v}.`)
+  ))))))
 }
 
 export let mk_ellipse_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {

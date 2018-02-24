@@ -29,11 +29,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-(string Name, string Surname, Func<int,int> MyFunc) person = ("Giuseppe", "Maggiore", x => x + 1);
-person = ("Giulia", "Costantini", x => x - 1);
-var name = person.Name;
-var f = person.MyFunc;
-var y = f(5);
+surface s = empty_surface 500 500 "white";
+var c = circle 50 50 30 "red";
+s = s + c;
+s = s + other_surface s 0 0 1 1;
+s = s + sprite "ship" 10 10 20 20 "white";
     `
 
 

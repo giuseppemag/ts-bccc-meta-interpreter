@@ -14,7 +14,7 @@ export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
-export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"} | { kind:"other surface"}
+export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"} | { kind:"other surface"} | { kind:"sprite"}
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
@@ -32,6 +32,7 @@ export let ellipse_type : Type = { kind:"ellipse" }
 export let rectangle_type : Type = { kind:"rectangle" }
 export let other_render_surface_type : Type = { kind:"other surface" }
 
+export let sprite_type : Type = { kind:"sprite" }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let var_type : Type = { kind:"var" }
@@ -360,6 +361,22 @@ export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt
               )))))
 }
 
+export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+  return _ => sprite(no_constraints).then(s_t =>
+              x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              w(no_constraints).then(w_t =>
+              h(no_constraints).then(h_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(s_t.type, string_type) &&
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
+              type_equals(col_t.type, string_type) ?
+                co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for sprite creation." })
+              ))))))
+}
+
 export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, sx:Stmt, sy:Stmt) : Stmt {
   return _ => dx(no_constraints).then(dx_t =>
               dy(no_constraints).then(dy_t =>
@@ -390,7 +407,9 @@ export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
           : type_equals(a_t.type, render_surface_type) &&
             (type_equals(b_t.type, circle_type) || type_equals(b_t.type, square_type)
             || type_equals(b_t.type, ellipse_type) || type_equals(b_t.type, rectangle_type)
-            || type_equals(b_t.type, other_render_surface_type)) ?
+            || type_equals(b_t.type, sprite_type)
+            || type_equals(b_t.type, other_render_surface_type)
+            ) ?
             co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot sum expressions of non-compatible types! (" +  a_t.type.kind + "," + b_t.type.kind + ")" })
         ))

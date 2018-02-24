@@ -26,6 +26,8 @@ export declare type RenderOperationType = {
     kind: "ellipse";
 } | {
     kind: "other surface";
+} | {
+    kind: "sprite";
 };
 export declare type Type = {
     kind: "render-grid-pixel";
@@ -79,6 +81,7 @@ export declare let square_type: Type;
 export declare let ellipse_type: Type;
 export declare let rectangle_type: Type;
 export declare let other_render_surface_type: Type;
+export declare let sprite_type: Type;
 export declare let unit_type: Type;
 export declare let int_type: Type;
 export declare let var_type: Type;
@@ -133,6 +136,7 @@ export declare let mk_circle: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, c
 export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
 export declare let mk_ellipse: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
 export declare let mk_rectangle: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
 export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

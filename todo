@@ -111,6 +111,8 @@ int factorial(int x) {
   [ ] files
 
 [m] `using` statement and `IDisposable`
+[m] Exam mode in desktop application
+
 
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint
@@ -118,4 +120,5 @@ int factorial(int x) {
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
   [ ] Memory values as sums (of basic types)
   [ ] breakpoint right after return (`ret_break?`)
-
+  [ ] Intellisense editor
+  [ ] Integration in VSCode

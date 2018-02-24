@@ -94,7 +94,7 @@ export declare type Token = ({
 }) & {
     range: SourceRange;
 };
-export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "other_surface";
+export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface";
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
 }
@@ -294,6 +294,15 @@ export interface EmptySurface {
     h: ParserRes;
     color: ParserRes;
 }
+export interface Sprite {
+    kind: "sprite";
+    cx: ParserRes;
+    cy: ParserRes;
+    w: ParserRes;
+    h: ParserRes;
+    sprite: ParserRes;
+    color: ParserRes;
+}
 export interface Circle {
     kind: "circle";
     cx: ParserRes;
@@ -332,7 +341,7 @@ export interface OtherSurface {
     sx: ParserRes;
     sy: ParserRes;
 }
-export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | OtherSurface;
+export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Sprite | OtherSurface;
 export interface GenericTypeDeclAST {
     kind: "generic type decl";
     f: ParserRes;

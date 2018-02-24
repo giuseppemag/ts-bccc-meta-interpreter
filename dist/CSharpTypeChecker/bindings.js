@@ -24,6 +24,7 @@ exports.square_type = { kind: "square" };
 exports.ellipse_type = { kind: "ellipse" };
 exports.rectangle_type = { kind: "rectangle" };
 exports.other_render_surface_type = { kind: "other surface" };
+exports.sprite_type = { kind: "sprite" };
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
 exports.var_type = { kind: "var" };
@@ -354,6 +355,26 @@ exports.mk_rectangle = function (r, x, y, w, h, col) {
         });
     }); };
 };
+exports.mk_sprite = function (r, sprite, x, y, w, h, col) {
+    return function (_) { return sprite(exports.no_constraints).then(function (s_t) {
+        return x(exports.no_constraints).then(function (x_t) {
+            return y(exports.no_constraints).then(function (y_t) {
+                return w(exports.no_constraints).then(function (w_t) {
+                    return h(exports.no_constraints).then(function (h_t) {
+                        return col(exports.no_constraints).then(function (col_t) {
+                            return type_equals(s_t.type, exports.string_type) &&
+                                type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                                type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
+                                type_equals(col_t.type, exports.string_type) ?
+                                ts_bccc_2.co_unit(mk_typing(exports.sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for sprite creation." });
+                        });
+                    });
+                });
+            });
+        });
+    }); };
+};
 exports.mk_other_surface = function (r, s, dx, dy, sx, sy) {
     return function (_) { return dx(exports.no_constraints).then(function (dx_t) {
         return dy(exports.no_constraints).then(function (dy_t) {
@@ -387,6 +408,7 @@ exports.plus = function (r, a, b) {
                     : type_equals(a_t.type, exports.render_surface_type) &&
                         (type_equals(b_t.type, exports.circle_type) || type_equals(b_t.type, exports.square_type)
                             || type_equals(b_t.type, exports.ellipse_type) || type_equals(b_t.type, exports.rectangle_type)
+                            || type_equals(b_t.type, exports.sprite_type)
                             || type_equals(b_t.type, exports.other_render_surface_type)) ?
                         ts_bccc_2.co_unit(mk_typing(exports.render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: cannot sum expressions of non-compatible types! (" + a_t.type.kind + "," + b_t.type.kind + ")" });
