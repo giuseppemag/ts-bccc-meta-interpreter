@@ -570,8 +570,8 @@ var mk_sprite_prs = function () {
                 return expr().then(function (cy) {
                     return expr().then(function (w) {
                         return expr().then(function (h) {
-                            return expr().then(function (col) {
-                                return ts_bccc_1.co_unit(mk_sprite(source_range_1.join_source_ranges(kw, col.range), sprite, cx, cy, w, h, col));
+                            return expr().then(function (rot) {
+                                return ts_bccc_1.co_unit(mk_sprite(source_range_1.join_source_ranges(kw, rot.range), sprite, cx, cy, w, h, rot));
                             });
                         });
                     });
