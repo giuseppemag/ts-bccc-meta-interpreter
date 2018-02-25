@@ -213,7 +213,7 @@ export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, 
 export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 
 export interface EmptySurface { kind: "empty surface", w:ParserRes, h:ParserRes, color:ParserRes }
-export interface Sprite { kind: "sprite", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, sprite:ParserRes, color:ParserRes }
+export interface Sprite { kind: "sprite", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, sprite:ParserRes, rotation:ParserRes }
 export interface Circle { kind: "circle", cx:ParserRes, cy:ParserRes, r:ParserRes, color:ParserRes }
 export interface Square { kind: "square", cx:ParserRes, cy:ParserRes, s:ParserRes, color:ParserRes }
 export interface Ellipse { kind: "ellipse", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, color:ParserRes }
@@ -335,7 +335,7 @@ let mk_circle = (sr:SourceRange, cx:ParserRes, cy:ParserRes, r:ParserRes, col:Pa
 let mk_square = (sr:SourceRange, cx:ParserRes, cy:ParserRes, s:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "square", cx:cx, cy:cy, s:s, color:col } })
 let mk_ellipse = (sr:SourceRange, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "ellipse", cx:cx, cy:cy, w:w, h:h, color:col } })
 let mk_rectangle = (sr:SourceRange, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "rectangle", cx:cx, cy:cy, w:w, h:h, color:col } })
-let mk_sprite = (sr:SourceRange, sprite:ParserRes, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, col:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "sprite", cx:cx, cy:cy, w:w, h:h, sprite:sprite, color:col } })
+let mk_sprite = (sr:SourceRange, sprite:ParserRes, cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, rot:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "sprite", cx:cx, cy:cy, w:w, h:h, sprite:sprite, rotation:rot } })
 let mk_other_surface = (sr:SourceRange, s:ParserRes, dx:ParserRes, dy:ParserRes, sx:ParserRes, sy:ParserRes) : ParserRes => ({ range:sr, ast:{ kind: "other surface", s:s, dx:dx, dy:dy, sx:sx, sy:sy } })
 
 export interface ParserError { priority:number, message:string, range:SourceRange }
@@ -1353,7 +1353,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
   : n.ast.kind == "rectangle" ?
     CSharp.mk_rectangle(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
   : n.ast.kind == "sprite" ?
-    CSharp.mk_sprite(n.range, ast_to_type_checker(n.ast.sprite)(context), ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
+    CSharp.mk_sprite(n.range, ast_to_type_checker(n.ast.sprite)(context), ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.rotation)(context))
   : n.ast.kind == "other surface" ?
     CSharp.mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context))
 

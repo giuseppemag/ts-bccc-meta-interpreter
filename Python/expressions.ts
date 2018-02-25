@@ -170,11 +170,11 @@ export let mk_rectangle_rt = function (x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val
   )))))
 }
 
-export let mk_sprite_rt = function (sprite: ExprRt<Sum<Val,Val>>, x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
-  return sprite.then(sprite_v => x.then(x_v => y.then(y_v => w.then(w_v => h.then(h_v => color.then(col =>
-    sprite_v.value.k == "s" && x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
-      render_surface_operation_expr(mk_sprite_op(sprite_v.value.v, x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
-    : runtime_error(`Type error: cannot create rectangle with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${col.value.v}.`)
+export let mk_sprite_rt = function (sprite: ExprRt<Sum<Val,Val>>, x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, w:ExprRt<Sum<Val,Val>>, h:ExprRt<Sum<Val,Val>>, rot:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
+  return sprite.then(sprite_v => x.then(x_v => y.then(y_v => w.then(w_v => h.then(h_v => rot.then(rot_v =>
+    sprite_v.value.k == "s" && x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && rot_v.value.k == "i" ?
+      render_surface_operation_expr(mk_sprite_op(sprite_v.value.v, x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, rot_v.value.v))
+    : runtime_error(`Type error: cannot create rectangle with ${x_v.value.v}, ${y_v.value.v}, ${w_v.value.v}, ${h_v.value.v} and ${rot_v.value.v}.`)
   ))))))
 }
 

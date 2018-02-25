@@ -361,18 +361,18 @@ export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt
               )))))
 }
 
-export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:Stmt, h:Stmt, rot:Stmt) : Stmt {
   return _ => sprite(no_constraints).then(s_t =>
               x(no_constraints).then(x_t =>
               y(no_constraints).then(y_t =>
               w(no_constraints).then(w_t =>
               h(no_constraints).then(h_t =>
-              col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
               type_equals(s_t.type, string_type) &&
               type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
               type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
-              type_equals(col_t.type, string_type) ?
-                co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, rot_t.sem)))
               : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for sprite creation." })
               ))))))
 }

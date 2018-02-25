@@ -136,7 +136,7 @@ export declare let mk_circle: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, c
 export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
 export declare let mk_ellipse: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
 export declare let mk_rectangle: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
-export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, rot: Stmt) => Stmt;
 export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

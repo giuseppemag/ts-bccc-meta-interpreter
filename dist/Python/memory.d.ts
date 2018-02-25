@@ -56,7 +56,7 @@ export declare type RenderSurfaceOperation = {
     y: number;
     width: number;
     height: number;
-    color: string;
+    rotation: number;
 } | {
     kind: "other surface";
     s: RenderSurface;
@@ -151,7 +151,7 @@ export declare let mk_circle_op: (x: number, y: number, radius: number, color: s
 export declare let mk_square_op: (x: number, y: number, side: number, color: string) => RenderSurfaceOperation;
 export declare let mk_ellipse_op: (x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
 export declare let mk_rectangle_op: (x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
-export declare let mk_sprite_op: (sprite: string, x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
+export declare let mk_sprite_op: (sprite: string, x: number, y: number, width: number, height: number, rotation: number) => RenderSurfaceOperation;
 export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number) => RenderSurfaceOperation;
 export declare let mk_render_surface_operation_val: (s: RenderSurfaceOperation) => Val;
 export declare let tuple_to_record: (v: Val, labels: string[]) => Val;

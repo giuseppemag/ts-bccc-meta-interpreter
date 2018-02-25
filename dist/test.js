@@ -18,7 +18,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nsurface s = empty_surface 500 500 \"white\";\nvar c = circle 50 50 30 \"red\";\ns = s + c;\ns = s + other_surface s 0 0 1 1;\ns = s + sprite \"ship\" 10 10 20 20 \"white\";\n    ";
+        var source = "\nsurface s = empty_surface 500 500 \"white\";\nvar c = circle 50 50 30 \"red\";\ns = s + c;\ns = s + other_surface s 0 0 1 1;\ns = s + sprite \"spaceship\" 10 10 20 20 0;\n    ";
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left")
             return parse_result.value;

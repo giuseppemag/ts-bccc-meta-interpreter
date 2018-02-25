@@ -155,11 +155,11 @@ exports.mk_rectangle_rt = function (x, y, w, h, color) {
             : memory_1.runtime_error("Type error: cannot create rectangle with " + x_v.value.v + ", " + y_v.value.v + ", " + w_v.value.v + ", " + h_v.value.v + " and " + col.value.v + ".");
     }); }); }); }); });
 };
-exports.mk_sprite_rt = function (sprite, x, y, w, h, color) {
-    return sprite.then(function (sprite_v) { return x.then(function (x_v) { return y.then(function (y_v) { return w.then(function (w_v) { return h.then(function (h_v) { return color.then(function (col) {
-        return sprite_v.value.k == "s" && x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && col.value.k == "s" ?
-            exports.render_surface_operation_expr(python_1.mk_sprite_op(sprite_v.value.v, x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, col.value.v))
-            : memory_1.runtime_error("Type error: cannot create rectangle with " + x_v.value.v + ", " + y_v.value.v + ", " + w_v.value.v + ", " + h_v.value.v + " and " + col.value.v + ".");
+exports.mk_sprite_rt = function (sprite, x, y, w, h, rot) {
+    return sprite.then(function (sprite_v) { return x.then(function (x_v) { return y.then(function (y_v) { return w.then(function (w_v) { return h.then(function (h_v) { return rot.then(function (rot_v) {
+        return sprite_v.value.k == "s" && x_v.value.k == "i" && y_v.value.k == "i" && w_v.value.k == "i" && h_v.value.k == "i" && rot_v.value.k == "i" ?
+            exports.render_surface_operation_expr(python_1.mk_sprite_op(sprite_v.value.v, x_v.value.v, y_v.value.v, w_v.value.v, h_v.value.v, rot_v.value.v))
+            : memory_1.runtime_error("Type error: cannot create rectangle with " + x_v.value.v + ", " + y_v.value.v + ", " + w_v.value.v + ", " + h_v.value.v + " and " + rot_v.value.v + ".");
     }); }); }); }); }); });
 };
 exports.mk_ellipse_rt = function (x, y, w, h, color) {

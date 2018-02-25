@@ -33,7 +33,7 @@ surface s = empty_surface 500 500 "white";
 var c = circle 50 50 30 "red";
 s = s + c;
 s = s + other_surface s 0 0 1 1;
-s = s + sprite "ship" 10 10 20 20 "white";
+s = s + sprite "spaceship" 10 10 20 20 0;
     `
 
 

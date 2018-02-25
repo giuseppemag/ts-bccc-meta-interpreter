@@ -16,7 +16,7 @@ export type RenderSurfaceOperation = { kind:"circle", x:number, y:number, radius
                             | { kind:"square", x:number, y:number, side:number, color:string }
                             | { kind:"rectangle", x:number, y:number, width:number, height:number, color:string }
                             | { kind:"ellipse", x:number, y:number, width:number, height:number, color:string }
-                            | { kind:"sprite", sprite:string, x:number, y:number, width:number, height:number, color:string }
+                            | { kind:"sprite", sprite:string, x:number, y:number, width:number, height:number, rotation:number }
                             | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number }
 
 export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }
@@ -53,7 +53,7 @@ export let mk_circle_op = (x:number, y:number, radius:number, color:string) : Re
 export let mk_square_op = (x:number, y:number, side:number, color:string) : RenderSurfaceOperation => ({ kind:"square", x, y, side, color })
 export let mk_ellipse_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"ellipse", x, y, width, height, color })
 export let mk_rectangle_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"rectangle", x, y, width, height, color })
-export let mk_sprite_op = (sprite:string, x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"sprite", sprite, x, y, width, height, color })
+export let mk_sprite_op = (sprite:string, x:number, y:number, width:number, height:number, rotation:number) : RenderSurfaceOperation => ({ kind:"sprite", sprite, x, y, width, height, rotation })
 export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy })
 export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val => ({ v:s, k:"render surface operation" })
 export let tuple_to_record = (v:Val, labels:Array<string>) : Val => v.k == "tuple" ?

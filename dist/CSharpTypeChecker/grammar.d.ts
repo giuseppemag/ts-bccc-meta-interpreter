@@ -301,7 +301,7 @@ export interface Sprite {
     w: ParserRes;
     h: ParserRes;
     sprite: ParserRes;
-    color: ParserRes;
+    rotation: ParserRes;
 }
 export interface Circle {
     kind: "circle";

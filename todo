@@ -4,11 +4,11 @@
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 
 [g] Renderers
-  [ ] Spline (with color)
-  [ ] Polygon (with color)
-  [ ] Spaceship (with color)
-  [ ] Asteroid (with color)
-  [ ] Laser (with color)
+  [ ] Line (with color)   <line x1="0" y1="0" x2="200" y2="200" style="stroke:rgb(255,0,0);stroke-width:2" />
+  [ ] Polygon (with color)   <polygon points="200,10 250,190 160,210" style="fill:lime;stroke:purple;stroke-width:1" />
+  [ ] Rotations in square, ellipse, rectangle, and sprite
+      transform="rotate(45 50 50)" (a degrees about x and y)
+  [ ] Sprite color
 
 [g] HTML renderers for server simulator
 
@@ -27,6 +27,8 @@
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
+[m] Add `ToEnd` button to InfoSlide in code (at 50fps)
+[m] Add C# to playground
 [m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
 [m] use something visual instead of debugger and typechecker_debugger
 [m] errors with range over code in editor
@@ -44,6 +46,7 @@
 [m] constructor with wrong name is accepted: `class A { public B() { ... } }`
 [m] negative numbers are not parsed
 [m] float numbers do not work
+  [ ] Scale in surface-to-surface sum should be a float
 [m] methods/functions without body
 [m] comments
 [m] highlighting with proper style

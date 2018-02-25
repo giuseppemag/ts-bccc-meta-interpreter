@@ -355,18 +355,18 @@ exports.mk_rectangle = function (r, x, y, w, h, col) {
         });
     }); };
 };
-exports.mk_sprite = function (r, sprite, x, y, w, h, col) {
+exports.mk_sprite = function (r, sprite, x, y, w, h, rot) {
     return function (_) { return sprite(exports.no_constraints).then(function (s_t) {
         return x(exports.no_constraints).then(function (x_t) {
             return y(exports.no_constraints).then(function (y_t) {
                 return w(exports.no_constraints).then(function (w_t) {
                     return h(exports.no_constraints).then(function (h_t) {
-                        return col(exports.no_constraints).then(function (col_t) {
+                        return rot(exports.no_constraints).then(function (rot_t) {
                             return type_equals(s_t.type, exports.string_type) &&
                                 type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
                                 type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
-                                type_equals(col_t.type, exports.string_type) ?
-                                ts_bccc_2.co_unit(mk_typing(exports.sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+                                type_equals(rot_t.type, exports.int_type) ?
+                                ts_bccc_2.co_unit(mk_typing(exports.sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, rot_t.sem)))
                                 : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for sprite creation." });
                         });
                     });
