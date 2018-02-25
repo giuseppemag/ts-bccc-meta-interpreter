@@ -1,3 +1,6 @@
+[g] Add `ToEnd` button to InfoSlide in code (at 50fps)
+[g] skip first step in stream
+
 [g] toString operators and automated casting (float to int)
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
@@ -27,7 +30,6 @@
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
 
-[m] Add `ToEnd` button to InfoSlide in code (at 50fps)
 [m] Add C# to playground
 [m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
 [m] use something visual instead of debugger and typechecker_debugger

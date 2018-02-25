@@ -373,7 +373,7 @@ export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:St
               type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
               type_equals(rot_t.type, int_type) ?
                 co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, rot_t.sem)))
-              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for sprite creation." })
+              : co_error<State,Err,Typing>({ range:r, message:`Error: unsupported types for sprite creation.` })
               ))))))
 }
 

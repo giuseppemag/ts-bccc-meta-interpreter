@@ -670,8 +670,8 @@ let mk_sprite_prs : () => Parser = () =>
   expr().then(cy =>
   expr().then(w =>
   expr().then(h =>
-  expr().then(col =>
-  co_unit(mk_sprite(join_source_ranges(kw, col.range), sprite, cx, cy, w, h, col))
+  expr().then(rot =>
+  co_unit(mk_sprite(join_source_ranges(kw, rot.range), sprite, cx, cy, w, h, rot))
   )))))))
 
 let mk_other_surface_prs : () => Parser = () =>
