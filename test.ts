@@ -39,39 +39,27 @@ s = s + sprite "spaceship" 10 10 20 20 0;
 
 
 
-    let parse_result = CSharp.GrammarBasics.tokenize(source)
-    if (parse_result.kind == "left") return parse_result.value
 
-    let tokens = Immutable.List<CSharp.Token>(parse_result.value)
-    // console.log(JSON.stringify(tokens.toArray())) // tokens
-    let res = CSharp.program_prs().run.f(mk_parser_state(tokens))
-    if (res.kind != "right" || res.value.kind != "right") return `Parse error: ${JSON.stringify(res.value)}`
-
-    // console.log(JSON.stringify(res.value.value.fst)) // ast
-    let hrstart = process.hrtime()
-    let p = ast_to_type_checker(res.value.value.fst)(global_calling_context)
+    // let hrstart = process.hrtime()
 
     let output = ""
     let log = function(s:string,x:any) {
       output = output + s + JSON.stringify(x) + "\n\n"
     }
 
-    // log("\n\nStarting typechecking\n\n", {})
-    let compiler_res = apply((constant<Unit,Coroutine<CSharp.State, CSharp.Err, CSharp.Typing>>(p(CSharp.no_constraints)).times(constant<Unit,CSharp.State>(CSharp.empty_state))).then(run_to_end(log)), {})
-    if (compiler_res.kind == "left") {
-      let hrdiff = process.hrtime(hrstart)
-      let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
+    // let hrdiff = process.hrtime(hrstart)
+    // let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
+    // log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
-    } else {
-      log(`Compiler result: `, JSON.stringify(compiler_res.value.snd.bindings))
-      // log("\n\nStarting runtime\n\n", "")
-      let runtime_res = apply((constant<Unit,Py.StmtRt>(compiler_res.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt))).then(run_to_end(log)), {})
-      let hrdiff = process.hrtime(hrstart)
-      let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
-      log(`Runtime result: `, JSON.stringify(runtime_res))
-      log(`Timer: ${time_in_ns / 1000000}ms\n `, "")
+    let stream = get_stream(source)
+    while (stream.kind == "step") {
+      let show = stream.show()
+      log("Step:", show.kind == "bindings" ? show.state : show.kind == "memory" ? show.memory : show)
+      stream = stream.next()
     }
+    let show = stream.show()
+    log("Step:", show.kind == "bindings" ? show.state : show.kind == "memory" ? show.memory : show)
+
     return output
   }
 

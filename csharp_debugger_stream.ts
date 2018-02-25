@@ -73,7 +73,9 @@ export let get_stream = (source:string) : DebuggerStream => {
       }
       let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt)), {})
       let first_stream = runtime_stream(initial_runtime_state)
-      if (first_stream.kind == "step") first_stream = first_stream.next()
+      if (first_stream.kind == "step") {
+        first_stream = first_stream.next()
+      }
       return first_stream
     },
     show:() => ({ kind:"bindings", state:state.snd, ast:ast })
@@ -81,7 +83,9 @@ export let get_stream = (source:string) : DebuggerStream => {
 
   let initial_compiler_state = apply(constant<Unit,Coroutine<CSharp.State,CSharp.Err,CSharp.Typing>>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
   let first_stream = typechecker_stream(initial_compiler_state)
-  if (first_stream.kind == "step") first_stream = first_stream.next()
+  if (first_stream.kind == "step") {
+    first_stream = first_stream.next()
+  }
   return first_stream
 }
 

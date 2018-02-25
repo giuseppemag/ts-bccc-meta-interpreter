@@ -55,10 +55,18 @@ exports.get_stream = function (source) {
                 return typechecker_stream(k.value.value);
             }
             var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt)), {});
-            return runtime_stream(initial_runtime_state);
+            var first_stream = runtime_stream(initial_runtime_state);
+            if (first_stream.kind == "step") {
+                first_stream = first_stream.next();
+            }
+            return first_stream;
         },
         show: function () { return ({ kind: "bindings", state: state.snd, ast: ast }); }
     }); };
     var initial_compiler_state = ts_bccc_1.apply(ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state)), {});
-    return typechecker_stream(initial_compiler_state);
+    var first_stream = typechecker_stream(initial_compiler_state);
+    if (first_stream.kind == "step") {
+        first_stream = first_stream.next();
+    }
+    return first_stream;
 };
