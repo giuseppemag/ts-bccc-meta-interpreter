@@ -8,6 +8,7 @@
 [g] Renderers
   [ ] Line (with color)   <line x1="0" y1="0" x2="200" y2="200" style="stroke:rgb(255,0,0);stroke-width:2" />
   [ ] Polygon (with color)   <polygon points="200,10 250,190 160,210" style="fill:lime;stroke:purple;stroke-width:1" />
+  [ ] Text (with max width)
 
 [g] HTML renderers for server simulator
 
