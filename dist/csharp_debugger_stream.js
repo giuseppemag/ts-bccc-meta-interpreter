@@ -56,9 +56,9 @@ exports.get_stream = function (source) {
             }
             var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt)), {});
             var first_stream = runtime_stream(initial_runtime_state);
-            if (first_stream.kind == "step") {
-                first_stream = first_stream.next();
-            }
+            // if (first_stream.kind == "step") {
+            //   first_stream = first_stream.next()
+            // }
             return first_stream;
         },
         show: function () { return ({ kind: "bindings", state: state.snd, ast: ast }); }

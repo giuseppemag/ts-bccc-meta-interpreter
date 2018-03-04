@@ -23,8 +23,11 @@ exports.circle_type = { kind: "circle" };
 exports.square_type = { kind: "square" };
 exports.ellipse_type = { kind: "ellipse" };
 exports.rectangle_type = { kind: "rectangle" };
-exports.other_render_surface_type = { kind: "other surface" };
+exports.line_type = { kind: "line" };
+exports.polygon_type = { kind: "polygon" };
+exports.text_type = { kind: "text" };
 exports.sprite_type = { kind: "sprite" };
+exports.other_render_surface_type = { kind: "other surface" };
 exports.unit_type = { kind: "unit" };
 exports.int_type = { kind: "int" };
 exports.var_type = { kind: "var" };
@@ -80,30 +83,38 @@ exports.decl_v = function (r, v, t, is_constant) {
     var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-    return function (_) { return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)); };
+    return function (_) {
+        return ts_bccc_1.co_get_state().then(function (s) {
+            return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
+                : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + JSON.stringify(v) });
+        });
+    };
 };
 exports.decl_and_init_v = function (r, v, t, e, is_constant) {
     return function (_) { return e(ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
-        var actual_t = t.kind == "var" ? e_val.type : t;
-        if (type_equals(e_val.type, actual_t)) {
-            var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
-            var g = ts_bccc_1.curry(f);
-            var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
-        }
-        else {
-            if (e_val.type.kind == "tuple" && actual_t.kind == "record" && type_equals(e_val.type, exports.tuple_type(actual_t.args.toArray()))) {
-                console.log("apparently these two are equal to each other", JSON.stringify([e_val.type, exports.tuple_type(actual_t.args.toArray())]));
-                var record_labels_1 = actual_t.args.keySeq().toArray();
-                var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_val.value, record_labels_1))); }))).times(ts_bccc_1.id())).then(wrap_co);
+        return ts_bccc_1.co_get_state().then(function (s) {
+            if (s.bindings.has(v))
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + JSON.stringify(v) });
+            var actual_t = t.kind == "var" ? e_val.type : t;
+            if (type_equals(e_val.type, actual_t)) {
+                var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(wrap_co);
                 var g = ts_bccc_1.curry(f);
                 var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
                 return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
             }
             else {
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e_val) + ": type " + JSON.stringify(actual_t) + " does not match " + JSON.stringify(e_val.type) });
+                if (e_val.type.kind == "tuple" && actual_t.kind == "record" && type_equals(e_val.type, exports.tuple_type(actual_t.args.toArray()))) {
+                    var record_labels_1 = actual_t.args.keySeq().toArray();
+                    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_val.value, record_labels_1))); }))).times(ts_bccc_1.id())).then(wrap_co);
+                    var g = ts_bccc_1.curry(f);
+                    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, actual_t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+                    return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+                }
+                else {
+                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign " + JSON.stringify(v) + " to " + JSON.stringify(e_val) + ": type " + JSON.stringify(actual_t) + " does not match " + JSON.stringify(e_val.type) });
+                }
             }
-        }
+        });
     }); };
 };
 exports.decl_const = function (r, c, t, e) {
@@ -151,6 +162,9 @@ exports.str = function (s) {
 exports.int = function (i) {
     return function (_) { return ts_bccc_2.co_unit(mk_typing(exports.int_type, Sem.int_expr(i))); };
 };
+exports.float = function (i) {
+    return function (_) { return ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_expr(i))); };
+};
 exports.tuple_value = function (r, args) {
     return function (constraints) {
         if (constraints.kind == "left" && constraints.value.kind == "record")
@@ -172,7 +186,7 @@ exports.gt = function (r, a, b) {
                 type_equals(a_t.type, exports.int_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (>)!" })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
         });
@@ -185,7 +199,7 @@ exports.lt = function (r, a, b) {
                 type_equals(a_t.type, exports.int_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (<)!" })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
         });
@@ -198,7 +212,7 @@ exports.geq = function (r, a, b) {
                 type_equals(a_t.type, exports.int_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (>=)!" })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
         });
@@ -211,7 +225,7 @@ exports.leq = function (r, a, b) {
                 type_equals(a_t.type, exports.int_type) ?
                     ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.float_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(mk_typing(exports.bool_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (<=)!" })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
         });
@@ -307,48 +321,109 @@ exports.mk_circle = function (r, x, y, radius, col) {
         });
     }); };
 };
-exports.mk_square = function (r, x, y, radius, col) {
+exports.mk_square = function (r, x, y, radius, col, rot) {
     return function (_) { return x(exports.no_constraints).then(function (x_t) {
         return y(exports.no_constraints).then(function (y_t) {
             return radius(exports.no_constraints).then(function (r_t) {
                 return col(exports.no_constraints).then(function (col_t) {
-                    return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
-                        type_equals(r_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) ?
-                        ts_bccc_2.co_unit(mk_typing(exports.square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for square creation." });
-                });
-            });
-        });
-    }); };
-};
-exports.mk_ellipse = function (r, x, y, w, h, col) {
-    return function (_) { return x(exports.no_constraints).then(function (x_t) {
-        return y(exports.no_constraints).then(function (y_t) {
-            return w(exports.no_constraints).then(function (w_t) {
-                return h(exports.no_constraints).then(function (h_t) {
-                    return col(exports.no_constraints).then(function (col_t) {
+                    return rot(exports.no_constraints).then(function (rot_t) {
                         return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
-                            type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
-                            type_equals(col_t.type, exports.string_type) ?
-                            ts_bccc_2.co_unit(mk_typing(exports.ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
-                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for ellipse creation." });
+                            type_equals(r_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) &&
+                            type_equals(rot_t.type, exports.int_type) ?
+                            ts_bccc_2.co_unit(mk_typing(exports.square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem, rot_t.sem)))
+                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for square creation." });
                     });
                 });
             });
         });
     }); };
 };
-exports.mk_rectangle = function (r, x, y, w, h, col) {
+exports.mk_ellipse = function (r, x, y, w, h, col, rot) {
     return function (_) { return x(exports.no_constraints).then(function (x_t) {
         return y(exports.no_constraints).then(function (y_t) {
             return w(exports.no_constraints).then(function (w_t) {
                 return h(exports.no_constraints).then(function (h_t) {
                     return col(exports.no_constraints).then(function (col_t) {
-                        return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
-                            type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
-                            type_equals(col_t.type, exports.string_type) ?
-                            ts_bccc_2.co_unit(mk_typing(exports.rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
-                            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for rectangle creation." });
+                        return rot(exports.no_constraints).then(function (rot_t) {
+                            return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                                type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
+                                type_equals(col_t.type, exports.string_type) && type_equals(rot_t.type, exports.int_type) ?
+                                ts_bccc_2.co_unit(mk_typing(exports.ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
+                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for ellipse creation." });
+                        });
+                    });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_rectangle = function (r, x, y, w, h, col, rot) {
+    return function (_) { return x(exports.no_constraints).then(function (x_t) {
+        return y(exports.no_constraints).then(function (y_t) {
+            return w(exports.no_constraints).then(function (w_t) {
+                return h(exports.no_constraints).then(function (h_t) {
+                    return col(exports.no_constraints).then(function (col_t) {
+                        return rot(exports.no_constraints).then(function (rot_t) {
+                            return type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                                type_equals(w_t.type, exports.int_type) && type_equals(h_t.type, exports.int_type) &&
+                                type_equals(col_t.type, exports.string_type) && type_equals(rot_t.type, exports.int_type) ?
+                                ts_bccc_2.co_unit(mk_typing(exports.rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
+                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for rectangle creation." });
+                        });
+                    });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_line = function (r, x1, y1, x2, y2, w, col, rot) {
+    return function (_) { return x1(exports.no_constraints).then(function (x1_t) {
+        return y1(exports.no_constraints).then(function (y1_t) {
+            return x2(exports.no_constraints).then(function (x2_t) {
+                return y2(exports.no_constraints).then(function (y2_t) {
+                    return w(exports.no_constraints).then(function (w_t) {
+                        return col(exports.no_constraints).then(function (col_t) {
+                            return rot(exports.no_constraints).then(function (rot_t) {
+                                return type_equals(x1_t.type, exports.int_type) && type_equals(y1_t.type, exports.int_type) &&
+                                    type_equals(x2_t.type, exports.int_type) && type_equals(y2_t.type, exports.int_type) &&
+                                    type_equals(w_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) &&
+                                    type_equals(rot_t.type, exports.int_type) ?
+                                    ts_bccc_2.co_unit(mk_typing(exports.line_type, Sem.mk_line_rt(x1_t.sem, y1_t.sem, x2_t.sem, y2_t.sem, w_t.sem, col_t.sem, rot_t.sem)))
+                                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for line creation." });
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    }); };
+};
+exports.mk_polygon = function (r, points, col, rot) {
+    return function (_) { return points(exports.no_constraints).then(function (points_t) {
+        return rot(exports.no_constraints).then(function (rot_t) {
+            return col(exports.no_constraints).then(function (col_t) {
+                return type_equals(rot_t.type, exports.int_type) && type_equals(points_t.type, exports.arr_type(exports.tuple_type([exports.int_type, exports.int_type]))) &&
+                    type_equals(col_t.type, exports.string_type) && type_equals(rot_t.type, exports.int_type) ?
+                    ts_bccc_2.co_unit(mk_typing(exports.polygon_type, Sem.mk_polygon_rt(points_t.sem, col_t.sem, rot_t.sem)))
+                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for polygon creation." });
+            });
+        });
+    }); };
+};
+exports.mk_text = function (r, t, x, y, s, col, rot) {
+    return function (_) { return t(exports.no_constraints).then(function (t_t) {
+        return x(exports.no_constraints).then(function (x_t) {
+            return y(exports.no_constraints).then(function (y_t) {
+                return s(exports.no_constraints).then(function (s_t) {
+                    return col(exports.no_constraints).then(function (col_t) {
+                        return rot(exports.no_constraints).then(function (rot_t) {
+                            return type_equals(t_t.type, exports.string_type) &&
+                                type_equals(x_t.type, exports.int_type) && type_equals(y_t.type, exports.int_type) &&
+                                type_equals(s_t.type, exports.int_type) && type_equals(col_t.type, exports.string_type) &&
+                                type_equals(rot_t.type, exports.int_type) ?
+                                ts_bccc_2.co_unit(mk_typing(exports.text_type, Sem.mk_text_rt(t_t.sem, x_t.sem, y_t.sem, s_t.sem, col_t.sem, rot_t.sem)))
+                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for text creation." });
+                        });
                     });
                 });
             });
@@ -408,7 +483,8 @@ exports.plus = function (r, a, b) {
                     : type_equals(a_t.type, exports.render_surface_type) &&
                         (type_equals(b_t.type, exports.circle_type) || type_equals(b_t.type, exports.square_type)
                             || type_equals(b_t.type, exports.ellipse_type) || type_equals(b_t.type, exports.rectangle_type)
-                            || type_equals(b_t.type, exports.sprite_type)
+                            || type_equals(b_t.type, exports.sprite_type) || type_equals(b_t.type, exports.line_type)
+                            || type_equals(b_t.type, exports.polygon_type) || type_equals(b_t.type, exports.text_type)
                             || type_equals(b_t.type, exports.other_render_surface_type)) ?
                         ts_bccc_2.co_unit(mk_typing(exports.render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: cannot sum expressions of non-compatible types! (" + a_t.type.kind + "," + b_t.type.kind + ")" });
@@ -644,6 +720,8 @@ exports.def_fun = function (r, def, closure_parameters) {
 exports.def_method = function (r, C_name, def) {
     def.parameters = def.modifiers.some(function (m) { return m == "static"; }) ? def.parameters
         : def.parameters.concat(Array({ name: "this", type: exports.ref_type(C_name) }));
+    if (def.is_constructor && def.name != C_name)
+        return function (_) { return ts_bccc_2.co_error({ range: r, message: "Error: constructor for " + C_name + " cannot be called " + def.name }); };
     var parameters = def.parameters;
     var return_t = def.return_t;
     var body = def.body;

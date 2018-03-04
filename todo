@@ -1,4 +1,5 @@
-[g] skip first step in stream
+[g] initial values of the proper type for variables at declaration when no value is specified
+  [ ] also class fields
 
 [g] toString operators and automated casting (float to int)
 [g] Access modifiers: incompatibility errors do not bubble up correctly
@@ -6,9 +7,9 @@
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 
 [g] Renderers
-  [ ] Line (with color)   <line x1="0" y1="0" x2="200" y2="200" style="stroke:rgb(255,0,0);stroke-width:2" />
-  [ ] Polygon (with color)   <polygon points="200,10 250,190 160,210" style="fill:lime;stroke:purple;stroke-width:1" />
-  [ ] Text (with max width)
+  [ ] FreeVariables
+  [ ] All renderer parameters should be floats, not ints
+  [ ] Other surface as one of the renderables, with transform instead of inlining
 
 [g] HTML renderers for server simulator
 
@@ -42,11 +43,6 @@
   [ ] i++
   [ ] ++i
 [m] function parameters should have a range
-[m] constructor with wrong name is accepted: `class A { public B() { ... } }`
-[m] negative numbers are not parsed
-[m] float numbers do not work
-  [ ] Scale in surface-to-surface sum should be a float
-[m] methods/functions without body
 [m] comments
 [m] highlighting with proper style
 [m] procedures (functions returning `void`)
@@ -63,21 +59,18 @@ int factorial(int x) {
 }
 
 [m] arrays
+  [ ] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
 [m] multidimensional array + array in class attributes
 [m] Closures in regular functions
 [m] properties
-[m] initial values of the proper type for variables at declaration when no value is specified
-[m] a variable with the same name can be declared twice: this should not be allowed!
 [m] new B(new A(10)) does not work
 [m] add multiple highlightings (along the stack) for function calls
 
 
 [m] Syntax highlighting
 [m] double check tokens
-  [ ] disallowed variable names
   [ ] underscores
   [ ] number separators
-  [ ] identifiers starting with keywords (`new_id` gets stuck in the token as `new`)
   [ ] quotes, special characters, "\n"
 
 [m] Inheritance
@@ -90,7 +83,6 @@ int factorial(int x) {
   [ ] Covariance/contravariance in function calls and variable assignments
 [m] yield return
 [m] ForEach
-[m] allow specification of associativity of operators (left vs right)
 
 [m] LINQ
 [m] C# 7 pattern matching

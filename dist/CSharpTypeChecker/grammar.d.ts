@@ -5,6 +5,7 @@ import * as CSharp from "./csharp";
 import { CallingContext } from "./bindings";
 export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>" | ",";
 export declare type UnaryOpKind = "not";
+export declare type ReservedKeyword = "for" | "while" | "if" | "then" | "else" | "private" | "public" | "static" | "protected" | "virtual" | "override" | "class" | "new" | "debugger" | "typechecker_debugger" | "return";
 export declare type Token = ({
     kind: "string";
     v: string;
@@ -18,31 +19,7 @@ export declare type Token = ({
     kind: "bool";
     v: boolean;
 } | {
-    kind: "for";
-} | {
-    kind: "while";
-} | {
-    kind: "if";
-} | {
-    kind: "then";
-} | {
-    kind: "else";
-} | {
-    kind: "private";
-} | {
-    kind: "public";
-} | {
-    kind: "static";
-} | {
-    kind: "protected";
-} | {
-    kind: "virtual";
-} | {
-    kind: "override";
-} | {
-    kind: "class";
-} | {
-    kind: "new";
+    kind: ReservedKeyword;
 } | {
     kind: "id";
     v: string;
@@ -56,10 +33,6 @@ export declare type Token = ({
     kind: ";";
 } | {
     kind: ".";
-} | {
-    kind: "dbg";
-} | {
-    kind: "tc-dbg";
 } | {
     kind: "(";
 } | {
@@ -85,16 +58,10 @@ export declare type Token = ({
 } | {
     kind: "RenderGrid";
     v: number;
-} | {
-    kind: "mk_empty_render_grid";
-} | {
-    kind: "pixel";
-} | {
-    kind: "return";
 }) & {
     range: SourceRange;
 };
-export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface";
+export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface" | "text" | "line" | "polygon" | "mk_empty_render_grid" | "pixel";
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
 }
@@ -112,10 +79,10 @@ export declare type ModifierAST = {
     kind: "override";
 };
 export interface DebuggerAST {
-    kind: "dbg";
+    kind: "debugger";
 }
 export interface TCDebuggerAST {
-    kind: "tc-dbg";
+    kind: "typechecker_debugger";
 }
 export interface UnitAST {
     kind: "unit";
@@ -130,6 +97,10 @@ export interface BoolAST {
 }
 export interface IntAST {
     kind: "int";
+    value: number;
+}
+export interface FloatAST {
+    kind: "float";
     value: number;
 }
 export interface IdAST {
@@ -316,6 +287,7 @@ export interface Square {
     cy: ParserRes;
     s: ParserRes;
     color: ParserRes;
+    rotation: ParserRes;
 }
 export interface Ellipse {
     kind: "ellipse";
@@ -324,6 +296,7 @@ export interface Ellipse {
     w: ParserRes;
     h: ParserRes;
     color: ParserRes;
+    rotation: ParserRes;
 }
 export interface Rectangle {
     kind: "rectangle";
@@ -332,6 +305,32 @@ export interface Rectangle {
     w: ParserRes;
     h: ParserRes;
     color: ParserRes;
+    rotation: ParserRes;
+}
+export interface Line {
+    kind: "line";
+    x1: ParserRes;
+    y1: ParserRes;
+    x2: ParserRes;
+    y2: ParserRes;
+    width: ParserRes;
+    color: ParserRes;
+    rotation: ParserRes;
+}
+export interface Polygon {
+    kind: "polygon";
+    points: ParserRes;
+    color: ParserRes;
+    rotation: ParserRes;
+}
+export interface Text {
+    kind: "text";
+    t: ParserRes;
+    x: ParserRes;
+    y: ParserRes;
+    size: ParserRes;
+    color: ParserRes;
+    rotation: ParserRes;
 }
 export interface OtherSurface {
     kind: "other surface";
@@ -341,7 +340,7 @@ export interface OtherSurface {
     sx: ParserRes;
     sy: ParserRes;
 }
-export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Sprite | OtherSurface;
+export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface;
 export interface GenericTypeDeclAST {
     kind: "generic type decl";
     f: ParserRes;
@@ -359,7 +358,7 @@ export interface RecordTypeDeclAST {
     kind: "record type decl";
     args: Array<DeclAST>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
+export declare type AST = UnitAST | StringAST | IntAST | FloatAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

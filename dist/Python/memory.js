@@ -33,9 +33,18 @@ exports.mk_render_grid_val = function (r) { return ({ v: r, k: "render-grid" });
 exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
 exports.mk_render_surface_val = function (s) { return ({ v: s, k: "render surface" }); };
 exports.mk_circle_op = function (x, y, radius, color) { return ({ kind: "circle", x: x, y: y, radius: radius, color: color }); };
-exports.mk_square_op = function (x, y, side, color) { return ({ kind: "square", x: x, y: y, side: side, color: color }); };
-exports.mk_ellipse_op = function (x, y, width, height, color) { return ({ kind: "ellipse", x: x, y: y, width: width, height: height, color: color }); };
-exports.mk_rectangle_op = function (x, y, width, height, color) { return ({ kind: "rectangle", x: x, y: y, width: width, height: height, color: color }); };
+exports.mk_square_op = function (x, y, side, color, rotation) { return ({ kind: "square", x: x, y: y, side: side, color: color, rotation: rotation }); };
+exports.mk_ellipse_op = function (x, y, width, height, color, rotation) { return ({ kind: "ellipse", x: x, y: y, width: width, height: height, color: color, rotation: rotation }); };
+exports.mk_rectangle_op = function (x, y, width, height, color, rotation) { return ({ kind: "rectangle", x: x, y: y, width: width, height: height, color: color, rotation: rotation }); };
+exports.mk_line_op = function (x1, y1, x2, y2, width, color, rotation) {
+    return ({ kind: "line", x1: x1, y1: y1, x2: x2, y2: y2, width: width, color: color, rotation: rotation });
+};
+exports.mk_polygon_op = function (points, color, rotation) {
+    return ({ kind: "polygon", points: points, color: color, rotation: rotation });
+};
+exports.mk_text_op = function (t, x, y, size, color, rotation) {
+    return ({ kind: "text", t: t, x: x, y: y, size: size, color: color, rotation: rotation });
+};
 exports.mk_sprite_op = function (sprite, x, y, width, height, rotation) { return ({ kind: "sprite", sprite: sprite, x: x, y: y, width: width, height: height, rotation: rotation }); };
 exports.mk_other_surface_op = function (s, dx, dy, sx, sy) { return ({ kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy }); };
 exports.mk_render_surface_operation_val = function (s) { return ({ v: s, k: "render surface operation" }); };

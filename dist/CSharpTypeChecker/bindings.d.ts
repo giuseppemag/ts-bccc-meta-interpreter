@@ -25,6 +25,12 @@ export declare type RenderOperationType = {
 } | {
     kind: "ellipse";
 } | {
+    kind: "line";
+} | {
+    kind: "polygon";
+} | {
+    kind: "text";
+} | {
     kind: "other surface";
 } | {
     kind: "sprite";
@@ -80,8 +86,11 @@ export declare let circle_type: Type;
 export declare let square_type: Type;
 export declare let ellipse_type: Type;
 export declare let rectangle_type: Type;
-export declare let other_render_surface_type: Type;
+export declare let line_type: Type;
+export declare let polygon_type: Type;
+export declare let text_type: Type;
 export declare let sprite_type: Type;
+export declare let other_render_surface_type: Type;
 export declare let unit_type: Type;
 export declare let int_type: Type;
 export declare let var_type: Type;
@@ -121,6 +130,7 @@ export declare let set_v: (r: SourceRange, v: string, e: Stmt) => Stmt;
 export declare let bool: (b: boolean) => Stmt;
 export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
+export declare let float: (i: number) => Stmt;
 export declare let tuple_value: (r: SourceRange, args: Stmt[]) => Stmt;
 export declare let gt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let lt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
@@ -133,9 +143,12 @@ export declare let mk_empty_render_grid: (r: SourceRange, w: Stmt, h: Stmt) => S
 export declare let mk_render_grid_pixel: (r: SourceRange, w: Stmt, h: Stmt, st: Stmt) => Stmt;
 export declare let mk_empty_surface: (r: SourceRange, w: Stmt, h: Stmt, col: Stmt) => Stmt;
 export declare let mk_circle: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
-export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
-export declare let mk_ellipse: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
-export declare let mk_rectangle: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt) => Stmt;
+export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt, rot: Stmt) => Stmt;
+export declare let mk_ellipse: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt, rot: Stmt) => Stmt;
+export declare let mk_rectangle: (r: SourceRange, x: Stmt, y: Stmt, w: Stmt, h: Stmt, col: Stmt, rot: Stmt) => Stmt;
+export declare let mk_line: (r: SourceRange, x1: Stmt, y1: Stmt, x2: Stmt, y2: Stmt, w: Stmt, col: Stmt, rot: Stmt) => Stmt;
+export declare let mk_polygon: (r: SourceRange, points: Stmt, col: Stmt, rot: Stmt) => Stmt;
+export declare let mk_text: (r: SourceRange, t: Stmt, x: Stmt, y: Stmt, s: Stmt, col: Stmt, rot: Stmt) => Stmt;
 export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, rot: Stmt) => Stmt;
 export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
@@ -177,6 +190,7 @@ export interface FunDefinition extends LambdaDefinition {
 }
 export interface MethodDefinition extends FunDefinition {
     modifiers: Array<Modifier>;
+    is_constructor: boolean;
 }
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;

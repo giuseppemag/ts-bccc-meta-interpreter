@@ -14,7 +14,9 @@ export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
 export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
-export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"} | { kind:"other surface"} | { kind:"sprite"}
+export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"}
+                                | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
+                                | { kind:"other surface"} | { kind:"sprite"}
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
@@ -30,9 +32,12 @@ export let circle_type : Type = { kind:"circle" }
 export let square_type : Type = { kind:"square" }
 export let ellipse_type : Type = { kind:"ellipse" }
 export let rectangle_type : Type = { kind:"rectangle" }
+export let line_type : Type = { kind:"line" }
+export let polygon_type : Type = { kind:"polygon" }
+export let text_type : Type = { kind:"text" }
+export let sprite_type : Type = { kind:"sprite" }
 export let other_render_surface_type : Type = { kind:"other surface" }
 
-export let sprite_type : Type = { kind:"sprite" }
 export let unit_type : Type = { kind:"unit" }
 export let int_type : Type = { kind:"int" }
 export let var_type : Type = { kind:"var" }
@@ -97,10 +102,15 @@ export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
-  return _ => mk_coroutine<State,Err,Typing>(apply(g, args))
+  return _ =>
+    co_get_state<State,Err>().then(s =>
+    !s.bindings.has(v) ? mk_coroutine<State,Err,Typing>(apply(g, args))
+    : co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${JSON.stringify(v)}` }))
 }
 export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
-  return _ => e(apply(inl(), t)).then(e_val => {
+  return _ => e(apply(inl(), t)).then(e_val =>
+    co_get_state<State,Err>().then(s => {
+    if (s.bindings.has(v)) return co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${JSON.stringify(v)}` })
     let actual_t = t.kind == "var" ? e_val.type : t
     if (type_equals(e_val.type, actual_t)) {
       let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
@@ -109,7 +119,6 @@ export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_
       return mk_coroutine<State,Err,Typing>(apply(g, args))
     } else {
       if (e_val.type.kind == "tuple" && actual_t.kind == "record" && type_equals(e_val.type, tuple_type(actual_t.args.toArray()))) {
-        console.log("apparently these two are equal to each other", JSON.stringify([e_val.type, tuple_type(actual_t.args.toArray())]))
         let record_labels = actual_t.args.keySeq().toArray()
         let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), tuple_to_record(e_val.value, record_labels)))))).times(id())).then(wrap_co)
         let g = curry(f)
@@ -119,7 +128,7 @@ export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_
         return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign ${JSON.stringify(v)} to ${JSON.stringify(e_val)}: type ${JSON.stringify(actual_t)} does not match ${JSON.stringify(e_val.type)}` })
       }
     }
-  })
+  }))
 }
 export let decl_const = function(r:SourceRange, c:Name, t:Type, e:Stmt) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
@@ -167,6 +176,10 @@ export let int = function(i:number) : Stmt {
   return _ => co_unit(mk_typing(int_type, Sem.int_expr(i)))
 }
 
+export let float = function(i:number) : Stmt {
+  return _ => co_unit(mk_typing(float_type, Sem.float_expr(i)))
+}
+
 export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
   return constraints => {
     if (constraints.kind == "left" && constraints.value.kind == "record")
@@ -190,7 +203,7 @@ export let gt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
@@ -203,7 +216,7 @@ export let lt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
@@ -216,7 +229,7 @@ export let geq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>=)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
@@ -229,7 +242,7 @@ export let leq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) ?
-             co_unit(mk_typing(float_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(bool_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<=)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
         ))
@@ -321,44 +334,92 @@ export let mk_circle = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:
               ))))
 }
 
-export let mk_square = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:Stmt) : Stmt {
+export let mk_square = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:Stmt, rot:Stmt) : Stmt {
   return _ => x(no_constraints).then(x_t =>
               y(no_constraints).then(y_t =>
               radius(no_constraints).then(r_t =>
               col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
               type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
-              type_equals(r_t.type, int_type) && type_equals(col_t.type, string_type) ?
-                co_unit(mk_typing(square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+              type_equals(r_t.type, int_type) && type_equals(col_t.type, string_type) &&
+              type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem, rot_t.sem)))
               : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for square creation." })
-              ))))
+              )))))
 }
 
-export let mk_ellipse = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+export let mk_ellipse = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt, rot:Stmt) : Stmt {
   return _ => x(no_constraints).then(x_t =>
               y(no_constraints).then(y_t =>
               w(no_constraints).then(w_t =>
               h(no_constraints).then(h_t =>
               col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
               type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
               type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
-              type_equals(col_t.type, string_type) ?
-                co_unit(mk_typing(ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              type_equals(col_t.type, string_type) && type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
               : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for ellipse creation." })
-              )))))
+              ))))))
 }
 
-export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt) : Stmt {
+export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, col:Stmt, rot:Stmt) : Stmt {
   return _ => x(no_constraints).then(x_t =>
               y(no_constraints).then(y_t =>
               w(no_constraints).then(w_t =>
               h(no_constraints).then(h_t =>
               col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
               type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
               type_equals(w_t.type, int_type) && type_equals(h_t.type, int_type) &&
-              type_equals(col_t.type, string_type) ?
-                co_unit(mk_typing(rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem)))
+              type_equals(col_t.type, string_type) && type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
               : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for rectangle creation." })
-              )))))
+              ))))))
+}
+
+export let mk_line = function(r:SourceRange, x1:Stmt, y1:Stmt, x2:Stmt, y2:Stmt, w:Stmt, col:Stmt, rot:Stmt) : Stmt {
+  return _ => x1(no_constraints).then(x1_t =>
+              y1(no_constraints).then(y1_t =>
+              x2(no_constraints).then(x2_t =>
+              y2(no_constraints).then(y2_t =>
+              w(no_constraints).then(w_t =>
+              col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
+              type_equals(x1_t.type, int_type) && type_equals(y1_t.type, int_type) &&
+              type_equals(x2_t.type, int_type) && type_equals(y2_t.type, int_type) &&
+              type_equals(w_t.type, int_type) && type_equals(col_t.type, string_type) &&
+              type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(line_type, Sem.mk_line_rt(x1_t.sem, y1_t.sem, x2_t.sem, y2_t.sem, w_t.sem, col_t.sem, rot_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for line creation." })
+              )))))))
+}
+
+export let mk_polygon = function(r:SourceRange, points:Stmt, col:Stmt, rot:Stmt) : Stmt {
+  return _ => points(no_constraints).then(points_t =>
+              rot(no_constraints).then(rot_t =>
+              col(no_constraints).then(col_t =>
+              type_equals(rot_t.type, int_type) && type_equals(points_t.type, arr_type(tuple_type([int_type, int_type]))) &&
+              type_equals(col_t.type, string_type) && type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(polygon_type, Sem.mk_polygon_rt(points_t.sem, col_t.sem, rot_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for polygon creation." })
+              )))
+}
+
+export let mk_text = function(r:SourceRange, t:Stmt, x:Stmt, y:Stmt, s:Stmt, col:Stmt, rot:Stmt) : Stmt {
+  return _ => t(no_constraints).then(t_t =>
+              x(no_constraints).then(x_t =>
+              y(no_constraints).then(y_t =>
+              s(no_constraints).then(s_t =>
+              col(no_constraints).then(col_t =>
+              rot(no_constraints).then(rot_t =>
+              type_equals(t_t.type, string_type) &&
+              type_equals(x_t.type, int_type) && type_equals(y_t.type, int_type) &&
+              type_equals(s_t.type, int_type) && type_equals(col_t.type, string_type) &&
+              type_equals(rot_t.type, int_type) ?
+                co_unit(mk_typing(text_type, Sem.mk_text_rt(t_t.sem, x_t.sem, y_t.sem, s_t.sem, col_t.sem, rot_t.sem)))
+              : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for text creation." })
+              ))))))
 }
 
 export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:Stmt, h:Stmt, rot:Stmt) : Stmt {
@@ -407,7 +468,8 @@ export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
           : type_equals(a_t.type, render_surface_type) &&
             (type_equals(b_t.type, circle_type) || type_equals(b_t.type, square_type)
             || type_equals(b_t.type, ellipse_type) || type_equals(b_t.type, rectangle_type)
-            || type_equals(b_t.type, sprite_type)
+            || type_equals(b_t.type, sprite_type) || type_equals(b_t.type, line_type)
+            || type_equals(b_t.type, polygon_type) || type_equals(b_t.type, text_type)
             || type_equals(b_t.type, other_render_surface_type)
             ) ?
             co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
@@ -618,7 +680,7 @@ export type Modifier = "private" | "public" | "static" | "protected" | "virtual"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
-export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier> }
+export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier> }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
 
@@ -656,6 +718,8 @@ export let def_fun = function(r:SourceRange, def:FunDefinition, closure_paramete
 export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinition) : Stmt {
   def.parameters = def.modifiers.some(m => m == "static") ? def.parameters
                    : def.parameters.concat(Array<Parameter>({ name:"this", type:ref_type(C_name)}))
+
+  if (def.is_constructor && def.name != C_name) return _ => co_error<State,Err,Typing>({ range:r, message:`Error: constructor for ${C_name} cannot be called ${def.name}`})
 
   let parameters = def.parameters
   let return_t = def.return_t

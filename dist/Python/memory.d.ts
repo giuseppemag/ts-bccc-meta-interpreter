@@ -35,6 +35,7 @@ export declare type RenderSurfaceOperation = {
     y: number;
     side: number;
     color: string;
+    rotation: number;
 } | {
     kind: "rectangle";
     x: number;
@@ -42,6 +43,7 @@ export declare type RenderSurfaceOperation = {
     width: number;
     height: number;
     color: string;
+    rotation: number;
 } | {
     kind: "ellipse";
     x: number;
@@ -49,6 +51,32 @@ export declare type RenderSurfaceOperation = {
     width: number;
     height: number;
     color: string;
+    rotation: number;
+} | {
+    kind: "line";
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    width: number;
+    color: string;
+    rotation: number;
+} | {
+    kind: "polygon";
+    points: Array<{
+        x: number;
+        y: number;
+    }>;
+    color: string;
+    rotation: number;
+} | {
+    kind: "text";
+    t: string;
+    x: number;
+    y: number;
+    size: number;
+    color: string;
+    rotation: number;
 } | {
     kind: "sprite";
     sprite: string;
@@ -148,9 +176,15 @@ export declare let mk_render_grid_val: (_: RenderGrid) => Val;
 export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
 export declare let mk_render_surface_val: (s: RenderSurface) => Val;
 export declare let mk_circle_op: (x: number, y: number, radius: number, color: string) => RenderSurfaceOperation;
-export declare let mk_square_op: (x: number, y: number, side: number, color: string) => RenderSurfaceOperation;
-export declare let mk_ellipse_op: (x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
-export declare let mk_rectangle_op: (x: number, y: number, width: number, height: number, color: string) => RenderSurfaceOperation;
+export declare let mk_square_op: (x: number, y: number, side: number, color: string, rotation: number) => RenderSurfaceOperation;
+export declare let mk_ellipse_op: (x: number, y: number, width: number, height: number, color: string, rotation: number) => RenderSurfaceOperation;
+export declare let mk_rectangle_op: (x: number, y: number, width: number, height: number, color: string, rotation: number) => RenderSurfaceOperation;
+export declare let mk_line_op: (x1: number, y1: number, x2: number, y2: number, width: number, color: string, rotation: number) => RenderSurfaceOperation;
+export declare let mk_polygon_op: (points: {
+    x: number;
+    y: number;
+}[], color: string, rotation: number) => RenderSurfaceOperation;
+export declare let mk_text_op: (t: string, x: number, y: number, size: number, color: string, rotation: number) => RenderSurfaceOperation;
 export declare let mk_sprite_op: (sprite: string, x: number, y: number, width: number, height: number, rotation: number) => RenderSurfaceOperation;
 export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number) => RenderSurfaceOperation;
 export declare let mk_render_surface_operation_val: (s: RenderSurfaceOperation) => Val;

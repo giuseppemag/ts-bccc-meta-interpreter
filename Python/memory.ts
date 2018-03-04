@@ -13,9 +13,12 @@ export interface HeapRef { v:string, k:"ref" }
 export interface ArrayVal { elements:Immutable.Map<number, Val>, length:number }
 export interface RenderSurface { operations:Immutable.List<RenderSurfaceOperation>, width:number, height:number }
 export type RenderSurfaceOperation = { kind:"circle", x:number, y:number, radius:number, color:string }
-                            | { kind:"square", x:number, y:number, side:number, color:string }
-                            | { kind:"rectangle", x:number, y:number, width:number, height:number, color:string }
-                            | { kind:"ellipse", x:number, y:number, width:number, height:number, color:string }
+                            | { kind:"square", x:number, y:number, side:number, color:string, rotation:number }
+                            | { kind:"rectangle", x:number, y:number, width:number, height:number, color:string, rotation:number }
+                            | { kind:"ellipse", x:number, y:number, width:number, height:number, color:string, rotation:number }
+                            | { kind:"line", x1:number, y1:number, x2:number, y2:number, width:number, color:string, rotation:number }
+                            | { kind:"polygon", points:Array<{ x:number, y:number }>, color:string, rotation:number }
+                            | { kind:"text", t:string, x:number, y:number, size:number, color:string, rotation:number }
                             | { kind:"sprite", sprite:string, x:number, y:number, width:number, height:number, rotation:number }
                             | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number }
 
@@ -50,9 +53,16 @@ export let mk_render_grid_val : (_:RenderGrid) => Val = r => ({ v:r, k:"render-g
 export let mk_render_grid_pixel_val : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
 export let mk_render_surface_val = (s:RenderSurface) : Val => ({ v:s, k:"render surface" })
 export let mk_circle_op = (x:number, y:number, radius:number, color:string) : RenderSurfaceOperation => ({ kind:"circle", x, y, radius, color })
-export let mk_square_op = (x:number, y:number, side:number, color:string) : RenderSurfaceOperation => ({ kind:"square", x, y, side, color })
-export let mk_ellipse_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"ellipse", x, y, width, height, color })
-export let mk_rectangle_op = (x:number, y:number, width:number, height:number, color:string) : RenderSurfaceOperation => ({ kind:"rectangle", x, y, width, height, color })
+export let mk_square_op = (x:number, y:number, side:number, color:string, rotation:number) : RenderSurfaceOperation => ({ kind:"square", x, y, side, color, rotation })
+export let mk_ellipse_op = (x:number, y:number, width:number, height:number, color:string, rotation:number) : RenderSurfaceOperation => ({ kind:"ellipse", x, y, width, height, color, rotation })
+export let mk_rectangle_op = (x:number, y:number, width:number, height:number, color:string, rotation:number) : RenderSurfaceOperation => ({ kind:"rectangle", x, y, width, height, color, rotation })
+export let mk_line_op = (x1:number, y1:number, x2:number, y2:number, width:number, color:string, rotation:number) : RenderSurfaceOperation =>
+  ({ kind:"line", x1, y1, x2, y2, width, color, rotation })
+export let mk_polygon_op = (points:Array<{ x:number, y:number }>, color:string, rotation:number) : RenderSurfaceOperation =>
+  ({ kind:"polygon", points, color, rotation })
+export let mk_text_op = (t:string, x:number, y:number, size:number, color:string, rotation:number) : RenderSurfaceOperation =>
+  ({ kind:"text", t, x, y, size, color, rotation })
+
 export let mk_sprite_op = (sprite:string, x:number, y:number, width:number, height:number, rotation:number) : RenderSurfaceOperation => ({ kind:"sprite", sprite, x, y, width, height, rotation })
 export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy })
 export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val => ({ v:s, k:"render surface operation" })

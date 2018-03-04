@@ -32,10 +32,13 @@ export declare let render_grid_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum
 export declare let render_surface_plus_rt: (r: ExprRt<Sum<Val, Val>>, p: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_empty_render_surface_rt: (width: ExprRt<Sum<Val, Val>>, height: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_circle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, r: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let mk_square_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, s: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let mk_rectangle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_square_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, s: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_rectangle_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_line_rt: (x1: ExprRt<Sum<Val, Val>>, y1: ExprRt<Sum<Val, Val>>, x2: ExprRt<Sum<Val, Val>>, y2: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_polygon_rt: (points: ExprRt<Sum<Val, Val>>, col: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_text_rt: (text: ExprRt<Sum<Val, Val>>, x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, s: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>, rotation: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_sprite_rt: (sprite: ExprRt<Sum<Val, Val>>, x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let mk_ellipse_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let mk_ellipse_rt: (x: ExprRt<Sum<Val, Val>>, y: ExprRt<Sum<Val, Val>>, w: ExprRt<Sum<Val, Val>>, h: ExprRt<Sum<Val, Val>>, color: ExprRt<Sum<Val, Val>>, rot: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let mk_other_surface_rt: (s: ExprRt<Sum<Val, Val>>, dx: ExprRt<Sum<Val, Val>>, dy: ExprRt<Sum<Val, Val>>, sx: ExprRt<Sum<Val, Val>>, sy: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let bool_times_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let bool_plus_rt: (a: ExprRt<Sum<Val, Val>>, b: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
