@@ -29,8 +29,6 @@ exports.mk_lambda_val = function (l) { return ({ v: l, k: "lambda" }); };
 exports.mk_obj_val = function (o) { return ({ v: o, k: "obj" }); };
 exports.mk_record_val = function (o) { return ({ v: o, k: "record" }); };
 exports.mk_ref_val = function (r) { return ({ v: r, k: "ref" }); };
-exports.mk_render_grid_val = function (r) { return ({ v: r, k: "render-grid" }); };
-exports.mk_render_grid_pixel_val = function (p) { return ({ v: p, k: "render-grid-pixel" }); };
 exports.mk_render_surface_val = function (s) { return ({ v: s, k: "render surface" }); };
 exports.mk_circle_op = function (x, y, radius, color) { return ({ kind: "circle", x: x, y: y, radius: radius, color: color }); };
 exports.mk_square_op = function (x, y, side, color, rotation) { return ({ kind: "square", x: x, y: y, side: side, color: color, rotation: rotation }); };
@@ -46,7 +44,7 @@ exports.mk_text_op = function (t, x, y, size, color, rotation) {
     return ({ kind: "text", t: t, x: x, y: y, size: size, color: color, rotation: rotation });
 };
 exports.mk_sprite_op = function (sprite, x, y, width, height, rotation) { return ({ kind: "sprite", sprite: sprite, x: x, y: y, width: width, height: height, rotation: rotation }); };
-exports.mk_other_surface_op = function (s, dx, dy, sx, sy) { return ({ kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy }); };
+exports.mk_other_surface_op = function (s, dx, dy, sx, sy, rotation) { return ({ kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy, rotation: rotation }); };
 exports.mk_render_surface_operation_val = function (s) { return ({ v: s, k: "render surface operation" }); };
 exports.tuple_to_record = function (v, labels) { return v.k == "tuple" ?
     exports.mk_record_val(Immutable.Map(v.v.map(function (a, a_i) { return [labels[a_i], a]; }))) : v; };

@@ -13,6 +13,9 @@ export declare type Token = ({
     kind: "int";
     v: number;
 } | {
+    kind: "double";
+    v: number;
+} | {
     kind: "float";
     v: number;
 } | {
@@ -61,7 +64,7 @@ export declare type Token = ({
 }) & {
     range: SourceRange;
 };
-export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface" | "text" | "line" | "polygon" | "mk_empty_render_grid" | "pixel";
+export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface" | "text" | "line" | "polygon";
 export declare module GrammarBasics {
     let tokenize: (source: string) => Sum<string, Token[]>;
 }
@@ -101,6 +104,10 @@ export interface IntAST {
 }
 export interface FloatAST {
     kind: "float";
+    value: number;
+}
+export interface DoubleAST {
+    kind: "double";
     value: number;
 }
 export interface IdAST {
@@ -248,17 +255,6 @@ export interface GetArrayValueAtAST {
     array: ParserRes;
     index: ParserRes;
 }
-export interface MkEmptyRenderGrid {
-    kind: "mk-empty-render-grid";
-    w: ParserRes;
-    h: ParserRes;
-}
-export interface MkRenderGridPixel {
-    kind: "mk-render-grid-pixel";
-    w: ParserRes;
-    h: ParserRes;
-    status: ParserRes;
-}
 export interface EmptySurface {
     kind: "empty surface";
     w: ParserRes;
@@ -339,6 +335,7 @@ export interface OtherSurface {
     dy: ParserRes;
     sx: ParserRes;
     sy: ParserRes;
+    rotation: ParserRes;
 }
 export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface;
 export interface GenericTypeDeclAST {
@@ -358,7 +355,7 @@ export interface RecordTypeDeclAST {
     kind: "record type decl";
     args: Array<DeclAST>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | FloatAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | MkEmptyRenderGrid | MkRenderGridPixel | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
+export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

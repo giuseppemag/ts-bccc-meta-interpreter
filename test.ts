@@ -29,34 +29,17 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C {
-  private int x;
-
-  public C() {
-  }
-}
-
-var c = new C();
-
-int f(int z) { return z + 1; }
-int g(int z) { return z + 1; }
-
-var x = 0.5f;
+var l = 500.;
+var x = (l - 10.);
 typechecker_debugger;
-var y = -3.1f;
-var z = -5;
-var w = 134;
-if (x > y) {
-  z = z + 1;
-} else {
-  z = z - 1;
-}
 
-    `
+surface s = empty_surface l 500. "white";
+s = s + line 10. 10. (l - 10.) 20. 5. "red" 0.;
+s = s + text "This is some text!!!!1111" 100. 100. 20. "red" 0.;
 
-// surface s = empty_surface 500 500 "white";
-// s = s + line 10 10 20 20 5 "red" 0;
-// s = s + text "This is some text!!!!1111" 100 100 20 "red" 0;
+s = s + other_surface s 0. 0. 0.5 0.5 90.;
+`
+
 
 
 

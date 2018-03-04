@@ -13,10 +13,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C {\n  private int x;\n\n  public C() {\n  }\n}\n\nvar c = new C();\n\nint f(int z) { return z + 1; }\nint g(int z) { return z + 1; }\n\nvar x = 0.5f;\ntypechecker_debugger;\nvar y = -3.1f;\nvar z = -5;\nvar w = 134;\nif (x > y) {\n  z = z + 1;\n} else {\n  z = z - 1;\n}\n\n    ";
-        // surface s = empty_surface 500 500 "white";
-        // s = s + line 10 10 20 20 5 "red" 0;
-        // s = s + text "This is some text!!!!1111" 100 100 20 "red" 0;
+        var source = "\nvar l = 500.;\nvar x = (l - 10.);\ntypechecker_debugger;\n\nsurface s = empty_surface l 500. \"white\";\ns = s + line 10. 10. (l - 10.) 20. 5. \"red\" 0.;\ns = s + text \"This is some text!!!!1111\" 100. 100. 20. \"red\" 0.;\n\ns = s + other_surface s 0. 0. 0.5 0.5 90.;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

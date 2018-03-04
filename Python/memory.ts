@@ -20,10 +20,8 @@ export type RenderSurfaceOperation = { kind:"circle", x:number, y:number, radius
                             | { kind:"polygon", points:Array<{ x:number, y:number }>, color:string, rotation:number }
                             | { kind:"text", t:string, x:number, y:number, size:number, color:string, rotation:number }
                             | { kind:"sprite", sprite:string, x:number, y:number, width:number, height:number, rotation:number }
-                            | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number }
+                            | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number, rotation:number }
 
-export interface RenderGrid { pixels:Immutable.Map<number, Immutable.Set<number>>, width:number, height:number }
-export interface RenderGridPixel { x:number, y:number, status:boolean }
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, mk_unit_val])), length:len })
 
 export type ValueName = string
@@ -31,7 +29,7 @@ export type NestingLevel = number
 export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } | { v:number, k:"i" }
                 | { v:Bool, k:"b" } | { v:ArrayVal, k:"arr" } | { v:Scope, k:"obj" } | { v:Scope, k:"record" } | { v:Lambda, k:"lambda" }
                 | { v:Array<Val>, k:"tuple" }
-                | HeapRef | { v:RenderGrid, k:"render-grid" } | { v:RenderGridPixel, k:"render-grid-pixel" }
+                | HeapRef
                 | { v:RenderSurface, k:"render surface" } | { v:RenderSurfaceOperation, k:"render surface operation" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
 export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
@@ -49,8 +47,6 @@ export let mk_lambda_val : (_:Lambda) => Val = l => ({ v:l, k:"lambda" })
 export let mk_obj_val : (_:Scope) => Val = o => ({ v:o, k:"obj" })
 export let mk_record_val : (_:Scope) => Val = o => ({ v:o, k:"record" })
 export let mk_ref_val : (_:ValueName) => Val = r => ({ v:r, k:"ref" })
-export let mk_render_grid_val : (_:RenderGrid) => Val = r => ({ v:r, k:"render-grid" })
-export let mk_render_grid_pixel_val : (_:RenderGridPixel) => Val = p => ({ v:p, k:"render-grid-pixel" })
 export let mk_render_surface_val = (s:RenderSurface) : Val => ({ v:s, k:"render surface" })
 export let mk_circle_op = (x:number, y:number, radius:number, color:string) : RenderSurfaceOperation => ({ kind:"circle", x, y, radius, color })
 export let mk_square_op = (x:number, y:number, side:number, color:string, rotation:number) : RenderSurfaceOperation => ({ kind:"square", x, y, side, color, rotation })
@@ -64,7 +60,7 @@ export let mk_text_op = (t:string, x:number, y:number, size:number, color:string
   ({ kind:"text", t, x, y, size, color, rotation })
 
 export let mk_sprite_op = (sprite:string, x:number, y:number, width:number, height:number, rotation:number) : RenderSurfaceOperation => ({ kind:"sprite", sprite, x, y, width, height, rotation })
-export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy })
+export let mk_other_surface_op = (s:RenderSurface, dx:number, dy:number, sx:number, sy:number, rotation:number) : RenderSurfaceOperation => ({ kind:"other surface", s, dx, dy, sx, sy, rotation })
 export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val => ({ v:s, k:"render surface operation" })
 export let tuple_to_record = (v:Val, labels:Array<string>) : Val => v.k == "tuple" ?
   mk_record_val(Immutable.Map<ValueName, Val>(v.v.map((a,a_i) => [labels[a_i], a]))) : v

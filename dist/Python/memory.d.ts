@@ -92,17 +92,8 @@ export declare type RenderSurfaceOperation = {
     dy: number;
     sx: number;
     sy: number;
+    rotation: number;
 };
-export interface RenderGrid {
-    pixels: Immutable.Map<number, Immutable.Set<number>>;
-    width: number;
-    height: number;
-}
-export interface RenderGridPixel {
-    x: number;
-    y: number;
-    status: boolean;
-}
 export declare let init_array_val: (_: number) => ArrayVal;
 export declare type ValueName = string;
 export declare type NestingLevel = number;
@@ -137,12 +128,6 @@ export declare type Val = {
     v: Array<Val>;
     k: "tuple";
 } | HeapRef | {
-    v: RenderGrid;
-    k: "render-grid";
-} | {
-    v: RenderGridPixel;
-    k: "render-grid-pixel";
-} | {
     v: RenderSurface;
     k: "render surface";
 } | {
@@ -172,8 +157,6 @@ export declare let mk_lambda_val: (_: Lambda) => Val;
 export declare let mk_obj_val: (_: Scope) => Val;
 export declare let mk_record_val: (_: Scope) => Val;
 export declare let mk_ref_val: (_: ValueName) => Val;
-export declare let mk_render_grid_val: (_: RenderGrid) => Val;
-export declare let mk_render_grid_pixel_val: (_: RenderGridPixel) => Val;
 export declare let mk_render_surface_val: (s: RenderSurface) => Val;
 export declare let mk_circle_op: (x: number, y: number, radius: number, color: string) => RenderSurfaceOperation;
 export declare let mk_square_op: (x: number, y: number, side: number, color: string, rotation: number) => RenderSurfaceOperation;
@@ -186,7 +169,7 @@ export declare let mk_polygon_op: (points: {
 }[], color: string, rotation: number) => RenderSurfaceOperation;
 export declare let mk_text_op: (t: string, x: number, y: number, size: number, color: string, rotation: number) => RenderSurfaceOperation;
 export declare let mk_sprite_op: (sprite: string, x: number, y: number, width: number, height: number, rotation: number) => RenderSurfaceOperation;
-export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number) => RenderSurfaceOperation;
+export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number, rotation: number) => RenderSurfaceOperation;
 export declare let mk_render_surface_operation_val: (s: RenderSurfaceOperation) => Val;
 export declare let tuple_to_record: (v: Val, labels: string[]) => Val;
 export declare type ErrVal = string;

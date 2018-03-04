@@ -50,6 +50,8 @@ export declare type Type = {
 } | {
     kind: "int";
 } | {
+    kind: "double";
+} | {
     kind: "float";
 } | {
     kind: "string";
@@ -97,6 +99,7 @@ export declare let var_type: Type;
 export declare let string_type: Type;
 export declare let bool_type: Type;
 export declare let float_type: Type;
+export declare let double_type: Type;
 export declare let fun_type: (i: Type, o: Type) => Type;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
@@ -131,6 +134,7 @@ export declare let bool: (b: boolean) => Stmt;
 export declare let str: (s: string) => Stmt;
 export declare let int: (i: number) => Stmt;
 export declare let float: (i: number) => Stmt;
+export declare let double: (i: number) => Stmt;
 export declare let tuple_value: (r: SourceRange, args: Stmt[]) => Stmt;
 export declare let gt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let lt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
@@ -139,8 +143,6 @@ export declare let leq: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let eq: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let neq: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let xor: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
-export declare let mk_empty_render_grid: (r: SourceRange, w: Stmt, h: Stmt) => Stmt;
-export declare let mk_render_grid_pixel: (r: SourceRange, w: Stmt, h: Stmt, st: Stmt) => Stmt;
 export declare let mk_empty_surface: (r: SourceRange, w: Stmt, h: Stmt, col: Stmt) => Stmt;
 export declare let mk_circle: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt) => Stmt;
 export declare let mk_square: (r: SourceRange, x: Stmt, y: Stmt, radius: Stmt, col: Stmt, rot: Stmt) => Stmt;
@@ -150,7 +152,7 @@ export declare let mk_line: (r: SourceRange, x1: Stmt, y1: Stmt, x2: Stmt, y2: S
 export declare let mk_polygon: (r: SourceRange, points: Stmt, col: Stmt, rot: Stmt) => Stmt;
 export declare let mk_text: (r: SourceRange, t: Stmt, x: Stmt, y: Stmt, s: Stmt, col: Stmt, rot: Stmt) => Stmt;
 export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, rot: Stmt) => Stmt;
-export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt) => Stmt;
+export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt, rot: Stmt) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let div: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

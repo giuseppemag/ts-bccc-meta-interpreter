@@ -1,26 +1,41 @@
-[g] initial values of the proper type for variables at declaration when no value is specified
-  [ ] also class fields
+[g] automatically cast int+float -> float, double+int -> double, etc.
+  [ ] t1,t2 -> (cast1:Expr->Expr, cast2:Expr->Expr, res_t:Type)
+  [ ] In the definitions (both bindings and memory::classes, hidden) store the type definitions for the defaults
+  [ ] Sum is an overloaded operator, therefore a static method, looked up based on the type of the first parameter
+  [Hidden]
+  class int {
+    public static int operator + (int a, int b) { return FromJS(a.v + b.v) }
+    ..
+  }
+  [Hidden]
+  class float : int {
+    public static float operator + (float a, float b) { return FromJS(a.v + b.v) }
+    ..
+  }
 
-[g] toString operators and automated casting (float to int)
+
+[g] polymorphism:
+  [ ] int should be automatically cast to both float and double
+  [ ] everything should get a ToString whenever needed
+[g] toString operators
+[g] initial values of the proper type for variables at declaration when no value is specified
+  [ ] also class fields at construction
+
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-
-[g] Renderers
-  [ ] FreeVariables
-  [ ] All renderer parameters should be floats, not ints
-  [ ] Other surface as one of the renderables, with transform instead of inlining
-
-[g] HTML renderers for server simulator
-
-[g] Files
-[g] Databases
-
-[g] destructuring assignment of records and tuples
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
+
+[g] Files
+[g] HTML renderers for server simulator
+
+[g] Databases
+
+[g] Improve type-checking error messages: "cannot ..., expected ..., found ..."
+[g] destructuring assignment of records and tuples
 [g] Move ccc_aux to CCC repo
 [g] Structs
 [g] Generics
@@ -81,6 +96,7 @@ int factorial(int x) {
   [ ] virtual
   [ ] override
   [ ] Covariance/contravariance in function calls and variable assignments
+  [ ] explicit casting operators
 [m] yield return
 [m] ForEach
 
