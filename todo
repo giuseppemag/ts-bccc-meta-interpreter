@@ -13,7 +13,16 @@
     ..
   }
 
-
+[g] Inheritance
+  [ ] Extends
+  [ ] Interface
+  [ ] abstract
+  [ ] protected
+  [ ] virtual
+  [ ] override
+  [ ] Covariance/contravariance in function calls and variable assignments
+  [ ] explicit casting operators
+[g] operator overloading
 [g] polymorphism:
   [ ] int should be automatically cast to both float and double
   [ ] everything should get a ToString whenever needed
@@ -88,15 +97,6 @@ int factorial(int x) {
   [ ] number separators
   [ ] quotes, special characters, "\n"
 
-[m] Inheritance
-  [ ] Extends
-  [ ] Interface
-  [ ] abstract
-  [ ] protected
-  [ ] virtual
-  [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
-  [ ] explicit casting operators
 [m] yield return
 [m] ForEach
 

@@ -7,7 +7,7 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { mk_range, zero_range } from "./source_range";
 
-import * as Py from "./Python/python"
+import * as Sem from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ast_to_type_checker } from "./CSharpTypeChecker/csharp";
@@ -28,6 +28,25 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
+
+  let p = CSharp.def_class(zero_range, "int", [
+      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
+              return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
+              body:CSharp.from_js(
+                    CSharp.int_type,
+                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) + (b_v.value.v as number)))
+                    ))) }),
+      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
+              return_t:CSharp.int_type, name:"-", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
+              body:CSharp.from_js(
+                    CSharp.int_type,
+                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
+                    ))) }),
+    ],
+  [])
+
     let source = `
 var l = 500.;
 var x = (l - 10.);

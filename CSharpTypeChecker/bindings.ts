@@ -661,7 +661,7 @@ export let semicolon = function(r:SourceRange, p:Stmt, q:Stmt) : Stmt {
          )))
 }
 
-export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override"
+export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
@@ -1040,3 +1040,5 @@ export let call_method = function(r:SourceRange, context:CallingContext, this_re
         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
   }))
 }
+
+export let from_js  = (t:Type, sem:Sem.StmtRt) : Stmt => _ => co_unit(mk_typing(t, sem))

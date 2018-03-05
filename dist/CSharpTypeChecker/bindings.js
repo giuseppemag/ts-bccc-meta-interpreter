@@ -1021,3 +1021,4 @@ exports.call_method = function (r, context, this_ref, M_name, arg_values) {
         });
     }); };
 };
+exports.from_js = function (t, sem) { return function (_) { return ts_bccc_2.co_unit(mk_typing(t, sem)); }; };

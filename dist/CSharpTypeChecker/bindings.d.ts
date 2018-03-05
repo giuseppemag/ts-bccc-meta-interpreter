@@ -176,7 +176,7 @@ export declare let if_then_else: (r: SourceRange, c: Stmt, t: Stmt, e: Stmt) => 
 export declare let while_do: (r: SourceRange, c: Stmt, b: Stmt) => Stmt;
 export declare let for_loop: (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: Stmt) => Stmt;
 export declare let semicolon: (r: SourceRange, p: Stmt, q: Stmt) => Stmt;
-export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override";
+export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator";
 export interface Parameter {
     name: Name;
     type: Type;
