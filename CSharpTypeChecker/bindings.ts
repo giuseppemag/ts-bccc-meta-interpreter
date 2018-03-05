@@ -483,7 +483,7 @@ export let div = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
              co_unit(mk_typing(int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
              co_unit(mk_typing(float_type, Sem.float_div_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,a_t.type>({ range:r, message:"Error: unsupported types for operator (/)!" })
+            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (/)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot divide expressions of different types!" })
         ))
 }
@@ -1040,5 +1040,3 @@ export let call_method = function(r:SourceRange, context:CallingContext, this_re
         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
   }))
 }
-
-export let from_js  = (t:Type, sem:Sem.StmtRt) : Stmt => _ => co_unit(mk_typing(t, sem))
