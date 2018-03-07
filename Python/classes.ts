@@ -31,6 +31,27 @@ export let field_get_expr_rt = function(F_name:ValueName, this_expr:ExprRt<Sum<V
     field_get_rt(F_name, this_addr.value))
 }
 
+export let method_get_rt = function(M_name:ValueName, this_addr:HeapRef) : ExprRt<Sum<Val,Val>> {
+  return get_heap_v_rt(this_addr.v).then(this_val => {
+    if (this_val.value.k != "obj") return runtime_error(`runtime type error: this is not a reference when looking ${M_name} up.`)
+    if(this_val.value.v.has("class")){
+      let c = this_val.value.v.get("class")
+      if(c.k == "s"){
+        return get_class_def_rt(c.v).then(_class => 
+          _class.methods.get(M_name))
+      }
+    }
+    return runtime_error(`runtime type error: wrong method lookup ${M_name}.`)
+  })
+}
+
+export let method_get_expr_rt = function(M_name:ValueName, this_expr:ExprRt<Sum<Val, Val>>) : ExprRt<Sum<Val, Val>> {
+  return this_expr.then(this_addr =>
+    this_addr.value.k != "ref" ? runtime_error(`runtime type error`) :
+    method_get_rt(M_name, this_addr.value))
+}
+
+
 export let field_set_rt = function(F_name:{att_name:ValueName, kind:"att"}|{att_name:ValueName, kind:"att_arr", index:ExprRt<Sum<Val, Val>>}, new_val_expr:ExprRt<Sum<Val, Val>>, this_addr:HeapRef) : StmtRt {
   return new_val_expr.then(new_val =>
     get_heap_v_rt(this_addr.v).then(this_val => {
@@ -45,6 +66,12 @@ export let field_set_rt = function(F_name:{att_name:ValueName, kind:"att"}|{att_
 export let static_field_get_expr_rt = function(C_name:ValueName, F_name:ValueName) : StmtRt {
   return get_class_def_rt(C_name).then(C_def => {
     return co_unit(apply(inl<Val,Val>(), C_def.static_fields.get(F_name)))
+  })
+}
+
+export let static_method_get_expr_rt = function(C_name:ValueName, F_name:ValueName) : StmtRt {
+  return get_class_def_rt(C_name).then(C_def => {
+    return C_def.static_methods.get(F_name)
   })
 }
 
@@ -99,7 +126,10 @@ export let call_cons_rt = function(C_name:ValueName, args:Array<ExprRt<Sum<Val, 
   new_obj_rt().then(this_addr =>
   this_addr.value.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
   field_set_rt({att_name:"class", kind:"att"}, str_expr(C_name), this_addr.value).then(_ =>
-  call_lambda_expr_rt(C_def.methods.get(C_name), args.concat([val_expr(this_addr)])).then(res =>
+  
+  
+  call_lambda_expr_rt(C_def.methods.get(C_name), [val_expr(this_addr)]).then(cons_lambda =>
+  call_lambda_expr_rt(val_expr(cons_lambda), args).then(_ => 
   co_unit<MemRt,ErrVal,Sum<Val,Val>>(this_addr)
-  ))))
+  )))))
 }

@@ -30,6 +30,27 @@ exports.field_get_expr_rt = function (F_name, this_expr) {
             exports.field_get_rt(F_name, this_addr.value);
     });
 };
+exports.method_get_rt = function (M_name, this_addr) {
+    return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
+        if (this_val.value.k != "obj")
+            return memory_1.runtime_error("runtime type error: this is not a reference when looking " + M_name + " up.");
+        if (this_val.value.v.has("class")) {
+            var c = this_val.value.v.get("class");
+            if (c.k == "s") {
+                return memory_1.get_class_def_rt(c.v).then(function (_class) {
+                    return _class.methods.get(M_name);
+                });
+            }
+        }
+        return memory_1.runtime_error("runtime type error: wrong method lookup " + M_name + ".");
+    });
+};
+exports.method_get_expr_rt = function (M_name, this_expr) {
+    return this_expr.then(function (this_addr) {
+        return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error") :
+            exports.method_get_rt(M_name, this_addr.value);
+    });
+};
 exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
     return new_val_expr.then(function (new_val) {
         return memory_1.get_heap_v_rt(this_addr.v).then(function (this_val) {
@@ -44,6 +65,11 @@ exports.field_set_rt = function (F_name, new_val_expr, this_addr) {
 exports.static_field_get_expr_rt = function (C_name, F_name) {
     return memory_1.get_class_def_rt(C_name).then(function (C_def) {
         return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), C_def.static_fields.get(F_name)));
+    });
+};
+exports.static_method_get_expr_rt = function (C_name, F_name) {
+    return memory_1.get_class_def_rt(C_name).then(function (C_def) {
+        return C_def.static_methods.get(F_name);
     });
 };
 exports.static_field_set_expr_rt = function (C_name, F_name, new_val_expr) {
@@ -93,8 +119,10 @@ exports.call_cons_rt = function (C_name, args) {
         return memory_1.new_obj_rt().then(function (this_addr) {
             return this_addr.value.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
                 exports.field_set_rt({ att_name: "class", kind: "att" }, expressions_1.str_expr(C_name), this_addr.value).then(function (_) {
-                    return python_1.call_lambda_expr_rt(C_def.methods.get(C_name), args.concat([expressions_1.val_expr(this_addr)])).then(function (res) {
-                        return ts_bccc_2.co_unit(this_addr);
+                    return python_1.call_lambda_expr_rt(C_def.methods.get(C_name), [expressions_1.val_expr(this_addr)]).then(function (cons_lambda) {
+                        return python_1.call_lambda_expr_rt(expressions_1.val_expr(cons_lambda), args).then(function (_) {
+                            return ts_bccc_2.co_unit(this_addr);
+                        });
                     });
                 });
         });

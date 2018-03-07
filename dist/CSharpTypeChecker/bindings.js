@@ -702,23 +702,23 @@ exports.def_fun = function (r, def, closure_parameters) {
     }); };
 };
 exports.def_method = function (r, C_name, def) {
-    def.parameters = def.modifiers.some(function (m) { return m == "static"; }) ? def.parameters
-        : def.parameters.concat(Array({ name: "this", type: exports.ref_type(C_name) }));
-    if (def.is_constructor && def.name != C_name)
-        return function (_) { return ts_bccc_2.co_error({ range: r, message: "Error: constructor for " + C_name + " cannot be called " + def.name }); };
+    var is_static = def.modifiers.some(function (m) { return m == "static"; });
     var parameters = def.parameters;
+    console.log("params", JSON.stringify(parameters));
     var return_t = def.return_t;
     var body = def.body;
-    var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
+    var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: exports.ref_type(C_name) }]))
+        .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(exports.no_constraints).then(function (_) {
             return body(exports.no_constraints).then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)));
+                        return is_static ?
+                            ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
+                            : ts_bccc_2.co_unit(mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)]), exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type)), Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range)));
                     })
-                    :
-                        ts_bccc_2.co_error({ range: r, message: "Error: return type does not match declaration" });
+                    : ts_bccc_2.co_error({ range: r, message: "Error: return type does not match declaration" });
             });
         });
     }); };
@@ -846,33 +846,33 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
         });
     }); };
 };
-exports.field_get = function (r, context, this_ref, F_name) {
+exports.field_get = function (r, context, this_ref, F_or_M_name) {
     return function (_) { return this_ref(exports.no_constraints).then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
             if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
                 var item = /^Item/;
-                var m = F_name.match(item);
+                var m = F_or_M_name.match(item);
                 if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
                     try {
-                        var item_index = parseInt(F_name.replace(item, "")) - 1;
+                        var item_index = parseInt(F_or_M_name.replace(item, "")) - 1;
                         return ts_bccc_2.co_unit(mk_typing(this_ref_t.type.args[item_index], Sem.tuple_get_rt(r, this_ref_t.sem, item_index)));
                     }
                     catch (error) {
-                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_name + "." });
+                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + "." });
                     }
                 }
                 else {
                     console.log("Checking getter on", JSON.stringify(this_ref_t.type));
-                    if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_name)) {
+                    if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
                         try {
-                            return ts_bccc_2.co_unit(mk_typing(this_ref_t.type.args.get(F_name), Sem.record_get_rt(r, this_ref_t.sem, F_name)));
+                            return ts_bccc_2.co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name), Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name)));
                         }
                         catch (error) {
-                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_name + "." });
+                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + "." });
                         }
                     }
                     else {
-                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_name + "." });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_or_M_name + "." });
                     }
                 }
             }
@@ -882,18 +882,37 @@ exports.field_get = function (r, context, this_ref, F_name) {
             var C_def = bindings.bindings.get(this_ref_t.type.C_name);
             if (C_def.kind != "obj")
                 return ts_bccc_2.co_error({ range: r, message: "Error: " + this_ref_t.type.C_name + " is not a class" });
-            if (!C_def.fields.has(F_name))
-                return ts_bccc_2.co_error({ range: r, message: "Error: class " + this_ref_t.type.C_name + " does not contain field " + F_name });
-            var F_def = C_def.fields.get(F_name);
-            if (!F_def.modifiers.has("public")) {
-                if (context.kind == "global scope")
-                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_name) + " from global scope" });
-                else if (context.C_name != C_name)
-                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_name) + " from " + context.C_name });
+            if (C_def.fields.has(F_or_M_name)) {
+                var F_def = C_def.fields.get(F_or_M_name);
+                if (!F_def.modifiers.has("public")) {
+                    if (context.kind == "global scope")
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_or_M_name) + " from global scope" });
+                    else if (context.C_name != C_name)
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_or_M_name) + " from " + context.C_name });
+                }
+                return ts_bccc_2.co_unit(mk_typing(F_def.type, F_def.modifiers.has("static") ?
+                    Sem.static_field_get_expr_rt(C_name, F_or_M_name)
+                    : Sem.field_get_expr_rt(F_or_M_name, this_ref_t.sem)));
             }
-            return ts_bccc_2.co_unit(mk_typing(F_def.type, F_def.modifiers.has("static") ?
-                Sem.static_field_get_expr_rt(C_name, F_name)
-                : Sem.field_get_expr_rt(F_name, this_ref_t.sem)));
+            else if (C_def.methods.has(F_or_M_name)) {
+                var M_def = C_def.methods.get(F_or_M_name);
+                console.log("This is the method", JSON.stringify(M_def), F_or_M_name);
+                console.log("This is this", JSON.stringify(this_ref_t));
+                if (!M_def.modifiers.has("public")) {
+                    if (context.kind == "global scope")
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_or_M_name) + " from global scope" });
+                    else if (context.C_name != C_name)
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_or_M_name) + " from " + context.C_name });
+                }
+                if (M_def.typing.type.kind != "fun")
+                    return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + JSON.stringify(F_or_M_name) + " is not a lambda in " + (context.kind == "class" ? context.C_name : JSON.stringify(context)) });
+                return ts_bccc_2.co_unit(mk_typing(M_def.modifiers.has("static") ? M_def.typing.type : M_def.typing.type.out, M_def.modifiers.has("static") ?
+                    Sem.static_method_get_expr_rt(C_name, F_or_M_name)
+                    :
+                        //call_lambda
+                        Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])));
+            }
+            return ts_bccc_2.co_error({ range: r, message: "Error: class " + this_ref_t.type.C_name + " does not contain field " + F_or_M_name });
         });
     }); };
 };
@@ -970,54 +989,50 @@ exports.call_cons = function (r, context, C_name, arg_values) {
             : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.typing.type) });
     }); };
 };
-exports.call_method = function (r, context, this_ref, M_name, arg_values) {
-    return function (_) { return this_ref(exports.no_constraints).then(function (this_ref_t) {
-        return ts_bccc_1.co_get_state().then(function (bindings) {
-            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-                return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when calling method " + M_name + "." });
-            }
-            var C_name = this_ref_t.type.C_name;
-            if (!bindings.bindings.has(C_name))
-                return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
-            var C_def = bindings.bindings.get(C_name);
-            if (C_def.kind != "obj")
-                return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class" });
-            if (!C_def.methods.has(M_name))
-                return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not have method " + M_name });
-            var lambda_t = C_def.methods.get(M_name);
-            if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
-                return ts_bccc_2.co_error({ range: r, message: "Error: invalid method type " + JSON.stringify(lambda_t.typing.type) });
-            var expected_args = lambda_t.typing.type.in.args;
-            var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
-                return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
-                    return args.then(function (args_t) {
-                        return ts_bccc_2.co_unit(args_t.push(arg_t));
-                    });
-                });
-            }, ts_bccc_2.co_unit(Immutable.List()));
-            if (!lambda_t.modifiers.has("public")) {
-                if (context.kind == "global scope")
-                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public method " + JSON.stringify(M_name) + " from global scope" });
-                else if (context.C_name != C_name)
-                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public method " + C_name + "::" + JSON.stringify(M_name) + " from " + context.C_name });
-            }
-            if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call static method " + JSON.stringify(M_name) + " from reference." });
-            }
-            return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
-                check_arguments.then(function (args_t) {
-                    return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-                        arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
-                        args_t.some(function (arg_t, i) { return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                            !type_equals(arg_t.type, lambda_t.typing.type.in.args[i]); }) ?
-                        ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling method " + JSON.stringify(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t) })
-                        :
-                            ts_bccc_2.co_unit(mk_typing(lambda_t.typing.type.out, lambda_t.modifiers.has("static") ?
-                                Sem.call_static_method_expr_rt(C_name, M_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))
-                                :
-                                    Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
-                })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.typing.type) });
-        });
-    }); };
-};
+// export let call_method = function(r:SourceRange, context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
+//   return _ => this_ref(no_constraints).then(this_ref_t =>
+//     co_get_state<State, Err>().then(bindings => {
+//       if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+//         return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when calling method ${M_name}.`})
+//       }
+//       let C_name = this_ref_t.type.C_name
+//       if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
+//       let C_def = bindings.bindings.get(C_name)
+//       if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class`})
+//       if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have method ${M_name}`})
+//       let lambda_t = C_def.methods.get(M_name)
+//       if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
+//         return co_error<State,Err,Typing>({ range:r, message:`Error: invalid method type ${JSON.stringify(lambda_t.typing.type)}`})
+//       let expected_args = lambda_t.typing.type.in.args
+//       let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+//         arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
+//         args.then(args_t =>
+//         co_unit(args_t.push(arg_t))
+//         )),
+//         co_unit(Immutable.List<Typing>()))
+//       if (!lambda_t.modifiers.has("public")) {
+//         if (context.kind == "global scope")
+//           return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`})
+//         else if (context.C_name != C_name)
+//           return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`})
+//       }
+//       if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
+//         return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call static method ${JSON.stringify(M_name)} from reference.`})
+//       }
+//       return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
+//           check_arguments.then(args_t =>
+//             lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+//             arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
+//             args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+//                                       !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
+//               co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
+//             :
+//               co_unit(mk_typing(lambda_t.typing.type.out,
+//                 lambda_t.modifiers.has("static") ?
+//                   Sem.call_static_method_expr_rt(C_name, M_name, args_t.toArray().map(arg_t => arg_t.sem))
+//                 :
+//                   Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+//           )
+//         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
+//   }))
+// }

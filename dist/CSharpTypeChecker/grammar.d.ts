@@ -87,9 +87,6 @@ export interface DebuggerAST {
 export interface TCDebuggerAST {
     kind: "typechecker_debugger";
 }
-export interface UnitAST {
-    kind: "unit";
-}
 export interface StringAST {
     kind: "string";
     value: string;
@@ -179,6 +176,9 @@ export interface BracketAST {
     kind: "bracket";
     e: ParserRes;
 }
+export interface UnitAST {
+    kind: "unit";
+}
 export interface FieldAST {
     decl: DeclAST;
     modifiers: Immutable.List<{
@@ -243,12 +243,6 @@ export interface ArrayConstructorCallAST {
     kind: "array_cons_call";
     type: ParserRes;
     actual: ParserRes;
-}
-export interface MethodCallAST {
-    kind: "method_call";
-    object: ParserRes;
-    name: ParserRes;
-    actuals: Array<ParserRes>;
 }
 export interface GetArrayValueAtAST {
     kind: "get_array_value_at";
@@ -355,7 +349,7 @@ export interface RecordTypeDeclAST {
     kind: "record type decl";
     args: Array<DeclAST>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
+export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

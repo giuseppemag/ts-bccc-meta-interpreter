@@ -136,32 +136,35 @@ export module GrammarBasics {
 
 
 let priority_operators_table =
-  Immutable.Map<string, number>()
-  .set(".", 11)
-  .set("*", 10)
-  .set("/", 10)
-  .set("%", 10)
-  .set("+", 7)
-  .set("-", 7)
-  .set(">", 6)
-  .set("<", 6)
-  .set("<=", 6)
-  .set(">=", 6)
-  .set("==", 5)
-  .set("!=", 5)
-  .set("not", 4)
-  .set("xor", 4)
-  .set("&&", 4)
-  .set("||", 4)
-  .set("=>", 4)
-  .set(",", 3)
+  Immutable.Map<string, {priority:number, associativity:"left"|"right"}>()
+  .set(".", {priority:13, associativity:"left"})
+  .set("()", {priority:12, associativity:"left"})
+  .set("[]", {priority:11, associativity:"left"})
+  .set("*", {priority:10, associativity:"right"})
+  .set("/", {priority:10, associativity:"right"})
+  .set("%", {priority:10, associativity:"right"})
+  .set("+", {priority:7, associativity:"right"})
+  .set("-", {priority:7, associativity:"right"})
+  .set(">", {priority:6, associativity:"right"})
+  .set("<", {priority:6, associativity:"right"})
+  .set("<=", {priority:6, associativity:"right"})
+  .set(">=", {priority:6, associativity:"right"})
+  .set("==", {priority:5, associativity:"right"})
+  .set("!=", {priority:5, associativity:"right"})
+  .set("not", {priority:4, associativity:"right"})
+  .set("xor", {priority:4, associativity:"right"})
+  .set("&&", {priority:4, associativity:"right"})
+  .set("||", {priority:4, associativity:"right"})
+  .set("=>", {priority:4, associativity:"right"})
+  .set(",", {priority:3, associativity:"right"})
+
 
 export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
 
 export interface DebuggerAST { kind: "debugger" }
 export interface TCDebuggerAST { kind: "typechecker_debugger" }
 
-export interface UnitAST { kind: "unit" }
+
 export interface StringAST { kind: "string", value:string }
 export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
@@ -180,6 +183,7 @@ export interface ReturnAST { kind: "return", value:ParserRes }
 export interface NoopAST { kind: "noop" }
 export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
 export interface BracketAST { kind:"bracket", e:ParserRes }
+export interface UnitAST { kind: "unit" }
 
 export interface FieldAST { decl:DeclAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
@@ -194,7 +198,7 @@ export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Arr
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
 
-export interface MethodCallAST {kind:"method_call", object:ParserRes, name:ParserRes, actuals:Array<ParserRes> }
+
 export interface GetArrayValueAtAST {kind:"get_array_value_at", array:ParserRes, index:ParserRes }
 
 export interface EmptySurface { kind: "empty surface", w:ParserRes, h:ParserRes, color:ParserRes }
@@ -233,7 +237,7 @@ export type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST 
                 | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
                 | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST
-                | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | MethodCallAST
+                | ClassAST | ConstructorCallAST | ArrayConstructorCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | RenderSurfaceAST | ArrayTypeDeclAST
                 | ModifierAST | GetArrayValueAtAST | BracketAST
@@ -286,9 +290,6 @@ let mk_call = (f_name:ParserRes, actuals:Array<ParserRes>) : ParserRes =>
   ({  range: f_name.range,
       ast: {kind:"func_call", name:f_name, actuals:actuals} })
 
-let mk_method_call = (obj:ParserRes, f_name:ParserRes, actuals:Array<ParserRes>) : ParserRes =>
-  ({  range: join_source_ranges(obj.range, f_name.range),
-      ast: {kind:"method_call", object:obj, name:f_name, actuals:actuals} })
 
 let mk_constructor_call = (new_range:SourceRange, C_name:string, actuals:Array<ParserRes>) : ParserRes =>
   ({ range:new_range, ast:{ kind:"cons_call", name:C_name, actuals:actuals } })
@@ -576,25 +577,12 @@ let eof: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_g
 }))
 
 
-let index_of : Coroutine<ParserState,ParserError,ParserRes> = identifier.then(from =>
+let index_of : Coroutine<ParserState,ParserError,ParserRes> = 
                 left_square_bracket.then(_ =>
                   expr().then(actual =>
                   right_square_bracket.then(rs =>
-                    co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
-                  ))))
-
-let field_ref_elements = (identifiers:Immutable.List<ParserRes>) : Coroutine<ParserState,ParserError,Immutable.List<ParserRes>> =>
-  parser_or<Immutable.List<ParserRes>>(
-    parser_or<ParserRes>(index_of, identifier).then(l =>
-    dot_sign.then(_ =>
-    field_ref_elements(identifiers.push(l)))),
-  co_unit(identifiers))
-
-let field_ref:  () => Parser = () =>
-  parser_or<ParserRes>(index_of, identifier).then(first =>
-  dot_sign.then(_ =>
-  field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
-  parser_or<ParserRes>(index_of, identifier).then(last => co_unit(identifiers.push(last).toArray().reduce((l,r) => mk_field_ref(l,r)))))))
+                  co_unit(actual)
+                  )))
 
 let mk_empty_surface_prs : () => Parser = () =>
   empty_surface_keyword.then(esk =>
@@ -715,125 +703,196 @@ let term : () => Parser = () : Parser =>
   parser_or<ParserRes>(double,
   parser_or<ParserRes>(int,
   parser_or<ParserRes>(string,
-  parser_or<ParserRes>(call(),
-  parser_or<ParserRes>(method_call(),
-  parser_or<ParserRes>(field_ref(),
-  parser_or<ParserRes>(identifier,
-  parser_or<ParserRes>(unary_expr(),
-  left_bracket.then(lb =>
-  expr().then(e =>
-  right_bracket.then(rb =>
-  co_unit(mk_braket(e, join_source_ranges(lb, rb)))))
-  )))))))))))))))))))))
+  identifier
+  )))))))))))))))
 
 let unary_expr : () => Parser = () =>
   not_op.then(_ =>
   expr().then(e =>
   co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
 
-let method_ref: () => Coroutine<ParserState,ParserError,{ object:ParserRes, method:ParserRes }> = () => identifier.then(first =>
-  dot_sign.then(_ =>
-  field_ref_elements(Immutable.List<ParserRes>([first])).then(identifiers =>
-  identifier.then(last => co_unit(
-    { object:identifiers.toArray().reduce((l,r) => mk_field_ref(l,r)),
-      method:last }
-    )))))
 
-let method_call : () => Parser = () =>
+let par : Coroutine<ParserState,ParserError,ParserRes[]> = 
   no_match.then(_ =>
-  method_ref().then(({ object:obj, method:f_name }) =>
   left_bracket.then(_ =>
   partial_match.then(_ =>
   actuals().then((actuals:Array<ParserRes>) =>
   right_bracket.then(_ =>
   full_match.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>(mk_method_call(obj, f_name, actuals)))))))))
+  co_unit(actuals)))))))
 
-let call : () => Parser = () =>
-  no_match.then(_ =>
-  identifier.then(f_name =>
-  left_bracket.then(_ =>
-  partial_match.then(_ =>
-  actuals().then((actuals:Array<ParserRes>) =>
-  right_bracket.then(_ =>
-  full_match.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>(mk_call(f_name, actuals)))))))))
+let empty_table = {
+  symbols: Immutable.Stack<ParserRes>(),
+  callables: Immutable.Stack<boolean>(),
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>()
+}
 
-
-let empty_table = {symbols:Immutable.Stack<ParserRes>(),
-                   ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>()}
-let reduce_table = (table:{symbols:Immutable.Stack<ParserRes>,
-                     ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : ParserRes => {
-
-  let res = reduce_table_2(table.symbols,table.ops, true)
+let reduce_table = (table: {
+  symbols: Immutable.Stack<ParserRes>,
+  callables: Immutable.Stack<boolean>,
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
+}): ParserRes => {
+  if (table.symbols.count() == 0 && table.ops.count() == 0) return { ast: { kind: "unit" }, range: mk_range(-1, -1, -1, -1) }
+  if (table.symbols.count() == 1 && table.ops.count() == 0) return table.symbols.peek()
+  let res = reduce_table_2(table.symbols, table.ops, table.callables, true)
   return res.new_top
 }
-
-
-let reduce_table_2 = (symbols:Immutable.Stack<ParserRes>,
-                ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>, reduce_to_end:boolean) :
-                {new_top: ParserRes, symbols:Immutable.Stack<ParserRes>, ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>} => {
-  if(reduce_to_end && symbols.count() == 1 && ops.count() == 0)
-    return {new_top: symbols.peek(), symbols:symbols.pop(), ops:ops}
-
-  let snd = symbols.peek()
-  let fst = symbols.pop().peek()
-  symbols = symbols.pop().pop()
-  let op = ops.peek()
-  let new_top = op.snd(fst, snd)
-
-  if(reduce_to_end)
-    return reduce_table_2(symbols.push(new_top), ops.pop(), reduce_to_end)
-  return {new_top: new_top, symbols:symbols.push(new_top), ops:ops.pop()}
+let is_callable = (e: ParserRes): boolean => {
+  let e_k = e.ast.kind
+  return e_k == "." ||
+    e_k == "func_call" ||
+    e_k == "get_array_value_at" ||
+    e_k == "bracket" ||
+    e_k == "id"
 }
 
-let expr_after_op = (symbols:Immutable.Stack<ParserRes>,
-                         ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>,
-                         current_op:string,
-                         compose_current:(l:ParserRes, r:ParserRes)=>ParserRes) : Coroutine<ParserState, ParserError, { symbols:Immutable.Stack<ParserRes>,
-                                                                                                                        ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}> =>
-    {
-      if(ops.count() >= 1 &&
-         symbols.count() >= 2 && priority_operators_table.get(ops.peek().fst) >= priority_operators_table.get(current_op)){
-        let res = reduce_table_2(symbols, ops, false)
-        return expr_after_op(res.symbols, res.ops, current_op, compose_current)
-      }
-      return expr_AUX({symbols:symbols, ops: ops.push({fst:current_op,snd:compose_current})})
+let reduce_table_2 = (symbols: Immutable.Stack<ParserRes>,
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>,
+  callables: Immutable.Stack<boolean>,
+  reduce_to_end: boolean): { new_top: ParserRes, symbols: Immutable.Stack<ParserRes>, ops: Immutable.Stack<Prod<string, unary_or_binary_op>>, callables: Immutable.Stack<boolean> } => {
+
+  if (reduce_to_end && symbols.count() == 1 && ops.count() == 0) {
+    return { new_top: symbols.peek(), callables: callables.pop().push(is_callable(symbols.peek())), symbols: symbols, ops: ops }
+  }
+
+  let op = ops.peek()
+
+  if (op.snd.kind == "binary") {
+    let snd = symbols.peek()
+    let fst = symbols.pop().peek()
+    symbols = symbols.pop().pop()
+    let new_top = op.snd.f(fst, snd)
+    callables = callables.pop().pop().pop()
+    let is_new_top_callable = is_callable(new_top)
+    callables = callables.push(is_new_top_callable)
+
+    if (reduce_to_end) {
+      return reduce_table_2(symbols.push(new_top), ops.pop(), callables, reduce_to_end)
+    }
+    return { new_top: new_top, symbols: symbols.push(new_top), callables: callables, ops: ops.pop() }
+  }
+  else {
+    let fst = symbols.peek()
+    symbols = symbols.pop()
+
+
+    let is_fst_callable = fst == undefined ? false
+      : callables.count() == 0 ? false
+        : callables.peek()
+    callables = callables.pop()
+
+    let new_top = op.snd.f(fst == undefined ? "none" : fst, is_fst_callable)
+
+    if (new_top.kind == "0-ary_push_back") {
+      symbols = fst == undefined ? symbols : symbols.push(fst)
+      symbols = symbols.push(new_top.value)
+      callables = callables.pop().push(is_callable(new_top.value))
+    }
+    else {
+      callables = callables.pop().pop().push(is_callable(new_top.value))
+      symbols = symbols.push(new_top.value)
     }
 
-type SymTable = {symbols:Immutable.Stack<ParserRes>,
-                 ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}
+    if (reduce_to_end && symbols.count() > 0) {
+      return reduce_table_2(symbols, ops.pop(), callables, reduce_to_end)
+    }
 
-let expr_AUX = (table: {symbols:Immutable.Stack<ParserRes>,
-  ops:Immutable.Stack<Prod<string, (l:ParserRes, r:ParserRes)=>ParserRes>>}) : Coroutine<ParserState, ParserError, SymTable> =>
+    return { new_top: new_top.value, symbols: symbols, callables: callables, ops: ops.pop() }
+  }
+}
 
-  term().then(from =>
-    parser_or<ParserRes>(
-      left_square_bracket.then(_ =>
-        expr().then(actual =>
-        right_square_bracket.then(rs =>
-          co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
-        ))),
-      co_unit(from)))
-  .then(l =>
-    parser_or<SymTable>(comma.then(_ => expr_after_op(table.symbols.push(l), table.ops, ",", (l,r)=> mk_pair(l,r))),
-    parser_or<SymTable>(arrow_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "=>", (l,r)=> mk_arrow(l,r))),
-    parser_or<SymTable>(plus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "+", (l,r)=> mk_plus(l,r))),
-    parser_or<SymTable>(minus_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "-", (l,r)=> mk_minus(l,r))),
-    parser_or<SymTable>(times_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "*", (l,r)=> mk_times(l,r))),
-    parser_or<SymTable>(div_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "/", (l,r)=> mk_div(l,r))),
-    parser_or<SymTable>(mod_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "%", (l,r)=> mk_mod(l,r))),
-    parser_or<SymTable>(lt_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "<", (l,r)=> mk_lt(l,r))),
-    parser_or<SymTable>(gt_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, ">", (l,r)=> mk_gt(l,r))),
-    parser_or<SymTable>(leq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "<=", (l,r)=> mk_leq(l,r))),
-    parser_or<SymTable>(geq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, ">=", (l,r)=> mk_geq(l,r))),
-    parser_or<SymTable>(eq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "==", (l,r)=> mk_eq(l,r))),
-    parser_or<SymTable>(neq_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "!=", (l,r)=> mk_neq(l,r))),
-    parser_or<SymTable>(and_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "&&", (l,r)=> mk_and(l,r))),
-    parser_or<SymTable>(or_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "||", (l,r)=> mk_or(l,r))),
-    parser_or<SymTable>(xor_op.then(_ => expr_after_op(table.symbols.push(l), table.ops, "xor", (l,r)=> mk_xor(l,r))),
-    co_unit({...table, symbols:table.symbols.push(l)})
-    )))))))))))))))))
+let expr_after_op = (symbols: Immutable.Stack<ParserRes>,
+  callables: Immutable.Stack<boolean>,
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>,
+  current_op: string,
+  compose_current: unary_or_binary_op):
+  Coroutine<ParserState, ParserError, {
+    symbols: Immutable.Stack<ParserRes>,
+    callables: Immutable.Stack<boolean>,
+    ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
+  }> => {
+  if (ops.count() > 0 &&
+    ((ops.peek().snd.kind == "binary" &&
+      symbols.count() >= 2) ||
+      (ops.peek().snd.kind == "unary" &&
+        symbols.count() >= 1)
+    )) {
+
+    let op_p = priority_operators_table.get(ops.peek().fst)
+    let current_p = priority_operators_table.get(current_op)
+    if (op_p.priority > current_p.priority ||
+      (op_p.priority == current_p.priority &&
+        op_p.associativity == "left")) {
+      let res = reduce_table_2(symbols, ops, callables, false)
+      return expr_after_op(res.symbols, res.callables, res.ops, current_op, compose_current)
+    }
+  }
+  return expr_AUX({ symbols: symbols, ops: ops.push({ fst: current_op, snd: compose_current }), callables: callables.push(current_op == "()") })
+}
+
+type SymTable = {
+  symbols: Immutable.Stack<ParserRes>,
+  callables: Immutable.Stack<boolean>,
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
+}
+
+
+type unary_or_binary_op =
+  { kind: "binary", f: (l: ParserRes, r: ParserRes) => ParserRes } |
+  { kind: "unary", f: (l: ParserRes | "none", is_callable: boolean) => { kind: "res" | "0-ary_push_back", value: ParserRes } }
+
+let mk_unary = (f: (l: ParserRes | "none", is_callable: boolean) => { kind: "res" | "0-ary_push_back", value: ParserRes }): unary_or_binary_op => ({ kind: "unary", f: f })
+let mk_binary = (f: (l: ParserRes, r: ParserRes) => ParserRes): unary_or_binary_op => ({ kind: "binary", f: f })
+
+let expr_AUX = (table: {
+  symbols: Immutable.Stack<ParserRes>,
+  callables: Immutable.Stack<boolean>,
+  ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
+}): Coroutine<ParserState, ParserError, SymTable> => {
+
+  let cases = (l: ParserRes | "none") => {
+    let symbols = table.symbols
+    let callables = table.callables
+    if (l != "none") {
+      symbols = table.symbols.push(l)
+      callables = table.callables.push(is_callable(l))
+    }
+    else {
+    }
+    // to improve
+    return parser_or<SymTable>(index_of.then(index => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(mk_range(-1, -1, -1, -1), l as any, index) })))),
+      parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
+        parser_or<SymTable>(par.then(actuals => {
+          actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
+          return expr_after_op(symbols, callables, table.ops, "()",
+            mk_unary((_l, is_callable) => {
+              return _l == "none" ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], mk_range(-1, -1, -1, -1)) }
+                : !is_callable ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], mk_range(-1, -1, -1, -1)) }
+                  : { kind: "res", value: mk_call(_l, actuals) }
+            }))
+        }),
+          parser_or<SymTable>(comma.then(_ => expr_after_op(symbols, callables, table.ops, ",", mk_binary((l, r) => mk_pair(l, r)))),
+          parser_or<SymTable>(arrow_op.then(_ => expr_after_op(symbols, callables, table.ops, "=>", mk_binary((l, r) => mk_arrow(l, r)))),
+          parser_or<SymTable>(plus_op.then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
+          parser_or<SymTable>(minus_op.then(_ => expr_after_op(symbols, callables, table.ops, "-", mk_binary((l, r) => mk_minus(l, r)))),
+          parser_or<SymTable>(times_op.then(_ => expr_after_op(symbols, callables, table.ops, "*", mk_binary((l, r) => mk_times(l, r)))),
+          parser_or<SymTable>(div_op.then(_ => expr_after_op(symbols, callables, table.ops, "/", mk_binary((l, r) => mk_div(l, r)))),
+          parser_or<SymTable>(mod_op.then(_ => expr_after_op(symbols, callables, table.ops, "%", mk_binary((l, r) => mk_mod(l, r)))),
+          parser_or<SymTable>(lt_op.then(_ => expr_after_op(symbols, callables, table.ops, "<", mk_binary((l, r) => mk_lt(l, r)))),
+          parser_or<SymTable>(gt_op.then(_ => expr_after_op(symbols, callables, table.ops, ">", mk_binary((l, r) => mk_gt(l, r)))),
+          parser_or<SymTable>(leq_op.then(_ => expr_after_op(symbols, callables, table.ops, "<=", mk_binary((l, r) => mk_leq(l, r)))),
+          parser_or<SymTable>(geq_op.then(_ => expr_after_op(symbols, callables, table.ops, ">=", mk_binary((l, r) => mk_geq(l, r)))),
+          parser_or<SymTable>(eq_op.then(_ => expr_after_op(symbols, callables, table.ops, "==", mk_binary((l, r) => mk_eq(l, r)))),
+          parser_or<SymTable>(neq_op.then(_ => expr_after_op(symbols, callables, table.ops, "!=", mk_binary((l, r) => mk_neq(l, r)))),
+          parser_or<SymTable>(and_op.then(_ => expr_after_op(symbols, callables, table.ops, "&&", mk_binary((l, r) => mk_and(l, r)))),
+          parser_or<SymTable>(or_op.then(_ => expr_after_op(symbols, callables, table.ops, "||", mk_binary((l, r) => mk_or(l, r)))),
+          parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
+          co_unit({ ...table, symbols: symbols, callables: callables })
+        )))))))))))))))))))
+  }
+  return parser_or<SymTable>(term().then(l => cases(l)), cases("none"))
+}
+
 
 let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range =>
@@ -841,7 +900,7 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     left_bracket.then(_ =>
     actuals().then((actuals:Array<ParserRes>) =>
     right_bracket.then(_ =>
-    co_unit(mk_constructor_call(new_range, class_name.id, actuals))
+    co_unit(mk_constructor_call(new_range, class_name.id, actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals))
     )))))
 
 let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
@@ -857,10 +916,9 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
-    return parser_or<ParserRes>(
-      res,
-      parser_or<ParserRes>(cons_call(),array_new())
-    )
+    return parser_or<ParserRes>(array_new(),
+           parser_or<ParserRes>(cons_call(),
+                                res))
   }
 
 
@@ -878,19 +936,8 @@ let assign_right = () : Parser =>
   )))))
 
 let assign : () => Parser = () =>
-  parser_or<ParserRes>(
-    field_ref(),
-    parser_or<ParserRes>(
-      identifier.then(from =>
-        left_square_bracket.then(_ =>
-        term().then(actual =>
-        right_square_bracket.then(rs =>
-          co_unit(mk_get_array_value_at(join_source_ranges(from.range, rs), from, actual))
-        )))),
-      identifier)
-  ).then(l =>
-      assign_right().then(r => co_unit(mk_assign(l,r)))
-    )
+  expr().then(l =>
+    assign_right().then(r => co_unit(mk_assign(l,r))))
 
 let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
@@ -948,13 +995,13 @@ let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
 
 let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
-    term().then(a =>
+    expr().then(a =>
     parser_or<Array<ParserRes>>(
       comma.then(_ =>
        actuals().then(as =>
-      co_unit([a, ...as]))),
-      co_unit([a]))),
-    co_unit(Array<ParserRes>()))
+       co_unit([a, ...as]))),
+    co_unit([a]))),
+  co_unit(Array<ParserRes>()))
 
 let arg_decls = () : Coroutine<ParserState, ParserError, Array<DeclAST>> =>
   parser_or<Array<DeclAST>>(
@@ -1087,15 +1134,13 @@ let inner_statement = (skip_semicolon?:boolean) : Parser =>
   parser_or<ParserRes>(for_loop(function_statement),
   parser_or<ParserRes>(while_loop(function_statement),
   parser_or<ParserRes>(if_conditional(function_statement),
-  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(call()),
-  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(method_call()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl().then(d =>
     co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl_init()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(assign()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(no_match.then(_ => dbg)),
   with_semicolon(no_match.then(_ => tc_dbg))
-  )))))))))))
+  )))))))))
 
 let function_statement = (skip_semicolon?:boolean) : Parser =>
   parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement(skip_semicolon))
@@ -1324,18 +1369,6 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
                       ast_to_type_checker(n.ast.l.ast.index)(context),
                       ast_to_type_checker(n.ast.r)(context))
 
-  : n.ast.kind == "=" &&
-    n.ast.l.ast.kind == "." &&
-    n.ast.l.ast.r.ast.kind == "get_array_value_at" &&
-    n.ast.l.ast.r.ast.array.ast.kind == "id" ?
-
-    //(this.b)[i] = c
-    //set([this.b], i, c)
-    //set(ref(T), i, c)
-    CSharp.set_arr_el(n.range,
-      ast_to_type_checker({...n.ast.l, ast: {...n.ast.l.ast, r: {...n.ast.l.ast.r, ast:n.ast.l.ast.r.ast.array.ast}}})(context),
-      ast_to_type_checker(n.ast.l.ast.r.ast.index)(context),
-      ast_to_type_checker(n.ast.r)(context))
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? CSharp.set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ?
@@ -1345,12 +1378,10 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => CSharp.S
 
   : n.ast.kind == "cons_call" ?
     CSharp.call_cons(n.range, context, n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
-  : n.ast.kind == "func_call" &&
-    n.ast.name.ast.kind == "id" ?
-    CSharp.call_by_name(n.range, n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
-  : n.ast.kind == "method_call" &&
-    n.ast.name.ast.kind == "id" ?
-    CSharp.call_method(n.range, context, ast_to_type_checker(n.ast.object)(context), n.ast.name.ast.value, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+  : n.ast.kind == "func_call" ?
+    CSharp.call_lambda(n.range, ast_to_type_checker(n.ast.name)(context), n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+
+
   : n.ast.kind == "func_decl" ?
     CSharp.def_fun(n.range,
       { name:n.ast.name,
