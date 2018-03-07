@@ -606,8 +606,10 @@ var mk_other_surface_prs = function () {
         });
     });
 };
-var term = function () {
-    return parser_or(mk_empty_surface_prs(), parser_or(mk_circle_prs(), parser_or(mk_square_prs(), parser_or(mk_ellipse_prs(), parser_or(mk_rectangle_prs(), parser_or(mk_line_prs(), parser_or(mk_polygon_prs(), parser_or(mk_text_prs(), parser_or(mk_sprite_prs(), parser_or(mk_other_surface_prs(), parser_or(bool, parser_or(float, parser_or(double, parser_or(int, parser_or(string, identifier)))))))))))))));
+var term = function (try_par) {
+    return parser_or(mk_empty_surface_prs(), parser_or(mk_circle_prs(), parser_or(mk_square_prs(), parser_or(mk_ellipse_prs(), parser_or(mk_rectangle_prs(), parser_or(mk_line_prs(), parser_or(mk_polygon_prs(), parser_or(mk_text_prs(), parser_or(mk_sprite_prs(), parser_or(mk_other_surface_prs(), parser_or(bool, parser_or(float, parser_or(double, parser_or(int, parser_or(string, try_par ?
+        parser_or(identifier, par.then(function (actuals) { return ts_bccc_1.co_unit(actuals[0]); }))
+        : identifier)))))))))))))));
 };
 var unary_expr = function () {
     return not_op.then(function (_) {
@@ -718,7 +720,7 @@ var expr_after_op = function (symbols, callables, ops, current_op, compose_curre
 };
 var mk_unary = function (f) { return ({ kind: "unary", f: f }); };
 var mk_binary = function (f) { return ({ kind: "binary", f: f }); };
-var expr_AUX = function (table) {
+var expr_AUX = function (table, try_par) {
     var cases = function (l) {
         var symbols = table.symbols;
         var callables = table.callables;
@@ -743,7 +745,7 @@ var expr_AUX = function (table) {
         })); }), parser_or(plus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "+", mk_binary(function (l, r) { return mk_plus(l, r); })); }), parser_or(minus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "-", mk_binary(function (l, r) { return mk_minus(l, r); })); }), parser_or(times_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "*", mk_binary(function (l, r) { return mk_times(l, r); })); }), parser_or(div_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "/", mk_binary(function (l, r) { return mk_div(l, r); })); }), parser_or(mod_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "%", mk_binary(function (l, r) { return mk_mod(l, r); })); }), parser_or(lt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<", mk_binary(function (l, r) { return mk_lt(l, r); })); }), parser_or(gt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">", mk_binary(function (l, r) { return mk_gt(l, r); })); }), parser_or(leq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<=", mk_binary(function (l, r) { return mk_leq(l, r); })); }), parser_or(geq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">=", mk_binary(function (l, r) { return mk_geq(l, r); })); }), parser_or(eq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "==", mk_binary(function (l, r) { return mk_eq(l, r); })); }), parser_or(neq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "!=", mk_binary(function (l, r) { return mk_neq(l, r); })); }), parser_or(and_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "&&", mk_binary(function (l, r) { return mk_and(l, r); })); }), parser_or(or_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "||", mk_binary(function (l, r) { return mk_or(l, r); })); }), parser_or(xor_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "xor", mk_binary(function (l, r) { return mk_xor(l, r); })); }), ts_bccc_1.co_unit(__assign({}, table, { symbols: symbols, callables: callables })))))))))))))))))))));
     };
     // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
-    return parser_or(term().then(function (l) { return cases(l); }), cases("none"));
+    return parser_or(term(try_par ? try_par : false).then(function (l) { return cases(l); }), cases("none"));
 };
 var cons_call = function () {
     return new_keyword.then(function (new_range) {
@@ -762,7 +764,7 @@ var array_new = function () {
     return new_keyword.then(function (new_range) {
         return identifier.then(function (array_type) {
             return left_square_bracket.then(function (_) {
-                return term().then(function (actual) {
+                return term(false).then(function (actual) {
                     return right_square_bracket.then(function (rs) {
                         return ts_bccc_1.co_unit(mk_array_cons_call(source_range_1.join_source_ranges(new_range, rs), array_type, actual));
                     });
@@ -772,7 +774,7 @@ var array_new = function () {
     });
 };
 var expr = function () {
-    var res = expr_AUX(empty_table).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
+    var res = expr_AUX(empty_table, true).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
     return parser_or(array_new(), parser_or(cons_call(), res));
 };
 var semicolon = ignore_whitespace(semicolon_sign);

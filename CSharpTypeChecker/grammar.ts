@@ -686,7 +686,7 @@ let mk_other_surface_prs : () => Parser = () =>
   co_unit(mk_other_surface(join_source_ranges(kw, sy.range), s, dx, dy, sx, sy, rot))
   )))))))
 
-let term : () => Parser = () : Parser =>
+let term : (try_par:boolean) => Parser = (try_par:boolean) : Parser =>
   parser_or<ParserRes>(mk_empty_surface_prs(),
   parser_or<ParserRes>(mk_circle_prs(),
   parser_or<ParserRes>(mk_square_prs(),
@@ -703,7 +703,10 @@ let term : () => Parser = () : Parser =>
   parser_or<ParserRes>(double,
   parser_or<ParserRes>(int,
   parser_or<ParserRes>(string,
-  identifier
+  try_par ?
+    parser_or<ParserRes>(identifier,
+      par.then(actuals => co_unit(actuals[0])))
+  : identifier
   )))))))))))))))
 
 let unary_expr : () => Parser = () =>
@@ -853,11 +856,13 @@ type unary_or_binary_op =
 let mk_unary = (f: (l: ParserRes | "none", is_callable: boolean) => { kind: "res" | "0-ary_push_back", value: ParserRes }): unary_or_binary_op => ({ kind: "unary", f: f })
 let mk_binary = (f: (l: ParserRes, r: ParserRes) => ParserRes): unary_or_binary_op => ({ kind: "binary", f: f })
 
-let expr_AUX = (table: {
+let expr_AUX = (
+  table: {
   symbols: Immutable.Stack<ParserRes>,
   callables: Immutable.Stack<boolean>,
   ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
-}): Coroutine<ParserState, ParserError, SymTable> => {
+},
+try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
 
   let cases = (l: ParserRes | "none") => {
     let symbols = table.symbols
@@ -903,7 +908,7 @@ let expr_AUX = (table: {
         )))))))))))))))))))
   }
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
-  return parser_or<SymTable>(term().then(l => cases(l)), cases("none"))
+  return parser_or<SymTable>(term(try_par?try_par:false).then(l => cases(l)), cases("none"))
 }
 
 
@@ -920,7 +925,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>
     identifier.then(array_type =>
     left_square_bracket.then(_ =>
-    term().then((actual:ParserRes) =>
+    term(false).then((actual:ParserRes) =>
     right_square_bracket.then(rs =>
     co_unit(mk_array_cons_call(join_source_ranges(new_range, rs), array_type, actual))
     )))))
@@ -928,7 +933,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 
 let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
-    let res = expr_AUX(empty_table).then(e => co_unit(reduce_table(e)))
+    let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(array_new(),
            parser_or<ParserRes>(cons_call(),
                                 res))

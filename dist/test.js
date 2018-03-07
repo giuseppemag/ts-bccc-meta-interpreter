@@ -31,7 +31,7 @@ var ImpLanguageWithSuspend;
         //                   ))) }),
         //   ],
         // [])
-        var source = "\nFunc<int, Func<int, int>> add_mul =  x => y => x * y;\n\nvar a = 1 + (add_mul(4))(5);\n";
+        var source = "\n\n\nFunc<int, Func<int, int>> add_mul =  x => y => x * y;\nvar a = (1+(add_mul(4))(5));\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {
