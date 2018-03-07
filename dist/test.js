@@ -31,7 +31,7 @@ var ImpLanguageWithSuspend;
         //                   ))) }),
         //   ],
         // [])
-        var source = "\nvar l = 500.;\nvar x = (l - 10.);\ntypechecker_debugger;\n\nsurface s = empty_surface l 500. \"white\";\ns = s + line 10. 10. (l - 10.) 20. 5. \"red\" 0.;\ns = s + text \"This is some text!!!!1111\" 100. 100. 20. \"red\" 0.;\n\ns = s + other_surface s 0. 0. 0.5 0.5 90.;\n";
+        var source = "\nFunc<int, Func<int, int>> add_mul =  x => (y => x * y);\nvar a = add_mul(4);\nvar b = a(4);\nint[] c = new int[5];\nc[1] = 5;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

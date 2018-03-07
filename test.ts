@@ -49,15 +49,11 @@ export let test_parser = () => {
   // [])
 
     let source = `
-var l = 500.;
-var x = (l - 10.);
-typechecker_debugger;
-
-surface s = empty_surface l 500. "white";
-s = s + line 10. 10. (l - 10.) 20. 5. "red" 0.;
-s = s + text "This is some text!!!!1111" 100. 100. 20. "red" 0.;
-
-s = s + other_surface s 0. 0. 0.5 0.5 90.;
+Func<int, Func<int, int>> add_mul =  x => (y => x * y);
+var a = add_mul(4);
+var b = a(4);
+int[] c = new int[5];
+c[1] = 5;
 `
 
 
