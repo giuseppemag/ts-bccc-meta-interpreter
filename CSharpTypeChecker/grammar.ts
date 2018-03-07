@@ -760,6 +760,9 @@ let reduce_table_2 = (symbols: Immutable.Stack<ParserRes>,
   }
 
   let op = ops.peek()
+  // console.log("ops_count", ops.count(), JSON.stringify(ops))
+  // console.log("symbols_count", symbols.count(), JSON.stringify(symbols))
+  // console.log("callables_count", callables.count(), JSON.stringify(callables))
 
   if (op.snd.kind == "binary") {
     let snd = symbols.peek()
@@ -822,6 +825,7 @@ let expr_after_op = (symbols: Immutable.Stack<ParserRes>,
         symbols.count() >= 1)
     )) {
 
+    // console.log("A")
     let op_p = priority_operators_table.get(ops.peek().fst)
     let current_p = priority_operators_table.get(current_op)
     if (op_p.priority > current_p.priority ||
@@ -831,6 +835,7 @@ let expr_after_op = (symbols: Immutable.Stack<ParserRes>,
       return expr_after_op(res.symbols, res.callables, res.ops, current_op, compose_current)
     }
   }
+  // console.log("B")
   return expr_AUX({ symbols: symbols, ops: ops.push({ fst: current_op, snd: compose_current }), callables: current_op == "()" ? callables : callables.push(false) })
 }
 
@@ -859,7 +864,7 @@ let expr_AUX = (table: {
     let callables = table.callables
     if (l != "none") {
       symbols = table.symbols.push(l)
-      //callables = table.callables.push(is_callable(l))
+      callables = table.callables.push(is_callable(l))
     }
     else {
     }
@@ -867,8 +872,9 @@ let expr_AUX = (table: {
     return parser_or<SymTable>(index_of.then(index => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(mk_range(-1, -1, -1, -1), l as any, index) })))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
           parser_or<SymTable>(par.then(actuals => {
+            //console.log("actuals!", JSON.stringify(actuals.map(a => a.ast)))
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
-            return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables.push(false), table.ops, "()",
+            return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], mk_range(-1, -1, -1, -1)) }
                   : !is_callable ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], mk_range(-1, -1, -1, -1)) }
@@ -896,6 +902,7 @@ let expr_AUX = (table: {
           co_unit({ ...table, symbols: symbols, callables: callables })
         )))))))))))))))))))
   }
+  // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
   return parser_or<SymTable>(term().then(l => cases(l)), cases("none"))
 }
 

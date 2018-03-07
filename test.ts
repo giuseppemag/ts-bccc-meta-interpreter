@@ -49,11 +49,9 @@ export let test_parser = () => {
   // [])
 
     let source = `
-Func<int, Func<int, int>> add_mul =  x => (y => x * y);
-var a = add_mul(4);
-var b = a(4);
-int[] c = new int[5];
-c[1] = 5;
+Func<int, Func<int, int>> add_mul =  x => y => x * y;
+
+var a = 1 + (add_mul(4))(5);
 `
 
 

@@ -658,6 +658,9 @@ var reduce_table_2 = function (symbols, ops, callables, reduce_to_end) {
         return { new_top: symbols.peek(), callables: callables.pop().push(is_callable(symbols.peek())), symbols: symbols, ops: ops };
     }
     var op = ops.peek();
+    // console.log("ops_count", ops.count(), JSON.stringify(ops))
+    // console.log("symbols_count", symbols.count(), JSON.stringify(symbols))
+    // console.log("callables_count", callables.count(), JSON.stringify(callables))
     if (op.snd.kind == "binary") {
         var snd_1 = symbols.peek();
         var fst_1 = symbols.pop().peek();
@@ -700,6 +703,7 @@ var expr_after_op = function (symbols, callables, ops, current_op, compose_curre
             symbols.count() >= 2) ||
             (ops.peek().snd.kind == "unary" &&
                 symbols.count() >= 1))) {
+        // console.log("A")
         var op_p = priority_operators_table.get(ops.peek().fst);
         var current_p = priority_operators_table.get(current_op);
         if (op_p.priority > current_p.priority ||
@@ -709,6 +713,7 @@ var expr_after_op = function (symbols, callables, ops, current_op, compose_curre
             return expr_after_op(res.symbols, res.callables, res.ops, current_op, compose_current);
         }
     }
+    // console.log("B")
     return expr_AUX({ symbols: symbols, ops: ops.push({ fst: current_op, snd: compose_current }), callables: current_op == "()" ? callables : callables.push(false) });
 };
 var mk_unary = function (f) { return ({ kind: "unary", f: f }); };
@@ -719,14 +724,15 @@ var expr_AUX = function (table) {
         var callables = table.callables;
         if (l != "none") {
             symbols = table.symbols.push(l);
-            //callables = table.callables.push(is_callable(l))
+            callables = table.callables.push(is_callable(l));
         }
         else {
         }
         // to improve
         return parser_or(index_of.then(function (index) { return expr_after_op(symbols, callables, table.ops, "[]", mk_unary(function (l, is_callable) { return ({ kind: "res", value: mk_get_array_value_at(source_range_1.mk_range(-1, -1, -1, -1), l, index) }); })); }), parser_or(dot_sign.then(function (_) { return expr_after_op(symbols, callables, table.ops, ".", mk_binary(function (l, r) { return mk_field_ref(l, r); })); }), parser_or(par.then(function (actuals) {
+            //console.log("actuals!", JSON.stringify(actuals.map(a => a.ast)))
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals;
-            return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables.push(false), table.ops, "()", mk_unary(function (_l, is_callable) {
+            return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables, table.ops, "()", mk_unary(function (_l, is_callable) {
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], source_range_1.mk_range(-1, -1, -1, -1)) }
                     : !is_callable ? { kind: "0-ary_push_back", value: mk_braket(actuals[0], source_range_1.mk_range(-1, -1, -1, -1)) }
                         : { kind: "res", value: mk_call(_l, actuals) };
@@ -736,6 +742,7 @@ var expr_AUX = function (table) {
             return mk_arrow(l, r);
         })); }), parser_or(plus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "+", mk_binary(function (l, r) { return mk_plus(l, r); })); }), parser_or(minus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "-", mk_binary(function (l, r) { return mk_minus(l, r); })); }), parser_or(times_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "*", mk_binary(function (l, r) { return mk_times(l, r); })); }), parser_or(div_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "/", mk_binary(function (l, r) { return mk_div(l, r); })); }), parser_or(mod_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "%", mk_binary(function (l, r) { return mk_mod(l, r); })); }), parser_or(lt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<", mk_binary(function (l, r) { return mk_lt(l, r); })); }), parser_or(gt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">", mk_binary(function (l, r) { return mk_gt(l, r); })); }), parser_or(leq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<=", mk_binary(function (l, r) { return mk_leq(l, r); })); }), parser_or(geq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">=", mk_binary(function (l, r) { return mk_geq(l, r); })); }), parser_or(eq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "==", mk_binary(function (l, r) { return mk_eq(l, r); })); }), parser_or(neq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "!=", mk_binary(function (l, r) { return mk_neq(l, r); })); }), parser_or(and_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "&&", mk_binary(function (l, r) { return mk_and(l, r); })); }), parser_or(or_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "||", mk_binary(function (l, r) { return mk_or(l, r); })); }), parser_or(xor_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "xor", mk_binary(function (l, r) { return mk_xor(l, r); })); }), ts_bccc_1.co_unit(__assign({}, table, { symbols: symbols, callables: callables })))))))))))))))))))));
     };
+    // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
     return parser_or(term().then(function (l) { return cases(l); }), cases("none"));
 };
 var cons_call = function () {
