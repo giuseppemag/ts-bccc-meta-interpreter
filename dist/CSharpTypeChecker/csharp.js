@@ -5,3 +5,4 @@ function __export(m) {
 Object.defineProperty(exports, "__esModule", { value: true });
 __export(require("./bindings"));
 __export(require("./grammar"));
+__export(require("./lexer"));

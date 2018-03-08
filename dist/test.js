@@ -2,36 +2,35 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
-var ts_bccc_2 = require("ts-bccc");
 var DebuggerStream = require("./csharp_debugger_stream");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function (log) {
         var f = CCC.fun(function (p) { return run_to_end(log).f(p); });
-        return (ts_bccc_2.co_run().map_times(ts_bccc_1.fun(function (s) { return log("Intermediate step:", JSON.stringify(s)) ||
+        return (ts_bccc_1.co_run().map_times(ts_bccc_1.fun(function (s) { return log("Intermediate step:", JSON.stringify(s)) ||
             s; }))).then(CCC.apply_pair()).then(CCC.inl().plus(f.plus(CCC.inr())));
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        // let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
-        // let p = CSharp.def_class(zero_range, "int", [
-        //     _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-        //             return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-        //             body:from_js(
-        //                   CSharp.int_type,
-        //                   Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-        //                   Sem.return_rt(Sem.int_expr((a_v.value.v as number) + (b_v.value.v as number)))
-        //                   ))) }),
-        //     _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-        //             return_t:CSharp.int_type, name:"-", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-        //             body:from_js(
-        //                   CSharp.int_type,
-        //                   Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-        //                   Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
-        //                   ))) }),
-        //   ],
-        // [])
-        var source = "\nclass MyClass {\n  int field;\n  public MyClass() {\n    this.field = 10;\n  }\n  public void do_something() {\n    this.field = this.field * 2 + 1;\n  }\n}\n\nvar c1 = new MyClass();\nvar c2 = c1;\n\ndebugger;\nc1.do_something();\ndebugger;\nc2.do_something();\n";
+        //  let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
+        //  let p = CSharp.def_class(zero_range, "int", [
+        //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
+        //              return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
+        //              body:from_js(
+        //                    CSharp.int_type,
+        //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+        //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) + (b_v.value.v as number)))
+        //                    ))) }),
+        //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
+        //              return_t:CSharp.int_type, name:"-", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
+        //              body:from_js(
+        //                    CSharp.int_type,
+        //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+        //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
+        //                    ))) }),
+        //    ],
+        //  [])
+        var source = "\n\n\nFunc<int, Func<int, int>> add_mul =  x => y => x * y;\nvar a = (1+(add_mul(4))(5));\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

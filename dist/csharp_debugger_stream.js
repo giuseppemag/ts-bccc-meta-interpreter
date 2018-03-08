@@ -6,8 +6,8 @@ var source_range_1 = require("./source_range");
 var Py = require("./Python/python");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
-var csharp_1 = require("./CSharpTypeChecker/csharp");
 var grammar_1 = require("./CSharpTypeChecker/grammar");
+var ast_operations_1 = require("./CSharpTypeChecker/ast-operations");
 exports.get_stream = function (source) {
     var parse_result = CSharp.GrammarBasics.tokenize(source);
     if (parse_result.kind == "left") {
@@ -22,7 +22,7 @@ exports.get_stream = function (source) {
         return { kind: "error", show: function () { return ({ kind: "message", message: msg_1, range: range_1 }); } };
     }
     var ast = res.value.fst;
-    var p = csharp_1.ast_to_type_checker(ast)(grammar_1.global_calling_context)(CSharp.no_constraints);
+    var p = ast_operations_1.ast_to_type_checker(ast)(ast_operations_1.global_calling_context)(CSharp.no_constraints);
     var runtime_stream = function (state) { return ({
         kind: "step",
         next: function () {

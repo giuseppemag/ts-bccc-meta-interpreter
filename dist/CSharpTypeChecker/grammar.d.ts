@@ -1,73 +1,7 @@
-import * as Immutable from "immutable";
-import { Option, Sum, Coroutine } from "ts-bccc";
-import { SourceRange } from "../source_range";
-import * as CSharp from "./csharp";
-import { CallingContext } from "./bindings";
-export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>" | ",";
-export declare type UnaryOpKind = "not";
-export declare type ReservedKeyword = "for" | "while" | "if" | "then" | "else" | "private" | "public" | "static" | "protected" | "virtual" | "override" | "class" | "new" | "debugger" | "typechecker_debugger" | "return";
-export declare type Token = ({
-    kind: "string";
-    v: string;
-} | {
-    kind: "int";
-    v: number;
-} | {
-    kind: "double";
-    v: number;
-} | {
-    kind: "float";
-    v: number;
-} | {
-    kind: "bool";
-    v: boolean;
-} | {
-    kind: ReservedKeyword;
-} | {
-    kind: "id";
-    v: string;
-} | {
-    kind: "=";
-} | {
-    kind: BinOpKind;
-} | {
-    kind: UnaryOpKind;
-} | {
-    kind: ";";
-} | {
-    kind: ".";
-} | {
-    kind: "(";
-} | {
-    kind: ")";
-} | {
-    kind: "{";
-} | {
-    kind: "}";
-} | {
-    kind: "[";
-} | {
-    kind: "]";
-} | {
-    kind: "eof";
-} | {
-    kind: "nl";
-} | {
-    kind: " ";
-} | {
-    kind: ",";
-} | {
-    kind: RenderingKind;
-} | {
-    kind: "RenderGrid";
-    v: number;
-}) & {
-    range: SourceRange;
-};
-export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface" | "text" | "line" | "polygon";
-export declare module GrammarBasics {
-    let tokenize: (source: string) => Sum<string, Token[]>;
-}
+import * as Immutable from 'immutable';
+import { Coroutine, Option } from 'ts-bccc';
+import { SourceRange } from '../source_range';
+import { BinOpKind, Token, UnaryOpKind } from './lexer';
 export declare type ModifierAST = {
     kind: "private";
 } | {
@@ -368,7 +302,7 @@ export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
     tokens: Immutable.List<Token>;
     branch_priority: number;
 };
+export declare let parser_or: <a>(p: Coroutine<ParserState, ParserError, a>, q: Coroutine<ParserState, ParserError, a>) => Coroutine<ParserState, ParserError, a>;
+export declare let par: Coroutine<ParserState, ParserError, ParserRes[]>;
+export declare let expr: () => Coroutine<ParserState, ParserError, ParserRes>;
 export declare let program_prs: () => Parser;
-export declare let global_calling_context: CallingContext;
-export declare let extract_tuple_args: (n: ParserRes) => ParserRes[];
-export declare let ast_to_type_checker: (_: ParserRes) => (_: CallingContext) => CSharp.Stmt;

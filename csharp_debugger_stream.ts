@@ -10,8 +10,10 @@ import { mk_range, zero_range, SourceRange } from "./source_range";
 import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
-import { ast_to_type_checker, ParserRes } from "./CSharpTypeChecker/csharp";
+import { ParserRes } from "./CSharpTypeChecker/csharp";
 import { Stmt } from "./main";
+import { mk_parser_state } from "./CSharpTypeChecker/grammar";
+import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
 
 export type DebuggerStream =
   ({ kind:"error"|"done" } |
@@ -19,7 +21,6 @@ export type DebuggerStream =
   { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                { kind:"bindings", state:CSharp.State, ast:ParserRes } |
                { kind:"message", message:string, range:SourceRange } }
-import { mk_parser_state, global_calling_context } from "./CSharpTypeChecker/grammar";
 
 export let get_stream = (source:string) : DebuggerStream => {
   let parse_result = CSharp.GrammarBasics.tokenize(source)
