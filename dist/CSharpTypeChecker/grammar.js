@@ -494,7 +494,7 @@ var unchanged = CCC.id().f;
 var inner_statement = function (skip_semicolon) {
     return exports.parser_or(with_semicolon(ts_bccc_1.co_unit(primitives_1.mk_noop())), exports.parser_or(bracketized_statement(), exports.parser_or(for_loop(function_statement), exports.parser_or(while_loop(function_statement), exports.parser_or(if_conditional(function_statement), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d });
-    })), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; })))))))))));
+    })), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(exports.expr()), exports.parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
 };
 var function_statement = function (skip_semicolon) {
     return exports.parser_or(with_semicolon(return_statement()), inner_statement(skip_semicolon));
