@@ -1156,9 +1156,10 @@ let inner_statement = (skip_semicolon?:boolean) : Parser =>
     co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl_init()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(assign()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(expr()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(no_match.then(_ => dbg)),
   with_semicolon(no_match.then(_ => tc_dbg))
-  )))))))))
+  ))))))))))
 
 let function_statement = (skip_semicolon?:boolean) : Parser =>
   parser_or<ParserRes>(with_semicolon(return_statement()),inner_statement(skip_semicolon))

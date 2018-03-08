@@ -979,9 +979,15 @@ exports.call_cons = function (r, context, C_name, arg_values) {
         return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
             check_arguments.then(function (args_t) {
                 return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-                    arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
-                    args_t.some(function (arg_t, i) { return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                        !type_equals(arg_t.type, lambda_t.typing.type.in.args[i]); }) ?
+                    (lambda_t.typing.type.out.kind == "fun" &&
+                        lambda_t.typing.type.out.in.kind == "tuple" &&
+                        arg_values.length != lambda_t.typing.type.out.in.args.length) ||
+                    args_t.some(function (arg_t, i) {
+                        return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                            lambda_t.typing.type.out.kind == "fun" &&
+                                lambda_t.typing.type.out.in.kind == "tuple" &&
+                                !type_equals(arg_t.type, lambda_t.typing.type.out.in.args[i]);
+                    }) ?
                     ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t) })
                     :
                         ts_bccc_2.co_unit(mk_typing(exports.ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));

@@ -996,13 +996,17 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
       else if (context.C_name != C_name)
         return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from ${context.C_name}`})
     }
-
     return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
         check_arguments.then(args_t =>
           lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-          arg_values.length != lambda_t.typing.type.in.args.length - 1 ||
-          args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-                                    !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
+          (lambda_t.typing.type.out.kind == "fun" &&
+          lambda_t.typing.type.out.in.kind == "tuple" &&
+          arg_values.length != lambda_t.typing.type.out.in.args.length) ||
+          args_t.some((arg_t, i) => 
+                            lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
+                            lambda_t.typing.type.out.kind == "fun" &&
+                            lambda_t.typing.type.out.in.kind == "tuple" &&
+                            !type_equals(arg_t.type, lambda_t.typing.type.out.in.args[i])) ?
             co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem))))

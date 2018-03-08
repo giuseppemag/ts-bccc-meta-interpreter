@@ -31,7 +31,7 @@ var ImpLanguageWithSuspend;
         //                   ))) }),
         //   ],
         // [])
-        var source = "\n\n\nFunc<int, Func<int, int>> add_mul =  x => y => x * y;\nvar a = (1+(add_mul(4))(5));\n";
+        var source = "\nclass MyClass {\n  int field;\n  public MyClass() {\n    this.field = 10;\n  }\n  public void do_something() {\n    this.field = this.field * 2 + 1;\n  }\n}\n\nvar c1 = new MyClass();\nvar c2 = c1;\n\ndebugger;\nc1.do_something();\ndebugger;\nc2.do_something();\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

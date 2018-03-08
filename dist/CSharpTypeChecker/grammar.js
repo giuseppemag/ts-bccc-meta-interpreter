@@ -1041,7 +1041,7 @@ var unchanged = CCC.id().f;
 var inner_statement = function (skip_semicolon) {
     return parser_or(with_semicolon(ts_bccc_1.co_unit(mk_noop())), parser_or(bracketized_statement(), parser_or(for_loop(function_statement), parser_or(while_loop(function_statement), parser_or(if_conditional(function_statement), parser_or((skip_semicolon ? unchanged : with_semicolon)(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d });
-    })), parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; })))))))))));
+    })), parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), parser_or((skip_semicolon ? unchanged : with_semicolon)(expr()), parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
 };
 var function_statement = function (skip_semicolon) {
     return parser_or(with_semicolon(return_statement()), inner_statement(skip_semicolon));
