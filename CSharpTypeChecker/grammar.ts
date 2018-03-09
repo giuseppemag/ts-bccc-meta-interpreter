@@ -2,7 +2,7 @@ import * as Immutable from 'immutable';
 import { apply, co_error, co_get_state, co_set_state, co_unit, Coroutine, inl, inr, Option, Prod, Sum, Unit } from 'ts-bccc';
 import * as CCC from 'ts-bccc';
 
-import { co_catch, co_lookup } from '../ccc_aux';
+import { co_catch, co_lookup, co_stateless } from '../ccc_aux';
 import { join_source_ranges, mk_range, SourceRange } from '../source_range';
 import { BinOpKind, Token, UnaryOpKind } from './lexer';
 import {
@@ -98,6 +98,8 @@ import {
   virtual_modifier,
   while_keyword,
   xor_op,
+  negative_number,
+  parser_or,
 } from './primitives';
 
 let priority_operators_table =
@@ -200,9 +202,6 @@ export let mk_parser_state = (tokens:Immutable.List<Token>) => ({ tokens:tokens,
 let no_match : Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState,ParserError>().then(s => co_set_state<ParserState,ParserError>({...s, branch_priority:0}))
 let partial_match : Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState,ParserError>().then(s => co_set_state<ParserState,ParserError>({...s, branch_priority:50}))
 let full_match : Coroutine<ParserState,ParserError,Unit> = co_get_state<ParserState,ParserError>().then(s => co_set_state<ParserState,ParserError>({...s, branch_priority:100}))
-
-export let parser_or = <a>(p:Coroutine<ParserState,ParserError,a>, q:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> =>
-  co_catch<ParserState,ParserError,a>(merge_errors)(p)(q)
 
 let dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.tokens.isEmpty())
@@ -409,6 +408,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
                                                                                                                         mk_arrow(l, r)))),
           parser_or<SymTable>(plus_op.then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
           parser_or<SymTable>(minus_op.then(_ => expr_after_op(symbols, callables, table.ops, "-", mk_binary((l, r) => mk_minus(l, r)))),
+          parser_or<SymTable>(co_stateless<ParserState, ParserError, ParserRes>(negative_number).then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
           parser_or<SymTable>(times_op.then(_ => expr_after_op(symbols, callables, table.ops, "*", mk_binary((l, r) => mk_times(l, r)))),
           parser_or<SymTable>(div_op.then(_ => expr_after_op(symbols, callables, table.ops, "/", mk_binary((l, r) => mk_div(l, r)))),
           parser_or<SymTable>(mod_op.then(_ => expr_after_op(symbols, callables, table.ops, "%", mk_binary((l, r) => mk_mod(l, r)))),
@@ -422,7 +422,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(or_op.then(_ => expr_after_op(symbols, callables, table.ops, "||", mk_binary((l, r) => mk_or(l, r)))),
           parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
           co_unit({ ...table, symbols: symbols, callables: callables })
-        )))))))))))))))))))
+        ))))))))))))))))))))
   }
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
   return parser_or<SymTable>(term(try_par?try_par:false).then(l => cases(l)), cases("none"))

@@ -1,9 +1,12 @@
 import { Coroutine, co_error, co_set_state, Unit, co_get_state, co_unit, apply } from "ts-bccc";
-import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, parser_or, par } from "./grammar";
+import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, par } from "./grammar";
 import { mk_range, SourceRange, zero_range, join_source_ranges } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import { co_catch, co_repeat, some, none } from "../ccc_aux";
 import * as Immutable from 'immutable'
+
+export let parser_or = <a>(p:Coroutine<ParserState,ParserError,a>, q:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> =>
+  co_catch<ParserState,ParserError,a>(merge_errors)(p)(q)
 
 export const mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : ParserRes =>
   ({ range:r, ast:{ kind:"generic type decl", f:f, args:args } })
@@ -354,6 +357,22 @@ export const double: Parser = ignore_whitespace(co_get_state<ParserState, Parser
     return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
   }
   else return co_error({ range:i.range, priority:s.branch_priority, message:"expected double" })
+}))
+
+export const negative_number: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  if (s.tokens.isEmpty())
+    return co_error({ range:mk_range(-1,0,0,0), priority:s.branch_priority, message:"found empty state, expected a negative number" })
+  let i = s.tokens.first()
+  if (i.kind == "int" && i.v < 0) {
+    let res = mk_int(i.v, i.range)
+    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
+  } else if (i.kind == "float" && i.v < 0) {
+    let res = mk_float(i.v, i.range)
+    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
+  } else if (i.kind == "double" && i.v < 0) {
+    let res = mk_double(i.v, i.range)
+    return co_set_state<ParserState, ParserError>({...s, tokens: s.tokens.rest().toList() }).then(_ => co_unit(res))
+  } else return co_error({ range:i.range, priority:s.branch_priority, message:"expected a negative number" })
 }))
 
 export const identifier_token: Coroutine<ParserState, ParserError, {id:string, range:SourceRange}> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {

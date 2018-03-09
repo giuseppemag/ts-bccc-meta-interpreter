@@ -13,6 +13,9 @@ var grammar_1 = require("./grammar");
 var source_range_1 = require("../source_range");
 var ccc_aux_1 = require("../ccc_aux");
 var Immutable = require("immutable");
+exports.parser_or = function (p, q) {
+    return ccc_aux_1.co_catch(exports.merge_errors)(p)(q);
+};
 exports.mk_generic_type_decl = function (r, f, args) {
     return ({ range: r, ast: { kind: "generic type decl", f: f, args: args } });
 };
@@ -260,8 +263,8 @@ exports.mk_other_surface_prs = function () {
     });
 };
 exports.term = function (try_par) {
-    return grammar_1.parser_or(exports.mk_empty_surface_prs(), grammar_1.parser_or(exports.mk_circle_prs(), grammar_1.parser_or(exports.mk_square_prs(), grammar_1.parser_or(exports.mk_ellipse_prs(), grammar_1.parser_or(exports.mk_rectangle_prs(), grammar_1.parser_or(exports.mk_line_prs(), grammar_1.parser_or(exports.mk_polygon_prs(), grammar_1.parser_or(exports.mk_text_prs(), grammar_1.parser_or(exports.mk_sprite_prs(), grammar_1.parser_or(exports.mk_other_surface_prs(), grammar_1.parser_or(exports.bool, grammar_1.parser_or(exports.float, grammar_1.parser_or(exports.double, grammar_1.parser_or(exports.int, grammar_1.parser_or(exports.string, try_par ?
-        grammar_1.parser_or(exports.identifier, grammar_1.par.then(function (actuals) { return ts_bccc_1.co_unit(actuals[0]); }))
+    return exports.parser_or(exports.mk_empty_surface_prs(), exports.parser_or(exports.mk_circle_prs(), exports.parser_or(exports.mk_square_prs(), exports.parser_or(exports.mk_ellipse_prs(), exports.parser_or(exports.mk_rectangle_prs(), exports.parser_or(exports.mk_line_prs(), exports.parser_or(exports.mk_polygon_prs(), exports.parser_or(exports.mk_text_prs(), exports.parser_or(exports.mk_sprite_prs(), exports.parser_or(exports.mk_other_surface_prs(), exports.parser_or(exports.bool, exports.parser_or(exports.float, exports.parser_or(exports.double, exports.parser_or(exports.int, exports.parser_or(exports.string, try_par ?
+        exports.parser_or(exports.identifier, grammar_1.par.then(function (actuals) { return ts_bccc_1.co_unit(actuals[0]); }))
         : exports.identifier)))))))))))))));
 };
 exports.unary_expr = function () {
@@ -300,7 +303,7 @@ exports.merge_errors = function (e1, e2) {
     return res;
 };
 exports.whitespace = function () {
-    return ccc_aux_1.co_repeat(grammar_1.parser_or(exports.newline_sign, exports.whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
+    return ccc_aux_1.co_repeat(exports.parser_or(exports.newline_sign, exports.whitespace_sign)).then(function (_) { return ts_bccc_1.co_unit({}); });
 };
 exports.ignore_whitespace = function (p) { return exports.whitespace().then(function (_) { return p.then(function (p_res) { return exports.whitespace().then(function (_) { return ts_bccc_1.co_unit(p_res); }); }); }); };
 exports.symbol = function (token_kind, token_name) { return exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
@@ -390,14 +393,33 @@ exports.double = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(functio
     else
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected double" });
 }));
+exports.negative_number = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    if (s.tokens.isEmpty())
+        return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected a negative number" });
+    var i = s.tokens.first();
+    if (i.kind == "int" && i.v < 0) {
+        var res_6 = exports.mk_int(i.v, i.range);
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_6); });
+    }
+    else if (i.kind == "float" && i.v < 0) {
+        var res_7 = exports.mk_float(i.v, i.range);
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_7); });
+    }
+    else if (i.kind == "double" && i.v < 0) {
+        var res_8 = exports.mk_double(i.v, i.range);
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_8); });
+    }
+    else
+        return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected a negative number" });
+}));
 exports.identifier_token = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.tokens.isEmpty())
         return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
     var i = s.tokens.first();
     if (i.kind == "id") {
-        var res_6 = i.v;
+        var res_9 = i.v;
         var range_1 = i.range;
-        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({ id: res_6, range: range_1 }); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit({ id: res_9, range: range_1 }); });
     }
     else
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });
@@ -407,9 +429,9 @@ exports.identifier = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(fun
         return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected identifier" });
     var i = s.tokens.first();
     if (i.kind == "id") {
-        var res_7 = exports.mk_identifier(i.v, i.range);
+        var res_10 = exports.mk_identifier(i.v, i.range);
         var range = i.range;
-        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_7); });
+        return ts_bccc_1.co_set_state(__assign({}, s, { tokens: s.tokens.rest().toList() })).then(function (_) { return ts_bccc_1.co_unit(res_10); });
     }
     else
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected identifier but found " + i.kind });

@@ -3,6 +3,7 @@ import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, C
 import { SourceRange } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import * as Immutable from 'immutable';
+export declare let parser_or: <a>(p: Coroutine<ParserState, ParserError, a>, q: Coroutine<ParserState, ParserError, a>) => Coroutine<ParserState, ParserError, a>;
 export declare const mk_generic_type_decl: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
 export declare const mk_get_array_value_at: (r: SourceRange, a: ParserRes, actual: ParserRes) => ParserRes;
 export declare const mk_array_decl: (r: SourceRange, t: ParserRes) => ParserRes;
@@ -114,6 +115,7 @@ export declare const bool: Parser;
 export declare const int: Parser;
 export declare const float: Parser;
 export declare const double: Parser;
+export declare const negative_number: Parser;
 export declare const identifier_token: Coroutine<ParserState, ParserError, {
     id: string;
     range: SourceRange;

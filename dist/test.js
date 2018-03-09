@@ -30,7 +30,7 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\nclass MyClass {\n  int field;\n  public MyClass() {\n    this.field = 10;\n  }\n  public void do_something() {\n    this.field = this.field * 2 + 1;\n  }\n}\n\nvar c1 = new MyClass();\nvar c2 = c1;\n\ndebugger;\nc1.do_something();\ndebugger;\nc2.do_something();\n";
+        var source = "\nvar x = 10 + -3;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

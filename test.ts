@@ -41,23 +41,7 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-class MyClass {
-  int field;
-  public MyClass() {
-    this.field = 10;
-  }
-  public void do_something() {
-    this.field = this.field * 2 + 1;
-  }
-}
-
-var c1 = new MyClass();
-var c2 = c1;
-
-debugger;
-c1.do_something();
-debugger;
-c2.do_something();
+var x = 10 + -3;
 `
 
 
