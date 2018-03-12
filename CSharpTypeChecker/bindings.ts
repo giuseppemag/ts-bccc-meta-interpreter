@@ -106,6 +106,7 @@ const initial_value = (type: Type): Sem.Val => {
     case "float":  return Sem.mk_float_val(0)
     case "int":    return Sem.mk_int_val(0)
     case "tuple":  return Sem.mk_tuple_val(type.args.map(initial_value))
+    case "obj":    return Sem.mk_obj_val(Immutable.Map(type.fields.toArray().map(f => initial_value(f.type))))
     default:       return Sem.mk_unit_val
   }
 }
