@@ -41,12 +41,14 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-debugger;
-surface s;
-for (int i = 0; i < 150; i = i + 1) {
-  s = empty_surface 500 500 "darkblue";
-  s = s + sprite "spaceship" (10 + i * 2) (10 + i * 3) 50 50 (i * 5);
-}
+  Func<int,int> d = x => x * 2;
+  Func<int,int> p2 = x => x + 2;
+  Func<int,int> then (Func<int,int> f,Func<int,int> g){
+    typechecker_debugger;
+    return x => g (f (x));
+  }
+  Func<int,int> d_p2 = then (d,p2);
+  typechecker_debugger;
 `
 
 

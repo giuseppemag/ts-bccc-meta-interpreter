@@ -186,7 +186,7 @@ exports.tuple_value = function (r, args) {
             constraints = ts_bccc_1.apply(ts_bccc_1.inl(), exports.tuple_type(constraints.value.args.toArray()));
         // console.log("Typechecking tuple value with constraints", constraints)
         if (constraints.kind == "left" && constraints.value.kind != "tuple")
-            return ts_bccc_2.co_error({ range: r, message: "Error: wrong constraints " + constraints + " when typechecking tuple." });
+            return ts_bccc_2.co_error({ range: r, message: "Error: wrong constraints " + JSON.stringify(constraints) + " when typechecking tuple." });
         var check_args = ccc_aux_1.comm_list_coroutine(Immutable.List(args.map(function (a, a_i) {
             return a(constraints.kind == "left" && constraints.value.kind == "tuple" ? ts_bccc_1.apply(ts_bccc_1.inl(), constraints.value.args[a_i])
                 : exports.no_constraints);

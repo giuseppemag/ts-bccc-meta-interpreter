@@ -305,7 +305,6 @@ export const unaryop_sign: (_:UnaryOpKind) => Coroutine<ParserState,ParserError,
 }))
 
 export const string: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
-  console.log("trying string", JSON.stringify(s.tokens.first()))
   if (s.tokens.isEmpty())
     return co_error({ range:mk_range(-1,0,0,0), priority:s.branch_priority, message:`found empty state, expected number` })
   let i = s.tokens.first()

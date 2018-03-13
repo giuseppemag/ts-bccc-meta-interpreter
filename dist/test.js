@@ -30,7 +30,7 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\ndebugger;\nsurface s;\nfor (int i = 0; i < 150; i = i + 1) {\n  s = empty_surface 500 500 \"darkblue\";\n  s = s + sprite \"spaceship\" (10 + i * 2) (10 + i * 3) 50 50 (i * 5);\n}\n";
+        var source = "\n  Func<int,int> d = x => x * 2;\n  Func<int,int> p2 = x => x + 2;\n  Func<int,int> then (Func<int,int> f,Func<int,int> g){\n    typechecker_debugger;\n    return x => g (f (x));\n  }\n  Func<int,int> d_p2 = then (d,p2);\n  typechecker_debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

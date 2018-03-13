@@ -198,11 +198,12 @@ export let double = function(i:number) : Stmt {
 
 export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
   return constraints => {
+    
     if (constraints.kind == "left" && constraints.value.kind == "record")
       constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))
     // console.log("Typechecking tuple value with constraints", constraints)
     if (constraints.kind == "left" && constraints.value.kind != "tuple")
-      return co_error<State,Err,Typing>({ range:r, message:`Error: wrong constraints ${constraints} when typechecking tuple.` })
+      return co_error<State,Err,Typing>({ range:r, message:`Error: wrong constraints ${JSON.stringify(constraints)} when typechecking tuple.` })
     let check_args = comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(args.map((a, a_i) =>
       a(constraints.kind == "left" && constraints.value.kind == "tuple" ? apply(inl(), constraints.value.args[a_i])
         : no_constraints))))

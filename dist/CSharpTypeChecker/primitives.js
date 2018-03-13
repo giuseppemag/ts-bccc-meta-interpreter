@@ -339,7 +339,6 @@ exports.unaryop_sign = function (k) { return exports.ignore_whitespace(ts_bccc_1
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected '" + k + "'" });
 })); };
 exports.string = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
-    console.log("trying string", JSON.stringify(s.tokens.first()));
     if (s.tokens.isEmpty())
         return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected number" });
     var i = s.tokens.first();

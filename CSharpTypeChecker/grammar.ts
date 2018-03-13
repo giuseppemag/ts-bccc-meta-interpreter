@@ -396,9 +396,22 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
+                let comma_to_array = (comma:ParserRes) : ParserRes[] => 
+                  {
+                    if(comma.ast.kind == ","){
+                      let left = comma.ast.l
+                      let right = comma.ast.r
+                      return [left, right]
+                    }
+                    else
+                    {
+                      return [comma]
+                    }
+                  }
+
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], mk_range(-1, -1, -1, -1)) }
                   : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], mk_range(-1, -1, -1, -1)) }
-                    : { kind: "res", value: mk_call(_l, actuals) }
+                    : { kind: "res", value: mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) }
               }))
           }),
           parser_or<SymTable>(comma.then(_ => expr_after_op(symbols, callables, table.ops, ",", mk_binary((l, r) => mk_pair(l, r)))),
@@ -447,7 +460,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 
 export let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
-    let res = expr_AUX(empty_table, true).then(e => console.log("res") || co_unit(reduce_table(e)))
+    let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(array_new(),
            parser_or<ParserRes>(cons_call(),
                                 res))
