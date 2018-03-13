@@ -110,9 +110,9 @@ exports.mk_text = function (sr, t, x, y, size, color, rotation) { return ({ rang
 exports.mk_other_surface = function (sr, s, dx, dy, sx, sy, rotation) { return ({ range: sr, ast: { kind: "other surface", s: s, dx: dx, dy: dy, sx: sx, sy: sy, rotation: rotation } }); };
 exports.mk_empty_surface_prs = function () {
     return exports.empty_surface_keyword.then(function (esk) {
-        return grammar_1.expr().then(function (l) {
-            return grammar_1.expr().then(function (r) {
-                return grammar_1.expr().then(function (col) {
+        return exports.term(true).then(function (l) {
+            return exports.term(true).then(function (r) {
+                return exports.term(true).then(function (col) {
                     return ts_bccc_1.co_unit(exports.mk_empty_surface(source_range_1.join_source_ranges(esk, col.range), l, r, col));
                 });
             });
@@ -121,10 +121,10 @@ exports.mk_empty_surface_prs = function () {
 };
 exports.mk_circle_prs = function () {
     return exports.circle_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (cx) {
-            return grammar_1.expr().then(function (cy) {
-                return grammar_1.expr().then(function (r) {
-                    return grammar_1.expr().then(function (col) {
+        return exports.term(true).then(function (cx) {
+            return exports.term(true).then(function (cy) {
+                return exports.term(true).then(function (r) {
+                    return exports.term(true).then(function (col) {
                         return ts_bccc_1.co_unit(exports.mk_circle(source_range_1.join_source_ranges(kw, col.range), cx, cy, r, col));
                     });
                 });
@@ -134,11 +134,11 @@ exports.mk_circle_prs = function () {
 };
 exports.mk_square_prs = function () {
     return exports.square_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (cx) {
-            return grammar_1.expr().then(function (cy) {
-                return grammar_1.expr().then(function (r) {
-                    return grammar_1.expr().then(function (col) {
-                        return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (cx) {
+            return exports.term(true).then(function (cy) {
+                return exports.term(true).then(function (r) {
+                    return exports.term(true).then(function (col) {
+                        return exports.term(true).then(function (rot) {
                             return ts_bccc_1.co_unit(exports.mk_square(source_range_1.join_source_ranges(kw, col.range), cx, cy, r, col, rot));
                         });
                     });
@@ -149,12 +149,12 @@ exports.mk_square_prs = function () {
 };
 exports.mk_ellipse_prs = function () {
     return exports.ellipse_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (cx) {
-            return grammar_1.expr().then(function (cy) {
-                return grammar_1.expr().then(function (w) {
-                    return grammar_1.expr().then(function (h) {
-                        return grammar_1.expr().then(function (col) {
-                            return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (cx) {
+            return exports.term(true).then(function (cy) {
+                return exports.term(true).then(function (w) {
+                    return exports.term(true).then(function (h) {
+                        return exports.term(true).then(function (col) {
+                            return exports.term(true).then(function (rot) {
                                 return ts_bccc_1.co_unit(exports.mk_ellipse(source_range_1.join_source_ranges(kw, col.range), cx, cy, w, h, col, rot));
                             });
                         });
@@ -166,12 +166,12 @@ exports.mk_ellipse_prs = function () {
 };
 exports.mk_rectangle_prs = function () {
     return exports.rectangle_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (cx) {
-            return grammar_1.expr().then(function (cy) {
-                return grammar_1.expr().then(function (w) {
-                    return grammar_1.expr().then(function (h) {
-                        return grammar_1.expr().then(function (col) {
-                            return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (cx) {
+            return exports.term(true).then(function (cy) {
+                return exports.term(true).then(function (w) {
+                    return exports.term(true).then(function (h) {
+                        return exports.term(true).then(function (col) {
+                            return exports.term(true).then(function (rot) {
                                 return ts_bccc_1.co_unit(exports.mk_rectangle(source_range_1.join_source_ranges(kw, col.range), cx, cy, w, h, col, rot));
                             });
                         });
@@ -183,13 +183,13 @@ exports.mk_rectangle_prs = function () {
 };
 exports.mk_line_prs = function () {
     return exports.line_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (x1) {
-            return grammar_1.expr().then(function (y1) {
-                return grammar_1.expr().then(function (x2) {
-                    return grammar_1.expr().then(function (y2) {
-                        return grammar_1.expr().then(function (w) {
-                            return grammar_1.expr().then(function (col) {
-                                return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (x1) {
+            return exports.term(true).then(function (y1) {
+                return exports.term(true).then(function (x2) {
+                    return exports.term(true).then(function (y2) {
+                        return exports.term(true).then(function (w) {
+                            return exports.term(true).then(function (col) {
+                                return exports.term(true).then(function (rot) {
                                     return ts_bccc_1.co_unit(exports.mk_line(source_range_1.join_source_ranges(kw, col.range), x1, y1, x2, y2, w, col, rot));
                                 });
                             });
@@ -202,9 +202,9 @@ exports.mk_line_prs = function () {
 };
 exports.mk_polygon_prs = function () {
     return exports.polygon_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (points) {
-            return grammar_1.expr().then(function (col) {
-                return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (points) {
+            return exports.term(true).then(function (col) {
+                return exports.term(true).then(function (rot) {
                     return ts_bccc_1.co_unit(exports.mk_polygon(source_range_1.join_source_ranges(kw, col.range), points, col, rot));
                 });
             });
@@ -213,12 +213,12 @@ exports.mk_polygon_prs = function () {
 };
 exports.mk_text_prs = function () {
     return exports.text_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (t) {
-            return grammar_1.expr().then(function (x) {
-                return grammar_1.expr().then(function (y) {
-                    return grammar_1.expr().then(function (size) {
-                        return grammar_1.expr().then(function (col) {
-                            return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (t) {
+            return exports.term(true).then(function (x) {
+                return exports.term(true).then(function (y) {
+                    return exports.term(true).then(function (size) {
+                        return exports.term(true).then(function (col) {
+                            return exports.term(true).then(function (rot) {
                                 return ts_bccc_1.co_unit(exports.mk_text(source_range_1.join_source_ranges(kw, col.range), t, x, y, size, col, rot));
                             });
                         });
@@ -230,12 +230,12 @@ exports.mk_text_prs = function () {
 };
 exports.mk_sprite_prs = function () {
     return exports.sprite_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (sprite) {
-            return grammar_1.expr().then(function (cx) {
-                return grammar_1.expr().then(function (cy) {
-                    return grammar_1.expr().then(function (w) {
-                        return grammar_1.expr().then(function (h) {
-                            return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (sprite) {
+            return exports.term(true).then(function (cx) {
+                return exports.term(true).then(function (cy) {
+                    return exports.term(true).then(function (w) {
+                        return exports.term(true).then(function (h) {
+                            return exports.term(true).then(function (rot) {
                                 return ts_bccc_1.co_unit(exports.mk_sprite(source_range_1.join_source_ranges(kw, rot.range), sprite, cx, cy, w, h, rot));
                             });
                         });
@@ -247,12 +247,12 @@ exports.mk_sprite_prs = function () {
 };
 exports.mk_other_surface_prs = function () {
     return exports.other_surface_keyword.then(function (kw) {
-        return grammar_1.expr().then(function (s) {
-            return grammar_1.expr().then(function (dx) {
-                return grammar_1.expr().then(function (dy) {
-                    return grammar_1.expr().then(function (sx) {
-                        return grammar_1.expr().then(function (sy) {
-                            return grammar_1.expr().then(function (rot) {
+        return exports.term(true).then(function (s) {
+            return exports.term(true).then(function (dx) {
+                return exports.term(true).then(function (dy) {
+                    return exports.term(true).then(function (sx) {
+                        return exports.term(true).then(function (sy) {
+                            return exports.term(true).then(function (rot) {
                                 return ts_bccc_1.co_unit(exports.mk_other_surface(source_range_1.join_source_ranges(kw, sy.range), s, dx, dy, sx, sy, rot));
                             });
                         });
@@ -339,6 +339,7 @@ exports.unaryop_sign = function (k) { return exports.ignore_whitespace(ts_bccc_1
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected '" + k + "'" });
 })); };
 exports.string = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
+    console.log("trying string", JSON.stringify(s.tokens.first()));
     if (s.tokens.isEmpty())
         return ts_bccc_1.co_error({ range: source_range_1.mk_range(-1, 0, 0, 0), priority: s.branch_priority, message: "found empty state, expected number" });
     var i = s.tokens.first();

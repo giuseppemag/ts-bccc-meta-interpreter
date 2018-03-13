@@ -80,8 +80,19 @@ exports.get_v = function (r, v) {
     var h = ts_bccc_1.apply(ts_bccc_1.curry(g1), v);
     return function (_) { return ts_bccc_2.mk_coroutine(h); };
 };
+var initial_value = function (type) {
+    switch (type.kind) {
+        case "bool": return Sem.mk_bool_val(false);
+        case "double": return Sem.mk_float_val(0);
+        case "float": return Sem.mk_float_val(0);
+        case "int": return Sem.mk_int_val(0);
+        case "tuple": return Sem.mk_tuple_val(type.args.map(initial_value));
+        case "obj": return Sem.mk_obj_val(Immutable.Map(type.fields.toArray().map(function (f) { return initial_value(f.type); })));
+        default: return Sem.mk_unit_val;
+    }
+};
 exports.decl_v = function (r, v, t, is_constant) {
-    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(wrap_co);
+    var f = exports.store.then(ts_bccc_1.constant(mk_typing(exports.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(wrap_co);
     var g = ts_bccc_1.curry(f);
     var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return function (_) {

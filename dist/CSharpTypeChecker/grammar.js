@@ -182,7 +182,6 @@ var expr_AUX = function (table, try_par) {
         }
         // to improve
         return primitives_1.parser_or(index_of.then(function (index) { return expr_after_op(symbols, callables, table.ops, "[]", mk_unary(function (l, is_callable) { return ({ kind: "res", value: primitives_1.mk_get_array_value_at(source_range_1.mk_range(-1, -1, -1, -1), l, index) }); })); }), primitives_1.parser_or(primitives_1.dot_sign.then(function (_) { return expr_after_op(symbols, callables, table.ops, ".", mk_binary(function (l, r) { return primitives_1.mk_field_ref(l, r); })); }), primitives_1.parser_or(exports.par.then(function (actuals) {
-            //console.log("actuals!", JSON.stringify(actuals.map(a => a.ast)))
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals;
             return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables, table.ops, "()", mk_unary(function (_l, is_callable) {
                 return _l == "none" ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], source_range_1.mk_range(-1, -1, -1, -1)) }
@@ -224,7 +223,7 @@ var array_new = function () {
     });
 };
 exports.expr = function () {
-    var res = expr_AUX(empty_table, true).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
+    var res = expr_AUX(empty_table, true).then(function (e) { return console.log("res") || ts_bccc_1.co_unit(reduce_table(e)); });
     return primitives_1.parser_or(array_new(), primitives_1.parser_or(cons_call(), res));
 };
 var semicolon = primitives_1.ignore_whitespace(primitives_1.semicolon_sign);

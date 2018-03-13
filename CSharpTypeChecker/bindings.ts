@@ -99,8 +99,19 @@ export let get_v = function(r:SourceRange, v:Name) : Stmt {
   let h = apply(curry(g1), v)
   return _ => mk_coroutine<State,Err,Typing>(h)
 }
+const initial_value = (type: Type): Sem.Val => {
+  switch (type.kind) {
+    case "bool":   return Sem.mk_bool_val(false)
+    case "double": return Sem.mk_float_val(0)
+    case "float":  return Sem.mk_float_val(0)
+    case "int":    return Sem.mk_int_val(0)
+    case "tuple":  return Sem.mk_tuple_val(type.args.map(initial_value))
+    case "obj":    return Sem.mk_obj_val(Immutable.Map(type.fields.toArray().map(f => initial_value(f.type))))
+    default:       return Sem.mk_unit_val
+  }
+}
 export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean) : Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
   let g = curry(f)
   let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
   return _ =>

@@ -109,103 +109,103 @@ export const mk_other_surface = (sr:SourceRange, s:ParserRes, dx:ParserRes, dy:P
 
 export const mk_empty_surface_prs : () => Parser = () =>
   empty_surface_keyword.then(esk =>
-  expr().then(l =>
-  expr().then(r =>
-  expr().then(col =>
+  term(true).then(l =>
+  term(true).then(r =>
+  term(true).then(col =>
   co_unit(mk_empty_surface(join_source_ranges(esk, col.range), l,r,col))
   ))))
 
 export const mk_circle_prs : () => Parser = () =>
   circle_keyword.then(kw =>
-  expr().then(cx =>
-  expr().then(cy =>
-  expr().then(r =>
-  expr().then(col =>
+  term(true).then(cx =>
+  term(true).then(cy =>
+  term(true).then(r =>
+  term(true).then(col =>
   co_unit(mk_circle(join_source_ranges(kw, col.range), cx, cy, r, col))
   )))))
 
 export const mk_square_prs : () => Parser = () =>
   square_keyword.then(kw =>
-  expr().then(cx =>
-  expr().then(cy =>
-  expr().then(r =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(cx =>
+  term(true).then(cy =>
+  term(true).then(r =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_square(join_source_ranges(kw, col.range), cx, cy, r, col, rot))
   ))))))
 
 export const mk_ellipse_prs : () => Parser = () =>
   ellipse_keyword.then(kw =>
-  expr().then(cx =>
-  expr().then(cy =>
-  expr().then(w =>
-  expr().then(h =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(cx =>
+  term(true).then(cy =>
+  term(true).then(w =>
+  term(true).then(h =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_ellipse(join_source_ranges(kw, col.range), cx, cy, w, h, col, rot))
   )))))))
 
 export const mk_rectangle_prs : () => Parser = () =>
   rectangle_keyword.then(kw =>
-  expr().then(cx =>
-  expr().then(cy =>
-  expr().then(w =>
-  expr().then(h =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(cx =>
+  term(true).then(cy =>
+  term(true).then(w =>
+  term(true).then(h =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_rectangle(join_source_ranges(kw, col.range), cx, cy, w, h, col, rot))
   )))))))
 
 export const mk_line_prs : () => Parser = () =>
   line_keyword.then(kw =>
-  expr().then(x1 =>
-  expr().then(y1 =>
-  expr().then(x2 =>
-  expr().then(y2 =>
-  expr().then(w =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(x1 =>
+  term(true).then(y1 =>
+  term(true).then(x2 =>
+  term(true).then(y2 =>
+  term(true).then(w =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_line(join_source_ranges(kw, col.range), x1, y1, x2, y2, w, col, rot))
   ))))))))
 
 export const mk_polygon_prs : () => Parser = () =>
   polygon_keyword.then(kw =>
-  expr().then(points =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(points =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_polygon(join_source_ranges(kw, col.range), points, col, rot))
   ))))
 
 export const mk_text_prs : () => Parser = () =>
   text_keyword.then(kw =>
-  expr().then(t =>
-  expr().then(x =>
-  expr().then(y =>
-  expr().then(size =>
-  expr().then(col =>
-  expr().then(rot =>
+  term(true).then(t =>
+  term(true).then(x =>
+  term(true).then(y =>
+  term(true).then(size =>
+  term(true).then(col =>
+  term(true).then(rot =>
   co_unit(mk_text(join_source_ranges(kw, col.range), t, x, y, size, col, rot))
   )))))))
 
 export const mk_sprite_prs : () => Parser = () =>
   sprite_keyword.then(kw =>
-  expr().then(sprite =>
-  expr().then(cx =>
-  expr().then(cy =>
-  expr().then(w =>
-  expr().then(h =>
-  expr().then(rot =>
+  term(true).then(sprite =>
+  term(true).then(cx =>
+  term(true).then(cy =>
+  term(true).then(w =>
+  term(true).then(h =>
+  term(true).then(rot =>
   co_unit(mk_sprite(join_source_ranges(kw, rot.range), sprite, cx, cy, w, h, rot))
   )))))))
 
 export const mk_other_surface_prs : () => Parser = () =>
   other_surface_keyword.then(kw =>
-  expr().then(s =>
-  expr().then(dx =>
-  expr().then(dy =>
-  expr().then(sx =>
-  expr().then(sy =>
-  expr().then(rot =>
+  term(true).then(s =>
+  term(true).then(dx =>
+  term(true).then(dy =>
+  term(true).then(sx =>
+  term(true).then(sy =>
+  term(true).then(rot =>
   co_unit(mk_other_surface(join_source_ranges(kw, sy.range), s, dx, dy, sx, sy, rot))
   )))))))
 
@@ -305,6 +305,7 @@ export const unaryop_sign: (_:UnaryOpKind) => Coroutine<ParserState,ParserError,
 }))
 
 export const string: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
+  console.log("trying string", JSON.stringify(s.tokens.first()))
   if (s.tokens.isEmpty())
     return co_error({ range:mk_range(-1,0,0,0), priority:s.branch_priority, message:`found empty state, expected number` })
   let i = s.tokens.first()

@@ -58,6 +58,10 @@
 [g] operator overloading
 [g] initial values of the proper type for variables at declaration when no value is specified
   [ ] also class fields at construction
+[g] polymorphism:
+  [ ] int should be automatically cast to both float and double
+  [ ] everything should get a ToString whenever needed
+[g] toString operators
 
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
