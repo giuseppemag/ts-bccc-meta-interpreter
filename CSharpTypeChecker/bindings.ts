@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless } from "../ccc_aux";
-import { ValueName, tuple_to_record } from "../main";
+import { ValueName, tuple_to_record, ExprRt, Val } from "../main";
 
 // Bindings
 
@@ -55,7 +55,7 @@ export type TypeInformation = Type & { is_constant:boolean }
 export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
 export interface Typing { type:TypeInformation, sem:Sem.ExprRt<Sum<Sem.Val,Sem.Val>> }
-let mk_typing = (t:Type,s:Sem.ExprRt<Sum<Sem.Val,Sem.Val>>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
+export let mk_typing = (t:Type,s:ExprRt<Sum<Val,Val>>,is_constant?:boolean) : Typing => ({ type:{...t, is_constant:is_constant == undefined ? false : is_constant}, sem:s })
 let mk_typing_cat = fun2(mk_typing)
 let mk_typing_cat_full = fun2<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>, Typing>((t,s) => mk_typing(t,s,t.is_constant))
 
@@ -702,7 +702,7 @@ export let def_fun = function(r:SourceRange, def:FunDefinition, closure_paramete
 
 
 export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinition) : Stmt {
-  
+
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
   console.log("params", JSON.stringify(parameters))
@@ -718,7 +718,7 @@ export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinit
               is_static ?
                 co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
                       Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))
-              : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]), 
+              : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]),
                                            fun_type(tuple_type(parameters.map(p => p.type)), body_t.type)),
                         Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))
           : co_error<State,Err,Typing>({ range:r, message:`Error: return type does not match declaration`})
@@ -925,12 +925,12 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               return co_unit(mk_typing(M_def.modifiers.has("static") ? M_def.typing.type : M_def.typing.type.out,
                       M_def.modifiers.has("static") ?
                             Sem.static_method_get_expr_rt(C_name, F_or_M_name)
-                          : 
+                          :
                           //call_lambda
                             Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
             }
             return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} does not contain field ${F_or_M_name}`})
-          
+
           }
          ))
 }
@@ -1002,7 +1002,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
           (lambda_t.typing.type.out.kind == "fun" &&
           lambda_t.typing.type.out.in.kind == "tuple" &&
           arg_values.length != lambda_t.typing.type.out.in.args.length) ||
-          args_t.some((arg_t, i) => 
+          args_t.some((arg_t, i) =>
                             lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                             lambda_t.typing.type.out.kind == "fun" &&
                             lambda_t.typing.type.out.in.kind == "tuple" &&

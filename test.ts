@@ -20,7 +20,7 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
-  //  let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
+   let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
 
   //  let p = CSharp.def_class(zero_range, "int", [
   //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
