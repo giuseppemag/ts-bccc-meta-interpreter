@@ -30,7 +30,7 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\nvar x = 10 + -3;\n";
+        var source = "\ndebugger;\nsurface s;\nfor (int i = 0; i < 150; i = i + 1) {\n  s = empty_surface 500 500 \"darkblue\";\n  s = s + sprite \"spaceship\" (10 + i * 2) (10 + i * 3) 50 50 (i * 5);\n}\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

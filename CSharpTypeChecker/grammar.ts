@@ -393,7 +393,6 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
     return parser_or<SymTable>(index_of.then(index => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(mk_range(-1, -1, -1, -1), l as any, index) })))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
           parser_or<SymTable>(par.then(actuals => {
-            //console.log("actuals!", JSON.stringify(actuals.map(a => a.ast)))
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
@@ -448,7 +447,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 
 export let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
-    let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
+    let res = expr_AUX(empty_table, true).then(e => console.log("res") || co_unit(reduce_table(e)))
     return parser_or<ParserRes>(array_new(),
            parser_or<ParserRes>(cons_call(),
                                 res))

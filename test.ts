@@ -41,7 +41,12 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-var x = 10 + -3;
+debugger;
+surface s;
+for (int i = 0; i < 150; i = i + 1) {
+  s = empty_surface 500 500 "darkblue";
+  s = s + sprite "spaceship" (10 + i * 2) (10 + i * 3) 50 50 (i * 5);
+}
 `
 
 
