@@ -749,7 +749,7 @@ export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<S
       args.then(args_t =>
       co_unit(args_t.push(arg_t))
       )),
-      co_unit(Immutable.List<Typing>()))
+      co_unit(Immutable.List<Typing>())) 
 
 
     return check_arguments.then(args_t =>

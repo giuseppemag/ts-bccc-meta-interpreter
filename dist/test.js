@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var DebuggerStream = require("./csharp_debugger_stream");
+var CSharp = require("./CSharpTypeChecker/csharp");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function (log) {
@@ -12,7 +13,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        //  let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
+        var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit(CSharp.mk_typing(t, sem)); }; };
         //  let p = CSharp.def_class(zero_range, "int", [
         //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
         //              return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
@@ -29,7 +30,7 @@ var ImpLanguageWithSuspend;
         //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
         //                    ))) }),
         //    ],
-        //  [])
+        //  []) 
         var source = "\n  Func<int,int> d = x => x * 2;\n  Func<int,int> p2 = x => x + 2;\n  Func<int,int> then (Func<int,int> f,Func<int,int> g){\n    typechecker_debugger;\n    return x => g (f (x));\n  }\n  Func<int,int> d_p2 = then (d,p2);\n  typechecker_debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
