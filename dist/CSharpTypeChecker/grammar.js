@@ -61,20 +61,20 @@ var tc_dbg = primitives_1.ignore_whitespace(ts_bccc_1.co_get_state().then(functi
     else
         return ts_bccc_1.co_error({ range: i.range, priority: s.branch_priority, message: "expected typecheker debugger but found " + i.kind });
 }));
-var index_of = primitives_1.left_square_bracket.then(function (_) {
+var index_of = primitives_1.left_square_bracket.then(function (ls) {
     return exports.expr().then(function (actual) {
         return primitives_1.right_square_bracket.then(function (rs) {
-            return ts_bccc_1.co_unit(actual);
+            return ts_bccc_1.co_unit({ val: actual, range: source_range_1.join_source_ranges(ls, rs) });
         });
     });
 });
 exports.par = no_match.then(function (_) {
-    return primitives_1.left_bracket.then(function (_) {
+    return primitives_1.left_bracket.then(function (lb) {
         return partial_match.then(function (_) {
             return actuals().then(function (actuals) {
-                return primitives_1.right_bracket.then(function (_) {
+                return primitives_1.right_bracket.then(function (rb) {
                     return full_match.then(function (_) {
-                        return ts_bccc_1.co_unit(actuals);
+                        return ts_bccc_1.co_unit({ val: actuals, range: source_range_1.join_source_ranges(lb, rb) });
                     });
                 });
             });
@@ -181,7 +181,9 @@ var expr_AUX = function (table, try_par) {
         else {
         }
         // to improve
-        return primitives_1.parser_or(index_of.then(function (index) { return expr_after_op(symbols, callables, table.ops, "[]", mk_unary(function (l, is_callable) { return ({ kind: "res", value: primitives_1.mk_get_array_value_at(source_range_1.mk_range(-1, -1, -1, -1), l, index) }); })); }), primitives_1.parser_or(primitives_1.dot_sign.then(function (_) { return expr_after_op(symbols, callables, table.ops, ".", mk_binary(function (l, r) { return primitives_1.mk_field_ref(l, r); })); }), primitives_1.parser_or(exports.par.then(function (actuals) {
+        return primitives_1.parser_or(index_of.then(function (res) { return expr_after_op(symbols, callables, table.ops, "[]", mk_unary(function (l, is_callable) { return ({ kind: "res", value: primitives_1.mk_get_array_value_at(res.range, l, res.val) }); })); }), primitives_1.parser_or(primitives_1.dot_sign.then(function (_) { return expr_after_op(symbols, callables, table.ops, ".", mk_binary(function (l, r) { return primitives_1.mk_field_ref(l, r); })); }), primitives_1.parser_or(exports.par.then(function (res) {
+            var actuals = res.val;
+            var range = res.range;
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals;
             return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables, table.ops, "()", mk_unary(function (_l, is_callable) {
                 var comma_to_array = function (comma) {
@@ -194,8 +196,8 @@ var expr_AUX = function (table, try_par) {
                         return [comma];
                     }
                 };
-                return _l == "none" ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], source_range_1.mk_range(-1, -1, -1, -1)) }
-                    : !is_callable ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], source_range_1.mk_range(-1, -1, -1, -1)) }
+                return _l == "none" ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
+                    : !is_callable ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
                         : { kind: "res", value: primitives_1.mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) };
             }));
         }), primitives_1.parser_or(comma.then(function (_) { return expr_after_op(symbols, callables, table.ops, ",", mk_binary(function (l, r) { return primitives_1.mk_pair(l, r); })); }), primitives_1.parser_or(primitives_1.arrow_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "=>", mk_binary(function (l, r) {

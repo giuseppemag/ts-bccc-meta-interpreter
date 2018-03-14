@@ -264,7 +264,7 @@ exports.mk_other_surface_prs = function () {
 };
 exports.term = function (try_par) {
     return exports.parser_or(exports.mk_empty_surface_prs(), exports.parser_or(exports.mk_circle_prs(), exports.parser_or(exports.mk_square_prs(), exports.parser_or(exports.mk_ellipse_prs(), exports.parser_or(exports.mk_rectangle_prs(), exports.parser_or(exports.mk_line_prs(), exports.parser_or(exports.mk_polygon_prs(), exports.parser_or(exports.mk_text_prs(), exports.parser_or(exports.mk_sprite_prs(), exports.parser_or(exports.mk_other_surface_prs(), exports.parser_or(exports.bool, exports.parser_or(exports.float, exports.parser_or(exports.double, exports.parser_or(exports.int, exports.parser_or(exports.string, try_par ?
-        exports.parser_or(exports.identifier, grammar_1.par.then(function (actuals) { return ts_bccc_1.co_unit(actuals[0]); }))
+        exports.parser_or(exports.identifier, grammar_1.par.then(function (res) { return ts_bccc_1.co_unit(res.val[0]); }))
         : exports.identifier)))))))))))))));
 };
 exports.unary_expr = function () {

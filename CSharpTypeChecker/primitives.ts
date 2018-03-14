@@ -228,7 +228,7 @@ export const term : (try_par:boolean) => Parser = (try_par:boolean) : Parser =>
   parser_or<ParserRes>(string,
   try_par ?
     parser_or<ParserRes>(identifier,
-      par.then(actuals => co_unit(actuals[0])))
+      par.then(res => co_unit(res.val[0])))
   : identifier
   )))))))))))))))
 

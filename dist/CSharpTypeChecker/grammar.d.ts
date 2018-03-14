@@ -302,6 +302,9 @@ export declare let mk_parser_state: (tokens: Immutable.List<Token>) => {
     tokens: Immutable.List<Token>;
     branch_priority: number;
 };
-export declare let par: Coroutine<ParserState, ParserError, ParserRes[]>;
+export declare let par: Coroutine<ParserState, ParserError, {
+    val: ParserRes[];
+    range: SourceRange;
+}>;
 export declare let expr: () => Coroutine<ParserState, ParserError, ParserRes>;
 export declare let program_prs: () => Parser;

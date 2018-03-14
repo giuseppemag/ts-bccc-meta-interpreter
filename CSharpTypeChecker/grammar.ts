@@ -225,21 +225,21 @@ let tc_dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected typecheker debugger but found ${i.kind}` })
 }))
 
-let index_of : Coroutine<ParserState,ParserError,ParserRes> = 
-                left_square_bracket.then(_ =>
+let index_of : Coroutine<ParserState,ParserError,{val:ParserRes, range:SourceRange}> = 
+                left_square_bracket.then(ls =>
                   expr().then(actual =>
                   right_square_bracket.then(rs =>
-                  co_unit(actual)
+                  co_unit({val:actual, range:join_source_ranges(ls,rs)})
                   )))
 
-export let par : Coroutine<ParserState,ParserError,ParserRes[]> = 
+export let par : Coroutine<ParserState,ParserError,{val:ParserRes[], range:SourceRange}> = 
   no_match.then(_ =>
-  left_bracket.then(_ =>
+  left_bracket.then(lb =>
   partial_match.then(_ =>
   actuals().then((actuals:Array<ParserRes>) =>
-  right_bracket.then(_ =>
+  right_bracket.then(rb =>
   full_match.then(_ =>
-  co_unit(actuals)))))))
+  co_unit({val:actuals, range:join_source_ranges(lb,rb)})))))))
 
 let empty_table = {
   symbols: Immutable.Stack<ParserRes>(),
@@ -390,9 +390,11 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
     else {
     }
     // to improve
-    return parser_or<SymTable>(index_of.then(index => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(mk_range(-1, -1, -1, -1), l as any, index) })))),
+    return parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(res.range, l as any, res.val) })))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
-          parser_or<SymTable>(par.then(actuals => {
+          parser_or<SymTable>(par.then(res => {
+            let actuals = res.val
+            let range = res.range
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
@@ -409,8 +411,8 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
                     }
                   }
 
-                return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], mk_range(-1, -1, -1, -1)) }
-                  : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], mk_range(-1, -1, -1, -1)) }
+                return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
+                  : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
                     : { kind: "res", value: mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) }
               }))
           }),
