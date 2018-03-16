@@ -841,6 +841,7 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
                     }))
                 };
                 var C_int = {
+                    range: r,
                     base: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
                     methods: Immutable.Map(methods_full_t.map(function (m) {
                         var res = [

@@ -858,6 +858,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
             )
           }
           let C_int:Sem.Interface = {
+            range: r,
             base:apply(inr<Sem.Interface, Unit>(), {}),
             methods:
               Immutable.Map<Name, Sem.StmtRt>(methods_full_t.map(m =>
