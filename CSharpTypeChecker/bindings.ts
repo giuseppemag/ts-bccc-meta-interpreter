@@ -19,8 +19,8 @@ export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"
                                 | { kind:"other surface"} | { kind:"sprite"}
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
-                 | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type }
-                 | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType> }
+                 | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type, range: SourceRange }
+                 | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType>, range: SourceRange }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
                  | { kind:"record", args:Immutable.Map<Name, Type> }
                  | { kind:"generic type decl", f:Type, args:Array<Type> }
@@ -45,7 +45,7 @@ export let string_type : Type = { kind:"string" }
 export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
 export let double_type : Type = { kind:"double" }
-export let fun_type : (i:Type,o:Type) => Type = (i,o) => ({ kind:"fun", in:i, out:o })
+export let fun_type : (i:Type,o:Type,range:SourceRange) => Type = (i,o,range) => ({ kind:"fun", in:i, out:o, range:range })
 export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
 export let record_type : (args:Immutable.Map<Name, Type>) => Type = (args) => ({ kind:"record", args:args })
@@ -696,7 +696,7 @@ export let mk_lambda = function(r:SourceRange, def:LambdaDefinition, closure_par
           body(apply(inl(), return_t)).then(body_t =>
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
+            co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)) ,body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
           :
             co_error<State,Err,Typing>({ range:r, message:`Error: return type does not match declaration`})
           )))
@@ -705,7 +705,7 @@ export let mk_lambda = function(r:SourceRange, def:LambdaDefinition, closure_par
 // export interface State { highlighting:SourceRange, bindings:Bindings }
 export let def_fun = function(r:SourceRange, def:FunDefinition, closure_parameters:Array<Name>) : Stmt {
   return _ => co_get_state<State, Err>().then(s =>
-         co_set_state<State, Err>({...s, bindings:s.bindings.set(def.name, {...fun_type(tuple_type(def.parameters.map(p => p.type)), def.return_t), is_constant:true})}).then(_ =>
+         co_set_state<State, Err>({...s, bindings:s.bindings.set(def.name, {...fun_type(tuple_type(def.parameters.map(p => p.type)), def.return_t, r), is_constant:true})}).then(_ =>
          mk_lambda(r, def, closure_parameters, def.range)(no_constraints).then(l =>
          co_set_state<State, Err>(s).then(_ =>
          decl_const(r, def.name, l.type, _ => co_unit<State,Err,Typing>(l))(no_constraints)))))
@@ -728,10 +728,10 @@ export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinit
           type_equals(body_t.type, return_t) ?
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
               is_static ?
-                co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type),
+                co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
                       Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))
               : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]),
-                                           fun_type(tuple_type(parameters.map(p => p.type)), body_t.type)),
+                                           fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r), r),
                         Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))
           : co_error<State,Err,Typing>({ range:r, message:`Error: return type does not match declaration`})
           )))
@@ -813,6 +813,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
   let methods = methods_from_context.map(m => m(context))
   let fields = fields_from_context.map(f => f(context))
   let C_type_placeholder:Type = {
+    range: r,
     kind: "obj",
     C_name:C_name,
     methods:Immutable.Map<Name, MethodTyping>(
@@ -820,7 +821,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
         return [
           m.name,
           {
-            typing:mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t), Sem.done_rt),
+            typing:mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t, m.range), Sem.done_rt),
             modifiers:Immutable.Set<Modifier>(m.modifiers)
           }
         ]
@@ -844,6 +845,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
           comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(methods.map(m => def_method(m.range, C_name, m)(no_constraints)))).then(methods_t => {
           let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<MethodDefinition>(methods)).toArray()
           let C_type:Type = {
+            range: r,
             kind: "obj",
             C_name:C_name,
             methods:Immutable.Map<Name, MethodTyping>(

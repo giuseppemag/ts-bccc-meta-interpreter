@@ -60,11 +60,13 @@ export declare type Type = {
     kind: "fun";
     in: Type;
     out: Type;
+    range: SourceRange;
 } | {
     kind: "obj";
     C_name: string;
     methods: Immutable.Map<Name, MethodTyping>;
     fields: Immutable.Map<Name, FieldType>;
+    range: SourceRange;
 } | {
     kind: "ref";
     C_name: string;
@@ -101,7 +103,7 @@ export declare let string_type: Type;
 export declare let bool_type: Type;
 export declare let float_type: Type;
 export declare let double_type: Type;
-export declare let fun_type: (i: Type, o: Type) => Type;
+export declare let fun_type: (i: Type, o: Type, range: SourceRange) => Type;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
 export declare let record_type: (args: Immutable.Map<Name, Type>) => Type;

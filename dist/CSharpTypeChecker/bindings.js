@@ -35,7 +35,7 @@ exports.string_type = { kind: "string" };
 exports.bool_type = { kind: "bool" };
 exports.float_type = { kind: "float" };
 exports.double_type = { kind: "double" };
-exports.fun_type = function (i, o) { return ({ kind: "fun", in: i, out: o }); };
+exports.fun_type = function (i, o, range) { return ({ kind: "fun", in: i, out: o, range: range }); };
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 exports.record_type = function (args) { return ({ kind: "record", args: args }); };
@@ -691,7 +691,7 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
-                        return ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
+                        return ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
                     })
                     :
                         ts_bccc_2.co_error({ range: r, message: "Error: return type does not match declaration" });
@@ -703,7 +703,7 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
 // export interface State { highlighting:SourceRange, bindings:Bindings }
 exports.def_fun = function (r, def, closure_parameters) {
     return function (_) { return ts_bccc_1.co_get_state().then(function (s) {
-        return ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(def.name, __assign({}, exports.fun_type(exports.tuple_type(def.parameters.map(function (p) { return p.type; })), def.return_t), { is_constant: true })) })).then(function (_) {
+        return ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(def.name, __assign({}, exports.fun_type(exports.tuple_type(def.parameters.map(function (p) { return p.type; })), def.return_t, r), { is_constant: true })) })).then(function (_) {
             return exports.mk_lambda(r, def, closure_parameters, def.range)(exports.no_constraints).then(function (l) {
                 return ts_bccc_1.co_set_state(s).then(function (_) {
                     return exports.decl_const(r, def.name, l.type, function (_) { return ts_bccc_2.co_unit(l); })(exports.no_constraints);
@@ -726,8 +726,8 @@ exports.def_method = function (r, C_name, def) {
                 return type_equals(body_t.type, return_t) ?
                     Co.co_set_state(initial_bindings).then(function (_) {
                         return is_static ?
-                            ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
-                            : ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)]), exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type)), Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range)));
+                            ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
+                            : ts_bccc_2.co_unit(exports.mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)]), exports.fun_type(exports.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), r), Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range)));
                     })
                     : ts_bccc_2.co_error({ range: r, message: "Error: return type does not match declaration" });
             });
@@ -804,13 +804,14 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
     var methods = methods_from_context.map(function (m) { return m(context); });
     var fields = fields_from_context.map(function (f) { return f(context); });
     var C_type_placeholder = {
+        range: r,
         kind: "obj",
         C_name: C_name,
         methods: Immutable.Map(methods.map(function (m) {
             return [
                 m.name,
                 {
-                    typing: exports.mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)].concat(m.parameters.map(function (p) { return p.type; }))), m.return_t), Sem.done_rt),
+                    typing: exports.mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)].concat(m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), Sem.done_rt),
                     modifiers: Immutable.Set(m.modifiers)
                 }
             ];
@@ -830,6 +831,7 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
             return ccc_aux_1.comm_list_coroutine(Immutable.List(methods.map(function (m) { return exports.def_method(m.range, C_name, m)(exports.no_constraints); }))).then(function (methods_t) {
                 var methods_full_t = methods_t.zipWith(function (m_t, m_d) { return ({ typ: m_t, def: m_d }); }, Immutable.Seq(methods)).toArray();
                 var C_type = {
+                    range: r,
                     kind: "obj",
                     C_name: C_name,
                     methods: Immutable.Map(methods_full_t.map(function (m) { return [m.def.name, { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) }]; })),
