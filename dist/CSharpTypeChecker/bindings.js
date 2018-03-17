@@ -715,7 +715,7 @@ exports.def_fun = function (r, def, closure_parameters) {
 exports.def_method = function (r, C_name, def) {
     var is_static = def.modifiers.some(function (m) { return m == "static"; });
     var parameters = def.parameters;
-    console.log("params", JSON.stringify(parameters));
+    // console.log("params", JSON.stringify(parameters))
     var return_t = def.return_t;
     var body = def.body;
     var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: exports.ref_type(C_name) }]))
@@ -910,8 +910,8 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
             }
             else if (C_def.methods.has(F_or_M_name)) {
                 var M_def = C_def.methods.get(F_or_M_name);
-                console.log("This is the method", JSON.stringify(M_def), F_or_M_name);
-                console.log("This is this", JSON.stringify(this_ref_t));
+                // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
+                // console.log("This is this", JSON.stringify(this_ref_t))
                 if (!M_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_or_M_name) + " from global scope" });

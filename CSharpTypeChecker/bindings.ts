@@ -198,7 +198,7 @@ export let double = function(i:number) : Stmt {
 
 export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
   return constraints => {
-    
+
     if (constraints.kind == "left" && constraints.value.kind == "record")
       constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))
     // console.log("Typechecking tuple value with constraints", constraints)
@@ -717,7 +717,7 @@ export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinit
 
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
-  console.log("params", JSON.stringify(parameters))
+  // console.log("params", JSON.stringify(parameters))
   let return_t = def.return_t
   let body = def.body
   let set_bindings = (is_static ? parameters : parameters.concat([{name:"this", type:ref_type(C_name)}]))
@@ -749,7 +749,7 @@ export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<S
       args.then(args_t =>
       co_unit(args_t.push(arg_t))
       )),
-      co_unit(Immutable.List<Typing>())) 
+      co_unit(Immutable.List<Typing>()))
 
 
     return check_arguments.then(args_t =>
@@ -927,8 +927,8 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
            }
             else if (C_def.methods.has(F_or_M_name)){
               let M_def = C_def.methods.get(F_or_M_name)
-              console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
-              console.log("This is this", JSON.stringify(this_ref_t))
+              // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
+              // console.log("This is this", JSON.stringify(this_ref_t))
 
               if (!M_def.modifiers.has("public")) {
                 if (context.kind == "global scope")

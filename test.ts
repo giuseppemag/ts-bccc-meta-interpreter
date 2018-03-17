@@ -38,7 +38,7 @@ export let test_parser = () => {
   //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
   //                    ))) }),
   //    ],
-  //  []) 
+  //  [])
 
     let source = `
   Func<int,int> d = x => x * 2;
@@ -50,10 +50,6 @@ export let test_parser = () => {
   Func<int,int> d_p2 = then (d,p2);
   typechecker_debugger;
 `
-
-
-
-
 
     // let hrstart = process.hrtime()
 

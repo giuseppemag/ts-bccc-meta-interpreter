@@ -15,12 +15,20 @@ import { Stmt } from "./main";
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
 
+export type DebuggerStreamStep = { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
+                                 { kind:"bindings", state:CSharp.State, ast:ParserRes } |
+                                 { kind:"message", message:string, range:SourceRange }
 export type DebuggerStream =
   ({ kind:"error"|"done" } |
   { kind:"step", next:() => DebuggerStream }) &
-  { show:() => { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
-               { kind:"bindings", state:CSharp.State, ast:ParserRes } |
-               { kind:"message", message:string, range:SourceRange } }
+  { show:() => DebuggerStreamStep }
+
+export let run_stream_to_end = (s:DebuggerStream) : Immutable.List<DebuggerStreamStep> => {
+  let run_stream_to_end = (s:DebuggerStream) : Immutable.List<DebuggerStreamStep> =>
+  s.kind != "step" ? Immutable.List<DebuggerStreamStep>([s.show()])
+  : run_stream_to_end(s.next()).push(s.show())
+  return run_stream_to_end(s).reverse().toList()
+}
 
 export let get_stream = (source:string) : DebuggerStream => {
   try{

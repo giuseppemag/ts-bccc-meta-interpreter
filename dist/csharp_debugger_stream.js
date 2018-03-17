@@ -8,6 +8,13 @@ var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
 var grammar_1 = require("./CSharpTypeChecker/grammar");
 var ast_operations_1 = require("./CSharpTypeChecker/ast-operations");
+exports.run_stream_to_end = function (s) {
+    var run_stream_to_end = function (s) {
+        return s.kind != "step" ? Immutable.List([s.show()])
+            : run_stream_to_end(s.next()).push(s.show());
+    };
+    return run_stream_to_end(s).reverse().toList();
+};
 exports.get_stream = function (source) {
     try {
         var parse_result = CSharp.GrammarBasics.tokenize(source);

@@ -30,7 +30,7 @@ var ImpLanguageWithSuspend;
         //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
         //                    ))) }),
         //    ],
-        //  []) 
+        //  [])
         var source = "\n  Func<int,int> d = x => x * 2;\n  Func<int,int> p2 = x => x + 2;\n  Func<int,int> then (Func<int,int> f,Func<int,int> g){\n    typechecker_debugger;\n    return x => g (f (x));\n  }\n  Func<int,int> d_p2 = then (d,p2);\n  typechecker_debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
