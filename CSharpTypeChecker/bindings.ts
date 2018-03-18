@@ -466,7 +466,7 @@ export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
          b(no_constraints).then(b_t =>
           type_equals(a_t.type, b_t.type) ?
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_plus_rt(a_t.sem, b_t.sem)))
+              call_lambda(r, field_get(r, { kind:"global scope" }, get_v(r, "int"), "+"), [_ => co_unit<State,Err,Typing>(a_t), _ => co_unit<State,Err,Typing>(b_t)])(no_constraints)
             : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
              co_unit(mk_typing(a_t.type, Sem.float_plus_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, string_type) ?
@@ -1074,6 +1074,5 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))))
       : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
-    ))
   })
 }

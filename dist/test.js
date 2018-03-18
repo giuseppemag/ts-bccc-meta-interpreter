@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var DebuggerStream = require("./csharp_debugger_stream");
-var CSharp = require("./CSharpTypeChecker/csharp");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function (log) {
@@ -13,25 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit(CSharp.mk_typing(t, sem)); }; };
-        //  let p = CSharp.def_class(zero_range, "int", [
-        //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-        //              return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-        //              body:from_js(
-        //                    CSharp.int_type,
-        //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-        //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) + (b_v.value.v as number)))
-        //                    ))) }),
-        //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-        //              return_t:CSharp.int_type, name:"-", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-        //              body:from_js(
-        //                    CSharp.int_type,
-        //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-        //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
-        //                    ))) }),
-        //    ],
-        //  [])
-        var source = "\n    class Counter {\n      int cnt = -5;\n      public Counter(){\n        debugger;\n        this.cnt = 0;\n        debugger;\n      }\n      public void tick(){\n        this.cnt = this.cnt + 1;\n      }\n    }\n    Counter c = new Counter ();\n    c.tick ();\n    c.tick ();";
+        var source = "\nint a = 10;\nint b = 20;\nvar x = a + b;\n    ";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

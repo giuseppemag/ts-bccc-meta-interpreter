@@ -20,41 +20,11 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
-   let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
-
-  //  let p = CSharp.def_class(zero_range, "int", [
-  //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-  //              return_t:CSharp.int_type, name:"+", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-  //              body:from_js(
-  //                    CSharp.int_type,
-  //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-  //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) + (b_v.value.v as number)))
-  //                    ))) }),
-  //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
-  //              return_t:CSharp.int_type, name:"-", parameters:[{ name:"a", type:CSharp.int_type }, { name:"b", type:CSharp.int_type }],
-  //              body:from_js(
-  //                    CSharp.int_type,
-  //                    Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
-  //                    Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
-  //                    ))) }),
-  //    ],
-  //  [])
-
     let source = `
-    class Counter {
-      int cnt = -5;
-      public Counter(){
-        debugger;
-        this.cnt = 0;
-        debugger;
-      }
-      public void tick(){
-        this.cnt = this.cnt + 1;
-      }
-    }
-    Counter c = new Counter ();
-    c.tick ();
-    c.tick ();`
+int a = 10;
+int b = 20;
+var x = a + b;
+    `
 
     // let hrstart = process.hrtime()
 
