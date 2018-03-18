@@ -84,6 +84,7 @@ export declare type Type = {
     f: Type;
     args: Array<Type>;
 };
+export declare let type_to_string: (t: Type) => string;
 export declare let render_grid_type: Type;
 export declare let render_grid_pixel_type: Type;
 export declare let render_surface_type: Type;

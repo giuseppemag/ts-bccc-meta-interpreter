@@ -16,6 +16,17 @@ var source_range_1 = require("../source_range");
 var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
 var main_1 = require("../main");
+exports.type_to_string = function (t) {
+    return t.kind == "unit" ? "void"
+        : t.kind == "int" || t.kind == "double" || t.kind == "float" || t.kind == "string" || t.kind == "var" || t.kind == "bool" ? t.kind
+            : t.kind == "ref" ? t.C_name
+                : t.kind == "tuple" ? "(" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ")"
+                    : t.kind == "record" ? "(" + t.args.map(function (t, l) { return t && exports.type_to_string(t) + " " + l; }).reduce(function (a, b) { return a + "," + b; }) + ")"
+                        : t.kind == "fun" && t.in.kind == "tuple" ? "Func<" + t.in.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + "," + exports.type_to_string(t.out) + ">"
+                            : t.kind == "fun" ? "Func<" + exports.type_to_string(t.in) + "," + exports.type_to_string(t.out) + ">"
+                                : t.kind == "arr" ? exports.type_to_string(t.arg) + "[]"
+                                    : "not implemented";
+};
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
 exports.render_surface_type = { kind: "render surface" };
@@ -876,7 +887,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                     }
                 }
                 else {
-                    console.log("Checking getter on", JSON.stringify(this_ref_t.type));
+                    // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
                     if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
                         try {
                             return ts_bccc_2.co_unit(exports.mk_typing(this_ref_t.type.args.get(F_or_M_name), Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name)));

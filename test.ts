@@ -41,15 +41,16 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-  Func<int,int> d = x => x * 2;
-  Func<int,int> p2 = x => x + 2;
-  Func<int,int> then (Func<int,int> f,Func<int,int> g){
-    typechecker_debugger;
-    return x => g (f (x));
+class StaticContainer {
+  static private int cnt;
+  static public int incr(int dx) {
+    int x = dx;
+    return x;
   }
-  Func<int,int> d_p2 = then (d,p2);
-  typechecker_debugger;
+}
+
 `
+// var y = StaticContainer.incr(10);
 
     // let hrstart = process.hrtime()
 

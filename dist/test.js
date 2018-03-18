@@ -31,7 +31,8 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\n  Func<int,int> d = x => x * 2;\n  Func<int,int> p2 = x => x + 2;\n  Func<int,int> then (Func<int,int> f,Func<int,int> g){\n    typechecker_debugger;\n    return x => g (f (x));\n  }\n  Func<int,int> d_p2 = then (d,p2);\n  typechecker_debugger;\n";
+        var source = "\nclass StaticContainer {\n  static private int cnt;\n  static public int incr(int dx) {\n    int x = dx;\n    return x;\n  }\n}\n\n";
+        // var y = StaticContainer.incr(10);
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

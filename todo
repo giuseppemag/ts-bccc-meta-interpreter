@@ -1,15 +1,11 @@
 [g] unit tests
-  [ ] variables and expressions
-  [ ] conditionals and loops
-  [ ] scope
-  [ ] higher order functions and closures
-  [ ] arrays
-  [ ] classes, methods, static methods
+  [ ] `quadratic` tests
+  [ ] rendering
+  [ ] static methods
   [ ] inheritance
   [ ] generics
   [ ] exceptions
   [ ] fancy features (yield return, LINQ)
-  [ ] rendering
   [ ] html rendering
   [ ] files
 [g] explicit casting operators
@@ -80,6 +76,18 @@
 [g] Use mutable state, then clone it to the immutable memory upon `dbg`
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
+
+
+[m] static methods are broken
+[m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
+[m] BUG/POTENTIAL ISSUE: functions with more than one parameter have wrong actuals array
+int quadratic (int a,int b,int c,int x) {
+  debugger;
+  typechecker_debugger;
+  return a * x * x + b * x + c;
+}
+var y = quadratic (1,2,3,4);
+typechecker_debugger;
 
 [m] Print type of lambda without arrow, but with `Func` in debugger
 [m] Use code font in debugger tables

@@ -7,7 +7,7 @@ import * as CSharp from './CSharpTypeChecker/csharp';
 import * as Sem from './Python/python';
 import { zero_range } from './source_range';
 import { get_stream, DebuggerStreamStep } from './csharp_debugger_stream';
-import { Bindings, MemRt } from './main';
+import { Bindings, MemRt, Lambda, ArrayVal, Scope } from './main';
 
 
 console.log("Running tests")
@@ -18,11 +18,13 @@ type Check = { name:string, step:number } & ({ expected_kind:"error" } | { expec
 
 interface Test { source:string, checks:Array<Check>, name:string }
 
-let run_checks = (tests:Array<Test>) => {
+let run_checks = (tests:Array<Test>, only_test?:string) => {
   console.clear()
   let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0)
   let check_index = 0
   tests.forEach(test => {
+    if (only_test && test.name != only_test) return
+
     let stream = get_stream(test.source)
     let steps = DebuggerStream.run_stream_to_end(stream).toArray()
 
@@ -35,7 +37,7 @@ let run_checks = (tests:Array<Test>) => {
       if (!(check.expected_kind == "bindings" && step.kind == "bindings" ? check.check(step.state.bindings)
             : check.expected_kind == "memory" && step.kind == "memory" ? check.check(step.memory)
             : check.expected_kind == "error" && step.kind == "message")) {
-        console.log(`\x1b[31mtest "${test.name}"::"${check.name}" failed its check, ${JSON.stringify(step)}`)
+        console.log(`\x1b[31mtest "${test.name}"::"${check.name}" failed its check at step ${JSON.stringify(step.kind == "memory" ? step.memory : step.kind == "bindings" ? step.state.bindings : step.message)}`)
         process.exit(1)
       }
       console.log(`\x1b[32m[${check_index++ + 1}/${num_checks}] test "${test.name}"::"${check.name}" succeeded`)
@@ -115,6 +117,11 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
+      { name:"y is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("y").kind == "int" },
+      { name:"z is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("z").kind == "int" },
+      { name:"y and z removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => !(s.has("y") || s.has("z")) },
+      { name:"y is 2", step:4, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("y").v == 2 },
+      { name:"y removed", step:5, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
     ]
   },
 
@@ -132,7 +139,7 @@ run_checks([
         s  = s + "*";
         j  = j + 1;
       }
-      s  = s + "\n";
+      s  = s + "\\n";
       i  = i + 1;
       typechecker_debugger;
       debugger;
@@ -140,6 +147,12 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
+      { name:"initial scope empty", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
+      { name:"j added", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("j").kind == "int" },
+      { name:"j removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
+      { name:"j is 5", step:5, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
+      { name:"j is 5 again", step:7, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
+      { name:"scope is popped", step:10, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
     ]
   },
 
@@ -150,19 +163,37 @@ run_checks([
     string surname = person.Item2;
     typechecker_debugger;`,
     checks:[
+      { name:"person is tuple", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string,string)") },
     ]
   },
 
   {
-    name:"functions",
+    name:"records",
+    source:`(string Name,string Surname) person = ("John","Doe");
+    string name = person.Name;
+    string surname = person.Surname;
+    typechecker_debugger;
+    debugger;`,
+    checks:[
+      { name:"person is record", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string Name,string Surname)") },
+      { name:`name is "John"`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("name").v, "John") },
+    ]
+  },
+
+  {
+    name:"quadratic function",
     source:`int quadratic (int a,int b,int c,int x){
       debugger;
       typechecker_debugger;
       return a * x * x + b * x + c;
     }
-    int y = quadratic (1, 2,3,4);
-    typechecker_debugger;`,
+    var y = quadratic (1,2,3,4);
+    typechecker_debugger;
+    debugger;`,
     checks:[
+      { name:"quadratic is a function", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
+      { name:"x is 4", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
+      { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
     ]
   },
 
@@ -180,8 +211,15 @@ run_checks([
     }
     var s1 = describe (100);
     var s2 = describe (101);
-    typechecker_debugger;`,
+    typechecker_debugger;
+    debugger;`,
     checks:[
+      { name:"x is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+      { name:"x is removed", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.has("x"), false) },
+      { name:"s1 is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("s1").kind, "string") },
+      { name:"x is 100", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 100) },
+      { name:"x is 101", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 101) },
+      { name:`s2 is "odd"`, step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s2").v, "odd") },
     ]
   },
 
@@ -205,8 +243,15 @@ run_checks([
       return res;
     }
     var x = factorial (5);
-    typechecker_debugger;`,
+    typechecker_debugger;
+    debugger;`,
     checks:[
+      { name:`x is "int"`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+      { name:`p is "int"`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("p").kind, "int") },
+      { name:`res is "int"`, step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("res").kind, "int") },
+      { name:`function scope cleaned up`, step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.count(), 2) && s.has("factorial") && s.has("x") },
+      { name:`stack has grown`, step:10, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 6) && assert_equal(s.stack.get(3).get(0).get("x").v, 2) && assert_equal(s.stack.get(3).get(1).get("p").v, 2) },
+      { name:`stack is cleaned up`, step:11, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 0) && assert_equal(s.globals.get(0).get("x").v, 5 * 4 * 3 * 2) },
     ]
   },
 
@@ -219,14 +264,16 @@ run_checks([
       return x => g (f (x));
     }
     Func<int,int> d_p2 = then (d,p2);
-    typechecker_debugger;`,
+    typechecker_debugger;
+    var x = d_p2(10);
+    debugger;`,
     checks:[
-      { name:"f is Func", step:0, expected_kind:"bindings",
-        check:(s:CSharp.Bindings) => {
-          let f = s.get("f")
-          return f.kind == "fun" && f.in.kind == "tuple" && f.in.args[0].kind == "int" && f.out.kind == "int"
-        }
-      } ]
+      { name:"f is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("f")), "Func<int,int>" ) },
+      { name:"d is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d")), "Func<int,int>" ) },
+      { name:"then is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("then")), "Func<Func<int,int>,Func<int,int>,Func<int,int>>" ) },
+      { name:"d_p2 is Func", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d_p2")), "Func<int,int>" ) },
+      { name:"x is 22", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 22) },
+    ]
   },
 
   {
@@ -245,19 +292,40 @@ run_checks([
     debugger;
     typechecker_debugger;`,
     checks:[
+      { name:"add_double is Func^2", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("add_double")), "Func<int,Func<int,int>>" ) },
+      { name:"a is 12", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("a").v, 12) },
+      { name:"f has 2 and 4 in closure", step:3, expected_kind:"memory", check:(s:MemRt) => {
+        let f = (s.globals.get(0).get("f").v as Lambda)
+        return assert_equal(f.closure.get("x").v, 2) && assert_equal(f.closure.get("y").v, 4)
+      } },
+      { name:"g has 3 and 5 in closure", step:5, expected_kind:"memory", check:(s:MemRt) => {
+        let g = (s.globals.get(0).get("g").v as Lambda)
+        return assert_equal(g.closure.get("x").v, 3) && assert_equal(g.closure.get("y").v, 5)
+      } },
+      { name:"b is 18", step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("b").v, 18) },
     ]
   },
 
   {
     name:"arrays",
-    source:`int n = 5;
+    source:`int n = 8;
     int[] fibo = new int[n];
     fibo[0] = 0;
     fibo[1] = 1;
     for(int i = 2; i < n; i  = i + 1){
       fibo[i] = fibo[i + -1] + fibo[i + -2];
-    }`,
+    }
+    typechecker_debugger;
+    debugger;
+    `,
     checks:[
+      { name:`fibo is int[]`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("fibo")), "int[]" ) },
+      { name:`fibo is a reference`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("fibo").v, "ref_0" ) },
+      { name:`ref_0 contains the array`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+        let fibo = s.heap.get("ref_0").v as ArrayVal
+        return assert_equal(fibo.length, 8) && assert_equal(fibo.elements.get(0).v, 0) &&
+                assert_equal(fibo.elements.get(7).v, 13)
+      } },
     ]
   },
 
@@ -265,7 +333,7 @@ run_checks([
     name:"counter",
     source:`class Counter {
       int cnt;
-      public  Counter(){
+      public Counter(){
         this.cnt = 0;
         debugger;
       }
@@ -274,11 +342,20 @@ run_checks([
         debugger;
       }
     }
-    typechecker_debugger;
     Counter c = new Counter ();
+    typechecker_debugger;
     c.tick ();
-    c.tick ();`,
+    c.tick ();
+    debugger;`,
     checks:[
+      { name:`c is Counter`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "Counter" ) },
+      { name:`this is a reference inside cons`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
+      { name:`this is a reference inside "tick"`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
+      { name:`c is a reference`, step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, "ref_0" ) },
+      { name:`cnt is 2`, step:4, expected_kind:"memory", check:(s:MemRt) => {
+        let c = s.heap.get("ref_0").v as Scope
+        return assert_equal(c.get("cnt").v, 2 )
+      } },
     ]
   },
 
@@ -298,8 +375,19 @@ run_checks([
     debugger;
     c1.do_something ();
     debugger;
-    c2.do_something ();`,
+    c2.do_something ();
+    debugger;`,
     checks:[
+      { name:`c1 is a reference`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c1").v, "ref_0" ) },
+      { name:`c2 is the same reference`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c2").v, "ref_0" ) },
+      { name:`field is 21`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+        let c = s.heap.get("ref_0").v as Scope
+        return assert_equal(c.get("field").v, 21 )
+      } },
+      { name:`field is 43`, step:3, expected_kind:"memory", check:(s:MemRt) => {
+        let c = s.heap.get("ref_0").v as Scope
+        return assert_equal(c.get("field").v, 43 )
+      } },
     ]
   },
 
@@ -314,83 +402,16 @@ run_checks([
         return this.cnt;
       }
      public void tick(){
-        typechecker_debugger;
         this.cnt = this.cnt + 2;
-        typechecker_debugger;
       }
     }
     var c = new DoubleCounter ();
-    c.tick ();
     typechecker_debugger;
-    c.cnt = c.cnt + 1;
+    c.cnt = 10;
     typechecker_debugger;`,
     checks:[
+      { name:`c is "DoubleCounter"`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "DoubleCounter" ) },
+      { name:`access to "c.cnt" is prevented`, step:1, expected_kind:"error" },
     ]
   },
-
-  {
-    name:"counter or cat",
-    source:`  class CounterOrCat {
-      private bool is_cat;
-      private int cnt;
-      public  CounterOrCat(bool is_cat){
-        this.cnt = 0;
-        this.is_cat = is_cat;
-      }
-      public int increment(){
-        if(this.is_cat){
-          return 0;
-        }
-        else{
-          return this.cnt;
-        }
-      }
-     public void tick(){
-        if(this.is_cat == false){
-          this.cnt = this.cnt + 1;
-        }
-      }
-     public string meow(){
-        if(this.is_cat){
-          return "meow!";
-        }
-        else{
-          return "I cannot meow, I am a counter.";
-        }
-      }
-    }
-    var cat = new CounterOrCat (true);
-    var cnt = new CounterOrCat (false);
-    var a = cat.meow ();
-    var b = cnt.meow ();
-    cat.tick ();
-    cnt.tick ();
-    debugger;`,
-    checks:[
-    ]
-  },
-
-  {
-    name:"cat class",
-    source:`class Cat {
-      private string msg;
-      public  Cat(){
-        this.msg = "meow!";
-      }
-      public string meow(){
-        return this.msg;
-      }
-    }
-    var cat1 = new Cat ();
-    var cat2 = new Cat ();
-    debugger;
-    var a = cat1.meow ();
-    var b = cat2.meow ();
-    debugger;`,
-    checks:[
-    ]
-  }
-
-
-
 ])

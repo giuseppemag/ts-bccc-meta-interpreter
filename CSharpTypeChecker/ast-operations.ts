@@ -165,7 +165,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
 
 
 export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
-  n.ast.kind == "," ? [...extract_tuple_args(n.ast.l), n.ast.r]
+  n.ast.kind == "," ? [n.ast.l, ...extract_tuple_args(n.ast.r)]
   : n.ast.kind == "bracket" ? extract_tuple_args(n.ast.e)
   : [n]
 
@@ -209,7 +209,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         return { name:a.ast.value, type:var_type }
       }),
       // [ { name:n.ast.l.ast.value, type:var_type } ],
-      free_variables(n.ast.r, Immutable.Set<ValueName>(      extract_tuple_args(n.ast.l).map(a => {
+      free_variables(n.ast.r, Immutable.Set<ValueName>(extract_tuple_args(n.ast.l).map(a => {
         if (a.ast.kind != "id") {
           console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
           throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)

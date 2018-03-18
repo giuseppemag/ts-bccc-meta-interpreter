@@ -24,6 +24,16 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
                  | { kind:"record", args:Immutable.Map<Name, Type> }
                  | { kind:"generic type decl", f:Type, args:Array<Type> }
+export let type_to_string = (t:Type) : string =>
+  t.kind == "unit" ? "void"
+  : t.kind == "int" || t.kind == "double" || t.kind == "float" || t.kind == "string" || t.kind == "var" || t.kind == "bool" ? t.kind
+  : t.kind == "ref" ? t.C_name
+  : t.kind == "tuple" ? `(${t.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)})`
+  : t.kind == "record" ? `(${t.args.map((t, l) => t && `${type_to_string(t)} ${l}`).reduce((a,b) => a + "," + b)})`
+  : t.kind == "fun" && t.in.kind == "tuple" ? `Func<${t.in.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)},${type_to_string(t.out)}>`
+  : t.kind == "fun" ? `Func<${type_to_string(t.in)},${type_to_string(t.out)}>`
+  : t.kind == "arr" ? `${type_to_string(t.arg)}[]`
+  : "not implemented"
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
 
@@ -893,7 +903,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                 return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
               }
             } else {
-              console.log("Checking getter on", JSON.stringify(this_ref_t.type))
+              // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
               if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
                 try {
                   return co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name),

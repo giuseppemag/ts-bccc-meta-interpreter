@@ -80,7 +80,7 @@ var free_variables = function (n, bound) {
                                                                     : (function () { console.log("Error (FV): unsupported ast node: " + JSON.stringify(n)); throw new Error("(FV) Unsupported ast node: " + JSON.stringify(n)); })();
 };
 exports.extract_tuple_args = function (n) {
-    return n.ast.kind == "," ? exports.extract_tuple_args(n.ast.l).concat([n.ast.r]) : n.ast.kind == "bracket" ? exports.extract_tuple_args(n.ast.e)
+    return n.ast.kind == "," ? [n.ast.l].concat(exports.extract_tuple_args(n.ast.r)) : n.ast.kind == "bracket" ? exports.extract_tuple_args(n.ast.e)
         : [n];
 };
 exports.ast_to_type_checker = function (n) { return function (context) {
