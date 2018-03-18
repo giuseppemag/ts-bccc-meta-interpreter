@@ -437,6 +437,6 @@ run_checks([
       { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
     ]
   },
-], "counter")
+])
 
 
