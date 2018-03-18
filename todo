@@ -1,5 +1,4 @@
 [g] unit tests
-  [ ] `quadratic` tests
   [ ] rendering
   [ ] static methods
   [ ] inheritance
@@ -52,8 +51,6 @@
   [ ] Covariance/contravariance in function calls and variable assignments
   [ ] explicit casting operators
 [g] operator overloading
-[g] initial values of the proper type for variables at declaration when no value is specified
-  [ ] also class fields at construction
 [g] polymorphism:
   [ ] int should be automatically cast to both float and double
   [ ] everything should get a ToString whenever needed
@@ -66,6 +63,7 @@
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
+[g] initial values of class fields at construction
 
 [g] Databases
 
@@ -128,7 +126,7 @@ int factorial(int x) {
 [m] properties
 [m] new B(new A(10)) does not work
 [m] add multiple highlightings (along the stack) for function calls
-
+[m] parsing, typecheking, etc. of `null` (also for strings)
 
 [m] Syntax highlighting
 [m] double check tokens

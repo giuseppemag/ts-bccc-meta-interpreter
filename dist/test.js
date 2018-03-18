@@ -31,7 +31,14 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\nclass StaticContainer {\n  static private int cnt;\n  static public int incr(int dx) {\n    int x = dx;\n    return x;\n  }\n}\n\n";
+        var source = "\nint x;\nstring s;\nbool b;\nint[] a;\nfloat f;\ndouble d;\ndebugger;\n";
+        // class StaticContainer {
+        //   static private int cnt;
+        //   static public int incr(int dx) {
+        //     int x = dx;
+        //     return x;
+        //   }
+        // }
         // var y = StaticContainer.incr(10);
         // let hrstart = process.hrtime()
         var output = "";

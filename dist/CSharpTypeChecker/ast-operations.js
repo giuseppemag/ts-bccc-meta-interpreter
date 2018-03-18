@@ -3,22 +3,25 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var source_range_1 = require("../source_range");
 var bindings_1 = require("./bindings");
+var csharp_1 = require("./csharp");
 var ast_to_csharp_type = function (s) {
     return s.ast.kind == "id" ?
         s.ast.value == "int" ? bindings_1.int_type
-            : s.ast.value == "bool" ? bindings_1.bool_type
-                : s.ast.value == "string" ? bindings_1.string_type
-                    : s.ast.value == "void" ? bindings_1.unit_type
-                        : s.ast.value == "RenderGrid" ? bindings_1.render_grid_type
-                            : s.ast.value == "RenderGridPixel" ? bindings_1.render_grid_pixel_type
-                                : s.ast.value == "surface" ? bindings_1.render_surface_type
-                                    : s.ast.value == "sprite" ? bindings_1.sprite_type
-                                        : s.ast.value == "circle" ? bindings_1.circle_type
-                                            : s.ast.value == "square" ? bindings_1.square_type
-                                                : s.ast.value == "ellipse" ? bindings_1.ellipse_type
-                                                    : s.ast.value == "rectangle" ? bindings_1.rectangle_type
-                                                        : s.ast.value == "var" ? bindings_1.var_type
-                                                            : bindings_1.ref_type(s.ast.value) :
+            : s.ast.value == "float" ? csharp_1.float_type
+                : s.ast.value == "double" ? csharp_1.double_type
+                    : s.ast.value == "bool" ? bindings_1.bool_type
+                        : s.ast.value == "string" ? bindings_1.string_type
+                            : s.ast.value == "void" ? bindings_1.unit_type
+                                : s.ast.value == "RenderGrid" ? bindings_1.render_grid_type
+                                    : s.ast.value == "RenderGridPixel" ? bindings_1.render_grid_pixel_type
+                                        : s.ast.value == "surface" ? bindings_1.render_surface_type
+                                            : s.ast.value == "sprite" ? bindings_1.sprite_type
+                                                : s.ast.value == "circle" ? bindings_1.circle_type
+                                                    : s.ast.value == "square" ? bindings_1.square_type
+                                                        : s.ast.value == "ellipse" ? bindings_1.ellipse_type
+                                                            : s.ast.value == "rectangle" ? bindings_1.rectangle_type
+                                                                : s.ast.value == "var" ? bindings_1.var_type
+                                                                    : bindings_1.ref_type(s.ast.value) :
         s.ast.kind == "array decl" ? bindings_1.arr_type(ast_to_csharp_type(s.ast.t))
             : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
                 bindings_1.fun_type(bindings_1.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)

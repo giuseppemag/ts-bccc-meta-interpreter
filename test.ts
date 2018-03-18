@@ -41,15 +41,21 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-class StaticContainer {
-  static private int cnt;
-  static public int incr(int dx) {
-    int x = dx;
-    return x;
-  }
-}
-
+int x;
+string s;
+bool b;
+int[] a;
+float f;
+double d;
+debugger;
 `
+// class StaticContainer {
+//   static private int cnt;
+//   static public int incr(int dx) {
+//     int x = dx;
+//     return x;
+//   }
+// }
 // var y = StaticContainer.incr(10);
 
     // let hrstart = process.hrtime()

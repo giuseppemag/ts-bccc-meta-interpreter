@@ -79,10 +79,13 @@ import {
   xor,
 } from './bindings'
 import { ParserRes } from './grammar'
+import { float_type, double_type } from './csharp';
 
 let ast_to_csharp_type = (s:ParserRes) : Type =>
   s.ast.kind == "id" ?
     s.ast.value == "int" ? int_type
+    : s.ast.value == "float" ? float_type
+    : s.ast.value == "double" ? double_type
     : s.ast.value == "bool" ? bool_type
     : s.ast.value == "string" ? string_type
     : s.ast.value == "void" ? unit_type
