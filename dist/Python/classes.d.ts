@@ -35,4 +35,4 @@ export declare let resolve_method_rt: (M_name: string, C_def: Interface) => Sum<
 export declare let call_method_rt: (M_name: string, this_addr: Val, args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
 export declare let call_static_method_expr_rt: (C_name: string, M_name: string, args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
 export declare let call_method_expr_rt: (M_name: string, this_expr: ExprRt<Sum<Val, Val>>, args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
-export declare let call_cons_rt: (C_name: string, args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
+export declare let call_cons_rt: (C_name: string, args: ExprRt<Sum<Val, Val>>[], init_fields: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;

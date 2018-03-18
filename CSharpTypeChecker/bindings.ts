@@ -13,7 +13,7 @@ import { ValueName, tuple_to_record, ExprRt, Val } from "../main";
 export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
-export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier> }
+export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier>, initial_value:Option<Stmt> }
 export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"}
                                 | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
                                 | { kind:"other surface"} | { kind:"sprite"}
@@ -688,7 +688,7 @@ export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
 export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean }
-export interface FieldDefinition extends Parameter { modifiers:Array<Modifier> }
+export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt> }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
 
 export let mk_param = function(name:Name, type:Type) {
@@ -843,7 +843,8 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
           f.name,
           {
             type:f.type,
-            modifiers:Immutable.Set<Modifier>(f.modifiers)
+            modifiers:Immutable.Set<Modifier>(f.modifiers),
+            initial_value:f.initial_value
           }
         ]
       })
@@ -862,16 +863,17 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
               methods_full_t.map(m => [m.def.name, { typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }])
             ),
             fields:Immutable.Map<Name, FieldType>(
-              fields.map(f =>
+              fields.filter(f => !f.modifiers.some(mod => mod == "static")).map(f =>
                   [ f.name,
-                  { type:f.type, modifiers:Immutable.Set<Modifier>(f.modifiers) } ] )
+                  { type:f.type, initial_value:f.initial_value, modifiers:Immutable.Set<Modifier>(f.modifiers) } ] )
             )
           }
+          let static_fields = fields.filter(f => f.modifiers.some(mod => mod == "static"))
           let C_int:Sem.Interface = {
             range: r,
             base:apply(inr<Sem.Interface, Unit>(), {}),
             methods:
-              Immutable.Map<Name, Sem.StmtRt>(methods_full_t.map(m =>
+              Immutable.Map<Name, Sem.StmtRt>(methods_full_t.filter(m => !m.def.modifiers.some(mod => mod == "static")).map(m =>
                 {
                   let res:[Name, Sem.StmtRt] = [
                     m.def.name,
@@ -879,11 +881,35 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
                   return res
                 }
               )),
-            static_methods:Immutable.Map<Sem.ValueName, Sem.StmtRt>(),
-            static_fields:Immutable.Map<Sem.ValueName, Sem.Val>()
+            static_methods:Immutable.Map<Name, Sem.StmtRt>(methods_full_t.filter(m => m.def.modifiers.some(mod => mod == "static")).map(m =>
+              {
+                let res:[Name, Sem.StmtRt] = [
+                  m.def.name,
+                  m.typ.sem ]
+                return res
+              }
+            )),
+            static_fields:Immutable.Map<Sem.ValueName, Sem.Val>(static_fields.map(f =>
+              [ f.name,
+                initial_value(f.type)
+              ]))
           }
+
+          let init_static_fields = static_fields.map(f => {
+            if (f.initial_value.kind == "right") return done
+            else {
+              let v = f.initial_value.value
+              return (_:TypeConstraints) => v(no_constraints).then(v_v =>
+                !type_equals(v_v.type, f.type) ? co_error<State,Err,Typing>({ range:r, message:`Invalid initial value for field ${C_name}.${f.name}.`})
+                : co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.static_field_set_expr_rt(C_name, { att_name:f.name, kind:"att" }, v_v.sem))))
+            }
+          }).reduce((a,b) => semicolon(r,a,b), done)
+
           return co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type, is_constant:true}) }).then(_ =>
-            co_unit(mk_typing(unit_type, Sem.declare_class_rt(C_name, C_int))))
+            init_static_fields(no_constraints).then(init_static_fields_t =>
+              co_unit(mk_typing(unit_type, Sem.declare_class_rt(C_name, C_int).then(_ => init_static_fields_t.sem)))
+            )
+          )
           }
           )))
 }
@@ -949,10 +975,10 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               if (M_def.typing.type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: method ${C_name}::${JSON.stringify(F_or_M_name)} is not a lambda in ${context.kind == "class" ?  context.C_name : JSON.stringify(context)}`})
               return co_unit(mk_typing(M_def.modifiers.has("static") ? M_def.typing.type : M_def.typing.type.out,
                       M_def.modifiers.has("static") ?
-                            Sem.static_method_get_expr_rt(C_name, F_or_M_name)
-                          :
-                          //call_lambda
-                            Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
+                        Sem.static_method_get_expr_rt(C_name, F_or_M_name)
+                      :
+                      //call_lambda
+                        Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
             }
             return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} does not contain field ${F_or_M_name}`})
 
@@ -1015,6 +1041,17 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
       )),
       co_unit(Immutable.List<Typing>()))
 
+
+    let init_fields = C_def.fields.filter(f => !!f && !f.modifiers.has("static")).map((f, f_name) => {
+      if (f_name == undefined || f == undefined || f.initial_value.kind == "right") return done
+      else {
+        let v = f.initial_value.value
+        return (_:TypeConstraints) => v(no_constraints).then(v_v =>
+          // !type_equals(v_v.type, f.type) ? co_error<State,Err,Typing>({ range:r, message:`Invalid initial value for field ${C_name}.${f.name}.`})
+          co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.field_set_expr_rt({ att_name:f_name, kind:"att" }, v_v.sem, Sem.get_v_rt("this")))))
+      }
+    }).toArray().reduce((a,b) => semicolon(r,a,b), done)
+
     if (!lambda_t.modifiers.has("public")) {
       if (context.kind == "global scope")
         return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from global scope`})
@@ -1023,6 +1060,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
     }
     return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
         check_arguments.then(args_t =>
+        init_fields(no_constraints).then(init_fields_t =>
           lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
           (lambda_t.typing.type.out.kind == "fun" &&
           lambda_t.typing.type.out.in.kind == "tuple" &&
@@ -1034,63 +1072,8 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
                             !type_equals(arg_t.type, lambda_t.typing.type.out.in.args[i])) ?
             co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
           :
-            co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem))))
-        )
+            co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))))
       : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
+    ))
   })
 }
-
-
-// export let call_method = function(r:SourceRange, context:CallingContext, this_ref:Stmt, M_name:string, arg_values:Array<Stmt>) : Stmt {
-//   return _ => this_ref(no_constraints).then(this_ref_t =>
-//     co_get_state<State, Err>().then(bindings => {
-//       if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-//         return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when calling method ${M_name}.`})
-//       }
-//       let C_name = this_ref_t.type.C_name
-//       if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
-//       let C_def = bindings.bindings.get(C_name)
-//       if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class`})
-//       if (!C_def.methods.has(M_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have method ${M_name}`})
-//       let lambda_t = C_def.methods.get(M_name)
-
-//       if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple")
-//         return co_error<State,Err,Typing>({ range:r, message:`Error: invalid method type ${JSON.stringify(lambda_t.typing.type)}`})
-
-//       let expected_args = lambda_t.typing.type.in.args
-
-//       let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
-//         arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
-//         args.then(args_t =>
-//         co_unit(args_t.push(arg_t))
-//         )),
-//         co_unit(Immutable.List<Typing>()))
-
-//       if (!lambda_t.modifiers.has("public")) {
-//         if (context.kind == "global scope")
-//           return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${JSON.stringify(M_name)} from global scope`})
-//         else if (context.C_name != C_name)
-//           return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public method ${C_name}::${JSON.stringify(M_name)} from ${context.C_name}`})
-//       }
-
-//       if (lambda_t.modifiers.has("static") && this_ref_t.type.kind == "ref") {
-//         return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call static method ${JSON.stringify(M_name)} from reference.`})
-//       }
-
-//       return lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
-//           check_arguments.then(args_t =>
-//             lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-//             arg_values.length != (lambda_t.modifiers.has("static") ? lambda_t.typing.type.in.args.length : lambda_t.typing.type.in.args.length - 1) ||
-//             args_t.some((arg_t, i) => lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
-//                                       !type_equals(arg_t.type, lambda_t.typing.type.in.args[i])) ?
-//               co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling method ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
-//             :
-//               co_unit(mk_typing(lambda_t.typing.type.out,
-//                 lambda_t.modifiers.has("static") ?
-//                   Sem.call_static_method_expr_rt(C_name, M_name, args_t.toArray().map(arg_t => arg_t.sem))
-//                 :
-//                   Sem.call_method_expr_rt(M_name, this_ref_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
-//           )
-//         : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
-//   }))
-// }

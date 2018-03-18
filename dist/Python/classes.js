@@ -10,10 +10,13 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
+var Co = require("ts-bccc");
 var memory_1 = require("./memory");
 var basic_statements_1 = require("./basic_statements");
 var expressions_1 = require("./expressions");
 var python_1 = require("./python");
+var Immutable = require("immutable");
+var ccc_aux_1 = require("../ccc_aux");
 exports.declare_class_rt = function (C_name, int) {
     return memory_1.set_class_def_rt(C_name, int);
 };
@@ -114,15 +117,44 @@ exports.call_static_method_expr_rt = function (C_name, M_name, args) {
 exports.call_method_expr_rt = function (M_name, this_expr, args) {
     return this_expr.then(function (this_addr) { return exports.call_method_rt(M_name, this_addr.value, args); });
 };
-exports.call_cons_rt = function (C_name, args) {
+exports.call_cons_rt = function (C_name, args, init_fields) {
     return memory_1.get_class_def_rt(C_name).then(function (C_def) {
         return memory_1.new_obj_rt().then(function (this_addr) {
             return this_addr.value.k != "ref" ? memory_1.runtime_error("this is not a reference when calling " + C_name + "::cons") :
                 exports.field_set_rt({ att_name: "class", kind: "att" }, expressions_1.str_expr(C_name), this_addr.value).then(function (_) {
                     return python_1.call_lambda_expr_rt(C_def.methods.get(C_name), [expressions_1.val_expr(this_addr)]).then(function (cons_lambda) {
-                        return python_1.call_lambda_expr_rt(expressions_1.val_expr(cons_lambda), args).then(function (_) {
-                            return ts_bccc_2.co_unit(this_addr);
-                        });
+                        if (cons_lambda.value.k == "lambda") {
+                            var lambda_1 = cons_lambda.value.v;
+                            var body_1 = lambda_1.body;
+                            var arg_expressions = args;
+                            if (arg_expressions.length != lambda_1.parameters.length)
+                                return memory_1.runtime_error("Error: wrong number of parameters in lambda invocation. Expected " + lambda_1.parameters.length + ", received " + arg_expressions.length + ".");
+                            var eval_args = ccc_aux_1.comm_list_coroutine(Immutable.List(arg_expressions));
+                            var set_args_1 = function (arg_values) { return lambda_1.parameters.map(function (n, i) { return ({ fst: n, snd: arg_values[i] }); }).reduce(function (sets, arg_value) {
+                                return memory_1.set_v_rt(arg_value.fst, arg_value.snd).then(function (_) { return sets; });
+                            }, basic_statements_1.done_rt); };
+                            var init_1 = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.push_scope_rt, lambda_1.closure).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+                            var pop_success = (ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error())));
+                            var pop_failure = ts_bccc_1.constant("Internal error: cannot pop an empty stack.").then(Co.error());
+                            var cleanup_1 = ts_bccc_2.mk_coroutine(memory_1.pop_scope_rt.then(pop_failure.plus(pop_success)));
+                            return eval_args.then(function (arg_values) {
+                                // console.log("lambda arguments", JSON.stringify(arg_values)) ||
+                                return init_1.then(function (_) {
+                                    return init_fields.then(function (_) {
+                                        return set_args_1(arg_values.toArray()).then(function (_) {
+                                            return body_1.then(function (res) {
+                                                return cleanup_1.then(function (_) {
+                                                    return ts_bccc_2.co_unit(this_addr);
+                                                });
+                                            });
+                                        });
+                                    });
+                                });
+                            });
+                        }
+                        else {
+                            return memory_1.runtime_error("Cannot invoke non-lambda expression.");
+                        }
                     });
                 });
         });

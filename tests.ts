@@ -12,7 +12,7 @@ import { Bindings, MemRt, Lambda, ArrayVal, Scope } from './main';
 
 console.log("Running tests")
 
-let assert_equal = (a:any, b:any) : boolean => a == b ? true : console.log(`\x1b[31mtest "${JSON.stringify(a)}" and "${JSON.stringify(b)}" should be equal`) || false
+let assert_equal = (a:any, b:any) : boolean => a == b ? true : console.log(`\x1b[31m assertion: "${JSON.stringify(a)}" and "${JSON.stringify(b)}" should be equal`) || false
 
 type Check = { name:string, step:number } & ({ expected_kind:"error" } | { expected_kind:"bindings", check:(_:Bindings) => boolean } | { expected_kind:"memory", check:(_:MemRt) => boolean })
 
@@ -181,23 +181,6 @@ run_checks([
   },
 
   {
-    name:"quadratic function",
-    source:`int quadratic (int a,int b,int c,int x){
-      debugger;
-      typechecker_debugger;
-      return a * x * x + b * x + c;
-    }
-    var y = quadratic (1,2,3,4);
-    typechecker_debugger;
-    debugger;`,
-    checks:[
-      { name:"quadratic is a function", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
-      { name:"x is 4", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
-      { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
-    ]
-  },
-
-  {
     name:"functions",
     source:`string describe (int x){
       typechecker_debugger;
@@ -332,12 +315,13 @@ run_checks([
   {
     name:"counter",
     source:`class Counter {
-      int cnt;
-      public Counter(){
+      private int cnt = -5;
+      public Counter() {
+        debugger;
         this.cnt = 0;
         debugger;
       }
-      public void tick(){
+      public void tick() {
         this.cnt = this.cnt + 1;
         debugger;
       }
@@ -349,10 +333,14 @@ run_checks([
     debugger;`,
     checks:[
       { name:`c is Counter`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "Counter" ) },
+      { name:`cnt starts at -5`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+        let c = s.heap.get("ref_0").v as Scope
+        return assert_equal(c.get("cnt").v, -5)
+      } },
       { name:`this is a reference inside cons`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
-      { name:`this is a reference inside "tick"`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
-      { name:`c is a reference`, step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, "ref_0" ) },
-      { name:`cnt is 2`, step:4, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`this is a reference inside "tick"`, step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
+      { name:`c is a reference`, step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, "ref_0" ) },
+      { name:`cnt is 2`, step:6, expected_kind:"memory", check:(s:MemRt) => {
         let c = s.heap.get("ref_0").v as Scope
         return assert_equal(c.get("cnt").v, 2 )
       } },
@@ -414,4 +402,41 @@ run_checks([
       { name:`access to "c.cnt" is prevented`, step:1, expected_kind:"error" },
     ]
   },
-])
+
+  {
+    name:"static fields and methods",
+    source:`class StaticContainer {
+      static private int cnt = 5;
+      static public int incr(int dx) {
+        StaticContainer.cnt = StaticContainer.cnt + dx;
+        return StaticContainer.cnt;
+      }
+    }
+    var y = StaticContainer.incr(10);
+    debugger;
+    `,
+    checks:[
+      { name:`cnt is 15`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.classes.get("StaticContainer").static_fields.get("cnt").v, 15 ) },
+      { name:`y is 15`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 15 ) },
+    ]
+  },
+
+  {
+    name:"quadratic function",
+    source:`int quadratic (int a,int b,int c,int x){
+      debugger;
+      typechecker_debugger;
+      return a * x * x + b * x + c;
+    }
+    var y = quadratic (1,2,3,4);
+    typechecker_debugger;
+    debugger;`,
+    checks:[
+      { name:"quadratic is a function", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
+      { name:"x is 4", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
+      { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
+    ]
+  },
+], "counter")
+
+

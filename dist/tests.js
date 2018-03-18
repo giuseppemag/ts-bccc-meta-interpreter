@@ -4,7 +4,7 @@ var DebuggerStream = require("./csharp_debugger_stream");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var csharp_debugger_stream_1 = require("./csharp_debugger_stream");
 console.log("Running tests");
-var assert_equal = function (a, b) { return a == b ? true : console.log("\u001B[31mtest \"" + JSON.stringify(a) + "\" and \"" + JSON.stringify(b) + "\" should be equal") || false; };
+var assert_equal = function (a, b) { return a == b ? true : console.log("\u001B[31m assertion: \"" + JSON.stringify(a) + "\" and \"" + JSON.stringify(b) + "\" should be equal") || false; };
 var run_checks = function (tests, only_test) {
     console.clear();
     var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0);
@@ -96,15 +96,6 @@ run_checks([
         ]
     },
     {
-        name: "quadratic function",
-        source: "int quadratic (int a,int b,int c,int x){\n      debugger;\n      typechecker_debugger;\n      return a * x * x + b * x + c;\n    }\n    var y = quadratic (1,2,3,4);\n    typechecker_debugger;\n    debugger;",
-        checks: [
-            { name: "quadratic is a function", step: 0, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>"); } },
-            { name: "x is 4", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("x").v, 4); } },
-            { name: "y is result", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3); } },
-        ]
-    },
-    {
         name: "functions",
         source: "string describe (int x){\n      typechecker_debugger;\n      debugger;\n      if(x % 2 == 0){\n        return \"even\";\n      }\n      else{\n        return \"odd\";\n      }\n    }\n    var s1 = describe (100);\n    var s2 = describe (101);\n    typechecker_debugger;\n    debugger;",
         checks: [
@@ -170,13 +161,17 @@ run_checks([
     },
     {
         name: "counter",
-        source: "class Counter {\n      int cnt;\n      public Counter(){\n        this.cnt = 0;\n        debugger;\n      }\n      public void tick(){\n        this.cnt = this.cnt + 1;\n        debugger;\n      }\n    }\n    Counter c = new Counter ();\n    typechecker_debugger;\n    c.tick ();\n    c.tick ();\n    debugger;",
+        source: "class Counter {\n      private int cnt = -5;\n      public Counter() {\n        debugger;\n        this.cnt = 0;\n        debugger;\n      }\n      public void tick() {\n        this.cnt = this.cnt + 1;\n        debugger;\n      }\n    }\n    Counter c = new Counter ();\n    typechecker_debugger;\n    c.tick ();\n    c.tick ();\n    debugger;",
         checks: [
             { name: "c is Counter", step: 0, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("c")), "Counter"); } },
+            { name: "cnt starts at -5", step: 2, expected_kind: "memory", check: function (s) {
+                    var c = s.heap.get("ref_0").v;
+                    return assert_equal(c.get("cnt").v, -5);
+                } },
             { name: "this is a reference inside cons", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0"); } },
-            { name: "this is a reference inside \"tick\"", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0"); } },
-            { name: "c is a reference", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("c").v, "ref_0"); } },
-            { name: "cnt is 2", step: 4, expected_kind: "memory", check: function (s) {
+            { name: "this is a reference inside \"tick\"", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0"); } },
+            { name: "c is a reference", step: 6, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("c").v, "ref_0"); } },
+            { name: "cnt is 2", step: 6, expected_kind: "memory", check: function (s) {
                     var c = s.heap.get("ref_0").v;
                     return assert_equal(c.get("cnt").v, 2);
                 } },
@@ -206,4 +201,21 @@ run_checks([
             { name: "access to \"c.cnt\" is prevented", step: 1, expected_kind: "error" },
         ]
     },
-]);
+    {
+        name: "static fields and methods",
+        source: "class StaticContainer {\n      static private int cnt = 5;\n      static public int incr(int dx) {\n        StaticContainer.cnt = StaticContainer.cnt + dx;\n        return StaticContainer.cnt;\n      }\n    }\n    var y = StaticContainer.incr(10);\n    debugger;\n    ",
+        checks: [
+            { name: "cnt is 15", step: 1, expected_kind: "memory", check: function (s) { return assert_equal(s.classes.get("StaticContainer").static_fields.get("cnt").v, 15); } },
+            { name: "y is 15", step: 1, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y").v, 15); } },
+        ]
+    },
+    {
+        name: "quadratic function",
+        source: "int quadratic (int a,int b,int c,int x){\n      debugger;\n      typechecker_debugger;\n      return a * x * x + b * x + c;\n    }\n    var y = quadratic (1,2,3,4);\n    typechecker_debugger;\n    debugger;",
+        checks: [
+            { name: "quadratic is a function", step: 0, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>"); } },
+            { name: "x is 4", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("x").v, 4); } },
+            { name: "y is result", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3); } },
+        ]
+    },
+], "counter");

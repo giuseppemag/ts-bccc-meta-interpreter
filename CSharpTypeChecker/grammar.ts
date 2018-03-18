@@ -151,7 +151,7 @@ export interface ArgsAST { kind: "args", value:Immutable.List<DeclAST> }
 export interface BracketAST { kind:"bracket", e:ParserRes }
 export interface UnitAST { kind: "unit" }
 
-export interface FieldAST { decl:DeclAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
+export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
@@ -225,14 +225,14 @@ let tc_dbg: Parser = ignore_whitespace(co_get_state<ParserState, ParserError>().
   else return co_error({ range:i.range, priority:s.branch_priority, message:`expected typecheker debugger but found ${i.kind}` })
 }))
 
-let index_of : Coroutine<ParserState,ParserError,{val:ParserRes, range:SourceRange}> = 
+let index_of : Coroutine<ParserState,ParserError,{val:ParserRes, range:SourceRange}> =
                 left_square_bracket.then(ls =>
                   expr().then(actual =>
                   right_square_bracket.then(rs =>
                   co_unit({val:actual, range:join_source_ranges(ls,rs)})
                   )))
 
-export let par : Coroutine<ParserState,ParserError,{val:ParserRes[], range:SourceRange}> = 
+export let par : Coroutine<ParserState,ParserError,{val:ParserRes[], range:SourceRange}> =
   no_match.then(_ =>
   left_bracket.then(lb =>
   partial_match.then(_ =>
@@ -398,7 +398,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
-                let comma_to_array = (comma:ParserRes) : ParserRes[] => 
+                let comma_to_array = (comma:ParserRes) : ParserRes[] =>
                   {
                     if(comma.ast.kind == ","){
                       let left = comma.ast.l
@@ -418,7 +418,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           }),
           parser_or<SymTable>(comma.then(_ => expr_after_op(symbols, callables, table.ops, ",", mk_binary((l, r) => mk_pair(l, r)))),
           parser_or<SymTable>(arrow_op.then(_ => expr_after_op(symbols, callables, table.ops, "=>", mk_binary((l, r) => //console.log("mk_arrow-1", JSON.stringify(l)) ||
-                                                                                                                        //console.log("mk_arrow-2", JSON.stringify(r)) || 
+                                                                                                                        //console.log("mk_arrow-2", JSON.stringify(r)) ||
                                                                                                                         mk_arrow(l, r)))),
           parser_or<SymTable>(plus_op.then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
           parser_or<SymTable>(minus_op.then(_ => expr_after_op(symbols, callables, table.ops, "-", mk_binary((l, r) => mk_minus(l, r)))),
@@ -523,14 +523,14 @@ let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
           co_unit(i))
       )))
 
-let decl_init : () => Coroutine<ParserState,ParserError,ParserRes> = () =>
+let decl_init : () => Coroutine<ParserState,ParserError,DeclAndInitAST> = () =>
   no_match.then(_ =>
   type_decl().then(l =>
   identifier_token.then(r =>
   partial_match.then(_ =>
   assign_right().then(v =>
   full_match.then(_ =>
-  co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(l.range, v.range), ast:mk_decl_and_init(l, r.id, v, r.range) })))))))
+  co_unit<ParserState,ParserError,DeclAndInitAST>(mk_decl_and_init(l, r.id, v, r.range))))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
@@ -682,7 +682,8 @@ let inner_statement = (skip_semicolon?:boolean) : Parser =>
   parser_or<ParserRes>(if_conditional(function_statement),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl().then(d =>
     co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d.l.range, d.r.range), ast:d }))),
-  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl_init()),
+  parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(decl_init().then(d_i =>
+    co_unit<ParserState,ParserError,ParserRes>({ range:join_source_ranges(d_i.l.range, d_i.v.range), ast:d_i }))),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(assign()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(expr()),
   parser_or<ParserRes>((skip_semicolon ? unchanged : with_semicolon)(no_match.then(_ => dbg)),
@@ -731,7 +732,10 @@ let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:
 let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>> = () =>
   parser_or<Prod<Immutable.List<FieldAST>, Prod<Immutable.List<MethodAST>, Immutable.List<ConstructorAST>>>>(
     parser_or<Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
-      with_semicolon(modifiers().then(ms => decl().then(d =>
+      with_semicolon(modifiers().then(ms =>
+        parser_or<DeclAST | DeclAndInitAST>(
+          decl_init().then(d => co_unit<ParserState, ParserError, DeclAST | DeclAndInitAST>(d)),
+          decl().then(d => co_unit<ParserState, ParserError, DeclAST | DeclAndInitAST>(d))).then(d =>
       co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
         apply(inl<FieldAST, Sum<MethodAST, ConstructorAST>>(), { decl:d, modifiers:ms })))))
     ,

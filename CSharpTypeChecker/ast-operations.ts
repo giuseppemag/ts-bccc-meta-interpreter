@@ -80,6 +80,7 @@ import {
 } from './bindings'
 import { ParserRes } from './grammar'
 import { float_type, double_type } from './csharp';
+import { inr, apply, inl, Unit } from 'ts-bccc';
 
 let ast_to_csharp_type = (s:ParserRes) : Type =>
   s.ast.kind == "id" ?
@@ -275,7 +276,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.value,
         type:ast_to_csharp_type(f.decl.l),
-        modifiers:f.modifiers.toArray().map(mod => mod.ast.kind)
+        modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
+        initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
       }))
     )
 

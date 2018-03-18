@@ -1,12 +1,11 @@
 [g] unit tests
   [ ] rendering
-  [ ] static methods
+  [ ] files
   [ ] inheritance
   [ ] generics
   [ ] exceptions
   [ ] fancy features (yield return, LINQ)
   [ ] html rendering
-  [ ] files
 [g] explicit casting operators
 [g] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Filesystem simulator
@@ -63,7 +62,6 @@
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
-[g] initial values of class fields at construction
 
 [g] Databases
 
@@ -76,7 +74,6 @@
 [g] Invoke statically typed semantics
 
 
-[m] static methods are broken
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
 [m] BUG/POTENTIAL ISSUE: functions with more than one parameter have wrong actuals array
 int quadratic (int a,int b,int c,int x) {

@@ -13,6 +13,8 @@ import { done_rt, dbg_rt, if_then_else_rt, while_do_rt } from "./basic_statement
 import { call_by_name_rt, call_lambda_rt, def_fun_rt, return_rt } from "./functions"
 import { val_expr, unit_expr, str_expr } from "./expressions"
 import { call_lambda_expr_rt } from "./python";
+import * as Immutable from "immutable"
+import { comm_list_coroutine } from "../ccc_aux";
 
 export let declare_class_rt = function(C_name:ValueName, int:Interface) : StmtRt {
   return set_class_def_rt(C_name, int)
@@ -37,7 +39,7 @@ export let method_get_rt = function(M_name:ValueName, this_addr:HeapRef) : ExprR
     if(this_val.value.v.has("class")){
       let c = this_val.value.v.get("class")
       if(c.k == "s"){
-        return get_class_def_rt(c.v).then(_class => 
+        return get_class_def_rt(c.v).then(_class =>
           _class.methods.get(M_name))
       }
     }
@@ -121,15 +123,45 @@ export let call_method_expr_rt = function(M_name:ValueName, this_expr:ExprRt<Sum
   return this_expr.then(this_addr => call_method_rt(M_name, this_addr.value, args))
 }
 
-export let call_cons_rt = function(C_name:ValueName, args:Array<ExprRt<Sum<Val, Val>>>) : ExprRt<Sum<Val, Val>> {
+export let call_cons_rt = function(C_name:ValueName, args:Array<ExprRt<Sum<Val, Val>>>, init_fields:ExprRt<Sum<Val, Val>>) : ExprRt<Sum<Val, Val>> {
   return get_class_def_rt(C_name).then(C_def =>
   new_obj_rt().then(this_addr =>
   this_addr.value.k != "ref" ? runtime_error(`this is not a reference when calling ${C_name}::cons`) :
   field_set_rt({att_name:"class", kind:"att"}, str_expr(C_name), this_addr.value).then(_ =>
-  
-  
-  call_lambda_expr_rt(C_def.methods.get(C_name), [val_expr(this_addr)]).then(cons_lambda =>
-  call_lambda_expr_rt(val_expr(cons_lambda), args).then(_ => 
-  co_unit<MemRt,ErrVal,Sum<Val,Val>>(this_addr)
-  )))))
+  call_lambda_expr_rt(C_def.methods.get(C_name), [val_expr(this_addr)]).then(cons_lambda => {
+
+
+    if (cons_lambda.value.k == "lambda") {
+
+      let lambda = cons_lambda.value.v
+      let body = lambda.body
+      let arg_expressions = args
+      if (arg_expressions.length != lambda.parameters.length) return runtime_error(`Error: wrong number of parameters in lambda invocation. Expected ${lambda.parameters.length}, received ${arg_expressions.length}.`)
+
+      let eval_args:Coroutine<MemRt, ErrVal, Immutable.List<Sum<Val,Val>>> = comm_list_coroutine(Immutable.List<ExprRt<Sum<Val,Val>>>(arg_expressions))
+
+      let set_args = (arg_values:Array<Sum<Val,Val>>) => lambda.parameters.map((n,i) => ({ fst:n, snd:arg_values[i] })).reduce<StmtRt>((sets, arg_value) =>
+        set_v_rt(arg_value.fst, arg_value.snd).then(_ => sets),
+        done_rt)
+
+      let init = mk_coroutine(apply(push_scope_rt, lambda.closure).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
+
+      let pop_success = (unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>())))
+      let pop_failure = constant<Unit,ErrVal>(`Internal error: cannot pop an empty stack.`).then(Co.error<MemRt,ErrVal,Unit>())
+      let cleanup = mk_coroutine(pop_scope_rt.then(pop_failure.plus(pop_success)))
+      return eval_args.then(arg_values =>
+             // console.log("lambda arguments", JSON.stringify(arg_values)) ||
+             init.then(_ =>
+             init_fields.then(_ =>
+             set_args(arg_values.toArray()).then(_ =>
+             body.then(res =>
+             cleanup.then(_ =>
+            co_unit<MemRt,ErrVal,Sum<Val,Val>>(this_addr)
+            ))))))
+    } else {
+      return runtime_error("Cannot invoke non-lambda expression.")
+    }
+  }
+
+  ))))
 }

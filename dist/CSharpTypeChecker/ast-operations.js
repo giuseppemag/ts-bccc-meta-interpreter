@@ -4,6 +4,7 @@ var Immutable = require("immutable");
 var source_range_1 = require("../source_range");
 var bindings_1 = require("./bindings");
 var csharp_1 = require("./csharp");
+var ts_bccc_1 = require("ts-bccc");
 var ast_to_csharp_type = function (s) {
     return s.ast.kind == "id" ?
         s.ast.value == "int" ? bindings_1.int_type
@@ -167,7 +168,8 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                             }); }; })), n.ast.fields.toArray().map(function (f) { return function (context) { return ({
                                                                                                                                                                 name: f.decl.r.value,
                                                                                                                                                                 type: ast_to_csharp_type(f.decl.l),
-                                                                                                                                                                modifiers: f.modifiers.toArray().map(function (mod) { return mod.ast.kind; })
+                                                                                                                                                                modifiers: f.modifiers.toArray().map(function (mod) { return mod.ast.kind; }),
+                                                                                                                                                                initial_value: f.decl.kind == "decl" ? ts_bccc_1.inr().f({}) : ts_bccc_1.apply(ts_bccc_1.inl(), exports.ast_to_type_checker(f.decl.v)(context))
                                                                                                                                                             }); }; }))
                                                                                                                                                             : n.ast.kind == "decl" ?
                                                                                                                                                                 bindings_1.decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))

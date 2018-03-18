@@ -201,7 +201,7 @@ var expr_AUX = function (table, try_par) {
                         : { kind: "res", value: primitives_1.mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) };
             }));
         }), primitives_1.parser_or(comma.then(function (_) { return expr_after_op(symbols, callables, table.ops, ",", mk_binary(function (l, r) { return primitives_1.mk_pair(l, r); })); }), primitives_1.parser_or(primitives_1.arrow_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "=>", mk_binary(function (l, r) {
-            //console.log("mk_arrow-2", JSON.stringify(r)) || 
+            //console.log("mk_arrow-2", JSON.stringify(r)) ||
             return primitives_1.mk_arrow(l, r);
         })); }), primitives_1.parser_or(primitives_1.plus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "+", mk_binary(function (l, r) { return primitives_1.mk_plus(l, r); })); }), primitives_1.parser_or(primitives_1.minus_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "-", mk_binary(function (l, r) { return primitives_1.mk_minus(l, r); })); }), primitives_1.parser_or(ccc_aux_1.co_stateless(primitives_1.negative_number).then(function (_) { return expr_after_op(symbols, callables, table.ops, "+", mk_binary(function (l, r) { return primitives_1.mk_plus(l, r); })); }), primitives_1.parser_or(primitives_1.times_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "*", mk_binary(function (l, r) { return primitives_1.mk_times(l, r); })); }), primitives_1.parser_or(primitives_1.div_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "/", mk_binary(function (l, r) { return primitives_1.mk_div(l, r); })); }), primitives_1.parser_or(primitives_1.mod_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "%", mk_binary(function (l, r) { return primitives_1.mk_mod(l, r); })); }), primitives_1.parser_or(primitives_1.lt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<", mk_binary(function (l, r) { return primitives_1.mk_lt(l, r); })); }), primitives_1.parser_or(primitives_1.gt_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">", mk_binary(function (l, r) { return primitives_1.mk_gt(l, r); })); }), primitives_1.parser_or(primitives_1.leq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "<=", mk_binary(function (l, r) { return primitives_1.mk_leq(l, r); })); }), primitives_1.parser_or(primitives_1.geq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, ">=", mk_binary(function (l, r) { return primitives_1.mk_geq(l, r); })); }), primitives_1.parser_or(primitives_1.eq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "==", mk_binary(function (l, r) { return primitives_1.mk_eq(l, r); })); }), primitives_1.parser_or(primitives_1.neq_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "!=", mk_binary(function (l, r) { return primitives_1.mk_neq(l, r); })); }), primitives_1.parser_or(primitives_1.and_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "&&", mk_binary(function (l, r) { return primitives_1.mk_and(l, r); })); }), primitives_1.parser_or(primitives_1.or_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "||", mk_binary(function (l, r) { return primitives_1.mk_or(l, r); })); }), primitives_1.parser_or(primitives_1.xor_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "xor", mk_binary(function (l, r) { return primitives_1.mk_xor(l, r); })); }), ts_bccc_1.co_unit(__assign({}, table, { symbols: symbols, callables: callables }))))))))))))))))))))));
     };
@@ -304,7 +304,7 @@ var decl_init = function () {
                 return partial_match.then(function (_) {
                     return assign_right().then(function (v) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(l.range, v.range), ast: primitives_1.mk_decl_and_init(l, r.id, v, r.range) });
+                            return ts_bccc_1.co_unit(primitives_1.mk_decl_and_init(l, r.id, v, r.range));
                         });
                     });
                 });
@@ -502,7 +502,9 @@ var unchanged = CCC.id().f;
 var inner_statement = function (skip_semicolon) {
     return primitives_1.parser_or(with_semicolon(ts_bccc_1.co_unit(primitives_1.mk_noop())), primitives_1.parser_or(bracketized_statement(), primitives_1.parser_or(for_loop(function_statement), primitives_1.parser_or(while_loop(function_statement), primitives_1.parser_or(if_conditional(function_statement), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl().then(function (d) {
         return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d.l.range, d.r.range), ast: d });
-    })), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init()), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(exports.expr()), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
+    })), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(decl_init().then(function (d_i) {
+        return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(d_i.l.range, d_i.v.range), ast: d_i });
+    })), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(assign()), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(exports.expr()), primitives_1.parser_or((skip_semicolon ? unchanged : with_semicolon)(no_match.then(function (_) { return dbg; })), with_semicolon(no_match.then(function (_) { return tc_dbg; }))))))))))));
 };
 var function_statement = function (skip_semicolon) {
     return primitives_1.parser_or(with_semicolon(return_statement()), inner_statement(skip_semicolon));
@@ -535,9 +537,11 @@ var modifiers = function () {
     }), ts_bccc_1.co_unit(Immutable.List()));
 };
 var class_statements = function () {
-    return primitives_1.parser_or(primitives_1.parser_or(with_semicolon(modifiers().then(function (ms) { return decl().then(function (d) {
-        return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), { decl: d, modifiers: ms }));
-    }); })), primitives_1.parser_or(modifiers().then(function (ms) { return function_declaration().then(function (d) {
+    return primitives_1.parser_or(primitives_1.parser_or(with_semicolon(modifiers().then(function (ms) {
+        return primitives_1.parser_or(decl_init().then(function (d) { return ts_bccc_1.co_unit(d); }), decl().then(function (d) { return ts_bccc_1.co_unit(d); })).then(function (d) {
+            return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), { decl: d, modifiers: ms }));
+        });
+    })), primitives_1.parser_or(modifiers().then(function (ms) { return function_declaration().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inl()), { decl: d, modifiers: ms }));
     }); }), modifiers().then(function (ms) { return constructor_declaration().then(function (d) {
         return ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inr()), { decl: d, modifiers: ms }));

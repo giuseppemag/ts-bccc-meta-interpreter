@@ -31,15 +31,7 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\nint x;\nstring s;\nbool b;\nint[] a;\nfloat f;\ndouble d;\ndebugger;\n";
-        // class StaticContainer {
-        //   static private int cnt;
-        //   static public int incr(int dx) {
-        //     int x = dx;
-        //     return x;
-        //   }
-        // }
-        // var y = StaticContainer.incr(10);
+        var source = "\n    class Counter {\n      int cnt = -5;\n      public Counter(){\n        debugger;\n        this.cnt = 0;\n        debugger;\n      }\n      public void tick(){\n        this.cnt = this.cnt + 1;\n      }\n    }\n    Counter c = new Counter ();\n    c.tick ();\n    c.tick ();";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

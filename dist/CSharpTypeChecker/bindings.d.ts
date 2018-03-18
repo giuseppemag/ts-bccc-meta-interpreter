@@ -16,6 +16,7 @@ export interface MethodTyping {
 export interface FieldType {
     type: Type;
     modifiers: Immutable.Set<Modifier>;
+    initial_value: Option<Stmt>;
 }
 export declare type RenderOperationType = {
     kind: "circle";
@@ -201,6 +202,7 @@ export interface MethodDefinition extends FunDefinition {
 }
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;
+    initial_value: Option<Stmt>;
 }
 export declare type CallingContext = {
     kind: "global scope";

@@ -114,7 +114,7 @@ export interface UnitAST {
     kind: "unit";
 }
 export interface FieldAST {
-    decl: DeclAST;
+    decl: DeclAST | DeclAndInitAST;
     modifiers: Immutable.List<{
         range: SourceRange;
         ast: ModifierAST;

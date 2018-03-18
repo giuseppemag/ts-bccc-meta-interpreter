@@ -41,22 +41,20 @@ export let test_parser = () => {
   //  [])
 
     let source = `
-int x;
-string s;
-bool b;
-int[] a;
-float f;
-double d;
-debugger;
-`
-// class StaticContainer {
-//   static private int cnt;
-//   static public int incr(int dx) {
-//     int x = dx;
-//     return x;
-//   }
-// }
-// var y = StaticContainer.incr(10);
+    class Counter {
+      int cnt = -5;
+      public Counter(){
+        debugger;
+        this.cnt = 0;
+        debugger;
+      }
+      public void tick(){
+        this.cnt = this.cnt + 1;
+      }
+    }
+    Counter c = new Counter ();
+    c.tick ();
+    c.tick ();`
 
     // let hrstart = process.hrtime()
 
