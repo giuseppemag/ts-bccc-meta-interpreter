@@ -40,21 +40,26 @@ export let test_parser = () => {
   //    ],
   //  [])
 
-    let source = `
-    class Counter {
-      int cnt = -5;
-      public Counter(){
-        debugger;
-        this.cnt = 0;
-        debugger;
+    let source = `int factorial (int x){
+      typechecker_debugger;
+      debugger;
+      var res = 1;
+      if(x <= 0){
+        return res;
       }
-      public void tick(){
-        this.cnt = this.cnt + 1;
+      else{
+        var p = x;
+        var prev_x = x + -1;
+        var q =     factorial (prev_x);
+        typechecker_debugger;
+        res  = p * q;
       }
+      typechecker_debugger;
+      return res;
     }
-    Counter c = new Counter ();
-    c.tick ();
-    c.tick ();`
+    var x = factorial (5);
+    typechecker_debugger;
+    debugger;`
 
     // let hrstart = process.hrtime()
 

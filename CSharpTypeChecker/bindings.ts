@@ -1074,6 +1074,6 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))))
       : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`})
-    ))
+    
   })
 }

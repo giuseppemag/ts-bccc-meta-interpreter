@@ -31,7 +31,7 @@ var ImpLanguageWithSuspend;
         //                    ))) }),
         //    ],
         //  [])
-        var source = "\n    class Counter {\n      int cnt = -5;\n      public Counter(){\n        debugger;\n        this.cnt = 0;\n        debugger;\n      }\n      public void tick(){\n        this.cnt = this.cnt + 1;\n      }\n    }\n    Counter c = new Counter ();\n    c.tick ();\n    c.tick ();";
+        var source = "int factorial (int x){\n      typechecker_debugger;\n      debugger;\n      var res = 1;\n      if(x <= 0){\n        return res;\n      }\n      else{\n        var p = x;\n        var prev_x = x + -1;\n        var q =     factorial (prev_x);\n        typechecker_debugger;\n        res  = p * q;\n      }\n      typechecker_debugger;\n      return res;\n    }\n    var x = factorial (5);\n    typechecker_debugger;\n    debugger;";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

@@ -6,7 +6,7 @@ var csharp_debugger_stream_1 = require("./csharp_debugger_stream");
 console.log("Running tests");
 var assert_equal = function (a, b) { return a == b ? true : console.log("\u001B[31m assertion: \"" + JSON.stringify(a) + "\" and \"" + JSON.stringify(b) + "\" should be equal") || false; };
 var run_checks = function (tests, only_test) {
-    console.clear();
+    //console.clear()
     var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0);
     var check_index = 0;
     tests.forEach(function (test) {
@@ -215,7 +215,7 @@ run_checks([
         checks: [
             { name: "quadratic is a function", step: 0, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>"); } },
             { name: "x is 4", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("x").v, 4); } },
-            { name: "y is result", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3); } },
+            { name: "y is result", step: 4, expected_kind: "memory", check: function (s) { return console.log(JSON.stringify(s)) || assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3); } },
         ]
     },
 ]);

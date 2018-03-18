@@ -19,7 +19,7 @@ type Check = { name:string, step:number } & ({ expected_kind:"error" } | { expec
 interface Test { source:string, checks:Array<Check>, name:string }
 
 let run_checks = (tests:Array<Test>, only_test?:string) => {
-  console.clear()
+  //console.clear()
   let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0)
   let check_index = 0
   tests.forEach(test => {
@@ -434,7 +434,7 @@ run_checks([
     checks:[
       { name:"quadratic is a function", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
       { name:"x is 4", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
-      { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
+      { name:"y is result", step:4, expected_kind:"memory", check:(s:MemRt) => console.log(JSON.stringify(s)) || assert_equal(s.stack.get(0).get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
     ]
   },
 ])

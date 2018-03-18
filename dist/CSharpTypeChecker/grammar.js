@@ -189,8 +189,8 @@ var expr_AUX = function (table, try_par) {
                 var comma_to_array = function (comma) {
                     if (comma.ast.kind == ",") {
                         var left = comma.ast.l;
-                        var right = comma.ast.r;
-                        return [left, right];
+                        var right = comma_to_array(comma.ast.r);
+                        return [left].concat(right);
                     }
                     else {
                         return [comma];

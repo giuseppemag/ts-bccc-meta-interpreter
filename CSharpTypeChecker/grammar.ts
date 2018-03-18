@@ -402,8 +402,8 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
                   {
                     if(comma.ast.kind == ","){
                       let left = comma.ast.l
-                      let right = comma.ast.r
-                      return [left, right]
+                      let right = comma_to_array(comma.ast.r)
+                      return [left].concat(right)
                     }
                     else
                     {
