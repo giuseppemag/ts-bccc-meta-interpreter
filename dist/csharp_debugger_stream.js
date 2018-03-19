@@ -8,6 +8,7 @@ var CSharp = require("./CSharpTypeChecker/csharp");
 var ccc_aux_1 = require("./ccc_aux");
 var grammar_1 = require("./CSharpTypeChecker/grammar");
 var ast_operations_1 = require("./CSharpTypeChecker/ast-operations");
+var standard_lib_1 = require("./CSharpTypeChecker/standard_lib");
 exports.run_stream_to_end = function (s) {
     var run_stream_to_end = function (s) {
         return s.kind != "step" ? Immutable.List([s.show()])
@@ -31,7 +32,7 @@ exports.get_stream = function (source) {
         }
         var ast_1 = res.value.fst;
         // console.log(JSON.stringify(ast))
-        var p = ast_operations_1.ast_to_type_checker(ast_1)(ast_operations_1.global_calling_context)(CSharp.no_constraints);
+        var p = (CSharp.semicolon(source_range_1.zero_range, standard_lib_1.standard_lib(), ast_operations_1.ast_to_type_checker(ast_1)(ast_operations_1.global_calling_context)))(CSharp.no_constraints);
         var runtime_stream_1 = function (state) { return ({
             kind: "step",
             next: function () {

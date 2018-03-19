@@ -232,7 +232,7 @@ run_checks([
       { name:`x is "int"`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
       { name:`p is "int"`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("p").kind, "int") },
       { name:`res is "int"`, step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("res").kind, "int") },
-      { name:`function scope cleaned up`, step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.count(), 2) && s.has("factorial") && s.has("x") },
+      { name:`function scope cleaned up`, step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("factorial") && s.has("x") && !s.has("res") },
       { name:`stack has grown`, step:10, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 6) && assert_equal(s.stack.get(3).get(0).get("x").v, 2) && assert_equal(s.stack.get(3).get(1).get("p").v, 2) },
       { name:`stack is cleaned up`, step:11, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 0) && assert_equal(s.globals.get(0).get("x").v, 5 * 4 * 3 * 2) },
     ]

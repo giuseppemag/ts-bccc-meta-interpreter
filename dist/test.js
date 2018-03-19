@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
 var DebuggerStream = require("./csharp_debugger_stream");
-var CSharp = require("./CSharpTypeChecker/csharp");
 var ImpLanguageWithSuspend;
 (function (ImpLanguageWithSuspend) {
     var run_to_end = function (log) {
@@ -13,6 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
+<<<<<<< HEAD
         var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit(CSharp.mk_typing(t, sem)); }; };
         //  let p = CSharp.def_class(zero_range, "int", [
         //      _ => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:zero_range,
@@ -32,6 +32,9 @@ var ImpLanguageWithSuspend;
         //    ],
         //  [])
         var source = "int factorial (int x){\n      typechecker_debugger;\n      debugger;\n      var res = 1;\n      if(x <= 0){\n        return res;\n      }\n      else{\n        var p = x;\n        var prev_x = x + -1;\n        var q =     factorial (prev_x);\n        typechecker_debugger;\n        res  = p * q;\n      }\n      typechecker_debugger;\n      return res;\n    }\n    var x = factorial (5);\n    typechecker_debugger;\n    debugger;";
+=======
+        var source = "\nint a = 10;\nint b = 20;\nvar x = a + b;\n    ";
+>>>>>>> 2d4a8c46c6fe2b7a6098f321c3d6a8a43fba2d54
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

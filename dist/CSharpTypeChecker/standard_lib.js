@@ -1,0 +1,30 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var ts_bccc_1 = require("ts-bccc");
+var CSharp = require("./csharp");
+var Sem = require("../Python/python");
+var source_range_1 = require("../source_range");
+var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit(CSharp.mk_typing(t, sem)); }; };
+exports.int = CSharp.def_class(source_range_1.zero_range, "int", [
+    function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.zero_range,
+        return_t: CSharp.int_type, name: "string", parameters: [{ name: "a", type: CSharp.int_type }],
+        body: from_js(CSharp.int_type, Sem.get_v_rt("a").then(function (a_v) {
+            return Sem.return_rt(Sem.str_expr(a_v.value.v.toString()));
+        })) }); },
+    function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.zero_range,
+        return_t: CSharp.int_type, name: "float", parameters: [{ name: "a", type: CSharp.int_type }],
+        body: from_js(CSharp.int_type, Sem.get_v_rt("a").then(function (a_v) {
+            return Sem.return_rt(Sem.float_expr(a_v.value.v));
+        })) }); },
+    function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.zero_range,
+        return_t: CSharp.int_type, name: "+", parameters: [{ name: "a", type: CSharp.int_type }, { name: "b", type: CSharp.int_type }],
+        body: from_js(CSharp.int_type, Sem.get_v_rt("a").then(function (a_v) { return Sem.get_v_rt("b").then(function (b_v) {
+            return Sem.return_rt(Sem.int_expr(a_v.value.v + b_v.value.v));
+        }); })) }); },
+    function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.zero_range,
+        return_t: CSharp.int_type, name: "-", parameters: [{ name: "a", type: CSharp.int_type }, { name: "b", type: CSharp.int_type }],
+        body: from_js(CSharp.int_type, Sem.get_v_rt("a").then(function (a_v) { return Sem.get_v_rt("b").then(function (b_v) {
+            return Sem.return_rt(Sem.int_expr(a_v.value.v - b_v.value.v));
+        }); })) }); },
+], []);
+exports.standard_lib = function () { return exports.int; };

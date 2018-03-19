@@ -23,7 +23,7 @@
     "gulp-merge-media-queries": "^0.2.1",
     "gulp-rename": "^1.2.2",
     "gulp-sass": "^3.1.0",
-    "typescript": "^2.6.1"
+    "typescript": "^2.7.2"
   },
   "dependencies": {
     "immutable": "^3.8.2",

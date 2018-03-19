@@ -480,7 +480,7 @@ exports.plus = function (r, a, b) {
         return b(exports.no_constraints).then(function (b_t) {
             return type_equals(a_t.type, b_t.type) ?
                 type_equals(a_t.type, exports.int_type) ?
-                    ts_bccc_2.co_unit(exports.mk_typing(exports.int_type, Sem.int_plus_rt(a_t.sem, b_t.sem)))
+                    exports.call_lambda(r, exports.field_get(r, { kind: "global scope" }, exports.get_v(r, "int"), "+"), [function (_) { return ts_bccc_2.co_unit(a_t); }, function (_) { return ts_bccc_2.co_unit(b_t); }])(exports.no_constraints)
                     : type_equals(a_t.type, exports.float_type) || type_equals(a_t.type, exports.double_type) ?
                         ts_bccc_2.co_unit(exports.mk_typing(a_t.type, Sem.float_plus_rt(a_t.sem, b_t.sem)))
                         : type_equals(a_t.type, exports.string_type) ?

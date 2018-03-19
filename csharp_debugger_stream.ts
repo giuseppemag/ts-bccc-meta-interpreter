@@ -14,6 +14,7 @@ import { ParserRes } from "./CSharpTypeChecker/csharp";
 import { Stmt } from "./main";
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
+import { standard_lib } from "./CSharpTypeChecker/standard_lib";
 
 export type DebuggerStreamStep = { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                                  { kind:"bindings", state:CSharp.State, ast:ParserRes } |
@@ -50,7 +51,7 @@ export let get_stream = (source:string) : DebuggerStream => {
 
     // console.log(JSON.stringify(ast))
 
-    let p = ast_to_type_checker(ast)(global_calling_context)(CSharp.no_constraints)
+    let p = (CSharp.semicolon(zero_range, standard_lib(), ast_to_type_checker(ast)(global_calling_context)))(CSharp.no_constraints)
 
     let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
       kind:"step",
