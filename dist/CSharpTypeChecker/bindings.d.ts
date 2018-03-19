@@ -3,6 +3,7 @@ import { Unit, Fun, Prod, Sum, Option } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
+import { ExprRt, Val } from "../main";
 export declare type Name = string;
 export interface Err {
     message: string;
@@ -123,7 +124,7 @@ export interface Typing {
     type: TypeInformation;
     sem: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>;
 }
-export declare let mk_typing: (t: Type, s: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>, is_constant?: boolean | undefined) => Typing;
+export declare let mk_typing: (t: Type, s: ExprRt<Sum<Val, Val>>, is_constant?: boolean | undefined) => Typing;
 export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
 export declare let store: Fun<Prod<Prod<string, TypeInformation>, State>, State>;
