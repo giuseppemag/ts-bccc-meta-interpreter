@@ -34,6 +34,8 @@
   [ ] polymorphism (<= instead of == while typechecking)
   [ ] Covariance/contravariance in function calls and variable assignments
 
+[g] Closures in regular functions
+
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 [g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
@@ -54,54 +56,30 @@
 [g] renderers defined in standard library
 
 
+[m] add C# to playground and exam
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
-[m] BUG/POTENTIAL ISSUE: functions with more than one parameter have wrong actuals array
-int quadratic (int a,int b,int c,int x) {
-  debugger;
-  typechecker_debugger;
-  return a * x * x + b * x + c;
-}
-var y = quadratic (1,2,3,4);
-typechecker_debugger;
-
-[m] Print type of lambda without arrow, but with `Func` in debugger
-[m] Use code font in debugger tables
-[m] Add C# to playground
-[m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
-[m] use something visual instead of debugger and typechecker_debugger
-[m] errors with range over code in editor
-  [ ] Print properly (no `JSON.stringify`)
-[m] Right-associativity of => (x => y => x + y)
-[m] Parsing of curried application (f(5)(10))
 [m] Getters vs function application (test example below):
-  (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => (y => x * y))));
+  (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => y => x * y)));
   var h = v.Item3.Item2(3);
   var y = h(2);
 [m] ++ operator
   [ ] i++
   [ ] ++i
+[m] procedures (functions returning `void`)
+[m] draw functions returning `void` as `Action`
+[m] `Func<void,*>` should draw as `Func<*>`
+[m] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
+[m] multidimensional array + array in class attributes
+
+[m] Use code font in debugger tables
+[m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
+[m] use something visual instead of debugger and typechecker_debugger
+[m] errors with source range over code in editor
+  [ ] Print properly (no `JSON.stringify`)
 [m] function parameters should have a range
 [m] comments
 [m] highlighting with proper style
-[m] procedures (functions returning `void`)
-[m] `int z = then(d, p2)(5);` does not work (function call should be integrated into expression parser)
-[m] show function body upon click/on mouse over
-
-[m] does not parse:
-int factorial(int x) {
-  if (x <= 0) {
-    return 1;
-  } else {
-    return x * factorial(x-1);
-  }
-}
-
-[m] arrays
-  [ ] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
-[m] multidimensional array + array in class attributes
-[m] Closures in regular functions
 [m] properties
-[m] new B(new A(10)) does not work
 [m] add multiple highlightings (along the stack) for function calls
 [m] parsing, typecheking, etc. of `null` (also for strings)
 
