@@ -366,7 +366,19 @@ type SymTable = {
   callables: Immutable.Stack<boolean>,
   ops: Immutable.Stack<Prod<string, unary_or_binary_op>>
 }
-
+let comma_to_array = (comma:ParserRes) : ParserRes[] =>
+  {
+    if(comma.ast.kind == ","){
+      let left = comma.ast.l
+      let right = comma_to_array(comma.ast.r)
+      return [left].concat(right)
+    }
+    else
+    {
+      return [comma]
+    }
+  }
+  
 type unary_or_binary_op =
   { kind: "binary", f: (l: ParserRes, r: ParserRes) => ParserRes } |
   { kind: "unary", f: (l: ParserRes | "none", is_callable: boolean) => { kind: "res" | "0-ary_push_back", value: ParserRes } }
@@ -404,18 +416,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
-                let comma_to_array = (comma:ParserRes) : ParserRes[] =>
-                  {
-                    if(comma.ast.kind == ","){
-                      let left = comma.ast.l
-                      let right = comma_to_array(comma.ast.r)
-                      return [left].concat(right)
-                    }
-                    else
-                    {
-                      return [comma]
-                    }
-                  }
+                
 
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
                   : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
@@ -454,7 +455,12 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     left_bracket.then(_ =>
     actuals().then((actuals:Array<ParserRes>) =>
     right_bracket.then(_ =>
-    co_unit(mk_constructor_call(new_range, class_name.id, actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals))
+
+    {
+      let args = 
+        actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
+        actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
+      return co_unit(mk_constructor_call(new_range, class_name.id, args))}
     )))))
 
 let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>

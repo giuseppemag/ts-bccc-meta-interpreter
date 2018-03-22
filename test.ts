@@ -21,17 +21,23 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class A {
-  int i;
-  public A() { this.i = 0; }
+class Vector2 {
+  public float x;
+  public float y;
+  public Vector2(float x, float y){
+    this.x = x;
+    this.y = y;
+  }
+  public static Vector2 Plus(Vector2 v1, Vector2 v2){
+    return new Vector2(v1.x + v2.x, v1.y + v2.y);
+  }
 }
 
-class B {
-  A a;
-  public B(A a) { this.a = a; }
-}
-
-var b = new B(new A());
+var v1 = new Vector2(0.0f,0.0f);
+var v2 = new Vector2(10.0f,5.0f);
+var v3 = Vector2.Plus(v1, v2);
+typechecker_debugger;
+debugger;
     `
 
     // let hrstart = process.hrtime()

@@ -169,9 +169,10 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
 
 
 export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
-  n.ast.kind == "," ? [n.ast.l, ...extract_tuple_args(n.ast.r)]
+  {
+  return n.ast.kind == "," ? [n.ast.l, ...extract_tuple_args(n.ast.r)]
   : n.ast.kind == "bracket" ? extract_tuple_args(n.ast.e)
-  : [n]
+  : [n]}
 
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n => context =>
   n.ast.kind == "int" ? int(n.ast.value)
@@ -220,7 +221,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         }
         return a.ast.value
       }))).toArray(), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "," ? tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
+  : n.ast.kind == "," ? console.log("found", JSON.stringify(n.ast)) || tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)

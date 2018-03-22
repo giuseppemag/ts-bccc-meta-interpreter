@@ -168,6 +168,16 @@ var expr_after_op = function (symbols, callables, ops, current_op, compose_curre
     // console.log("B")
     return expr_AUX({ symbols: symbols, ops: ops.push({ fst: current_op, snd: compose_current }), callables: current_op == "()" ? callables : callables.push(false) });
 };
+var comma_to_array = function (comma) {
+    if (comma.ast.kind == ",") {
+        var left = comma.ast.l;
+        var right = comma_to_array(comma.ast.r);
+        return [left].concat(right);
+    }
+    else {
+        return [comma];
+    }
+};
 var mk_unary = function (f) { return ({ kind: "unary", f: f }); };
 var mk_binary = function (f) { return ({ kind: "binary", f: f }); };
 var expr_AUX = function (table, try_par) {
@@ -189,16 +199,6 @@ var expr_AUX = function (table, try_par) {
             var range = res.range;
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals;
             return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables, table.ops, "()", mk_unary(function (_l, is_callable) {
-                var comma_to_array = function (comma) {
-                    if (comma.ast.kind == ",") {
-                        var left = comma.ast.l;
-                        var right = comma_to_array(comma.ast.r);
-                        return [left].concat(right);
-                    }
-                    else {
-                        return [comma];
-                    }
-                };
                 return _l == "none" ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
                     : !is_callable ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
                         : { kind: "res", value: primitives_1.mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) };
@@ -217,7 +217,9 @@ var cons_call = function () {
             return primitives_1.left_bracket.then(function (_) {
                 return actuals().then(function (actuals) {
                     return primitives_1.right_bracket.then(function (_) {
-                        return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(new_range, class_name.id, actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals));
+                        var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
+                            actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
+                        return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(new_range, class_name.id, args));
                     });
                 });
             });

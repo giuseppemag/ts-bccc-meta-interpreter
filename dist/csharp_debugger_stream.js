@@ -31,7 +31,7 @@ exports.get_stream = function (source) {
             return { kind: "error", show: function () { return ({ kind: "message", message: msg_1, range: range_1 }); } };
         }
         var ast_1 = res.value.fst;
-        // console.log(JSON.stringify(ast))
+        //console.log("AST:", JSON.stringify(ast))
         var p = (CSharp.semicolon(source_range_1.zero_range, standard_lib_1.standard_lib(), ast_operations_1.ast_to_type_checker(ast_1)(ast_operations_1.global_calling_context)))(CSharp.no_constraints);
         var runtime_stream_1 = function (state) { return ({
             kind: "step",

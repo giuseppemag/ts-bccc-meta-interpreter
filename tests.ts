@@ -437,6 +437,29 @@ run_checks([
       { name:"y is result", step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
     ]
   },
+
+
+  {
+    name:"Vector2",
+    source:`class Vector2 {
+  public float x;
+  public float y;
+  public Vector2(float x, float y){
+    this.x = x;
+    this.y = y;
+  }
+  public static Vector2 Plus(Vector2 v1, Vector2 v2){
+    return new Vector2(v1.x + v2.x, v1.y + v2.y);
+  }
+}
+
+var v1 = new Vector2(0.0f,0.0f);
+var v2 = new Vector2(10.0f,5.0f);
+var v3 = Vector2.Plus(v1, v2);
+typechecker_debugger;
+debugger;`,
+    checks:[]
+  },
 ])
 
 
