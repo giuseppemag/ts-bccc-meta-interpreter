@@ -100,6 +100,8 @@ import {
   xor_op,
   negative_number,
   parser_or,
+  mk_not,
+  not_op,
 } from './primitives';
 
 let priority_operators_table =
@@ -390,7 +392,11 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
     else {
     }
     // to improve
-    return parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(res.range, l as any, res.val) })))),
+    // not_op.then(_ =>
+    //   expr().then(e =>
+    //   co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
+    return parser_or<SymTable>(not_op.then(_ => expr_after_op(symbols, callables, table.ops, "not", mk_unary((l, is_callable) => ({ kind: "res", value: mk_not(l as any) })))),
+          parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(res.range, l as any, res.val) })))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
           parser_or<SymTable>(par.then(res => {
             let actuals = res.val
@@ -436,7 +442,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(or_op.then(_ => expr_after_op(symbols, callables, table.ops, "||", mk_binary((l, r) => mk_or(l, r)))),
           parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
           co_unit({ ...table, symbols: symbols, callables: callables })
-        ))))))))))))))))))))
+        )))))))))))))))))))))
   }
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
   return parser_or<SymTable>(term(try_par?try_par:false).then(l => cases(l)), cases("none"))
