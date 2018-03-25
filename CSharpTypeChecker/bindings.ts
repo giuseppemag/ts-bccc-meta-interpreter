@@ -208,7 +208,6 @@ export let double = function(i:number) : Stmt {
 
 export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
   return constraints => {
-
     if (constraints.kind == "left" && constraints.value.kind == "record")
       constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))
     // console.log("Typechecking tuple value with constraints", constraints)
@@ -504,7 +503,7 @@ export let div = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             type_equals(a_t.type, int_type) ?
              co_unit(mk_typing(int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
             : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(float_type, Sem.float_div_rt(a_t.sem, b_t.sem)))
+             co_unit(mk_typing(a_t.type, Sem.float_div_rt(a_t.sem, b_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (/)!" })
           : co_error<State,Err,Typing>({ range:r, message:"Error: cannot divide expressions of different types!" })
         ))
@@ -767,7 +766,7 @@ export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<S
       arg_values.length != lambda_t.type.in.args.length ||
       args_t.some((arg_t, i) => lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
       !type_equals(arg_t.type, lambda_t.type.in.args[i])) ?
-      co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)}`})
+      co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => a.type)])}`})
       :
       co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
     )
@@ -789,6 +788,23 @@ export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
          type_equals(len_t.type, int_type) ?
            co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
          : co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`}))
+}
+
+export let new_array_and_init = function(r:SourceRange, type:Type, args:Stmt[]) : Stmt {
+  return _ => {
+    let xs = Immutable.List<Coroutine<State,Err,Typing>>(args.map(a => a(apply(inl(), type))))
+    return comm_list_coroutine(xs).then(xs_t => {
+      let arg_types = xs_t.toArray().map(x_t => x_t.type)
+      // arg_types must all be of type `type`
+      let arg_values = xs_t.toArray().map(x_t => x_t.sem)
+      return co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_with_values_rt(arg_values)))
+      // return co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`})
+    })
+  }
+  // len(no_constraints).then(len_t =>
+  //        type_equals(len_t.type, int_type) ?
+  //          co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
+  //        : co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`}))
 }
 
 export let get_arr_len = function(r:SourceRange, a:Stmt) : Stmt {
@@ -831,7 +847,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
         return [
           m.name,
           {
-            typing:mk_typing(fun_type(tuple_type([ref_type(C_name)].concat(m.parameters.map(p => p.type))), m.return_t, m.range), Sem.done_rt),
+            typing:mk_typing(fun_type(tuple_type((m.modifiers.filter(md => md == "static").length == 0 ?  [ref_type(C_name)] : []).concat(m.parameters.map(p => p.type))), m.return_t, m.range), Sem.done_rt),
             modifiers:Immutable.Set<Modifier>(m.modifiers)
           }
         ]
@@ -917,30 +933,39 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
 export let field_get = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_or_M_name:string) : Stmt {
   return _ => this_ref(no_constraints).then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
-           if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-            let item = /^Item/
-            let m = F_or_M_name.match(item)
-            if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
-              try {
-                let item_index = parseInt(F_or_M_name.replace(item, "")) - 1
-                return co_unit(mk_typing(this_ref_t.type.args[item_index],
-                        Sem.tuple_get_rt(r, this_ref_t.sem, item_index)))
-              } catch (error) {
-                return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
-              }
-            } else {
-              // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
-              if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
+
+            if (this_ref_t.type.kind == "arr") {
+              if(F_or_M_name == "Length")
+                return co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem)))
+              else
+                return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation.`})
+              
+            }
+            else
+              if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+              let item = /^Item/
+              let m = F_or_M_name.match(item)
+              if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
                 try {
-                  return co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name),
-                          Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name)))
+                  let item_index = parseInt(F_or_M_name.replace(item, "")) - 1
+                  return co_unit(mk_typing(this_ref_t.type.args[item_index],
+                          Sem.tuple_get_rt(r, this_ref_t.sem, item_index)))
                 } catch (error) {
                   return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
                 }
               } else {
-                return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name}.`})
+                // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
+                if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
+                  try {
+                    return co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name),
+                            Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name)))
+                  } catch (error) {
+                    return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
+                  }
+                } else {
+                  return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
+                }
               }
-            }
            }
 
            let C_name = this_ref_t.type.C_name

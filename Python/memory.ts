@@ -4,6 +4,7 @@ import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
+import { comm_list_coroutine } from "../ccc_aux";
 
 export let runtime_error = function(e:ErrVal) : ExprRt<Sum<Val,Val>> { return co_error<MemRt, ErrVal, Sum<Val,Val>>(e) }
 export type Bool = boolean
@@ -23,6 +24,8 @@ export type RenderSurfaceOperation = { kind:"circle", x:number, y:number, radius
                             | { kind:"other surface", s:RenderSurface, dx:number, dy:number, sx:number, sy:number, rotation:number }
 
 export let init_array_val : (_:number) => ArrayVal = (len:number) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,len).map(i => [i, mk_unit_val])), length:len })
+
+export let init_array_with_args_val : (_:Val[]) => ArrayVal = (vals:Val[]) => ({ elements: Immutable.Map<number, Val>(Immutable.Range(0,vals.length).toArray().map(i => [i, vals[i]])), length:vals.length })
 
 export type ValueName = string
 export type NestingLevel = number
@@ -243,8 +246,17 @@ export let new_arr_rt = function (len:number): ExprRt<Sum<Val,Val>> {
   let heap_alloc_co:Coroutine<MemRt,ErrVal,Sum<Val,Val>> = mk_coroutine(constant<MemRt,Val>(mk_arr_val(init_array_val(len))).times(id<MemRt>()).then(heap_alloc_rt).then((inl<Val,Val>()).map_times(id())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
   return (heap_alloc_co)
 }
+export let new_arr_with_args_rt = function (args:Sum<Val,Val>[]): ExprRt<Sum<Val,Val>> {
+  let heap_alloc_co:Coroutine<MemRt,ErrVal,Sum<Val,Val>> = mk_coroutine(constant<MemRt,Val>(mk_arr_val(init_array_with_args_val(args.map(arg => arg.value)))).times(id<MemRt>()).then(heap_alloc_rt).then((inl<Val,Val>()).map_times(id())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
+  return (heap_alloc_co)
+}
+
 export let new_arr_expr_rt = function (len:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val,Val>> {
   return len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
+}
+export let new_arr_expr_with_values_rt = function (args:Array<ExprRt<Sum<Val,Val>>>): ExprRt<Sum<Val,Val>> {
+  return comm_list_coroutine(Immutable.List<ExprRt<Sum<Val,Val>>>(args)).then(args_v => new_arr_with_args_rt(args_v.toArray()))
+  // len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
 }
 export let get_arr_len_rt = function(a_ref:Val) : ExprRt<Sum<Val,Val>> {
   return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :

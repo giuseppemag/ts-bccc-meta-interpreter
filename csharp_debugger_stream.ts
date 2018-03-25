@@ -49,7 +49,7 @@ export let get_stream = (source:string) : DebuggerStream => {
 
     let ast = res.value.fst
 
-    //console.log("AST:", JSON.stringify(ast))
+    // console.log("AST:", JSON.stringify(ast))
 
     let p = (CSharp.semicolon(zero_range, standard_lib(), ast_to_type_checker(ast)(global_calling_context)))(CSharp.no_constraints)
 

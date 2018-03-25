@@ -102,13 +102,14 @@ import {
   parser_or,
   mk_not,
   not_op,
+  mk_array_cons_call_and_init,
 } from './primitives';
 
 let priority_operators_table =
   Immutable.Map<string, {priority:number, associativity:"left"|"right"}>()
-  .set(".", {priority:13, associativity:"left"})
   .set("()", {priority:12, associativity:"left"})
-  .set("[]", {priority:11, associativity:"left"})
+  .set("[]", {priority:12, associativity:"left"})
+  .set(".", {priority:12, associativity:"left"})
   .set("*", {priority:10, associativity:"right"})
   .set("/", {priority:10, associativity:"right"})
   .set("%", {priority:10, associativity:"right"})
@@ -165,6 +166,7 @@ export interface FunctionDeclarationAST { kind:"func_decl", name:string, return_
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
+export interface ArrayConstructorCallAndInitAST { kind:"array_cons_call_and_init", type:ParserRes, actuals:ParserRes[] }
 
 export interface GetArrayValueAtAST {kind:"get_array_value_at", array:ParserRes, index:ParserRes }
 
@@ -181,6 +183,7 @@ export interface OtherSurface { kind: "other surface", s:ParserRes, dx:ParserRes
 export type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface
 
 export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
+
 export interface ArrayTypeDeclAST { kind:"array decl", t:ParserRes }
 
 export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes> }
@@ -193,7 +196,7 @@ export type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST 
                 | ClassAST | ConstructorCallAST | ArrayConstructorCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | RenderSurfaceAST | ArrayTypeDeclAST
-                | ModifierAST | GetArrayValueAtAST | BracketAST
+                | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST
 
 export interface ParserRes { range:SourceRange, ast:AST }
 export interface ParserError { priority:number, message:string, range:SourceRange }
@@ -467,17 +470,34 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>
     identifier.then(array_type =>
     left_square_bracket.then(_ =>
-    term(false).then((actual:ParserRes) =>
+    parser_or(expr(), term(false))
+    .then((actual:ParserRes) =>
     right_square_bracket.then(rs =>
     co_unit(mk_array_cons_call(join_source_ranges(new_range, rs), array_type, actual))
     )))))
+
+let array_new_and_init = () : Coroutine<ParserState, ParserError, ParserRes> =>
+    new_keyword.then(new_range  =>
+    identifier.then(array_type =>
+    left_square_bracket.then(_ =>
+    right_square_bracket.then(_ =>
+    left_curly_bracket.then(_ => 
+    actuals().then(_actuals =>
+    right_curly_bracket.then(rs => 
+    {
+      
+      let actuals = _actuals[0].ast.kind == "," ? comma_to_array(_actuals[0]) : _actuals
+      return co_unit(mk_array_cons_call_and_init(join_source_ranges(new_range, rs), array_type, actuals))
+    }
+    )))))))
 
 export let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(array_new(),
+           parser_or<ParserRes>(array_new_and_init(),
            parser_or<ParserRes>(cons_call(),
-                                res))
+                                res)))
   }
 
 let semicolon = ignore_whitespace(semicolon_sign)
@@ -507,18 +527,34 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
       co_unit([a]))),
     co_unit(Array<ParserRes>()))
 
+let tuple_or_record : Coroutine<ParserState,ParserError,ParserRes> =
+  left_bracket.then(lb =>
+    parser_or<ParserRes>(type_args().then(as =>
+      right_bracket.then(rb =>
+      co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)))),
+      arg_decls().then(as =>
+      right_bracket.then(rb =>
+      co_unit(mk_record_type_decl(join_source_ranges(lb, rb), as))))
+    )
+  )
+
+let array = (t:ParserRes) =>
+  left_square_bracket.then(_ =>
+    partial_match.then(_ =>
+    right_square_bracket.then(end_range =>
+    co_unit(mk_array_decl(join_source_ranges(t.range, end_range), t))
+  )))
+
 let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
   parser_or<ParserRes>(
-    left_bracket.then(lb =>
-      parser_or<ParserRes>(type_args().then(as =>
-        right_bracket.then(rb =>
-        co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)))),
-        arg_decls().then(as =>
-        right_bracket.then(rb =>
-        co_unit(mk_record_type_decl(join_source_ranges(lb, rb), as))))
-      )
+    parser_or<ParserRes>(
+      tuple_or_record.then(t => 
+        array(t)
+      ),
+      tuple_or_record,
     ),
     identifier.then(i =>
+      parser_or<ParserRes>( array(i),
       parser_or<ParserRes>(
         lt_op.then(_ =>
           partial_match.then(_ =>
@@ -526,14 +562,13 @@ let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
           gt_op.then(end_range =>
           co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
         )))),
-        parser_or<ParserRes>(
-          left_square_bracket.then(_ =>
-            partial_match.then(_ =>
-            right_square_bracket.then(end_range =>
-            co_unit(mk_array_decl(join_source_ranges(i.range, end_range), i))
-          ))),
-          co_unit(i))
-      )))
+      parser_or<ParserRes>(
+        left_square_bracket.then(_ =>
+          partial_match.then(_ =>
+          right_square_bracket.then(end_range =>
+          co_unit(mk_array_decl(join_source_ranges(i.range, end_range), i))
+        ))),
+      co_unit(i))))))
 
 let decl_init : () => Coroutine<ParserState,ParserError,DeclAndInitAST> = () =>
   no_match.then(_ =>

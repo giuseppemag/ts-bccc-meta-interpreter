@@ -517,7 +517,7 @@ exports.div = function (r, a, b) {
                 type_equals(a_t.type, exports.int_type) ?
                     ts_bccc_2.co_unit(exports.mk_typing(exports.int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
                     : type_equals(a_t.type, exports.float_type) || type_equals(a_t.type, exports.double_type) ?
-                        ts_bccc_2.co_unit(exports.mk_typing(exports.float_type, Sem.float_div_rt(a_t.sem, b_t.sem)))
+                        ts_bccc_2.co_unit(exports.mk_typing(a_t.type, Sem.float_div_rt(a_t.sem, b_t.sem)))
                         : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (/)!" })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot divide expressions of different types!" });
         });
@@ -762,7 +762,7 @@ exports.call_lambda = function (r, lambda, arg_values) {
                 arg_values.length != lambda_t.type.in.args.length ||
                 args_t.some(function (arg_t, i) { return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" || arg_t == undefined || i == undefined ||
                     !type_equals(arg_t.type, lambda_t.type.in.args[i]); }) ?
-                ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) })
+                ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) + " with arguments " + JSON.stringify([args_t.toArray().map(function (a) { return a.type; })]) })
                 :
                     ts_bccc_2.co_unit(exports.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
         });
@@ -782,6 +782,22 @@ exports.new_array = function (r, type, len) {
             ts_bccc_2.co_unit(exports.mk_typing(exports.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
             : ts_bccc_2.co_error({ range: r, message: "Error: argument of array constructor must be of type int" });
     }); };
+};
+exports.new_array_and_init = function (r, type, args) {
+    return function (_) {
+        var xs = Immutable.List(args.map(function (a) { return a(ts_bccc_1.apply(ts_bccc_1.inl(), type)); }));
+        return ccc_aux_1.comm_list_coroutine(xs).then(function (xs_t) {
+            var arg_types = xs_t.toArray().map(function (x_t) { return x_t.type; });
+            // arg_types must all be of type `type`
+            var arg_values = xs_t.toArray().map(function (x_t) { return x_t.sem; });
+            return ts_bccc_2.co_unit(exports.mk_typing(exports.arr_type(type), Sem.new_arr_expr_with_values_rt(arg_values)));
+            // return co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`})
+        });
+    };
+    // len(no_constraints).then(len_t =>
+    //        type_equals(len_t.type, int_type) ?
+    //          co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem)))
+    //        : co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`}))
 };
 exports.get_arr_len = function (r, a) {
     return function (_) { return a(exports.no_constraints).then(function (a_t) {
@@ -822,7 +838,7 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
             return [
                 m.name,
                 {
-                    typing: exports.mk_typing(exports.fun_type(exports.tuple_type([exports.ref_type(C_name)].concat(m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), Sem.done_rt),
+                    typing: exports.mk_typing(exports.fun_type(exports.tuple_type((m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ? [exports.ref_type(C_name)] : []).concat(m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), Sem.done_rt),
                     modifiers: Immutable.Set(m.modifiers)
                 }
             ];
@@ -899,7 +915,13 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
 exports.field_get = function (r, context, this_ref, F_or_M_name) {
     return function (_) { return this_ref(exports.no_constraints).then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
-            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+            if (this_ref_t.type.kind == "arr") {
+                if (F_or_M_name == "Length")
+                    return ts_bccc_2.co_unit(exports.mk_typing(exports.int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem)));
+                else
+                    return ts_bccc_2.co_error({ range: r, message: "Invalid array operation." });
+            }
+            else if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
                 var item = /^Item/;
                 var m = F_or_M_name.match(item);
                 if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
@@ -922,7 +944,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                         }
                     }
                     else {
-                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_or_M_name + "." });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_or_M_name + " from " + JSON.stringify(this_ref_t) + "." });
                     }
                 }
             }

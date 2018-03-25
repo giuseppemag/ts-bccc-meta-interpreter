@@ -51,6 +51,7 @@ export declare const mk_not: (e: ParserRes) => ParserRes;
 export declare const mk_call: (f_name: ParserRes, actuals: ParserRes[]) => ParserRes;
 export declare const mk_constructor_call: (new_range: SourceRange, C_name: string, actuals: ParserRes[]) => ParserRes;
 export declare const mk_array_cons_call: (new_range: SourceRange, _type: ParserRes, actual: ParserRes) => ParserRes;
+export declare const mk_array_cons_call_and_init: (new_range: SourceRange, _type: ParserRes, actuals: ParserRes[]) => ParserRes;
 export declare const mk_constructor_declaration: (function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => ConstructorDeclarationAST;
 export declare const mk_function_declaration: (return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => FunctionDeclarationAST;
 export declare const mk_class_declaration: (C_name: string, fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, range: SourceRange) => ParserRes;

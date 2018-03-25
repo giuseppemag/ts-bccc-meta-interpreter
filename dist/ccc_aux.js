@@ -36,7 +36,7 @@ exports.comm_list_coroutine = function (ps) {
     var t = ps.rest().toList();
     return h.then(function (h_res) {
         return exports.comm_list_coroutine(t).then(function (t_res) {
-            return ts_bccc_2.co_unit(Immutable.List([h_res].concat(t_res.toArray())));
+            return ts_bccc_2.co_unit(t_res.unshift(h_res));
         });
     });
 };

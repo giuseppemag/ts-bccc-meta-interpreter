@@ -50,6 +50,7 @@ import {
   mod,
   neq,
   new_array,
+  new_array_and_init,
   not,
   or,
   plus,
@@ -221,7 +222,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         }
         return a.ast.value
       }))).toArray(), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "," ? console.log("found", JSON.stringify(n.ast)) || tuple_value(n.range, [...extract_tuple_args(n.ast.l), n.ast.r].map(a => ast_to_type_checker(a)(context)))
+  : n.ast.kind == "," ? tuple_value(n.range, ([n.ast.l].concat(extract_tuple_args(n.ast.r))).map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
@@ -293,6 +294,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
 
   : n.ast.kind == "array_cons_call" ?
     new_array(n.range, ast_to_csharp_type(n.ast.type), ast_to_type_checker(n.ast.actual)(context))
+  : n.ast.kind == "array_cons_call_and_init" ?
+    new_array_and_init(n.range, ast_to_csharp_type(n.ast.type), n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "get_array_value_at" ?
     get_arr_el(n.range, ast_to_type_checker(n.ast.array)(context), ast_to_type_checker(n.ast.index)(context))
 

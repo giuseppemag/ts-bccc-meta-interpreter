@@ -28,6 +28,13 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
     let stream = get_stream(test.source)
     let steps = DebuggerStream.run_stream_to_end(stream).toArray()
 
+    if(test.checks.length == 0){
+      if(steps[0].kind == "message"){
+        console.log(`\x1b[31mtest "${test.name} failed its check`)
+        process.exit(1)
+      }
+    }
+
     test.checks.forEach((check, check_i) => {
       if (steps.length < check.step) {
         console.log(`\x1b[31mtest "${test.name}"::"${check.name}" failed: the required step does not exist`)
@@ -442,22 +449,127 @@ run_checks([
   {
     name:"Vector2",
     source:`class Vector2 {
-  public float x;
-  public float y;
-  public Vector2(float x, float y){
+  public double x;
+  public double y;
+  public Vector2(double x, double y){
     this.x = x;
     this.y = y;
+  }
+  public double Length(){
+    return Math.sqrt(this.x * this.x + this.y * this.y);
   }
   public static Vector2 Plus(Vector2 v1, Vector2 v2){
     return new Vector2(v1.x + v2.x, v1.y + v2.y);
   }
+  public static Vector2 Minus(Vector2 v1, Vector2 v2){
+    return new Vector2(v1.x - v2.x, v1.y - v2.y);
+  }
+  public static Vector2 Times(Vector2 v1, double c){
+    return new Vector2(v1.x * c, v1.y * c);
+  }
+  public static Vector2 Div(Vector2 v1, double c){
+    return Vector2.Times(v1, 1.0 / c);
+  }
 }
 
-var v1 = new Vector2(0.0f,0.0f);
-var v2 = new Vector2(10.0f,5.0f);
-var v3 = Vector2.Plus(v1, v2);
+var v1 = new Vector2(0.0,0.0);
+var v2 = new Vector2(10.0,5.0);
+var v3 = Vector2.Times(v1, 1.0);
 typechecker_debugger;
 debugger;`,
+    checks:[]
+  },
+  {
+    name:"DataSet1",
+    source:`class DataSet{
+  (float, float, float)[] elems;
+  public DataSet((float, float, float)[] elems){
+    this.elems = elems;
+  }
+  public (float, float, float) ComputeAverage(){
+    (float, float, float) acc = (0.0f,0.0f,0.0f);
+    float total = 0.0f;
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      var Item1 = this.elems[i].Item1 + acc.Item1;
+      var Item2 = this.elems[i].Item2 + acc.Item2;
+      var Item3 = this.elems[i].Item3 + acc.Item3;
+      acc = (Item1, Item2, Item3);
+      total = total + 1.0f;
+    }
+    return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);
+  }  
+}
+typechecker_debugger;
+debugger;`,
+    checks:[]
+  },
+  {
+    name:"DataSet2",
+    source:`class DataSet{
+  double[] elems;
+  public DataSet(double[] elems){
+    this.elems = elems;
+  }
+  public double Minimum(){
+    double min = this.elems[0];
+    for(int i = 1; i < this.elems.Length; i=i+1){
+      if(this.elems[i] < min){
+        min = this.elems[i];
+      }
+    }
+    return min;
+  }  
+  
+  public double Maximum(){
+    double max = this.elems[0];
+    for(int i = 1; i < this.elems.Length; i=i+1){
+      if(this.elems[i] > max){
+        max = this.elems[i];
+      }
+    }
+    return max;
+  }  
+  public double MostFrequent(){
+    int max_freq = 0;
+    double most_freq = 0.0;
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      int i_freq = 0;  
+      for(int j = 0; j < this.elems.Length; j=j+1){
+        if(this.elems[i] == this.elems[j]){
+          i_freq = i_freq + 1;
+        }
+      }
+      if(i_freq > max_freq){
+        max_freq = i_freq; 
+        most_freq = this.elems[i];
+      }
+    }
+    return most_freq;
+  }  
+}`,
+    checks:[]
+  },
+  {
+    name:"DataSet3",
+    source:`class DataSet{
+  double[] elems;
+  public DataSet(double[] elems){
+    this.elems = elems;
+  }
+
+  public DataSet Map(Func<double, double> f){
+    double[] new_elems = new double[this.elems.Length];
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      new_elems[i] = f(this.elems[i]);
+    }
+    return new DataSet(new_elems);
+  }
+  public void MutableMap(Func<double, double> f){
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      this.elems[i] = f(this.elems[i]);
+    }
+  }
+}`,
     checks:[]
   },
 ])

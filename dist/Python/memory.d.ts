@@ -95,6 +95,7 @@ export declare type RenderSurfaceOperation = {
     rotation: number;
 };
 export declare let init_array_val: (_: number) => ArrayVal;
+export declare let init_array_with_args_val: (_: Val[]) => ArrayVal;
 export declare type ValueName = string;
 export declare type NestingLevel = number;
 export declare type Val = {
@@ -207,7 +208,9 @@ export declare let decl_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val
 export declare let get_v_rt: (v: string) => ExprRt<Sum<Val, Val>>;
 export declare let new_obj_rt: () => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_rt: (len: number) => ExprRt<Sum<Val, Val>>;
+export declare let new_arr_with_args_rt: (args: Sum<Val, Val>[]) => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_expr_rt: (len: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let new_arr_expr_with_values_rt: (args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
 export declare let get_arr_len_rt: (a_ref: Val) => ExprRt<Sum<Val, Val>>;
 export declare let get_arr_len_expr_rt: (a: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let get_arr_el_rt: (a_ref: Val, i: number) => ExprRt<Sum<Val, Val>>;

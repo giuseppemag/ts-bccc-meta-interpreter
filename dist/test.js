@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass Vector2 {\n  public float x;\n  public float y;\n  public Vector2(float x, float y){\n    this.x = x;\n    this.y = y;\n  }\n  public static Vector2 Plus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x + v2.x, v1.y + v2.y);\n  }\n}\n\nvar v1 = new Vector2(0.0f,0.0f);\nvar v2 = new Vector2(10.0f,5.0f);\nvar v3 = Vector2.Plus(v1, v2);\ntypechecker_debugger;\ndebugger;\n    ";
+        var source = "\nclass DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n\n  public DataSet ImmutableMap(Func<double, double> f){\n    double[] new_elems = new double[this.elems.Length];\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      new_elems[i] = f(this.elems[i]);\n    }\n    return new DataSet(new_elems);\n  }\n  public void MutableMap(Func<double, double> f){\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      this.elems[i] = f(this.elems[i]);\n    }\n  }\n}\n    ";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

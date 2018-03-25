@@ -14,6 +14,12 @@ var run_checks = function (tests, only_test) {
             return;
         var stream = csharp_debugger_stream_1.get_stream(test.source);
         var steps = DebuggerStream.run_stream_to_end(stream).toArray();
+        if (test.checks.length == 0) {
+            if (steps[0].kind == "message") {
+                console.log("\u001B[31mtest \"" + test.name + " failed its check");
+                process.exit(1);
+            }
+        }
         test.checks.forEach(function (check, check_i) {
             if (steps.length < check.step) {
                 console.log("\u001B[31mtest \"" + test.name + "\"::\"" + check.name + "\" failed: the required step does not exist");
@@ -220,7 +226,22 @@ run_checks([
     },
     {
         name: "Vector2",
-        source: "class Vector2 {\n  public float x;\n  public float y;\n  public Vector2(float x, float y){\n    this.x = x;\n    this.y = y;\n  }\n  public static Vector2 Plus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x + v2.x, v1.y + v2.y);\n  }\n}\n\nvar v1 = new Vector2(0.0f,0.0f);\nvar v2 = new Vector2(10.0f,5.0f);\nvar v3 = Vector2.Plus(v1, v2);\ntypechecker_debugger;\ndebugger;",
+        source: "class Vector2 {\n  public double x;\n  public double y;\n  public Vector2(double x, double y){\n    this.x = x;\n    this.y = y;\n  }\n  public double Length(){\n    return Math.sqrt(this.x * this.x + this.y * this.y);\n  }\n  public static Vector2 Plus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x + v2.x, v1.y + v2.y);\n  }\n  public static Vector2 Minus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x - v2.x, v1.y - v2.y);\n  }\n  public static Vector2 Times(Vector2 v1, double c){\n    return new Vector2(v1.x * c, v1.y * c);\n  }\n  public static Vector2 Div(Vector2 v1, double c){\n    return Vector2.Times(v1, 1.0 / c);\n  }\n}\n\nvar v1 = new Vector2(0.0,0.0);\nvar v2 = new Vector2(10.0,5.0);\nvar v3 = Vector2.Times(v1, 1.0);\ntypechecker_debugger;\ndebugger;",
+        checks: []
+    },
+    {
+        name: "DataSet1",
+        source: "class DataSet{\n  (float, float, float)[] elems;\n  public DataSet((float, float, float)[] elems){\n    this.elems = elems;\n  }\n  public (float, float, float) ComputeAverage(){\n    (float, float, float) acc = (0.0f,0.0f,0.0f);\n    float total = 0.0f;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      var Item1 = this.elems[i].Item1 + acc.Item1;\n      var Item2 = this.elems[i].Item2 + acc.Item2;\n      var Item3 = this.elems[i].Item3 + acc.Item3;\n      acc = (Item1, Item2, Item3);\n      total = total + 1.0f;\n    }\n    return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);\n  }  \n}\ntypechecker_debugger;\ndebugger;",
+        checks: []
+    },
+    {
+        name: "DataSet2",
+        source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n  public double Minimum(){\n    double min = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] < min){\n        min = this.elems[i];\n      }\n    }\n    return min;\n  }  \n  \n  public double Maximum(){\n    double max = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] > max){\n        max = this.elems[i];\n      }\n    }\n    return max;\n  }  \n  public double MostFrequent(){\n    int max_freq = 0;\n    double most_freq = 0.0;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      int i_freq = 0;  \n      for(int j = 0; j < this.elems.Length; j=j+1){\n        if(this.elems[i] == this.elems[j]){\n          i_freq = i_freq + 1;\n        }\n      }\n      if(i_freq > max_freq){\n        max_freq = i_freq; \n        most_freq = this.elems[i];\n      }\n    }\n    return most_freq;\n  }  \n}",
+        checks: []
+    },
+    {
+        name: "DataSet3",
+        source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n\n  public DataSet Map(Func<double, double> f){\n    double[] new_elems = new double[this.elems.Length];\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      new_elems[i] = f(this.elems[i]);\n    }\n    return new DataSet(new_elems);\n  }\n  public void MutableMap(Func<double, double> f){\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      this.elems[i] = f(this.elems[i]);\n    }\n  }\n}",
         checks: []
     },
 ]);

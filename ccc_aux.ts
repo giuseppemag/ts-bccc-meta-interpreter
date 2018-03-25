@@ -40,7 +40,7 @@ export let comm_list_coroutine = function<S,E,A>(ps:Immutable.List<Coroutine<S,E
   let t = ps.rest().toList()
   return h.then(h_res =>
          comm_list_coroutine(t).then(t_res =>
-         co_unit<S,E,Immutable.List<A>>(Immutable.List<A>([h_res, ...t_res.toArray()]))
+         co_unit<S,E,Immutable.List<A>>(t_res.unshift(h_res))
          ))
 }
 

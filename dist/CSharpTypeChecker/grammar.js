@@ -15,9 +15,9 @@ var ccc_aux_1 = require("../ccc_aux");
 var source_range_1 = require("../source_range");
 var primitives_1 = require("./primitives");
 var priority_operators_table = Immutable.Map()
-    .set(".", { priority: 13, associativity: "left" })
     .set("()", { priority: 12, associativity: "left" })
-    .set("[]", { priority: 11, associativity: "left" })
+    .set("[]", { priority: 12, associativity: "left" })
+    .set(".", { priority: 12, associativity: "left" })
     .set("*", { priority: 10, associativity: "right" })
     .set("/", { priority: 10, associativity: "right" })
     .set("%", { priority: 10, associativity: "right" })
@@ -230,7 +230,8 @@ var array_new = function () {
     return primitives_1.new_keyword.then(function (new_range) {
         return primitives_1.identifier.then(function (array_type) {
             return primitives_1.left_square_bracket.then(function (_) {
-                return primitives_1.term(false).then(function (actual) {
+                return primitives_1.parser_or(exports.expr(), primitives_1.term(false))
+                    .then(function (actual) {
                     return primitives_1.right_square_bracket.then(function (rs) {
                         return ts_bccc_1.co_unit(primitives_1.mk_array_cons_call(source_range_1.join_source_ranges(new_range, rs), array_type, actual));
                     });
@@ -239,9 +240,27 @@ var array_new = function () {
         });
     });
 };
+var array_new_and_init = function () {
+    return primitives_1.new_keyword.then(function (new_range) {
+        return primitives_1.identifier.then(function (array_type) {
+            return primitives_1.left_square_bracket.then(function (_) {
+                return primitives_1.right_square_bracket.then(function (_) {
+                    return primitives_1.left_curly_bracket.then(function (_) {
+                        return actuals().then(function (_actuals) {
+                            return primitives_1.right_curly_bracket.then(function (rs) {
+                                var actuals = _actuals[0].ast.kind == "," ? comma_to_array(_actuals[0]) : _actuals;
+                                return ts_bccc_1.co_unit(primitives_1.mk_array_cons_call_and_init(source_range_1.join_source_ranges(new_range, rs), array_type, actuals));
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+};
 exports.expr = function () {
     var res = expr_AUX(empty_table, true).then(function (e) { return ts_bccc_1.co_unit(reduce_table(e)); });
-    return primitives_1.parser_or(array_new(), primitives_1.parser_or(cons_call(), res));
+    return primitives_1.parser_or(array_new(), primitives_1.parser_or(array_new_and_init(), primitives_1.parser_or(cons_call(), res)));
 };
 var semicolon = primitives_1.ignore_whitespace(primitives_1.semicolon_sign);
 var comma = primitives_1.ignore_whitespace(primitives_1.comma_sign);
@@ -273,19 +292,31 @@ var type_args = function () {
         }), ts_bccc_1.co_unit([a]));
     }), ts_bccc_1.co_unit(Array()));
 };
+var tuple_or_record = primitives_1.left_bracket.then(function (lb) {
+    return primitives_1.parser_or(type_args().then(function (as) {
+        return primitives_1.right_bracket.then(function (rb) {
+            return ts_bccc_1.co_unit(primitives_1.mk_tuple_type_decl(source_range_1.join_source_ranges(lb, rb), as));
+        });
+    }), arg_decls().then(function (as) {
+        return primitives_1.right_bracket.then(function (rb) {
+            return ts_bccc_1.co_unit(primitives_1.mk_record_type_decl(source_range_1.join_source_ranges(lb, rb), as));
+        });
+    }));
+});
+var array = function (t) {
+    return primitives_1.left_square_bracket.then(function (_) {
+        return partial_match.then(function (_) {
+            return primitives_1.right_square_bracket.then(function (end_range) {
+                return ts_bccc_1.co_unit(primitives_1.mk_array_decl(source_range_1.join_source_ranges(t.range, end_range), t));
+            });
+        });
+    });
+};
 var type_decl = function () {
-    return primitives_1.parser_or(primitives_1.left_bracket.then(function (lb) {
-        return primitives_1.parser_or(type_args().then(function (as) {
-            return primitives_1.right_bracket.then(function (rb) {
-                return ts_bccc_1.co_unit(primitives_1.mk_tuple_type_decl(source_range_1.join_source_ranges(lb, rb), as));
-            });
-        }), arg_decls().then(function (as) {
-            return primitives_1.right_bracket.then(function (rb) {
-                return ts_bccc_1.co_unit(primitives_1.mk_record_type_decl(source_range_1.join_source_ranges(lb, rb), as));
-            });
-        }));
-    }), primitives_1.identifier.then(function (i) {
-        return primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
+    return primitives_1.parser_or(primitives_1.parser_or(tuple_or_record.then(function (t) {
+        return array(t);
+    }), tuple_or_record), primitives_1.identifier.then(function (i) {
+        return primitives_1.parser_or(array(i), primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
             return partial_match.then(function (_) {
                 return type_args().then(function (args) {
                     return primitives_1.gt_op.then(function (end_range) {
@@ -299,7 +330,7 @@ var type_decl = function () {
                     return ts_bccc_1.co_unit(primitives_1.mk_array_decl(source_range_1.join_source_ranges(i.range, end_range), i));
                 });
             });
-        }), ts_bccc_1.co_unit(i)));
+        }), ts_bccc_1.co_unit(i))));
     }));
 };
 var decl_init = function () {

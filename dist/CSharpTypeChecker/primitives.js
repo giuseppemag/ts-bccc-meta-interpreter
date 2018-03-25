@@ -80,6 +80,9 @@ exports.mk_constructor_call = function (new_range, C_name, actuals) {
 exports.mk_array_cons_call = function (new_range, _type, actual) {
     return ({ range: new_range, ast: { kind: "array_cons_call", type: _type, actual: actual } });
 };
+exports.mk_array_cons_call_and_init = function (new_range, _type, actuals) {
+    return ({ range: new_range, ast: { kind: "array_cons_call_and_init", type: _type, actuals: actuals } });
+};
 exports.mk_constructor_declaration = function (function_name, arg_decls, body) {
     return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body });
 };

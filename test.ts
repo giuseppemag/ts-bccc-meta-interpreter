@@ -21,23 +21,25 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class Vector2 {
-  public float x;
-  public float y;
-  public Vector2(float x, float y){
-    this.x = x;
-    this.y = y;
+class DataSet{
+  double[] elems;
+  public DataSet(double[] elems){
+    this.elems = elems;
   }
-  public static Vector2 Plus(Vector2 v1, Vector2 v2){
-    return new Vector2(v1.x + v2.x, v1.y + v2.y);
+
+  public DataSet ImmutableMap(Func<double, double> f){
+    double[] new_elems = new double[this.elems.Length];
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      new_elems[i] = f(this.elems[i]);
+    }
+    return new DataSet(new_elems);
+  }
+  public void MutableMap(Func<double, double> f){
+    for(int i = 0; i < this.elems.Length; i=i+1){
+      this.elems[i] = f(this.elems[i]);
+    }
   }
 }
-
-var v1 = new Vector2(0.0f,0.0f);
-var v2 = new Vector2(10.0f,5.0f);
-var v3 = Vector2.Plus(v1, v2);
-typechecker_debugger;
-debugger;
     `
 
     // let hrstart = process.hrtime()

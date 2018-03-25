@@ -14,8 +14,10 @@ var CCC = require("ts-bccc");
 var ts_bccc_2 = require("ts-bccc");
 var Co = require("ts-bccc");
 var source_range_1 = require("../source_range");
+var ccc_aux_1 = require("../ccc_aux");
 exports.runtime_error = function (e) { return ts_bccc_2.co_error(e); };
 exports.init_array_val = function (len) { return ({ elements: Immutable.Map(Immutable.Range(0, len).map(function (i) { return [i, exports.mk_unit_val]; })), length: len }); };
+exports.init_array_with_args_val = function (vals) { return ({ elements: Immutable.Map(Immutable.Range(0, vals.length).toArray().map(function (i) { return [i, vals[i]]; })), length: vals.length }); };
 exports.empty_scope_val = Immutable.Map();
 exports.empty_scopes_val = Immutable.Map().set(0, exports.empty_scope_val);
 exports.mk_unit_val = ({ v: ts_bccc_1.apply(ts_bccc_1.unit(), {}), k: "u" });
@@ -204,8 +206,16 @@ exports.new_arr_rt = function (len) {
     var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
+exports.new_arr_with_args_rt = function (args) {
+    var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_with_args_val(args.map(function (arg) { return arg.value; })))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    return (heap_alloc_co);
+};
 exports.new_arr_expr_rt = function (len) {
     return len.then(function (len_v) { return len_v.value.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.value.v + " as it is not an integer.") : exports.new_arr_rt(len_v.value.v); });
+};
+exports.new_arr_expr_with_values_rt = function (args) {
+    return ccc_aux_1.comm_list_coroutine(Immutable.List(args)).then(function (args_v) { return exports.new_arr_with_args_rt(args_v.toArray()); });
+    // len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
 };
 exports.get_arr_len_rt = function (a_ref) {
     return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :

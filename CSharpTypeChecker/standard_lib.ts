@@ -41,5 +41,15 @@ export let int = CSharp.def_class(zero_range, "int", [
                   ))) }),
   ],
   [])
+export let math = CSharp.def_class(zero_range, "Math", [
+      _ => ({ modifiers:["static", "public"], is_constructor:false, range:zero_range,
+            return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
+            body:from_js(
+                  CSharp.double_type,
+                  Sem.get_v_rt("a").then(a_v => 
+                  Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v as number))
+                  ))) }),
+      ],
+    [])  
 
-export let standard_lib = () => int
+export let standard_lib = () => CSharp.semicolon(zero_range, int, math)
