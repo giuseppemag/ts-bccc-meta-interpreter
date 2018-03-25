@@ -1,6 +1,6 @@
 {
   "name": "ts-bccc-meta-compiler",
-  "version": "1.0.58",
+  "version": "1.0.59",
   "description": "A meta-compiler based on the ts-bccc package.",
   "typings": "dist/main.d.ts",
   "typescript": {
@@ -12,7 +12,7 @@
     "main": "node dist/test.js",
     "test": "node dist/tests.js",
     "css": "gulp",
-    "publish": "yarn test && npm pub"
+    "prepublish": "yarn test"
   },
   "author": "Dr. Giuseppe Maggiore, Dr. Mohamed Abbadi",
   "license": "MIT",
