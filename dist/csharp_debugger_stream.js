@@ -75,9 +75,9 @@ exports.get_stream = function (source) {
         }); };
         var initial_compiler_state = ts_bccc_1.apply(ts_bccc_1.constant(p).times(ts_bccc_1.constant(CSharp.empty_state)), {});
         var first_stream = typechecker_stream_1(initial_compiler_state);
-        if (first_stream.kind == "step") {
-            first_stream = first_stream.next();
-        }
+        // if (first_stream.kind == "step") {
+        //   first_stream = first_stream.next()
+        // }
         return first_stream;
     }
     catch (e) {

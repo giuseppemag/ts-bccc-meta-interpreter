@@ -97,9 +97,9 @@ export let get_stream = (source:string) : DebuggerStream => {
 
     let initial_compiler_state = apply(constant<Unit,Coroutine<CSharp.State,CSharp.Err,CSharp.Typing>>(p).times(constant<Unit,CSharp.State>(CSharp.empty_state)), {})
     let first_stream = typechecker_stream(initial_compiler_state)
-    if (first_stream.kind == "step") {
-      first_stream = first_stream.next()
-    }
+    // if (first_stream.kind == "step") {
+    //   first_stream = first_stream.next()
+    // }
     return first_stream
   }
   catch(e){
