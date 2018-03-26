@@ -62,8 +62,8 @@ run_checks([
     string s = "Hello statically typed languages!";
     typechecker_debugger;`,
     checks:[
-      { name:"x is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
-      { name:"s is string", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
+      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
+      { name:"s is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
     ] },
 
   { name:"primitives",
@@ -75,8 +75,8 @@ run_checks([
     }
     typechecker_debugger;`,
     checks:[
-      { name:"x is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
-      { name:"n is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("n").kind == "int" },
+      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
+      { name:"n is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("n").kind == "int" },
     ]},
 
   {
@@ -87,7 +87,7 @@ run_checks([
       n = n * x;
       x = x - 1;
     }`,
-    checks:[ { name:"does not compile", step:0, expected_kind:"error" }]
+    checks:[ { name:"does not compile", step:1, expected_kind:"error" }]
   },
 
   {
@@ -101,8 +101,8 @@ run_checks([
     }
     typechecker_debugger;`,
     checks:[
-      { name:"h is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("h").kind, "int") },
-      { name:"s is square", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s").v, "*****\\n*****\\n*****\\n*****\\n*****\\n") }
+      { name:"h is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("h").kind, "int") },
+      { name:"s is square", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s").v, "*****\\n*****\\n*****\\n*****\\n*****\\n") }
     ]
   },
 
@@ -124,11 +124,11 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:"y is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("y").kind == "int" },
-      { name:"z is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("z").kind == "int" },
-      { name:"y and z removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => !(s.has("y") || s.has("z")) },
-      { name:"y is 2", step:4, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("y").v == 2 },
-      { name:"y removed", step:5, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
+      { name:"y is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("y").kind == "int" },
+      { name:"z is int", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("z").kind == "int" },
+      { name:"y and z removed", step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => !(s.has("y") || s.has("z")) },
+      { name:"y is 2", step:5, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("y").v == 2 },
+      { name:"y removed", step:6, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
     ]
   },
 
@@ -154,12 +154,12 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:"initial scope empty", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
-      { name:"j added", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("j").kind == "int" },
-      { name:"j removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
-      { name:"j is 5", step:5, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
-      { name:"j is 5 again", step:7, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
-      { name:"scope is popped", step:10, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
+      { name:"initial scope empty", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
+      { name:"j added", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("j").kind == "int" },
+      { name:"j removed", step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("j") },
+      { name:"j is 5", step:6, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
+      { name:"j is 5 again", step:8, expected_kind:"memory", check:(s:MemRt) => s.globals.get(1).get("j").v == 5 },
+      { name:"scope is popped", step:11, expected_kind:"memory", check:(s:MemRt) => s.globals.count() == 1 },
     ]
   },
 
@@ -170,7 +170,7 @@ run_checks([
     string surname = person.Item2;
     typechecker_debugger;`,
     checks:[
-      { name:"person is tuple", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string,string)") },
+      { name:"person is tuple", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string,string)") },
     ]
   },
 
@@ -182,8 +182,8 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:"person is record", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string Name,string Surname)") },
-      { name:`name is "John"`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("name").v, "John") },
+      { name:"person is record", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("person")), "(string Name,string Surname)") },
+      { name:`name is "John"`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("name").v, "John") },
     ]
   },
 
@@ -204,12 +204,12 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:"x is int", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
-      { name:"x is removed", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.has("x"), false) },
-      { name:"s1 is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("s1").kind, "string") },
-      { name:"x is 100", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 100) },
-      { name:"x is 101", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 101) },
-      { name:`s2 is "odd"`, step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s2").v, "odd") },
+      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+      { name:"x is removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.has("x"), false) },
+      { name:"s1 is string", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("s1").kind, "string") },
+      { name:"x is 100", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 100) },
+      { name:"x is 101", step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 101) },
+      { name:`s2 is "odd"`, step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s2").v, "odd") },
     ]
   },
 
@@ -236,12 +236,12 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:`x is "int"`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
-      { name:`p is "int"`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("p").kind, "int") },
-      { name:`res is "int"`, step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("res").kind, "int") },
-      { name:`function scope cleaned up`, step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("factorial") && s.has("x") && !s.has("res") },
-      { name:`stack has grown`, step:10, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 6) && assert_equal(s.stack.get(3).get(0).get("x").v, 2) && assert_equal(s.stack.get(3).get(1).get("p").v, 2) },
-      { name:`stack is cleaned up`, step:11, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 0) && assert_equal(s.globals.get(0).get("x").v, 5 * 4 * 3 * 2) },
+      { name:`x is "int"`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+      { name:`p is "int"`, step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("p").kind, "int") },
+      { name:`res is "int"`, step:3, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("res").kind, "int") },
+      { name:`function scope cleaned up`, step:4, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("factorial") && s.has("x") && !s.has("res") },
+      { name:`stack has grown`, step:11, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 6) && assert_equal(s.stack.get(3).get(0).get("x").v, 2) && assert_equal(s.stack.get(3).get(1).get("p").v, 2) },
+      { name:`stack is cleaned up`, step:12, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.count(), 0) && assert_equal(s.globals.get(0).get("x").v, 5 * 4 * 3 * 2) },
     ]
   },
 
@@ -258,11 +258,11 @@ run_checks([
     var x = d_p2(10);
     debugger;`,
     checks:[
-      { name:"f is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("f")), "Func<int,int>" ) },
-      { name:"d is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d")), "Func<int,int>" ) },
-      { name:"then is Func", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("then")), "Func<Func<int,int>,Func<int,int>,Func<int,int>>" ) },
-      { name:"d_p2 is Func", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d_p2")), "Func<int,int>" ) },
-      { name:"x is 22", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 22) },
+      { name:"f is Func", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("f")), "Func<int,int>" ) },
+      { name:"d is Func", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d")), "Func<int,int>" ) },
+      { name:"then is Func", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("then")), "Func<Func<int,int>,Func<int,int>,Func<int,int>>" ) },
+      { name:"d_p2 is Func", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("d_p2")), "Func<int,int>" ) },
+      { name:"x is 22", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 22) },
     ]
   },
 
@@ -282,17 +282,17 @@ run_checks([
     debugger;
     typechecker_debugger;`,
     checks:[
-      { name:"add_double is Func^2", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("add_double")), "Func<int,Func<int,int>>" ) },
-      { name:"a is 12", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("a").v, 12) },
-      { name:"f has 2 and 4 in closure", step:3, expected_kind:"memory", check:(s:MemRt) => {
+      { name:"add_double is Func^2", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("add_double")), "Func<int,Func<int,int>>" ) },
+      { name:"a is 12", step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("a").v, 12) },
+      { name:"f has 2 and 4 in closure", step:4, expected_kind:"memory", check:(s:MemRt) => {
         let f = (s.globals.get(0).get("f").v as Lambda)
         return assert_equal(f.closure.get("x").v, 2) && assert_equal(f.closure.get("y").v, 4)
       } },
-      { name:"g has 3 and 5 in closure", step:5, expected_kind:"memory", check:(s:MemRt) => {
+      { name:"g has 3 and 5 in closure", step:6, expected_kind:"memory", check:(s:MemRt) => {
         let g = (s.globals.get(0).get("g").v as Lambda)
         return assert_equal(g.closure.get("x").v, 3) && assert_equal(g.closure.get("y").v, 5)
       } },
-      { name:"b is 18", step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("b").v, 18) },
+      { name:"b is 18", step:7, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("b").v, 18) },
     ]
   },
 
@@ -309,9 +309,9 @@ run_checks([
     debugger;
     `,
     checks:[
-      { name:`fibo is int[]`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("fibo")), "int[]" ) },
-      { name:`fibo is a reference`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("fibo").v, "ref_0" ) },
-      { name:`ref_0 contains the array`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`fibo is int[]`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("fibo")), "int[]" ) },
+      { name:`fibo is a reference`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("fibo").v, "ref_0" ) },
+      { name:`ref_0 contains the array`, step:3, expected_kind:"memory", check:(s:MemRt) => {
         let fibo = s.heap.get("ref_0").v as ArrayVal
         return assert_equal(fibo.length, 8) && assert_equal(fibo.elements.get(0).v, 0) &&
                 assert_equal(fibo.elements.get(7).v, 13)
@@ -339,15 +339,15 @@ run_checks([
     c.tick ();
     debugger;`,
     checks:[
-      { name:`c is Counter`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "Counter" ) },
-      { name:`cnt starts at -5`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`c is Counter`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "Counter" ) },
+      { name:`cnt starts at -5`, step:3, expected_kind:"memory", check:(s:MemRt) => {
         let c = s.heap.get("ref_0").v as Scope
         return assert_equal(c.get("cnt").v, -5)
       } },
-      { name:`this is a reference inside cons`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
-      { name:`this is a reference inside "tick"`, step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
-      { name:`c is a reference`, step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, "ref_0" ) },
-      { name:`cnt is 2`, step:6, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`this is a reference inside cons`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
+      { name:`this is a reference inside "tick"`, step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("this").v, "ref_0" ) },
+      { name:`c is a reference`, step:7, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, "ref_0" ) },
+      { name:`cnt is 2`, step:7, expected_kind:"memory", check:(s:MemRt) => {
         let c = s.heap.get("ref_0").v as Scope
         return assert_equal(c.get("cnt").v, 2 )
       } },
@@ -373,13 +373,13 @@ run_checks([
     c2.do_something ();
     debugger;`,
     checks:[
-      { name:`c1 is a reference`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c1").v, "ref_0" ) },
-      { name:`c2 is the same reference`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c2").v, "ref_0" ) },
-      { name:`field is 21`, step:2, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`c1 is a reference`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c1").v, "ref_0" ) },
+      { name:`c2 is the same reference`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c2").v, "ref_0" ) },
+      { name:`field is 21`, step:3, expected_kind:"memory", check:(s:MemRt) => {
         let c = s.heap.get("ref_0").v as Scope
         return assert_equal(c.get("field").v, 21 )
       } },
-      { name:`field is 43`, step:3, expected_kind:"memory", check:(s:MemRt) => {
+      { name:`field is 43`, step:4, expected_kind:"memory", check:(s:MemRt) => {
         let c = s.heap.get("ref_0").v as Scope
         return assert_equal(c.get("field").v, 43 )
       } },
@@ -405,8 +405,8 @@ run_checks([
     c.cnt = 10;
     typechecker_debugger;`,
     checks:[
-      { name:`c is "DoubleCounter"`, step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "DoubleCounter" ) },
-      { name:`access to "c.cnt" is prevented`, step:1, expected_kind:"error" },
+      { name:`c is "DoubleCounter"`, step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("c")), "DoubleCounter" ) },
+      { name:`access to "c.cnt" is prevented`, step:2, expected_kind:"error" },
     ]
   },
 
@@ -423,8 +423,8 @@ run_checks([
     debugger;
     `,
     checks:[
-      { name:`cnt is 15`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.classes.get("StaticContainer").static_fields.get("cnt").v, 15 ) },
-      { name:`y is 15`, step:1, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 15 ) },
+      { name:`cnt is 15`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.classes.get("StaticContainer").static_fields.get("cnt").v, 15 ) },
+      { name:`y is 15`, step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 15 ) },
     ]
   },
 
@@ -439,9 +439,9 @@ run_checks([
     typechecker_debugger;
     debugger;`,
     checks:[
-      { name:"quadratic is a function", step:0, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
-      { name:"x is 4", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
-      { name:"y is result", step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
+      { name:"quadratic is a function", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(CSharp.type_to_string(s.get("quadratic")), "Func<int,int,int,int,int>") },
+      { name:"x is 4", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 4) },
+      { name:"y is result", step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 1 * 4 * 4 + 2 * 4 + 3) },
     ]
   },
 
