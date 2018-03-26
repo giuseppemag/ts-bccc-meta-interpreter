@@ -17,3 +17,4 @@ exports.max_source_range = function (r1, r2) {
         return r1;
 };
 exports.zero_range = exports.mk_range(0, 0, 0, 0);
+exports.minus_two_range = exports.mk_range(-2, -2, -2, -2);

@@ -15,3 +15,4 @@ export let max_source_range = (r1:SourceRange, r2:SourceRange) => {
 }
 
 export let zero_range : SourceRange = mk_range(0,0,0,0)
+export let minus_two_range : SourceRange = mk_range(-2,-2,-2,-2)

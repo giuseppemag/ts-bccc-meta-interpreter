@@ -124,3 +124,12 @@
   [ ] breakpoint right after return (`ret_break?`)
   [ ] Intellisense editor
   [ ] Integration in VSCode
+
+
+[m]
+  public Vector2 Times(double c){
+    return new Vector2(this.x * c, this.y * c);
+  }
+  public Vector2 Div(double c){
+    return this.Times(1.0 / c);
+  }
