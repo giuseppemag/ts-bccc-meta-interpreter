@@ -21,25 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class DataSet{
-  double[] elems;
-  public DataSet(double[] elems){
-    this.elems = elems;
-  }
-
-  public DataSet ImmutableMap(Func<double, double> f){
-    double[] new_elems = new double[this.elems.Length];
-    for(int i = 0; i < this.elems.Length; i=i+1){
-      new_elems[i] = f(this.elems[i]);
-    }
-    return new DataSet(new_elems);
-  }
-  public void MutableMap(Func<double, double> f){
-    for(int i = 0; i < this.elems.Length; i=i+1){
-      this.elems[i] = f(this.elems[i]);
-    }
-  }
-}
+(double, double, double)[] xxx = new (double,double, double)[5];
     `
 
     // let hrstart = process.hrtime()

@@ -3,7 +3,7 @@ import { apply, co_error, co_get_state, co_set_state, co_unit, Coroutine, inl, i
 import * as CCC from 'ts-bccc';
 
 import { co_catch, co_lookup, co_stateless } from '../ccc_aux';
-import { join_source_ranges, mk_range, SourceRange } from '../source_range';
+import { join_source_ranges, mk_range, SourceRange, zero_range } from '../source_range';
 import { BinOpKind, Token, UnaryOpKind } from './lexer';
 import {
   and_op,
@@ -288,6 +288,7 @@ let reduce_table_2 = (symbols: Immutable.Stack<ParserRes>,
   // console.log("ops_count", ops.count(), JSON.stringify(ops))
   // console.log("symbols_count", symbols.count(), JSON.stringify(symbols))
   // console.log("callables_count", callables.count(), JSON.stringify(callables))
+  // console.log("op", callables.count(), JSON.stringify(callables))
 
   if (op.snd.kind == "binary") {
     let snd = symbols.peek()
@@ -356,8 +357,8 @@ let expr_after_op = (symbols: Immutable.Stack<ParserRes>,
     if (op_p.priority > current_p.priority ||
       (op_p.priority == current_p.priority &&
         op_p.associativity == "left")) {
-      let res = reduce_table_2(symbols, ops, callables, false)
-      return expr_after_op(res.symbols, res.callables, res.ops, current_op, compose_current)
+        let res = reduce_table_2(symbols, ops, callables, false)
+        return expr_after_op(res.symbols, res.callables, res.ops, current_op, compose_current)
     }
   }
   // console.log("B")
@@ -447,7 +448,8 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
           co_unit({ ...table, symbols: symbols, callables: callables })
         )))))))))))))))))))))
-  }
+      }
+  
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
   return parser_or<SymTable>(term(try_par?try_par:false).then(l => cases(l)), cases("none"))
 }
@@ -457,18 +459,18 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     identifier_token.then(class_name =>
     left_bracket.then(_ =>
     actuals().then((actuals:Array<ParserRes>) =>
-    right_bracket.then(_ =>
+    right_bracket.then(rb =>
 
     {
       let args = 
         actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
         actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
-      return co_unit(mk_constructor_call(new_range, class_name.id, args))}
+      return co_unit(mk_constructor_call(join_source_ranges(new_range, rb), class_name.id, args))}
     )))))
 
 let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>
-    identifier.then(array_type =>
+    type_decl().then(array_type =>
     left_square_bracket.then(_ =>
     parser_or(expr(), term(false))
     .then((actual:ParserRes) =>
@@ -478,7 +480,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 
 let array_new_and_init = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>
-    identifier.then(array_type =>
+    type_decl().then(array_type =>
     left_square_bracket.then(_ =>
     right_square_bracket.then(_ =>
     left_curly_bracket.then(_ => 
@@ -495,8 +497,8 @@ export let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
     return parser_or<ParserRes>(array_new(),
-           parser_or<ParserRes>(array_new_and_init(),
-           parser_or<ParserRes>(cons_call(),
+          parser_or<ParserRes>(array_new_and_init(),
+          parser_or<ParserRes>(cons_call(),
                                 res)))
   }
 

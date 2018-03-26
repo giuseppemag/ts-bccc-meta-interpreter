@@ -113,6 +113,7 @@ var reduce_table_2 = function (symbols, ops, callables, reduce_to_end) {
     // console.log("ops_count", ops.count(), JSON.stringify(ops))
     // console.log("symbols_count", symbols.count(), JSON.stringify(symbols))
     // console.log("callables_count", callables.count(), JSON.stringify(callables))
+    // console.log("op", callables.count(), JSON.stringify(callables))
     if (op.snd.kind == "binary") {
         var snd = symbols.peek();
         var fst = symbols.pop().peek();
@@ -216,10 +217,10 @@ var cons_call = function () {
         return primitives_1.identifier_token.then(function (class_name) {
             return primitives_1.left_bracket.then(function (_) {
                 return actuals().then(function (actuals) {
-                    return primitives_1.right_bracket.then(function (_) {
+                    return primitives_1.right_bracket.then(function (rb) {
                         var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
                             actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
-                        return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(new_range, class_name.id, args));
+                        return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(source_range_1.join_source_ranges(new_range, rb), class_name.id, args));
                     });
                 });
             });
@@ -228,7 +229,7 @@ var cons_call = function () {
 };
 var array_new = function () {
     return primitives_1.new_keyword.then(function (new_range) {
-        return primitives_1.identifier.then(function (array_type) {
+        return type_decl().then(function (array_type) {
             return primitives_1.left_square_bracket.then(function (_) {
                 return primitives_1.parser_or(exports.expr(), primitives_1.term(false))
                     .then(function (actual) {
@@ -242,7 +243,7 @@ var array_new = function () {
 };
 var array_new_and_init = function () {
     return primitives_1.new_keyword.then(function (new_range) {
-        return primitives_1.identifier.then(function (array_type) {
+        return type_decl().then(function (array_type) {
             return primitives_1.left_square_bracket.then(function (_) {
                 return primitives_1.right_square_bracket.then(function (_) {
                     return primitives_1.left_curly_bracket.then(function (_) {
