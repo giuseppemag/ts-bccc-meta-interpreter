@@ -35,8 +35,8 @@ export const mk_noop = () : ParserRes => ({ range:mk_range(-1,-1,-1,-1), ast:{ k
 
 export const mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
 export const mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
-export const mk_decl_and_init = (l:ParserRes,r:string,v:ParserRes, r_range:SourceRange) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:{value:r, range:r_range}, v:v })
-export const mk_decl = (l:ParserRes,r:string, r_range:SourceRange) : DeclAST => ({ kind: "decl", l:l, r:{value:r, range:r_range} })
+export const mk_decl_and_init = (l:ParserRes,r:ParserRes,v:ParserRes) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:r, v:v })
+export const mk_decl = (l:ParserRes,r:ParserRes) : DeclAST => ({ kind: "decl", l:l, r:r })
 export const mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
 export const mk_for = (i:ParserRes,c:ParserRes,s:ParserRes,b:ParserRes, for_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(for_keyword_range, b.range), ast:{ kind: "for", i:i, c:c, s:s, b:b }})
 export const mk_while = (c:ParserRes,b:ParserRes, while_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(while_keyword_range, b.range), ast:{ kind: "while", c:c, b:b }})

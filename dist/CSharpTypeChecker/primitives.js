@@ -42,8 +42,8 @@ exports.mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id
 exports.mk_noop = function () { return ({ range: source_range_1.mk_range(-1, -1, -1, -1), ast: { kind: "noop" } }); };
 exports.mk_return = function (e) { return ({ range: e.range, ast: { kind: "return", value: e } }); };
 exports.mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
-exports.mk_decl_and_init = function (l, r, v, r_range) { return ({ kind: "decl and init", l: l, r: { value: r, range: r_range }, v: v }); };
-exports.mk_decl = function (l, r, r_range) { return ({ kind: "decl", l: l, r: { value: r, range: r_range } }); };
+exports.mk_decl_and_init = function (l, r, v) { return ({ kind: "decl and init", l: l, r: r, v: v }); };
+exports.mk_decl = function (l, r) { return ({ kind: "decl", l: l, r: r }); };
 exports.mk_assign = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "=", l: l, r: r } }); };
 exports.mk_for = function (i, c, s, b, for_keyword_range) { return ({ range: source_range_1.join_source_ranges(for_keyword_range, b.range), ast: { kind: "for", i: i, c: c, s: s, b: b } }); };
 exports.mk_while = function (c, b, while_keyword_range) { return ({ range: source_range_1.join_source_ranges(while_keyword_range, b.range), ast: { kind: "while", c: c, b: b } }); };

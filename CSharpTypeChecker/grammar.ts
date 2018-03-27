@@ -143,8 +143,8 @@ export interface IdAST { kind: "id", value: string }
 export interface ForAST { kind: "for", i:ParserRes, c:ParserRes, s:ParserRes, b:ParserRes }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
-export interface DeclAST { kind: "decl", l:ParserRes, r:{value:string, range:SourceRange} }
-export interface DeclAndInitAST { kind: "decl and init", l:ParserRes, r:{value:string, range:SourceRange}, v:ParserRes }
+export interface DeclAST { kind: "decl", l:ParserRes, r:ParserRes }
+export interface DeclAndInitAST { kind: "decl and init", l:ParserRes, r:ParserRes, v:ParserRes }
 export interface AssignAST { kind: "=", l:ParserRes, r:ParserRes }
 export interface FieldRefAST { kind: ".", l:ParserRes, r:ParserRes }
 export interface SemicolonAST { kind: ";", l:ParserRes, r:ParserRes }
@@ -575,18 +575,18 @@ let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
 let decl_init : () => Coroutine<ParserState,ParserError,DeclAndInitAST> = () =>
   no_match.then(_ =>
   type_decl().then(l =>
-  identifier_token.then(r =>
+  identifier.then(r =>
   partial_match.then(_ =>
   assign_right().then(v =>
   full_match.then(_ =>
-  co_unit<ParserState,ParserError,DeclAndInitAST>(mk_decl_and_init(l, r.id, v, r.range))))))))
+  co_unit<ParserState,ParserError,DeclAndInitAST>(mk_decl_and_init(l, r, v))))))))
 
 let decl : () => Coroutine<ParserState,ParserError,DeclAST> = () =>
   no_match.then(_ =>
   type_decl().then(l =>
-  identifier_token.then(r =>
+  identifier.then(r =>
   partial_match.then(_ =>
-  co_unit(mk_decl(l, r.id, r.range))))))
+  co_unit(mk_decl(l, r))))))
 
 let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(

@@ -66,18 +66,12 @@ export interface IfAST {
 export interface DeclAST {
     kind: "decl";
     l: ParserRes;
-    r: {
-        value: string;
-        range: SourceRange;
-    };
+    r: ParserRes;
 }
 export interface DeclAndInitAST {
     kind: "decl and init";
     l: ParserRes;
-    r: {
-        value: string;
-        range: SourceRange;
-    };
+    r: ParserRes;
     v: ParserRes;
 }
 export interface AssignAST {

@@ -107,7 +107,7 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
   : s.ast.kind == "tuple type decl" ?
     tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
   : s.ast.kind == "record type decl" ?
-    record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.value, ast_to_csharp_type(a.l)])))
+    record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)])))
   : (() => { console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); throw new Error(`Unsupported ast type: ${JSON.stringify(s)}`)})()
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
@@ -251,7 +251,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
     def_fun(n.range,
       { name:n.ast.name,
         return_t:ast_to_csharp_type(n.ast.return_type),
-        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.value, type:ast_to_csharp_type(d.l)})),
+        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.ast.kind == "id" ? d.r.ast.value : "", type:ast_to_csharp_type(d.l)})),
         body:ast_to_type_checker(n.ast.body)(context),
         range:n.range },
         [])
@@ -260,7 +260,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(m.decl.return_type),
-          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:ast_to_csharp_type(a.l) })),
+          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(m.decl.body)(context),
           range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
           modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
@@ -269,24 +269,24 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
           return_t:unit_type,
-          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.value, type:ast_to_csharp_type(a.l) })),
+          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(c.decl.body)(context),
           range:c.decl.body.range,
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:true
         })) ),
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
-        name:f.decl.r.value,
+        name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
         type:ast_to_csharp_type(f.decl.l),
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
         initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
       }))
     )
 
-  : n.ast.kind == "decl" ?
-    decl_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l))
-  : n.ast.kind == "decl and init" ?
-    decl_and_init_v(n.range, n.ast.r.value, ast_to_csharp_type(n.ast.l), ast_to_type_checker(n.ast.v)(context))
+  : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?
+    decl_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(n.ast.l))
+  : n.ast.kind == "decl and init" && n.ast.r.ast.kind == "id" ?
+    decl_and_init_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(n.ast.l), ast_to_type_checker(n.ast.v)(context))
   : n.ast.kind == "debugger" ?
     breakpoint(n.range)(done)
   : n.ast.kind == "typechecker_debugger" ?

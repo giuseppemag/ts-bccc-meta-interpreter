@@ -337,11 +337,11 @@ var type_decl = function () {
 var decl_init = function () {
     return no_match.then(function (_) {
         return type_decl().then(function (l) {
-            return primitives_1.identifier_token.then(function (r) {
+            return primitives_1.identifier.then(function (r) {
                 return partial_match.then(function (_) {
                     return assign_right().then(function (v) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(primitives_1.mk_decl_and_init(l, r.id, v, r.range));
+                            return ts_bccc_1.co_unit(primitives_1.mk_decl_and_init(l, r, v));
                         });
                     });
                 });
@@ -352,9 +352,9 @@ var decl_init = function () {
 var decl = function () {
     return no_match.then(function (_) {
         return type_decl().then(function (l) {
-            return primitives_1.identifier_token.then(function (r) {
+            return primitives_1.identifier.then(function (r) {
                 return partial_match.then(function (_) {
-                    return ts_bccc_1.co_unit(primitives_1.mk_decl(l, r.id, r.range));
+                    return ts_bccc_1.co_unit(primitives_1.mk_decl(l, r));
                 });
             });
         });
