@@ -40,7 +40,7 @@ exports.mk_float = function (v, sr) { return ({ range: sr, ast: { kind: "float",
 exports.mk_double = function (v, sr) { return ({ range: sr, ast: { kind: "double", value: v } }); };
 exports.mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v } }); };
 exports.mk_noop = function () { return ({ range: source_range_1.mk_range(-1, -1, -1, -1), ast: { kind: "noop" } }); };
-exports.mk_return = function (e) { return ({ range: e.range, ast: { kind: "return", value: e } }); };
+exports.mk_return = function (e, range) { return ({ range: range, ast: { kind: "return", value: e } }); };
 exports.mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
 exports.mk_decl_and_init = function (l, r, v) { return ({ kind: "decl and init", l: l, r: r, v: v }); };
 exports.mk_decl = function (l, r) { return ({ kind: "decl", l: l, r: r }); };
@@ -70,8 +70,8 @@ exports.mk_or = exports.mk_bin_op("||");
 exports.mk_xor = exports.mk_bin_op("xor");
 exports.mk_unary_op = function (k) { return function (e) { return ({ range: e.range, ast: { kind: k, e: e } }); }; };
 exports.mk_not = exports.mk_unary_op("not");
-exports.mk_call = function (f_name, actuals) {
-    return ({ range: f_name.range,
+exports.mk_call = function (f_name, actuals, range) {
+    return ({ range: range,
         ast: { kind: "func_call", name: f_name, actuals: actuals } });
 };
 exports.mk_constructor_call = function (new_range, C_name, actuals) {

@@ -424,7 +424,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
 
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
                   : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
-                    : { kind: "res", value: mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) }
+                    : { kind: "res", value: mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals, join_source_ranges(_l.range, res.range)) }
               }))
           }),
           parser_or<SymTable>(comma.then(_ => expr_after_op(symbols, callables, table.ops, ",", mk_binary((l, r) => mk_pair(l, r)))),
@@ -614,7 +614,7 @@ let return_statement : () => Parser = () =>
   partial_match.then(_ =>
   parser_or<ParserRes>(
     expr().then(e =>
-    co_unit<ParserState,ParserError,ParserRes>(mk_return(e)))
+    co_unit<ParserState,ParserError,ParserRes>(mk_return(e, join_source_ranges(return_range, e.range))))
   ,
     co_unit<ParserState,ParserError,ParserRes>(mk_unit(return_range))
   ))))

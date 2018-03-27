@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n(double, double, double)[] xxx = new (double,double, double)[5];\n    ";
+        var source = "\nint f(int a, int b, int c){\n  return a;\n}\n\nvar x = f(1,2,3);\nint c = 1;\n    ";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

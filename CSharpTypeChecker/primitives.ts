@@ -33,7 +33,7 @@ export const mk_double = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, 
 export const mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
 export const mk_noop = () : ParserRes => ({ range:mk_range(-1,-1,-1,-1), ast:{ kind: "noop" }})
 
-export const mk_return = (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: "return", value:e }})
+export const mk_return = (e:ParserRes, range:SourceRange) : ParserRes => ({ range:range, ast:{ kind: "return", value:e }})
 export const mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ range:sr, ast:{ kind: "args", value:Immutable.List<DeclAST>(ds) }})
 export const mk_decl_and_init = (l:ParserRes,r:ParserRes,v:ParserRes) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:r, v:v })
 export const mk_decl = (l:ParserRes,r:ParserRes) : DeclAST => ({ kind: "decl", l:l, r:r })
@@ -66,8 +66,8 @@ export const mk_xor = mk_bin_op("xor")
 export const mk_unary_op = (k:UnaryOpKind) => (e:ParserRes) : ParserRes => ({ range:e.range, ast:{ kind: k, e:e }})
 export const mk_not = mk_unary_op("not")
 
-export const mk_call = (f_name:ParserRes, actuals:Array<ParserRes>) : ParserRes =>
-  ({  range: f_name.range,
+export const mk_call = (f_name:ParserRes, actuals:Array<ParserRes>, range:SourceRange) : ParserRes =>
+  ({  range: range,
       ast: {kind:"func_call", name:f_name, actuals:actuals} })
 
 export const mk_constructor_call = (new_range:SourceRange, C_name:string, actuals:Array<ParserRes>) : ParserRes =>

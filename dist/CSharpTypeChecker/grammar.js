@@ -202,7 +202,7 @@ var expr_AUX = function (table, try_par) {
             return expr_after_op(symbols, l != "none" ? callables.push(is_callable(l)) : callables, table.ops, "()", mk_unary(function (_l, is_callable) {
                 return _l == "none" ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
                     : !is_callable ? { kind: "0-ary_push_back", value: primitives_1.mk_bracket(actuals[0], range) }
-                        : { kind: "res", value: primitives_1.mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals) };
+                        : { kind: "res", value: primitives_1.mk_call(_l, actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals, source_range_1.join_source_ranges(_l.range, res.range)) };
             }));
         }), primitives_1.parser_or(comma.then(function (_) { return expr_after_op(symbols, callables, table.ops, ",", mk_binary(function (l, r) { return primitives_1.mk_pair(l, r); })); }), primitives_1.parser_or(primitives_1.arrow_op.then(function (_) { return expr_after_op(symbols, callables, table.ops, "=>", mk_binary(function (l, r) {
             //console.log("mk_arrow-2", JSON.stringify(r)) ||
@@ -383,7 +383,7 @@ var return_statement = function () {
         return primitives_1.return_sign.then(function (return_range) {
             return partial_match.then(function (_) {
                 return primitives_1.parser_or(exports.expr().then(function (e) {
-                    return ts_bccc_1.co_unit(primitives_1.mk_return(e));
+                    return ts_bccc_1.co_unit(primitives_1.mk_return(e, source_range_1.join_source_ranges(return_range, e.range)));
                 }), ts_bccc_1.co_unit(primitives_1.mk_unit(return_range)));
             });
         });
