@@ -38,10 +38,10 @@ export const mk_args = (sr:SourceRange,ds:Array<DeclAST>) : ParserRes => ({ rang
 export const mk_decl_and_init = (l:ParserRes,r:ParserRes,v:ParserRes) : DeclAndInitAST => ({ kind: "decl and init", l:l, r:r, v:v })
 export const mk_decl = (l:ParserRes,r:ParserRes) : DeclAST => ({ kind: "decl", l:l, r:r })
 export const mk_assign = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: "=", l:l, r:r }})
-export const mk_for = (i:ParserRes,c:ParserRes,s:ParserRes,b:ParserRes, for_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(for_keyword_range, b.range), ast:{ kind: "for", i:i, c:c, s:s, b:b }})
-export const mk_while = (c:ParserRes,b:ParserRes, while_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(while_keyword_range, b.range), ast:{ kind: "while", c:c, b:b }})
-export const mk_if_then = (c:ParserRes,t:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, t.range), ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
-export const mk_if_then_else = (c:ParserRes,t:ParserRes,e:ParserRes, if_keyword_range:SourceRange) : ParserRes => ({ range:join_source_ranges(if_keyword_range, e.range), ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
+export const mk_for = (range:SourceRange, i:ParserRes,c:ParserRes,s:ParserRes,b:ParserRes) : ParserRes => ({ range:range, ast:{ kind: "for", i:i, c:c, s:s, b:b }})
+export const mk_while = (range:SourceRange, c:ParserRes,b:ParserRes) : ParserRes => ({ range:range, ast:{ kind: "while", c:c, b:b }})
+export const mk_if_then = (range:SourceRange, c:ParserRes,t:ParserRes) : ParserRes => ({ range:range, ast:{ kind: "if", c:c, t:t, e:apply(none<ParserRes>(), {}) }})
+export const mk_if_then_else = (range:SourceRange, c:ParserRes,t:ParserRes,e:ParserRes) : ParserRes => ({ range:range, ast:{ kind: "if", c:c, t:t, e:apply(some<ParserRes>(), e) }})
 export const mk_field_ref = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ".", l:l, r:r }})
 export const mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: ";", l:l, r:r }})
 
@@ -79,11 +79,11 @@ export const mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actua
 export const mk_array_cons_call_and_init = (new_range:SourceRange, _type:ParserRes, actuals:ParserRes[]) : ParserRes =>
   ({ range:new_range, ast:{ kind:"array_cons_call_and_init", type:_type, actuals:actuals } })  
 
-export const mk_constructor_declaration = (function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
-  ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body})
+export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
+  ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, range:range})
 
-export const mk_function_declaration = (return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
-  ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body})
+export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
+  ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body, range:range})
 
 export const mk_class_declaration = (C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, range:SourceRange) : ParserRes =>
   ({  range: range,

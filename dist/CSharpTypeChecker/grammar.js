@@ -398,10 +398,10 @@ var if_conditional = function (stmt) {
                         return primitives_1.parser_or(primitives_1.else_keyword.then(function (_) {
                             return stmt().then(function (e) {
                                 return full_match.then(function (_) {
-                                    return ts_bccc_1.co_unit(primitives_1.mk_if_then_else(c, t, e, if_keyword));
+                                    return ts_bccc_1.co_unit(primitives_1.mk_if_then_else(source_range_1.join_source_ranges(if_keyword, e.range), c, t, e));
                                 });
                             });
-                        }), ts_bccc_1.co_unit(primitives_1.mk_if_then(c, t, if_keyword)));
+                        }), ts_bccc_1.co_unit(primitives_1.mk_if_then(source_range_1.join_source_ranges(if_keyword, t.range), c, t)));
                     });
                 });
             });
@@ -417,10 +417,10 @@ var for_loop = function (stmt) {
                         return exports.expr().then(function (c) {
                             return semicolon.then(function (_) {
                                 return stmt(true).then(function (s) {
-                                    return primitives_1.right_bracket.then(function (rb) {
+                                    return primitives_1.right_bracket.then(function (_) {
                                         return stmt().then(function (b) {
                                             return full_match.then(function (_) {
-                                                return ts_bccc_1.co_unit(primitives_1.mk_for(i, c, s, b, for_keyword_range));
+                                                return ts_bccc_1.co_unit(primitives_1.mk_for(source_range_1.join_source_ranges(for_keyword_range, b.range), i, c, s, b));
                                             });
                                         });
                                     });
@@ -440,7 +440,7 @@ var while_loop = function (stmt) {
                 return exports.expr().then(function (c) {
                     return stmt().then(function (b) {
                         return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(primitives_1.mk_while(c, b, while_keyword_range));
+                            return ts_bccc_1.co_unit(primitives_1.mk_while(source_range_1.join_source_ranges(while_keyword_range, b.range), c, b));
                         });
                     });
                 });
@@ -472,9 +472,9 @@ var constructor_declaration = function () {
                         return primitives_1.right_bracket.then(function (_) {
                             return primitives_1.left_curly_bracket.then(function (_) {
                                 return function_statements(ccc_aux_1.co_lookup(primitives_1.right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
-                                    return primitives_1.right_curly_bracket.then(function (_) {
+                                    return primitives_1.right_curly_bracket.then(function (rb) {
                                         return full_match.then(function (_) {
-                                            return ts_bccc_1.co_unit(primitives_1.mk_constructor_declaration(function_name.id, Immutable.List(arg_decls), body));
+                                            return ts_bccc_1.co_unit(primitives_1.mk_constructor_declaration(source_range_1.join_source_ranges(function_name.range, rb), function_name.id, Immutable.List(arg_decls), body));
                                         });
                                     });
                                 });
@@ -496,9 +496,9 @@ var function_declaration = function () {
                             return primitives_1.right_bracket.then(function (_) {
                                 return primitives_1.left_curly_bracket.then(function (_) {
                                     return function_statements(ccc_aux_1.co_lookup(primitives_1.right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
-                                        return primitives_1.right_curly_bracket.then(function (_) {
+                                        return primitives_1.right_curly_bracket.then(function (rb) {
                                             return full_match.then(function (_) {
-                                                return ts_bccc_1.co_unit(primitives_1.mk_function_declaration(return_type, function_name.id, Immutable.List(arg_decls), body));
+                                                return ts_bccc_1.co_unit(primitives_1.mk_function_declaration(source_range_1.join_source_ranges(return_type.range, rb), return_type, function_name.id, Immutable.List(arg_decls), body));
                                             });
                                         });
                                     });
@@ -532,7 +532,7 @@ var class_declaration = function () {
 };
 var outer_statement = function () {
     return primitives_1.parser_or(function_declaration().then(function (fun_decl) {
-        return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(fun_decl.return_type.range, fun_decl.body.range), ast: fun_decl });
+        return ts_bccc_1.co_unit({ range: fun_decl.range, ast: fun_decl });
     }), primitives_1.parser_or(class_declaration(), inner_statement()));
 };
 var unchanged = CCC.id().f;

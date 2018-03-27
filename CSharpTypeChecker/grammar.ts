@@ -161,8 +161,8 @@ export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
-export interface ConstructorDeclarationAST { kind:"cons_decl", name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
-export interface FunctionDeclarationAST { kind:"func_decl", name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
+export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
+export interface FunctionDeclarationAST { kind:"func_decl", range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
@@ -629,8 +629,8 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
     else_keyword.then(_ =>
     stmt().then(e =>
     full_match.then(_ =>
-    co_unit(mk_if_then_else(c, t, e, if_keyword))))),
-    co_unit(mk_if_then(c, t, if_keyword))))))))
+    co_unit(mk_if_then_else(join_source_ranges(if_keyword, e.range),c, t, e))))),
+    co_unit(mk_if_then(join_source_ranges(if_keyword, t.range),c, t))))))))
 
 let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) => Parser) =>
   no_match.then(_ =>
@@ -641,10 +641,10 @@ let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) =>
   expr().then(c =>
   semicolon.then(_ =>
   stmt(true).then(s =>
-  right_bracket.then(rb =>
+  right_bracket.then(_ =>
   stmt().then(b =>
   full_match.then(_ =>
-  co_unit(mk_for(i, c, s, b, for_keyword_range)))))))))))))
+  co_unit(mk_for(join_source_ranges(for_keyword_range, b.range), i, c, s, b)))))))))))))
 
 let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
@@ -653,7 +653,7 @@ let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   expr().then(c =>
   stmt().then(b =>
   full_match.then(_ =>
-  co_unit(mk_while(c, b, while_keyword_range))))))))
+  co_unit(mk_while(join_source_ranges(while_keyword_range, b.range), c, b))))))))
 
 let bracketized_statement = () =>
   no_match.then(_ =>
@@ -673,9 +673,10 @@ let constructor_declaration = () =>
   right_bracket.then(_ =>
   left_curly_bracket.then(_ =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
-  right_curly_bracket.then(_ =>
+  right_curly_bracket.then(rb =>
   full_match.then(_ =>
-  co_unit(mk_constructor_declaration(function_name.id,
+  co_unit(mk_constructor_declaration(join_source_ranges(function_name.range, rb),
+                                  function_name.id,
                                   Immutable.List<DeclAST>(arg_decls),
                                   body))))))))))))
 
@@ -689,9 +690,10 @@ let function_declaration = () =>
   right_bracket.then(_ =>
   left_curly_bracket.then(_ =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
-  right_curly_bracket.then(_ =>
+  right_curly_bracket.then(rb =>
   full_match.then(_ =>
-  co_unit(mk_function_declaration(return_type,
+  co_unit(mk_function_declaration(join_source_ranges(return_type.range, rb),
+                                  return_type,
                                   function_name.id,
                                   Immutable.List<DeclAST>(arg_decls),
                                   body)))))))))))))
@@ -717,7 +719,7 @@ let class_declaration = () =>
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(
     function_declaration().then(fun_decl =>
-    co_unit<ParserState,ParserError,ParserRes>({ range: join_source_ranges(fun_decl.return_type.range, fun_decl.body.range), ast:fun_decl })),
+    co_unit<ParserState,ParserError,ParserRes>({ range: fun_decl.range, ast:fun_decl })),
   parser_or<ParserRes>(class_declaration(),
   inner_statement()))
 

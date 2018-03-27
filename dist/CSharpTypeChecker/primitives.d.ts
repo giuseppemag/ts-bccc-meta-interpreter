@@ -23,10 +23,10 @@ export declare const mk_args: (sr: SourceRange, ds: DeclAST[]) => ParserRes;
 export declare const mk_decl_and_init: (l: ParserRes, r: ParserRes, v: ParserRes) => DeclAndInitAST;
 export declare const mk_decl: (l: ParserRes, r: ParserRes) => DeclAST;
 export declare const mk_assign: (l: ParserRes, r: ParserRes) => ParserRes;
-export declare const mk_for: (i: ParserRes, c: ParserRes, s: ParserRes, b: ParserRes, for_keyword_range: SourceRange) => ParserRes;
-export declare const mk_while: (c: ParserRes, b: ParserRes, while_keyword_range: SourceRange) => ParserRes;
-export declare const mk_if_then: (c: ParserRes, t: ParserRes, if_keyword_range: SourceRange) => ParserRes;
-export declare const mk_if_then_else: (c: ParserRes, t: ParserRes, e: ParserRes, if_keyword_range: SourceRange) => ParserRes;
+export declare const mk_for: (range: SourceRange, i: ParserRes, c: ParserRes, s: ParserRes, b: ParserRes) => ParserRes;
+export declare const mk_while: (range: SourceRange, c: ParserRes, b: ParserRes) => ParserRes;
+export declare const mk_if_then: (range: SourceRange, c: ParserRes, t: ParserRes) => ParserRes;
+export declare const mk_if_then_else: (range: SourceRange, c: ParserRes, t: ParserRes, e: ParserRes) => ParserRes;
 export declare const mk_field_ref: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_semicolon: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_bin_op: (k: BinOpKind) => (l: ParserRes, r: ParserRes) => ParserRes;
@@ -52,8 +52,8 @@ export declare const mk_call: (f_name: ParserRes, actuals: ParserRes[], range: S
 export declare const mk_constructor_call: (new_range: SourceRange, C_name: string, actuals: ParserRes[]) => ParserRes;
 export declare const mk_array_cons_call: (new_range: SourceRange, _type: ParserRes, actual: ParserRes) => ParserRes;
 export declare const mk_array_cons_call_and_init: (new_range: SourceRange, _type: ParserRes, actuals: ParserRes[]) => ParserRes;
-export declare const mk_constructor_declaration: (function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => ConstructorDeclarationAST;
-export declare const mk_function_declaration: (return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => FunctionDeclarationAST;
+export declare const mk_constructor_declaration: (range: SourceRange, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => ConstructorDeclarationAST;
+export declare const mk_function_declaration: (range: SourceRange, return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => FunctionDeclarationAST;
 export declare const mk_class_declaration: (C_name: string, fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, range: SourceRange) => ParserRes;
 export declare const mk_private: (sr: SourceRange) => {
     range: SourceRange;

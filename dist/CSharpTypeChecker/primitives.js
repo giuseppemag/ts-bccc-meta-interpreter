@@ -45,10 +45,10 @@ exports.mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", 
 exports.mk_decl_and_init = function (l, r, v) { return ({ kind: "decl and init", l: l, r: r, v: v }); };
 exports.mk_decl = function (l, r) { return ({ kind: "decl", l: l, r: r }); };
 exports.mk_assign = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: "=", l: l, r: r } }); };
-exports.mk_for = function (i, c, s, b, for_keyword_range) { return ({ range: source_range_1.join_source_ranges(for_keyword_range, b.range), ast: { kind: "for", i: i, c: c, s: s, b: b } }); };
-exports.mk_while = function (c, b, while_keyword_range) { return ({ range: source_range_1.join_source_ranges(while_keyword_range, b.range), ast: { kind: "while", c: c, b: b } }); };
-exports.mk_if_then = function (c, t, if_keyword_range) { return ({ range: source_range_1.join_source_ranges(if_keyword_range, t.range), ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.none(), {}) } }); };
-exports.mk_if_then_else = function (c, t, e, if_keyword_range) { return ({ range: source_range_1.join_source_ranges(if_keyword_range, e.range), ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.some(), e) } }); };
+exports.mk_for = function (range, i, c, s, b) { return ({ range: range, ast: { kind: "for", i: i, c: c, s: s, b: b } }); };
+exports.mk_while = function (range, c, b) { return ({ range: range, ast: { kind: "while", c: c, b: b } }); };
+exports.mk_if_then = function (range, c, t) { return ({ range: range, ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.none(), {}) } }); };
+exports.mk_if_then_else = function (range, c, t, e) { return ({ range: range, ast: { kind: "if", c: c, t: t, e: ts_bccc_1.apply(ccc_aux_1.some(), e) } }); };
 exports.mk_field_ref = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: ".", l: l, r: r } }); };
 exports.mk_semicolon = function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: ";", l: l, r: r } }); };
 exports.mk_bin_op = function (k) { return function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: k, l: l, r: r } }); }; };
@@ -83,11 +83,11 @@ exports.mk_array_cons_call = function (new_range, _type, actual) {
 exports.mk_array_cons_call_and_init = function (new_range, _type, actuals) {
     return ({ range: new_range, ast: { kind: "array_cons_call_and_init", type: _type, actuals: actuals } });
 };
-exports.mk_constructor_declaration = function (function_name, arg_decls, body) {
-    return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body });
+exports.mk_constructor_declaration = function (range, function_name, arg_decls, body) {
+    return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body, range: range });
 };
-exports.mk_function_declaration = function (return_type, function_name, arg_decls, body) {
-    return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body });
+exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body) {
+    return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range });
 };
 exports.mk_class_declaration = function (C_name, fields, methods, constructors, range) {
     return ({ range: range,

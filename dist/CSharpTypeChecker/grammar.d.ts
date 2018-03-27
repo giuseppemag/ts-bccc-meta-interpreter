@@ -146,12 +146,14 @@ export interface UnaryOpAST {
 }
 export interface ConstructorDeclarationAST {
     kind: "cons_decl";
+    range: SourceRange;
     name: string;
     arg_decls: Immutable.List<DeclAST>;
     body: ParserRes;
 }
 export interface FunctionDeclarationAST {
     kind: "func_decl";
+    range: SourceRange;
     name: string;
     return_type: ParserRes;
     arg_decls: Immutable.List<DeclAST>;
