@@ -35,3 +35,4 @@ exports.math = CSharp.def_class(source_range_1.minus_two_range, "Math", [
         })) }); },
 ], []);
 exports.standard_lib = function () { return CSharp.semicolon(source_range_1.minus_two_range, exports.int, exports.math); };
+exports.standard_lib_symbols = ["Math", "int"];

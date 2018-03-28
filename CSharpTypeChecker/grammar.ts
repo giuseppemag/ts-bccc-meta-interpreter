@@ -480,7 +480,7 @@ let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
 
 let array_new_and_init = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>
-    type_decl().then(array_type =>
+    type_decl(false).then(array_type =>
     left_square_bracket.then(_ =>
     right_square_bracket.then(_ =>
     left_curly_bracket.then(_ => 
@@ -496,8 +496,8 @@ let array_new_and_init = () : Coroutine<ParserState, ParserError, ParserRes> =>
 export let expr = () : Coroutine<ParserState, ParserError, ParserRes> =>
   {
     let res = expr_AUX(empty_table, true).then(e => co_unit(reduce_table(e)))
-    return parser_or<ParserRes>(array_new(),
-          parser_or<ParserRes>(array_new_and_init(),
+    return parser_or<ParserRes>(array_new_and_init(),
+          parser_or<ParserRes>(array_new(),
           parser_or<ParserRes>(cons_call(),
                                 res)))
   }
@@ -547,16 +547,16 @@ let array = (t:ParserRes) =>
     co_unit(mk_array_decl(join_source_ranges(t.range, end_range), t))
   )))
 
-let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
+let type_decl = (check_array_decl=true) : Coroutine<ParserState,ParserError,ParserRes> =>
   parser_or<ParserRes>(
-    parser_or<ParserRes>(
-      tuple_or_record.then(t => 
-        array(t)
-      ),
-      tuple_or_record,
-    ),
+    check_array_decl ?
+      parser_or<ParserRes>(
+        tuple_or_record.then(t => 
+          array(t)
+        ),
+        tuple_or_record) : tuple_or_record,
     identifier.then(i =>
-      parser_or<ParserRes>( array(i),
+      parser_or<ParserRes>( (check_array_decl ? array(i) : co_error({ range:zero_range, priority: -1, message:"" })),
       parser_or<ParserRes>(
         lt_op.then(_ =>
           partial_match.then(_ =>
@@ -564,13 +564,15 @@ let type_decl = () : Coroutine<ParserState,ParserError,ParserRes> =>
           gt_op.then(end_range =>
           co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
         )))),
-      parser_or<ParserRes>(
-        left_square_bracket.then(_ =>
-          partial_match.then(_ =>
-          right_square_bracket.then(end_range =>
-          co_unit(mk_array_decl(join_source_ranges(i.range, end_range), i))
-        ))),
-      co_unit(i))))))
+      check_array_decl ?
+        parser_or<ParserRes>(
+          left_square_bracket.then(_ =>
+            partial_match.then(_ =>
+            right_square_bracket.then(end_range =>
+            co_unit(mk_array_decl(join_source_ranges(i.range, end_range), i))
+          ))),
+        co_unit(i)) : co_unit(i)
+      ))))
 
 let decl_init : () => Coroutine<ParserState,ParserError,DeclAndInitAST> = () =>
   no_match.then(_ =>

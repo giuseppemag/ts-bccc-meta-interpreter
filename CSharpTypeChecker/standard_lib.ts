@@ -53,3 +53,4 @@ export let math = CSharp.def_class(minus_two_range, "Math", [
     [])  
 
 export let standard_lib = () => CSharp.semicolon(minus_two_range, int, math)
+export let standard_lib_symbols = ["Math", "int"]

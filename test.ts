@@ -26,7 +26,8 @@ int f(int a, int b, int c){
 }
 
 var x = f(1,2,3);
-int c = 1;
+double c = 1.0;
+var xyz = new (int, int)[]{(1,2),(2,2),(3,3)};
     `
 
     // let hrstart = process.hrtime()
