@@ -20,7 +20,9 @@ export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type, range: SourceRange }
-                 | { kind:"obj", C_name:string, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType>, range: SourceRange }
+                 | { kind:"obj", C_name:string, 
+                                 is_internal:boolean,
+                                 methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType>, range: SourceRange }
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
                  | { kind:"record", args:Immutable.Map<Name, Type> }
                  | { kind:"generic type decl", f:Type, args:Array<Type> }
@@ -834,13 +836,14 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
         )))
 }
 
-export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>) : Stmt {
+export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
   let context:CallingContext = { kind:"class", C_name:C_name }
   let methods = methods_from_context.map(m => m(context))
   let fields = fields_from_context.map(f => f(context))
   let C_type_placeholder:Type = {
     range: r,
     kind: "obj",
+    is_internal:is_internal,    
     C_name:C_name,
     methods:Immutable.Map<Name, MethodTyping>(
       methods.map(m => {
@@ -874,6 +877,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
           let C_type:Type = {
             range: r,
             kind: "obj",
+            is_internal:is_internal,
             C_name:C_name,
             methods:Immutable.Map<Name, MethodTyping>(
               methods_full_t.map(m => [m.def.name, { typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }])
@@ -887,6 +891,7 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
           let static_fields = fields.filter(f => f.modifiers.some(mod => mod == "static"))
           let C_int:Sem.Interface = {
             range: r,
+            is_internal:is_internal,
             base:apply(inr<Sem.Interface, Unit>(), {}),
             methods:
               Immutable.Map<Name, Sem.StmtRt>(methods_full_t.filter(m => !m.def.modifiers.some(mod => mod == "static")).map(m =>

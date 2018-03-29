@@ -40,7 +40,7 @@ export let int = CSharp.def_class(minus_two_range, "int", [
                   Sem.return_rt(Sem.int_expr((a_v.value.v as number) - (b_v.value.v as number)))
                   ))) }),
   ],
-  [])
+  [], true)
 export let math = CSharp.def_class(minus_two_range, "Math", [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
@@ -50,7 +50,6 @@ export let math = CSharp.def_class(minus_two_range, "Math", [
                   Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v as number))
                   ))) }),
       ],
-    [])  
+    [], true)
 
 export let standard_lib = () => CSharp.semicolon(minus_two_range, int, math)
-export let standard_lib_symbols = ["Math", "int"]

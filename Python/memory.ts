@@ -40,6 +40,7 @@ export interface Interface {  base:Sum<Interface, Unit>,
                               static_methods:Immutable.Map<ValueName, StmtRt>, 
                               methods:Immutable.Map<ValueName, StmtRt>, 
                               static_fields:Immutable.Map<ValueName, Val>,
+                              is_internal:boolean,
                               range:SourceRange }
 export let empty_scope_val = Immutable.Map<ValueName, Val>()
 export let empty_scopes_val = Immutable.Map<NestingLevel, Scope>().set(0,empty_scope_val)

@@ -826,13 +826,15 @@ exports.set_arr_el = function (r, a, i, e) {
         });
     }); };
 };
-exports.def_class = function (r, C_name, methods_from_context, fields_from_context) {
+exports.def_class = function (r, C_name, methods_from_context, fields_from_context, is_internal) {
+    if (is_internal === void 0) { is_internal = false; }
     var context = { kind: "class", C_name: C_name };
     var methods = methods_from_context.map(function (m) { return m(context); });
     var fields = fields_from_context.map(function (f) { return f(context); });
     var C_type_placeholder = {
         range: r,
         kind: "obj",
+        is_internal: is_internal,
         C_name: C_name,
         methods: Immutable.Map(methods.map(function (m) {
             return [
@@ -861,6 +863,7 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
                 var C_type = {
                     range: r,
                     kind: "obj",
+                    is_internal: is_internal,
                     C_name: C_name,
                     methods: Immutable.Map(methods_full_t.map(function (m) { return [m.def.name, { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) }]; })),
                     fields: Immutable.Map(fields.filter(function (f) { return !f.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (f) {
@@ -871,6 +874,7 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
                 var static_fields = fields.filter(function (f) { return f.modifiers.some(function (mod) { return mod == "static"; }); });
                 var C_int = {
                     range: r,
+                    is_internal: is_internal,
                     base: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
                     methods: Immutable.Map(methods_full_t.filter(function (m) { return !m.def.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (m) {
                         var res = [
