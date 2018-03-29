@@ -21,13 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-int f(int a, int b, int c){
-  return a;
-}
-
-var x = f(1,2,3);
-double c = 1.0;
-var xyz = new (int, int)[]{(1,2),(2,2),(3,3)};
+(string name, int age) a = ("ciao", 1);
     `
 
     // let hrstart = process.hrtime()
