@@ -14,6 +14,12 @@ export const mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<Pars
 export const mk_get_array_value_at = (r:SourceRange, a:ParserRes, actual:ParserRes) : ParserRes =>
   ({ range:r, ast:{ kind:"get_array_value_at", array:a, index:actual } })
 
+export const mk_ternary_if = (r:SourceRange, condition:ParserRes, then_else:ParserRes) : ParserRes =>
+  ({ range:r, ast:{ kind:"ternary_if", condition:condition, then_else:then_else } })
+
+export const mk_ternary_then_else = (r:SourceRange, _then:ParserRes, _else:ParserRes) : ParserRes =>
+  ({ range:r, ast:{ kind:"ternary_then_else", _then:_then, _else:_else } })
+
 export const mk_array_decl = (r:SourceRange, t:ParserRes) : ParserRes =>
   ({ range:r, ast:{ kind:"array decl", t:t } })
 
@@ -406,6 +412,8 @@ export const return_sign = symbol("return", "return")
 export const for_keyword = symbol("for", "for")
 export const while_keyword = symbol("while", "while")
 export const if_keyword = symbol("if", "if")
+export const question_mark_keyword = symbol("?", "?")
+export const colon_keyword = symbol(":", ":")
 export const else_keyword = symbol("else", "else")
 export const equal_sign = symbol("=", "=")
 export const semicolon_sign = symbol(";", "semicolon")
@@ -466,5 +474,5 @@ export const not_op = unaryop_sign("not")
 export const eof: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.tokens.isEmpty())
     return co_unit(zero_range)
-  return co_error({ range:s.tokens.first().range, message:`expected eof, found ${s.tokens.first().kind}`, priority:s.branch_priority })
-}))
+    return co_error({ range:s.tokens.first().range, message:`expected eof, found ${s.tokens.first().kind}`, priority:s.branch_priority })
+  }))

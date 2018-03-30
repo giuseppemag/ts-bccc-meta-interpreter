@@ -7,7 +7,7 @@ console.log("Running tests");
 var assert_equal = function (a, b) { return a == b ? true : console.log("\u001B[31m assertion: \"" + JSON.stringify(a) + "\" and \"" + JSON.stringify(b) + "\" should be equal") || false; };
 var run_checks = function (tests, only_test) {
     //console.clear()
-    var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0);
+    var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0) + tests.length;
     var check_index = 0;
     tests.forEach(function (test) {
         if (only_test && test.name != only_test)
@@ -34,6 +34,7 @@ var run_checks = function (tests, only_test) {
             }
             console.log("\u001B[32m[" + (check_index++ + 1) + "/" + num_checks + "] test \"" + test.name + "\"::\"" + check.name + "\" succeeded");
         });
+        console.log("\u001B[32m[" + (check_index++ + 1) + "/" + num_checks + "] test \"" + test.name + " succeeded");
     });
     console.log("\x1b[37mdone");
 };
@@ -242,6 +243,41 @@ run_checks([
     {
         name: "DataSet3",
         source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n\n  public DataSet Map(Func<double, double> f){\n    double[] new_elems = new double[this.elems.Length];\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      new_elems[i] = f(this.elems[i]);\n    }\n    return new DataSet(new_elems);\n  }\n  public void MutableMap(Func<double, double> f){\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      this.elems[i] = f(this.elems[i]);\n    }\n  }\n}",
+        checks: []
+    },
+    {
+        name: "Arrays",
+        source: "var a = new int[] { 0, 1, 2, 3 };\nvar b = new int[] { 4, 5, 6, 7 };\nvar c = a;\nif( c[0] >= 0 )\n  c = b;\nc[0] = 100; \n\ndebugger; \n",
+        checks: []
+    },
+    {
+        name: "Arrays",
+        source: "Func<int, string[], string> f = (i, a) => a[i];\n(string,string) v = ( f( 2, (new string[] { \"a\", \"b\", \"c\", \"d\" })), f( 1, (new string[] { \"e\", \"f\" })) );\ndebugger;\ntypechecker_debugger;\n",
+        checks: []
+    },
+    {
+        name: "Classes",
+        source: "class Dog {\n  string name;\n  \n  public Dog(string n) {\n    this.name = n;\n  }\n  public string bark() {\n    debugger;\n    return \"whoof \" + this.name;\n  }\n}\n\nvar dogs = new Dog[] { new Dog(\"Pedro\"), new Dog(\"Avena\") };\nvar s = dogs[1].bark();\ntypechecker_debugger;\ndebugger;\n",
+        checks: []
+    },
+    {
+        name: "Functions and Closures",
+        source: "Func<int, Func<int,int>, Func<int,int>, Func<int,int>> choose = (x, f, g) => x > 0 ? f : (y => g(x*y));\n\nvar l = choose(3, x => x+1, x => x*2);\nvar m = choose(-5, x => x-1, x => x/2);\ndebugger; \ntypechecker_debugger; \nvar x = m(7);\ntypechecker_debugger; \ndebugger;\n",
+        checks: []
+    },
+    {
+        name: "Classes",
+        source: "class Vector2 {\n  public double x;\n  public double y;\n\n  public Vector2(double x, double y) {\n    this.x = x ;\n    this.y = y;\n    typechecker_debugger;\n    debugger; \n  }\n\n  public Vector2 Plus(Vector2 v) {\n    return new Vector2(this.x + v.x, this.y + v.y);\n  }\n}\n\nvar v1 = new Vector2(10.0, 5.0);\nvar v2 = v1.Plus(new Vector2(1.0, 2.0));\ntypechecker_debugger;\ndebugger;\n",
+        checks: []
+    },
+    {
+        name: "Arrays and classes",
+        source: "class School {\n  (string name, string desc, int points)[] courses;\n\n  public School() {\n    this.courses = new (string name, string desc, int points)[0];\n    typechecker_debugger;\n    debugger;\n  }\n\n  public int TotalPoints() {\n    int tot = 0;\n    for(int i = 0; i < this.courses.Length; i = i + 1) {\n      tot = tot + this.courses[i].points;\n    }\n    return tot;\n  }\n\n  public void AddCourse(string n, string d, int p) {\n    var newAmountCourses = this.courses.Length + 1;\n    (string name, string desc, int points)[] newCourses = new (string name, string desc, int points)[newAmountCourses];\n    for(int i = 0; i < this.courses.Length; i = i + 1) {\n      newCourses[i] = this.courses[i];\n    }\n    newCourses[newAmountCourses-1] = (n, d, p);\n    this.courses = newCourses;\n  }\n}\nvar hr = new School();\nhr.AddCourse(\"Dev1\", \"Basics of programming\", 4);\nhr.AddCourse(\"Dev5\", \"Basics of web development\", 4);\nvar tot_p = hr.TotalPoints();\ntypechecker_debugger;\ndebugger;\n",
+        checks: []
+    },
+    {
+        name: "Arrays and classes",
+        source: "int AddArray(int[] a) {\n  int sum = 0;\n  for(int i = 0; i < a.Length; i = i + 1) {\n    sum = sum + a[i];\n  }\n  return sum;\n}\n\nint MinArray(int[] a) {\n  int min = a[0];\n  for(int i = 1; i < a.Length; i = i + 1) {\n    if(a[i] < min) { min = a[i]; } \n  }\n  return min;\n}\n\nFunc<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n\nvar l = f(AddArray, MinArray);\nvar res1 = l(true);\ndebugger;\nvar res2 = l(false);\ntypechecker_debugger;\ndebugger;\n",
         checks: []
     },
 ]);

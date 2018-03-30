@@ -6,6 +6,8 @@ import * as Immutable from 'immutable';
 export declare let parser_or: <a>(p: Coroutine<ParserState, ParserError, a>, q: Coroutine<ParserState, ParserError, a>) => Coroutine<ParserState, ParserError, a>;
 export declare const mk_generic_type_decl: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
 export declare const mk_get_array_value_at: (r: SourceRange, a: ParserRes, actual: ParserRes) => ParserRes;
+export declare const mk_ternary_if: (r: SourceRange, condition: ParserRes, then_else: ParserRes) => ParserRes;
+export declare const mk_ternary_then_else: (r: SourceRange, _then: ParserRes, _else: ParserRes) => ParserRes;
 export declare const mk_array_decl: (r: SourceRange, t: ParserRes) => ParserRes;
 export declare const mk_tuple_type_decl: (r: SourceRange, args: ParserRes[]) => ParserRes;
 export declare const mk_record_type_decl: (r: SourceRange, args: DeclAST[]) => ParserRes;
@@ -126,6 +128,8 @@ export declare const return_sign: Coroutine<ParserState, ParserError, SourceRang
 export declare const for_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const while_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const if_keyword: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const question_mark_keyword: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const colon_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const else_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const equal_sign: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const semicolon_sign: Coroutine<ParserState, ParserError, SourceRange>;

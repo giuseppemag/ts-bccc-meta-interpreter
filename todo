@@ -15,6 +15,7 @@
   [ ] t1,t2 -> (cast1:Expr->Expr, cast2:Expr->Expr, res_t:Type)
   [ ] In the definitions (both bindings and memory::classes, hidden) store the type definitions for the defaults
   [ ] toString operators
+  [ ] tuples vs records (see array case)
   [g] standard library
     [ ] int
     [ ] float

@@ -103,6 +103,10 @@ import {
   mk_not,
   not_op,
   mk_array_cons_call_and_init,
+  question_mark_keyword,
+  colon_keyword,
+  mk_ternary_if,
+  mk_ternary_then_else,
 } from './primitives';
 
 let priority_operators_table =
@@ -125,8 +129,10 @@ let priority_operators_table =
   .set("xor", {priority:4, associativity:"right"})
   .set("&&", {priority:4, associativity:"right"})
   .set("||", {priority:4, associativity:"right"})
-  .set("=>", {priority:4, associativity:"right"})
-  .set(",", {priority:3, associativity:"right"})
+  .set(":", {priority:3, associativity:"right"})
+  .set("?", {priority:2, associativity:"left"})
+  .set("=>", {priority:1, associativity:"right"})
+  .set(",", {priority:0, associativity:"right"})
 
 
 export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
@@ -169,6 +175,8 @@ export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRe
 export interface ArrayConstructorCallAndInitAST { kind:"array_cons_call_and_init", type:ParserRes, actuals:ParserRes[] }
 
 export interface GetArrayValueAtAST {kind:"get_array_value_at", array:ParserRes, index:ParserRes }
+export interface TernaryIfAST {kind:"ternary_if", condition:ParserRes, then_else:ParserRes }
+export interface TernaryThenElseAST {kind:"ternary_then_else", _then:ParserRes, _else:ParserRes }
 
 export interface EmptySurface { kind: "empty surface", w:ParserRes, h:ParserRes, color:ParserRes }
 export interface Sprite { kind: "sprite", cx:ParserRes, cy:ParserRes, w:ParserRes, h:ParserRes, sprite:ParserRes, rotation:ParserRes }
@@ -196,7 +204,7 @@ export type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST 
                 | ClassAST | ConstructorCallAST | ArrayConstructorCallAST
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | RenderSurfaceAST | ArrayTypeDeclAST
-                | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST
+                | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST | TernaryIfAST | TernaryThenElseAST
 
 export interface ParserRes { range:SourceRange, ast:AST }
 export interface ParserError { priority:number, message:string, range:SourceRange }
@@ -235,7 +243,7 @@ let index_of : Coroutine<ParserState,ParserError,{val:ParserRes, range:SourceRan
                   expr().then(actual =>
                   right_square_bracket.then(rs =>
                   co_unit({val:actual, range:join_source_ranges(ls,rs)})
-                  )))
+                  )))               
 
 export let par : Coroutine<ParserState,ParserError,{val:ParserRes[], range:SourceRange}> =
   no_match.then(_ =>
@@ -413,6 +421,8 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
     //   co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
     return parser_or<SymTable>(not_op.then(_ => expr_after_op(symbols, callables, table.ops, "not", mk_unary((l, is_callable) => ({ kind: "res", value: mk_not(l as any) })))),
           parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(res.range, l as any, res.val) })))),
+          parser_or<SymTable>(question_mark_keyword.then(_ => expr_after_op(symbols, callables, table.ops, "?", mk_binary((l, r) => mk_ternary_if(join_source_ranges(l.range, r.range) ,l, r)))),
+          parser_or<SymTable>(colon_keyword.then(_ => expr_after_op(symbols, callables, table.ops, ":", mk_binary((l, r) => mk_ternary_then_else(join_source_ranges(l.range, r.range) ,l, r)))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
           parser_or<SymTable>(par.then(res => {
             let actuals = res.val
@@ -447,7 +457,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(or_op.then(_ => expr_after_op(symbols, callables, table.ops, "||", mk_binary((l, r) => mk_or(l, r)))),
           parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
           co_unit({ ...table, symbols: symbols, callables: callables })
-        )))))))))))))))))))))
+        )))))))))))))))))))))))
       }
   
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
@@ -532,11 +542,11 @@ let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
 let tuple_or_record : Coroutine<ParserState,ParserError,ParserRes> =
   left_bracket.then(lb =>
     parser_or<ParserRes>(type_args().then(as =>
-      right_bracket.then(rb =>
-      co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)))),
-      arg_decls().then(as =>
-      right_bracket.then(rb =>
-      co_unit(mk_record_type_decl(join_source_ranges(lb, rb), as))))
+        right_bracket.then(rb =>
+        co_unit(mk_tuple_type_decl(join_source_ranges(lb, rb), as)))),
+        arg_decls().then(as =>
+        right_bracket.then(rb =>
+        co_unit(mk_record_type_decl(join_source_ranges(lb, rb), as))))
     )
   )
 
@@ -600,7 +610,7 @@ let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
     co_unit([a]))),
   co_unit(Array<ParserRes>()))
 
-let arg_decls = () : Coroutine<ParserState, ParserError, Array<DeclAST>> =>
+  let arg_decls = () : Coroutine<ParserState, ParserError, Array<DeclAST>> =>
   parser_or<Array<DeclAST>>(
     decl().then(d =>
     parser_or<Array<DeclAST>>(

@@ -184,6 +184,16 @@ export interface GetArrayValueAtAST {
     array: ParserRes;
     index: ParserRes;
 }
+export interface TernaryIfAST {
+    kind: "ternary_if";
+    condition: ParserRes;
+    then_else: ParserRes;
+}
+export interface TernaryThenElseAST {
+    kind: "ternary_then_else";
+    _then: ParserRes;
+    _else: ParserRes;
+}
 export interface EmptySurface {
     kind: "empty surface";
     w: ParserRes;
@@ -284,7 +294,7 @@ export interface RecordTypeDeclAST {
     kind: "record type decl";
     args: Array<DeclAST>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST;
+export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST | TernaryIfAST | TernaryThenElseAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;

@@ -206,6 +206,10 @@ exports.new_arr_rt = function (len) {
     var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_val(len))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
+exports.mk_expr_from_val = function (v) {
+    var expr = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(v).times(ts_bccc_1.id()).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
+    return (expr);
+};
 exports.new_arr_with_args_rt = function (args) {
     var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_with_args_val(args.map(function (arg) { return arg.value; })))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);

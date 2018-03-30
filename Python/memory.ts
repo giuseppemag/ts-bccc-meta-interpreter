@@ -247,6 +247,11 @@ export let new_arr_rt = function (len:number): ExprRt<Sum<Val,Val>> {
   let heap_alloc_co:Coroutine<MemRt,ErrVal,Sum<Val,Val>> = mk_coroutine(constant<MemRt,Val>(mk_arr_val(init_array_val(len))).times(id<MemRt>()).then(heap_alloc_rt).then((inl<Val,Val>()).map_times(id())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
   return (heap_alloc_co)
 }
+export let mk_expr_from_val = function (v:Val): ExprRt<Sum<Val,Val>> {
+  let expr:Coroutine<MemRt,ErrVal,Sum<Val,Val>> = mk_coroutine(constant<MemRt,Val>(v).times(id<MemRt>()).then((inl<Val,Val>()).map_times(id())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
+  return (expr)
+}
+
 export let new_arr_with_args_rt = function (args:Sum<Val,Val>[]): ExprRt<Sum<Val,Val>> {
   let heap_alloc_co:Coroutine<MemRt,ErrVal,Sum<Val,Val>> = mk_coroutine(constant<MemRt,Val>(mk_arr_val(init_array_with_args_val(args.map(arg => arg.value)))).times(id<MemRt>()).then(heap_alloc_rt).then((inl<Val,Val>()).map_times(id())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))
   return (heap_alloc_co)

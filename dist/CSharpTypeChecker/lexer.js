@@ -50,6 +50,8 @@ var GrammarBasics;
         parse_prefix_regex(/^-?[0-9]+\.[0-9]*/, function (s, r) { return ({ range: r, kind: "double", v: parseFloat(s) }); }),
         parse_prefix_regex(/^-?[0-9]+/, function (s, r) { return ({ range: r, kind: "int", v: parseInt(s) }); }),
         parse_prefix_regex(/^\n/, function (s, r) { return ({ range: r, kind: "nl" }); }),
+        parse_prefix_regex(/^\?/, function (s, r) { return ({ range: r, kind: "?" }); }),
+        parse_prefix_regex(/^\:/, function (s, r) { return ({ range: r, kind: ":" }); }),
         parse_prefix_regex(/^\+/, function (s, r) { return ({ range: r, kind: "+" }); }),
         parse_prefix_regex(/^\*/, function (s, r) { return ({ range: r, kind: "*" }); }),
         parse_prefix_regex(/^\-/, function (s, r) { return ({ range: r, kind: "-" }); }),

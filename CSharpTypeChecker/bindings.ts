@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless } from "../ccc_aux";
-import { ValueName, tuple_to_record, ExprRt, Val } from "../main";
+import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
 
 // Bindings
 
@@ -643,10 +643,10 @@ export let lub = (t1:TypeInformation, t2:TypeInformation) : Sum<TypeInformation,
 }
 
 export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt {
-  return _ => c(no_constraints).then(c_t =>
+  return expected_type => c(no_constraints).then(c_t =>
           c_t.type.kind != "bool" ? co_error<State,Err,Typing>({ range:r, message:"Error: condition has the wrong type!" }) :
-          co_stateless<State,Err,Typing>(t(no_constraints)).then(t_t =>
-          co_stateless<State,Err,Typing>(e(no_constraints)).then(e_t => {
+          co_stateless<State,Err,Typing>(t(expected_type)).then(t_t =>
+          co_stateless<State,Err,Typing>(e(expected_type)).then(e_t => {
 
           let on_type : Fun<TypeInformation, Stmt> = fun(t_i => (_:TypeConstraints) => co_unit<State,Err,Typing>(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
           let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(_ => co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types!" }))
@@ -830,10 +830,14 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          i(no_constraints).then(i_t =>
          e(no_constraints).then(e_t =>
-         a_t.type.kind == "arr" && type_equals(i_t.type, int_type) && type_equals(e_t.type, a_t.type.arg) ?
-           co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-         : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
-        )))
+         a_t.type.kind == "arr" && type_equals(i_t.type, int_type) ?           
+          type_equals(e_t.type, a_t.type.arg) ? co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+           : a_t.type.arg.kind == "record" && type_equals(e_t.type, tuple_type(a_t.type.arg.args.toArray())) ?
+              co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, 
+                                                                  e_t.sem.then(e_val => mk_expr_from_val(tuple_to_record(e_val.value, (a_t.type as any).arg.args.keySeq().toArray()))))))
+            : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
+           : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`})
+          )))
 }
 
 export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {

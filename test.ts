@@ -20,9 +20,41 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
-    let source = `
-(string name, int age) a = ("ciao", 1);
-    `
+    let source = `class School {
+      (string name, string desc, int points)[] courses;
+    
+      public School() {
+        this.courses = new (string name, string desc, int points)[0];
+        typechecker_debugger;
+        debugger;
+      }
+    
+      public int TotalPoints() {
+        int tot = 0;
+        for(int i = 0; i < this.courses.Length; i = i + 1) {
+          tot = tot + this.courses[i].points;
+        }
+        return tot;
+      }
+    
+      public void AddCourse(string n, string d, int p) {
+        var newAmountCourses = this.courses.Length + 1;
+        (string name, string desc, int points)[] newCourses = new (string name, string desc, int points)[newAmountCourses];
+        for(int i = 0; i < this.courses.Length; i = i + 1) {
+          newCourses[i] = this.courses[i];
+        }
+        newCourses[newAmountCourses-1] = (n, d, p);
+        this.courses = newCourses;
+      }
+    }
+    var hr = new School();
+    hr.AddCourse("Dev1", "Basics of programming", 4);
+    hr.AddCourse("Dev5", "Basics of web development", 4);
+    var tot_p = hr.TotalPoints();
+    typechecker_debugger;
+    debugger;
+
+`
 
     // let hrstart = process.hrtime()
 

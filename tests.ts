@@ -20,7 +20,7 @@ interface Test { source:string, checks:Array<Check>, name:string }
 
 let run_checks = (tests:Array<Test>, only_test?:string) => {
   //console.clear()
-  let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0)
+  let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0) + tests.length
   let check_index = 0
   tests.forEach(test => {
     if (only_test && test.name != only_test) return
@@ -49,6 +49,8 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
       }
       console.log(`\x1b[32m[${check_index++ + 1}/${num_checks}] test "${test.name}"::"${check.name}" succeeded`)
     })
+    console.log(`\x1b[32m[${check_index++ + 1}/${num_checks}] test "${test.name} succeeded`)
+    
   })
   console.log("\x1b[37mdone")
 }
@@ -570,6 +572,155 @@ debugger;`,
     }
   }
 }`,
+    checks:[]
+  },
+  {
+    name:"Arrays",
+    source:`var a = new int[] { 0, 1, 2, 3 };
+var b = new int[] { 4, 5, 6, 7 };
+var c = a;
+if( c[0] >= 0 )
+  c = b;
+c[0] = 100; 
+
+debugger; 
+`,
+    checks:[]
+  },
+  {
+    name:"Arrays",
+    source:`Func<int, string[], string> f = (i, a) => a[i];
+(string,string) v = ( f( 2, (new string[] { "a", "b", "c", "d" })), f( 1, (new string[] { "e", "f" })) );
+debugger;
+typechecker_debugger;
+`,
+    checks:[]
+  },
+  {
+    name:"Classes",
+    source:`class Dog {
+  string name;
+  
+  public Dog(string n) {
+    this.name = n;
+  }
+  public string bark() {
+    debugger;
+    return "whoof " + this.name;
+  }
+}
+
+var dogs = new Dog[] { new Dog("Pedro"), new Dog("Avena") };
+var s = dogs[1].bark();
+typechecker_debugger;
+debugger;
+`,
+    checks:[]
+  },
+  {
+    name:"Functions and Closures",
+    source:`Func<int, Func<int,int>, Func<int,int>, Func<int,int>> choose = (x, f, g) => x > 0 ? f : (y => g(x*y));
+
+var l = choose(3, x => x+1, x => x*2);
+var m = choose(-5, x => x-1, x => x/2);
+debugger; 
+typechecker_debugger; 
+var x = m(7);
+typechecker_debugger; 
+debugger;
+`,
+    checks:[]
+  },
+  {
+    name:"Classes",
+    source:`class Vector2 {
+  public double x;
+  public double y;
+
+  public Vector2(double x, double y) {
+    this.x = x ;
+    this.y = y;
+    typechecker_debugger;
+    debugger; 
+  }
+
+  public Vector2 Plus(Vector2 v) {
+    return new Vector2(this.x + v.x, this.y + v.y);
+  }
+}
+
+var v1 = new Vector2(10.0, 5.0);
+var v2 = v1.Plus(new Vector2(1.0, 2.0));
+typechecker_debugger;
+debugger;
+`,
+    checks:[]
+  },
+  {
+    name:"Arrays and classes",
+    source:`class School {
+  (string name, string desc, int points)[] courses;
+
+  public School() {
+    this.courses = new (string name, string desc, int points)[0];
+    typechecker_debugger;
+    debugger;
+  }
+
+  public int TotalPoints() {
+    int tot = 0;
+    for(int i = 0; i < this.courses.Length; i = i + 1) {
+      tot = tot + this.courses[i].points;
+    }
+    return tot;
+  }
+
+  public void AddCourse(string n, string d, int p) {
+    var newAmountCourses = this.courses.Length + 1;
+    (string name, string desc, int points)[] newCourses = new (string name, string desc, int points)[newAmountCourses];
+    for(int i = 0; i < this.courses.Length; i = i + 1) {
+      newCourses[i] = this.courses[i];
+    }
+    newCourses[newAmountCourses-1] = (n, d, p);
+    this.courses = newCourses;
+  }
+}
+var hr = new School();
+hr.AddCourse("Dev1", "Basics of programming", 4);
+hr.AddCourse("Dev5", "Basics of web development", 4);
+var tot_p = hr.TotalPoints();
+typechecker_debugger;
+debugger;
+`,
+    checks:[]
+  },
+  {
+    name:"Arrays and classes",
+    source:`int AddArray(int[] a) {
+  int sum = 0;
+  for(int i = 0; i < a.Length; i = i + 1) {
+    sum = sum + a[i];
+  }
+  return sum;
+}
+
+int MinArray(int[] a) {
+  int min = a[0];
+  for(int i = 1; i < a.Length; i = i + 1) {
+    if(a[i] < min) { min = a[i]; } 
+  }
+  return min;
+}
+
+Func<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});
+
+var l = f(AddArray, MinArray);
+var res1 = l(true);
+debugger;
+var res2 = l(false);
+typechecker_debugger;
+debugger;
+`,
     checks:[]
   },
 ])

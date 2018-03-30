@@ -22,7 +22,7 @@ import { mk_range, SourceRange } from '../source_range'
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","
 export type UnaryOpKind = "not"
 
-export type ReservedKeyword = "for"|"while"|"if"|"then"|"else"|"private"|"public"|"static"|"protected"|"virtual"|"override"|"class"|"new"|"debugger"|"typechecker_debugger"|"return"
+export type ReservedKeyword = "for"|"while"|"if"|"then"|"else"|"private"|"public"|"static"|"protected"|"virtual"|"override"|"class"|"new"|"debugger"|"typechecker_debugger"|"return"|"?"|":"
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"double", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:ReservedKeyword }
   | { kind:"id", v:string }
@@ -98,6 +98,8 @@ export module GrammarBasics {
     parse_prefix_regex(/^-?[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) })),
 
     parse_prefix_regex(/^\n/, (s,r) => ({range:r, kind:"nl"})),
+    parse_prefix_regex(/^\?/, (s,r) => ({range:r, kind:"?"})),
+    parse_prefix_regex(/^\:/, (s,r) => ({range:r, kind:":"})),
     parse_prefix_regex(/^\+/, (s,r) => ({range:r, kind:"+"})),
     parse_prefix_regex(/^\*/, (s,r) => ({range:r, kind:"*"})),
     parse_prefix_regex(/^\-/, (s,r) => ({range:r, kind:"-"})),

@@ -52,13 +52,13 @@ export let tuple_expr_rt = (args:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,V
 export let tuple_get_rt = (r:SourceRange, t:ExprRt<Sum<Val,Val>>, item_index:number) : ExprRt<Sum<Val,Val>> => {
   return t.then(t_val =>
         t_val.value.k == "tuple" ? co_unit(apply(inl<Val,Val>(), t_val.value.v[item_index]))
-        : runtime_error(`Type error: cannot lookup item ${item_index} on non-tuple value ${t_val.value}.`))
+        : runtime_error(`Type error (tuple): cannot lookup item ${item_index} on non-tuple value ${t_val.value}.`))
 }
 
 export let record_get_rt = (r:SourceRange, t:ExprRt<Sum<Val,Val>>, F_name:string) : ExprRt<Sum<Val,Val>> => {
   return t.then(t_val =>
         t_val.value.k == "record" && t_val.value.v.has(F_name) ? co_unit(apply(inl<Val,Val>(), t_val.value.v.get(F_name)))
-        : runtime_error(`Type error: cannot lookup item ${F_name} on ${t_val.value}.`))
+        : runtime_error(`Type error (record): cannot lookup item ${F_name} on ${JSON.stringify( t_val.value)}.`))
 }
 
 export let render_surface_plus_rt = function (r: ExprRt<Sum<Val, Val>>, p:ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> {

@@ -162,11 +162,13 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
 
   : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
   
+  : n.ast.kind == "ternary_if" ? Immutable.Set<ValueName>()
+  : n.ast.kind == "ternary_then_else" ? Immutable.Set<ValueName>()
   
-
+  
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
-  : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" ?  Immutable.Set<ValueName>()
+  : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
   : (() => { console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`(FV) Unsupported ast node: ${JSON.stringify(n)}`)})()
 
@@ -228,6 +230,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
+  : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ? 
+    if_then_else(n.range, ast_to_type_checker(n.ast.condition)(context), ast_to_type_checker(n.ast.then_else.ast._then)(context), ast_to_type_checker(n.ast.then_else.ast._else)(context))
 
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ?

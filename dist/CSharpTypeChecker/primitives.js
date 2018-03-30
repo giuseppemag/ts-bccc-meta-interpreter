@@ -22,6 +22,12 @@ exports.mk_generic_type_decl = function (r, f, args) {
 exports.mk_get_array_value_at = function (r, a, actual) {
     return ({ range: r, ast: { kind: "get_array_value_at", array: a, index: actual } });
 };
+exports.mk_ternary_if = function (r, condition, then_else) {
+    return ({ range: r, ast: { kind: "ternary_if", condition: condition, then_else: then_else } });
+};
+exports.mk_ternary_then_else = function (r, _then, _else) {
+    return ({ range: r, ast: { kind: "ternary_then_else", _then: _then, _else: _else } });
+};
 exports.mk_array_decl = function (r, t) {
     return ({ range: r, ast: { kind: "array decl", t: t } });
 };
@@ -443,6 +449,8 @@ exports.return_sign = exports.symbol("return", "return");
 exports.for_keyword = exports.symbol("for", "for");
 exports.while_keyword = exports.symbol("while", "while");
 exports.if_keyword = exports.symbol("if", "if");
+exports.question_mark_keyword = exports.symbol("?", "?");
+exports.colon_keyword = exports.symbol(":", ":");
 exports.else_keyword = exports.symbol("else", "else");
 exports.equal_sign = exports.symbol("=", "=");
 exports.semicolon_sign = exports.symbol(";", "semicolon");

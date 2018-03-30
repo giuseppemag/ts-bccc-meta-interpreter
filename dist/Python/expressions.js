@@ -42,13 +42,13 @@ exports.tuple_expr_rt = function (args) {
 exports.tuple_get_rt = function (r, t, item_index) {
     return t.then(function (t_val) {
         return t_val.value.k == "tuple" ? ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), t_val.value.v[item_index]))
-            : memory_1.runtime_error("Type error: cannot lookup item " + item_index + " on non-tuple value " + t_val.value + ".");
+            : memory_1.runtime_error("Type error (tuple): cannot lookup item " + item_index + " on non-tuple value " + t_val.value + ".");
     });
 };
 exports.record_get_rt = function (r, t, F_name) {
     return t.then(function (t_val) {
         return t_val.value.k == "record" && t_val.value.v.has(F_name) ? ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), t_val.value.v.get(F_name)))
-            : memory_1.runtime_error("Type error: cannot lookup item " + F_name + " on " + t_val.value + ".");
+            : memory_1.runtime_error("Type error (record): cannot lookup item " + F_name + " on " + JSON.stringify(t_val.value) + ".");
     });
 };
 exports.render_surface_plus_rt = function (r, p) {

@@ -649,10 +649,10 @@ exports.lub = function (t1, t2) {
                 ts_bccc_1.apply(ts_bccc_1.inr(), {});
 };
 exports.if_then_else = function (r, c, t, e) {
-    return function (_) { return c(exports.no_constraints).then(function (c_t) {
+    return function (expected_type) { return c(exports.no_constraints).then(function (c_t) {
         return c_t.type.kind != "bool" ? ts_bccc_2.co_error({ range: r, message: "Error: condition has the wrong type!" }) :
-            ccc_aux_1.co_stateless(t(exports.no_constraints)).then(function (t_t) {
-                return ccc_aux_1.co_stateless(e(exports.no_constraints)).then(function (e_t) {
+            ccc_aux_1.co_stateless(t(expected_type)).then(function (t_t) {
+                return ccc_aux_1.co_stateless(e(expected_type)).then(function (e_t) {
                     var on_type = ts_bccc_1.fun(function (t_i) { return function (_) { return ts_bccc_2.co_unit(exports.mk_typing(t_i, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))); }; });
                     var on_error = ts_bccc_1.constant(function (_) { return ts_bccc_2.co_error({ range: r, message: "Error: the branches of a conditional should have compatible types!" }); });
                     var res = ts_bccc_1.apply(on_type.plus(on_error), exports.lub(t_t.type, e_t.type));
@@ -819,8 +819,11 @@ exports.set_arr_el = function (r, a, i, e) {
     return function (_) { return a(exports.no_constraints).then(function (a_t) {
         return i(exports.no_constraints).then(function (i_t) {
             return e(exports.no_constraints).then(function (e_t) {
-                return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) && type_equals(e_t.type, a_t.type.arg) ?
-                    ts_bccc_2.co_unit(exports.mk_typing(exports.unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+                return a_t.type.kind == "arr" && type_equals(i_t.type, exports.int_type) ?
+                    type_equals(e_t.type, a_t.type.arg) ? ts_bccc_2.co_unit(exports.mk_typing(exports.unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+                        : a_t.type.arg.kind == "record" && type_equals(e_t.type, exports.tuple_type(a_t.type.arg.args.toArray())) ?
+                            ts_bccc_2.co_unit(exports.mk_typing(exports.unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem.then(function (e_val) { return main_1.mk_expr_from_val(main_1.tuple_to_record(e_val.value, a_t.type.arg.args.keySeq().toArray())); }))))
+                            : ts_bccc_2.co_error({ range: r, message: "Error: array setter requires an array and an integer as arguments" })
                     : ts_bccc_2.co_error({ range: r, message: "Error: array setter requires an array and an integer as arguments" });
             });
         });
