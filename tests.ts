@@ -7,7 +7,8 @@ import * as CSharp from './CSharpTypeChecker/csharp';
 import * as Sem from './Python/python';
 import { zero_range } from './source_range';
 import { get_stream, DebuggerStreamStep } from './csharp_debugger_stream';
-import { Bindings, MemRt, Lambda, ArrayVal, Scope } from './main';
+import { MemRt, Lambda, ArrayVal, Scope } from './main';
+import { Bindings } from './CSharpTypeChecker/types';
 
 
 console.log("Running tests")
@@ -20,10 +21,12 @@ interface Test { source:string, checks:Array<Check>, name:string }
 
 let run_checks = (tests:Array<Test>, only_test?:string) => {
   //console.clear()
-  let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0) + tests.length
+  let num_checks = tests.map(t => t.checks.length).reduce((a,b) => a + b, 0)
   let check_index = 0
   tests.forEach(test => {
     if (only_test && test.name != only_test) return
+
+    console.log(`\x1b[32m test "${test.name} started`)
 
     let stream = get_stream(test.source)
     let steps = DebuggerStream.run_stream_to_end(stream).toArray()
@@ -49,8 +52,7 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
       }
       console.log(`\x1b[32m[${check_index++ + 1}/${num_checks}] test "${test.name}"::"${check.name}" succeeded`)
     })
-    console.log(`\x1b[32m[${check_index++ + 1}/${num_checks}] test "${test.name} succeeded`)
-    
+
   })
   console.log("\x1b[37mdone")
 }
@@ -499,7 +501,7 @@ debugger;`,
       total = total + 1.0f;
     }
     return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);
-  }  
+  }
 }
 typechecker_debugger;
 debugger;`,
@@ -520,8 +522,8 @@ debugger;`,
       }
     }
     return min;
-  }  
-  
+  }
+
   public double Maximum(){
     double max = this.elems[0];
     for(int i = 1; i < this.elems.Length; i=i+1){
@@ -530,24 +532,24 @@ debugger;`,
       }
     }
     return max;
-  }  
+  }
   public double MostFrequent(){
     int max_freq = 0;
     double most_freq = 0.0;
     for(int i = 0; i < this.elems.Length; i=i+1){
-      int i_freq = 0;  
+      int i_freq = 0;
       for(int j = 0; j < this.elems.Length; j=j+1){
         if(this.elems[i] == this.elems[j]){
           i_freq = i_freq + 1;
         }
       }
       if(i_freq > max_freq){
-        max_freq = i_freq; 
+        max_freq = i_freq;
         most_freq = this.elems[i];
       }
     }
     return most_freq;
-  }  
+  }
 }`,
     checks:[]
   },
@@ -581,9 +583,9 @@ var b = new int[] { 4, 5, 6, 7 };
 var c = a;
 if( c[0] >= 0 )
   c = b;
-c[0] = 100; 
+c[0] = 100;
 
-debugger; 
+debugger;
 `,
     checks:[]
   },
@@ -600,7 +602,7 @@ typechecker_debugger;
     name:"Classes",
     source:`class Dog {
   string name;
-  
+
   public Dog(string n) {
     this.name = n;
   }
@@ -623,10 +625,10 @@ debugger;
 
 var l = choose(3, x => x+1, x => x*2);
 var m = choose(-5, x => x-1, x => x/2);
-debugger; 
-typechecker_debugger; 
+debugger;
+typechecker_debugger;
 var x = m(7);
-typechecker_debugger; 
+typechecker_debugger;
 debugger;
 `,
     checks:[]
@@ -641,7 +643,7 @@ debugger;
     this.x = x ;
     this.y = y;
     typechecker_debugger;
-    debugger; 
+    debugger;
   }
 
   public Vector2 Plus(Vector2 v) {
@@ -707,7 +709,7 @@ debugger;
 int MinArray(int[] a) {
   int min = a[0];
   for(int i = 1; i < a.Length; i = i + 1) {
-    if(a[i] < min) { min = a[i]; } 
+    if(a[i] < min) { min = a[i]; }
   }
   return min;
 }

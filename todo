@@ -11,16 +11,19 @@
 [g] HTML renderers for server simulator
 
 [g] explicit casting
+  [ ] parser
+  [ ] typechecker
+  [ ] runtime?
 [g] automatically cast int+float -> float, double+int -> double, etc.
   [ ] t1,t2 -> (cast1:Expr->Expr, cast2:Expr->Expr, res_t:Type)
-  [ ] In the definitions (both bindings and memory::classes, hidden) store the type definitions for the defaults
   [ ] toString operators
-  [ ] tuples vs records (see array case)
+  [ ] tuples vs records (see array case, requires generics)
   [g] standard library
     [ ] int
     [ ] float
     [ ] double
     [ ] string
+    [ ] renderers (and their (+) operation)
     [ ] hidden in GO
 [g] operator overloading in regular classes
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1

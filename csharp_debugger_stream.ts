@@ -11,7 +11,6 @@ import * as Py from "./Python/python"
 import * as CSharp from "./CSharpTypeChecker/csharp"
 import { co_run_to_end } from "./ccc_aux";
 import { ParserRes } from "./CSharpTypeChecker/csharp";
-import { Stmt } from "./main";
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
 import { standard_lib } from "./CSharpTypeChecker/standard_lib";

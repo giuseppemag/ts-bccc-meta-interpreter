@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "class School {\n      (string name, string desc, int points)[] courses;\n    \n      public School() {\n        this.courses = new (string name, string desc, int points)[0];\n        typechecker_debugger;\n        debugger;\n      }\n    \n      public int TotalPoints() {\n        int tot = 0;\n        for(int i = 0; i < this.courses.Length; i = i + 1) {\n          tot = tot + this.courses[i].points;\n        }\n        return tot;\n      }\n    \n      public void AddCourse(string n, string d, int p) {\n        var newAmountCourses = this.courses.Length + 1;\n        (string name, string desc, int points)[] newCourses = new (string name, string desc, int points)[newAmountCourses];\n        for(int i = 0; i < this.courses.Length; i = i + 1) {\n          newCourses[i] = this.courses[i];\n        }\n        newCourses[newAmountCourses-1] = (n, d, p);\n        this.courses = newCourses;\n      }\n    }\n    var hr = new School();\n    hr.AddCourse(\"Dev1\", \"Basics of programming\", 4);\n    hr.AddCourse(\"Dev5\", \"Basics of web development\", 4);\n    var tot_p = hr.TotalPoints();\n    typechecker_debugger;\n    debugger;\n\n";
+        var source = "\nint x = 10;\nint y = 20;\nint z = x + y;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

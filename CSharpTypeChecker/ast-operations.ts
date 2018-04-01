@@ -4,15 +4,11 @@ import { ValueName } from '../main'
 import { join_source_ranges } from '../source_range'
 import {
   and,
-  arr_type,
   arrow,
   bool,
-  bool_type,
   breakpoint,
   call_cons,
   call_lambda,
-  CallingContext,
-  circle_type,
   decl_and_init_v,
   decl_v,
   def_class,
@@ -20,20 +16,17 @@ import {
   div,
   done,
   double,
-  ellipse_type,
   eq,
   field_get,
   field_set,
   float,
   for_loop,
-  fun_type,
   geq,
   get_arr_el,
   get_v,
   gt,
   if_then_else,
   int,
-  int_type,
   leq,
   lt,
   minus,
@@ -54,33 +47,43 @@ import {
   not,
   or,
   plus,
+  ret,
+  semicolon,
+  set_arr_el,
+  set_v,
+  str,
+  times,
+  typechecker_breakpoint,
+  while_do,
+  xor,
+  tuple_value,
+} from './bindings'
+import {
+  float_type,
+  double_type,
+  arr_type,
+  bool_type,
+  CallingContext,
+  circle_type,
+  ellipse_type,
+  fun_type,
+  int_type,
   record_type,
   rectangle_type,
   ref_type,
   render_grid_pixel_type,
   render_grid_type,
   render_surface_type,
-  ret,
-  semicolon,
-  set_arr_el,
-  set_v,
+  string_type,
+  tuple_type,
+  Type,
+  unit_type,
+  var_type,
   sprite_type,
   square_type,
   Stmt,
-  str,
-  string_type,
-  times,
-  tuple_type,
-  tuple_value,
-  Type,
-  typechecker_breakpoint,
-  unit_type,
-  var_type,
-  while_do,
-  xor,
-} from './bindings'
+} from './types'
 import { ParserRes } from './grammar'
-import { float_type, double_type } from './csharp';
 import { inr, apply, inl, Unit } from 'ts-bccc';
 
 let ast_to_csharp_type = (s:ParserRes) : Type =>
@@ -161,11 +164,11 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   // export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 
   : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
-  
+
   : n.ast.kind == "ternary_if" ? Immutable.Set<ValueName>()
   : n.ast.kind == "ternary_then_else" ? Immutable.Set<ValueName>()
-  
-  
+
+
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
@@ -230,7 +233,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(n.ast.value)(context))
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
-  : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ? 
+  : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ?
     if_then_else(n.range, ast_to_type_checker(n.ast.condition)(context), ast_to_type_checker(n.ast.then_else.ast._then)(context), ast_to_type_checker(n.ast.then_else.ast._else)(context))
 
 

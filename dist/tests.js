@@ -7,11 +7,12 @@ console.log("Running tests");
 var assert_equal = function (a, b) { return a == b ? true : console.log("\u001B[31m assertion: \"" + JSON.stringify(a) + "\" and \"" + JSON.stringify(b) + "\" should be equal") || false; };
 var run_checks = function (tests, only_test) {
     //console.clear()
-    var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0) + tests.length;
+    var num_checks = tests.map(function (t) { return t.checks.length; }).reduce(function (a, b) { return a + b; }, 0);
     var check_index = 0;
     tests.forEach(function (test) {
         if (only_test && test.name != only_test)
             return;
+        console.log("\u001B[32m test \"" + test.name + " started");
         var stream = csharp_debugger_stream_1.get_stream(test.source);
         var steps = DebuggerStream.run_stream_to_end(stream).toArray();
         if (test.checks.length == 0) {
@@ -34,7 +35,6 @@ var run_checks = function (tests, only_test) {
             }
             console.log("\u001B[32m[" + (check_index++ + 1) + "/" + num_checks + "] test \"" + test.name + "\"::\"" + check.name + "\" succeeded");
         });
-        console.log("\u001B[32m[" + (check_index++ + 1) + "/" + num_checks + "] test \"" + test.name + " succeeded");
     });
     console.log("\x1b[37mdone");
 };
@@ -232,12 +232,12 @@ run_checks([
     },
     {
         name: "DataSet1",
-        source: "class DataSet{\n  (float, float, float)[] elems;\n  public DataSet((float, float, float)[] elems){\n    this.elems = elems;\n  }\n  public (float, float, float) ComputeAverage(){\n    (float, float, float) acc = (0.0f,0.0f,0.0f);\n    float total = 0.0f;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      var Item1 = this.elems[i].Item1 + acc.Item1;\n      var Item2 = this.elems[i].Item2 + acc.Item2;\n      var Item3 = this.elems[i].Item3 + acc.Item3;\n      acc = (Item1, Item2, Item3);\n      total = total + 1.0f;\n    }\n    return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);\n  }  \n}\ntypechecker_debugger;\ndebugger;",
+        source: "class DataSet{\n  (float, float, float)[] elems;\n  public DataSet((float, float, float)[] elems){\n    this.elems = elems;\n  }\n  public (float, float, float) ComputeAverage(){\n    (float, float, float) acc = (0.0f,0.0f,0.0f);\n    float total = 0.0f;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      var Item1 = this.elems[i].Item1 + acc.Item1;\n      var Item2 = this.elems[i].Item2 + acc.Item2;\n      var Item3 = this.elems[i].Item3 + acc.Item3;\n      acc = (Item1, Item2, Item3);\n      total = total + 1.0f;\n    }\n    return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);\n  }\n}\ntypechecker_debugger;\ndebugger;",
         checks: []
     },
     {
         name: "DataSet2",
-        source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n  public double Minimum(){\n    double min = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] < min){\n        min = this.elems[i];\n      }\n    }\n    return min;\n  }  \n  \n  public double Maximum(){\n    double max = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] > max){\n        max = this.elems[i];\n      }\n    }\n    return max;\n  }  \n  public double MostFrequent(){\n    int max_freq = 0;\n    double most_freq = 0.0;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      int i_freq = 0;  \n      for(int j = 0; j < this.elems.Length; j=j+1){\n        if(this.elems[i] == this.elems[j]){\n          i_freq = i_freq + 1;\n        }\n      }\n      if(i_freq > max_freq){\n        max_freq = i_freq; \n        most_freq = this.elems[i];\n      }\n    }\n    return most_freq;\n  }  \n}",
+        source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n  public double Minimum(){\n    double min = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] < min){\n        min = this.elems[i];\n      }\n    }\n    return min;\n  }\n\n  public double Maximum(){\n    double max = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] > max){\n        max = this.elems[i];\n      }\n    }\n    return max;\n  }\n  public double MostFrequent(){\n    int max_freq = 0;\n    double most_freq = 0.0;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      int i_freq = 0;\n      for(int j = 0; j < this.elems.Length; j=j+1){\n        if(this.elems[i] == this.elems[j]){\n          i_freq = i_freq + 1;\n        }\n      }\n      if(i_freq > max_freq){\n        max_freq = i_freq;\n        most_freq = this.elems[i];\n      }\n    }\n    return most_freq;\n  }\n}",
         checks: []
     },
     {
@@ -247,7 +247,7 @@ run_checks([
     },
     {
         name: "Arrays",
-        source: "var a = new int[] { 0, 1, 2, 3 };\nvar b = new int[] { 4, 5, 6, 7 };\nvar c = a;\nif( c[0] >= 0 )\n  c = b;\nc[0] = 100; \n\ndebugger; \n",
+        source: "var a = new int[] { 0, 1, 2, 3 };\nvar b = new int[] { 4, 5, 6, 7 };\nvar c = a;\nif( c[0] >= 0 )\n  c = b;\nc[0] = 100;\n\ndebugger;\n",
         checks: []
     },
     {
@@ -257,17 +257,17 @@ run_checks([
     },
     {
         name: "Classes",
-        source: "class Dog {\n  string name;\n  \n  public Dog(string n) {\n    this.name = n;\n  }\n  public string bark() {\n    debugger;\n    return \"whoof \" + this.name;\n  }\n}\n\nvar dogs = new Dog[] { new Dog(\"Pedro\"), new Dog(\"Avena\") };\nvar s = dogs[1].bark();\ntypechecker_debugger;\ndebugger;\n",
+        source: "class Dog {\n  string name;\n\n  public Dog(string n) {\n    this.name = n;\n  }\n  public string bark() {\n    debugger;\n    return \"whoof \" + this.name;\n  }\n}\n\nvar dogs = new Dog[] { new Dog(\"Pedro\"), new Dog(\"Avena\") };\nvar s = dogs[1].bark();\ntypechecker_debugger;\ndebugger;\n",
         checks: []
     },
     {
         name: "Functions and Closures",
-        source: "Func<int, Func<int,int>, Func<int,int>, Func<int,int>> choose = (x, f, g) => x > 0 ? f : (y => g(x*y));\n\nvar l = choose(3, x => x+1, x => x*2);\nvar m = choose(-5, x => x-1, x => x/2);\ndebugger; \ntypechecker_debugger; \nvar x = m(7);\ntypechecker_debugger; \ndebugger;\n",
+        source: "Func<int, Func<int,int>, Func<int,int>, Func<int,int>> choose = (x, f, g) => x > 0 ? f : (y => g(x*y));\n\nvar l = choose(3, x => x+1, x => x*2);\nvar m = choose(-5, x => x-1, x => x/2);\ndebugger;\ntypechecker_debugger;\nvar x = m(7);\ntypechecker_debugger;\ndebugger;\n",
         checks: []
     },
     {
         name: "Classes",
-        source: "class Vector2 {\n  public double x;\n  public double y;\n\n  public Vector2(double x, double y) {\n    this.x = x ;\n    this.y = y;\n    typechecker_debugger;\n    debugger; \n  }\n\n  public Vector2 Plus(Vector2 v) {\n    return new Vector2(this.x + v.x, this.y + v.y);\n  }\n}\n\nvar v1 = new Vector2(10.0, 5.0);\nvar v2 = v1.Plus(new Vector2(1.0, 2.0));\ntypechecker_debugger;\ndebugger;\n",
+        source: "class Vector2 {\n  public double x;\n  public double y;\n\n  public Vector2(double x, double y) {\n    this.x = x ;\n    this.y = y;\n    typechecker_debugger;\n    debugger;\n  }\n\n  public Vector2 Plus(Vector2 v) {\n    return new Vector2(this.x + v.x, this.y + v.y);\n  }\n}\n\nvar v1 = new Vector2(10.0, 5.0);\nvar v2 = v1.Plus(new Vector2(1.0, 2.0));\ntypechecker_debugger;\ndebugger;\n",
         checks: []
     },
     {
@@ -277,7 +277,7 @@ run_checks([
     },
     {
         name: "Arrays and classes",
-        source: "int AddArray(int[] a) {\n  int sum = 0;\n  for(int i = 0; i < a.Length; i = i + 1) {\n    sum = sum + a[i];\n  }\n  return sum;\n}\n\nint MinArray(int[] a) {\n  int min = a[0];\n  for(int i = 1; i < a.Length; i = i + 1) {\n    if(a[i] < min) { min = a[i]; } \n  }\n  return min;\n}\n\nFunc<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n\nvar l = f(AddArray, MinArray);\nvar res1 = l(true);\ndebugger;\nvar res2 = l(false);\ntypechecker_debugger;\ndebugger;\n",
+        source: "int AddArray(int[] a) {\n  int sum = 0;\n  for(int i = 0; i < a.Length; i = i + 1) {\n    sum = sum + a[i];\n  }\n  return sum;\n}\n\nint MinArray(int[] a) {\n  int min = a[0];\n  for(int i = 1; i < a.Length; i = i + 1) {\n    if(a[i] < min) { min = a[i]; }\n  }\n  return min;\n}\n\nFunc<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n\nvar l = f(AddArray, MinArray);\nvar res1 = l(true);\ndebugger;\nvar res2 = l(false);\ntypechecker_debugger;\ndebugger;\n",
         checks: []
     },
 ]);

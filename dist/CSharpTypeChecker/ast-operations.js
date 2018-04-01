@@ -3,33 +3,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var source_range_1 = require("../source_range");
 var bindings_1 = require("./bindings");
-var csharp_1 = require("./csharp");
+var types_1 = require("./types");
 var ts_bccc_1 = require("ts-bccc");
 var ast_to_csharp_type = function (s) {
     return s.ast.kind == "id" ?
-        s.ast.value == "int" ? bindings_1.int_type
-            : s.ast.value == "float" ? csharp_1.float_type
-                : s.ast.value == "double" ? csharp_1.double_type
-                    : s.ast.value == "bool" ? bindings_1.bool_type
-                        : s.ast.value == "string" ? bindings_1.string_type
-                            : s.ast.value == "void" ? bindings_1.unit_type
-                                : s.ast.value == "RenderGrid" ? bindings_1.render_grid_type
-                                    : s.ast.value == "RenderGridPixel" ? bindings_1.render_grid_pixel_type
-                                        : s.ast.value == "surface" ? bindings_1.render_surface_type
-                                            : s.ast.value == "sprite" ? bindings_1.sprite_type
-                                                : s.ast.value == "circle" ? bindings_1.circle_type
-                                                    : s.ast.value == "square" ? bindings_1.square_type
-                                                        : s.ast.value == "ellipse" ? bindings_1.ellipse_type
-                                                            : s.ast.value == "rectangle" ? bindings_1.rectangle_type
-                                                                : s.ast.value == "var" ? bindings_1.var_type
-                                                                    : bindings_1.ref_type(s.ast.value) :
-        s.ast.kind == "array decl" ? bindings_1.arr_type(ast_to_csharp_type(s.ast.t))
+        s.ast.value == "int" ? types_1.int_type
+            : s.ast.value == "float" ? types_1.float_type
+                : s.ast.value == "double" ? types_1.double_type
+                    : s.ast.value == "bool" ? types_1.bool_type
+                        : s.ast.value == "string" ? types_1.string_type
+                            : s.ast.value == "void" ? types_1.unit_type
+                                : s.ast.value == "RenderGrid" ? types_1.render_grid_type
+                                    : s.ast.value == "RenderGridPixel" ? types_1.render_grid_pixel_type
+                                        : s.ast.value == "surface" ? types_1.render_surface_type
+                                            : s.ast.value == "sprite" ? types_1.sprite_type
+                                                : s.ast.value == "circle" ? types_1.circle_type
+                                                    : s.ast.value == "square" ? types_1.square_type
+                                                        : s.ast.value == "ellipse" ? types_1.ellipse_type
+                                                            : s.ast.value == "rectangle" ? types_1.rectangle_type
+                                                                : s.ast.value == "var" ? types_1.var_type
+                                                                    : types_1.ref_type(s.ast.value) :
+        s.ast.kind == "array decl" ? types_1.arr_type(ast_to_csharp_type(s.ast.t))
             : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
-                bindings_1.fun_type(bindings_1.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
+                types_1.fun_type(types_1.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
                 : s.ast.kind == "tuple type decl" ?
-                    bindings_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
+                    types_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
                     : s.ast.kind == "record type decl" ?
-                        bindings_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
+                        types_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
                         : (function () { console.log("Error: unsupported ast type: " + JSON.stringify(s)); throw new Error("Unsupported ast type: " + JSON.stringify(s)); })();
 };
 exports.global_calling_context = ({ kind: "global scope" });
@@ -121,7 +121,7 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                     console.log("Error: unsupported ast node: " + JSON.stringify(n));
                                                                                                                     throw new Error("Unsupported ast node: " + JSON.stringify(n));
                                                                                                                 }
-                                                                                                                return { name: a.ast.value, type: bindings_1.var_type };
+                                                                                                                return { name: a.ast.value, type: types_1.var_type };
                                                                                                             }), 
                                                                                                             // [ { name:n.ast.l.ast.value, type:var_type } ],
                                                                                                             free_variables(n.ast.r, Immutable.Set(exports.extract_tuple_args(n.ast.l).map(function (a) {
@@ -163,7 +163,7 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                                     is_constructor: false
                                                                                                                                                                 }); }; }).concat(n.ast.constructors.toArray().map(function (c) { return function (context) { return ({
                                                                                                                                                                     name: c.decl.name,
-                                                                                                                                                                    return_t: bindings_1.unit_type,
+                                                                                                                                                                    return_t: types_1.unit_type,
                                                                                                                                                                     parameters: c.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.ast.kind == "id" ? a.r.ast.value : "", type: ast_to_csharp_type(a.l) }); }),
                                                                                                                                                                     body: exports.ast_to_type_checker(c.decl.body)(context),
                                                                                                                                                                     range: c.decl.body.range,

@@ -1,4 +1,4 @@
-import { CallingContext, Stmt } from './bindings';
+import { CallingContext, Stmt } from './types';
 import { ParserRes } from './grammar';
 export declare let global_calling_context: CallingContext;
 export declare let extract_tuple_args: (n: ParserRes) => ParserRes[];
