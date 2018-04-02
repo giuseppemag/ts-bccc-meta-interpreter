@@ -139,102 +139,19 @@ export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
     }
 }
 
-export let gt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let gt = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, ">")
 
-export let lt = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let lt = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "<")
 
-export let geq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (>=)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let geq = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, ">=")
 
-export let leq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (<=)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let leq = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "<=")
 
-export let eq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_eq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_eq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_eq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, string_type) ?
-             co_unit(mk_typing(bool_type, Sem.string_eq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (==)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let eq = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "==")
 
-export let neq = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(bool_type, Sem.int_neq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(bool_type, Sem.float_neq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, string_type) ?
-             co_unit(mk_typing(bool_type, Sem.string_neq_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (!=)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let neq = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "!=")
 
-export let xor = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (^)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot compare expressions of different types!" })
-        ))
-}
+export let xor = (r:SourceRange, a:Stmt, b:Stmt) : Stmt  => bin_op(r, a, b, "^")
 
 export let mk_empty_surface = function(r:SourceRange, w:Stmt, h:Stmt, col:Stmt) : Stmt {
   return _ => w(no_constraints).then(w_t =>
@@ -378,6 +295,28 @@ export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, 
 }
 
 
+export let unary_op = function(r:SourceRange, a:Stmt, op:string) : Stmt {
+  let op_from_type = (a_t:Typing, t:Type) =>
+    get_class(r, t).then(t_c => {
+      if (!t_c.methods.has(op))
+        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (${op}) operator.`})
+      let op_method = t_c.methods.get(op)
+      if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has a (${op}) operator, but it is malformed.`})
+
+      let args = op_method.typing.type.in.args
+      let a1:Stmt = _ => co_unit<State,Err,Typing>(a_t)
+
+      let op_method_stmt:Stmt = _ =>
+        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(type_to_string(t), op)))
+
+      return coerce(r, a1, args[0])(no_constraints).then(a_f =>
+          call_lambda(r, op_method_stmt, [_ => co_unit(a_f)])(no_constraints))
+    })
+
+  return _ => a(no_constraints).then(a_t => op_from_type(a_t, a_t.type))
+}
+
 export let bin_op = function(r:SourceRange, a:Stmt, b:Stmt, op:string) : Stmt {
   let op_from_type = (a_t:Typing, b_t:Typing, t:Type) =>
     get_class(r, t).then(t_c => {
@@ -452,13 +391,7 @@ export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:
     }
 }
 
-export let not = function(r:SourceRange, a:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-            type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_not_rt(a_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (!)!" })
-        )
-}
+export let not = (r:SourceRange, a:Stmt) : Stmt => unary_op(r, a, "!")
 
 export let length = function(r:SourceRange, a:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>

@@ -40,10 +40,20 @@ var run_checks = function (tests, only_test) {
 };
 run_checks([
     { name: "operators",
-        source: "int x;\n    int y = 10;\n    bool z = true;\n    string s = \"Hello statically typed languages!\";\n    typechecker_debugger;",
+        source: "var a = 2 + 5;\n    var b = 5 * 1.5f;\n    var c = 2.5 + (5 * 1.5f);\n    var d = \"a\" + a;\n    var e = !((d == \"c\") || (c > b));\n    var f = (a <= c) && (b == c);\n\n    typechecker_debugger;",
         checks: [
-            { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "int"; } },
-            { name: "s is string", step: 1, expected_kind: "bindings", check: function (s) { return s.get("s").kind == "string"; } }
+            { name: "a is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("a").kind == "int"; } },
+            { name: "b is float", step: 1, expected_kind: "bindings", check: function (s) { return s.get("b").kind == "float"; } },
+            { name: "c is double", step: 1, expected_kind: "bindings", check: function (s) { return s.get("c").kind == "double"; } },
+            { name: "d is string", step: 1, expected_kind: "bindings", check: function (s) { return s.get("d").kind == "string"; } },
+            { name: "e is bool", step: 1, expected_kind: "bindings", check: function (s) { return s.get("e").kind == "bool"; } },
+            { name: "f is bool", step: 1, expected_kind: "bindings", check: function (s) { return s.get("f").kind == "bool"; } },
+            { name: "a is 7", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("a").v, 7); } },
+            { name: "b is 7.5", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("b").v, 7.5); } },
+            { name: "c is 10", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("c").v, 10); } },
+            { name: "d is \"a7\"", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("d").v, "a7"); } },
+            { name: "e is false", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("e").v, false); } },
+            { name: "f is false", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("f").v, false); } },
         ] },
     { name: "primitives",
         source: "int x;\n    int y = 10;\n    bool z = true;\n    string s = \"Hello statically typed languages!\";\n    typechecker_debugger;",
@@ -51,7 +61,7 @@ run_checks([
             { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "int"; } },
             { name: "s is string", step: 1, expected_kind: "bindings", check: function (s) { return s.get("s").kind == "string"; } }
         ] },
-    { name: "primitives",
+    { name: "while loop",
         source: "int x = 10;\n    int n = 1;\n    while(x > 0){\n      n  = n * x;\n      x  = x - 1;\n    }\n    typechecker_debugger;",
         checks: [
             { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "int"; } },

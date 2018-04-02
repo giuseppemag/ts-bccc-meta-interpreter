@@ -60,14 +60,27 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
 
 run_checks([
   { name:"operators",
-    source:`int x;
-    int y = 10;
-    bool z = true;
-    string s = "Hello statically typed languages!";
+    source:`var a = 2 + 5;
+    var b = 5 * 1.5f;
+    var c = 2.5 + (5 * 1.5f);
+    var d = "a" + a;
+    var e = !((d == "c") || (c > b));
+    var f = (a <= c) && (b == c);
+
     typechecker_debugger;`,
     checks:[
-      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
-      { name:"s is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
+      { name:"a is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("a").kind == "int" },
+      { name:"b is float", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("b").kind == "float" },
+      { name:"c is double", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("c").kind == "double" },
+      { name:"d is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("d").kind == "string"  },
+      { name:"e is bool", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("e").kind == "bool"  },
+      { name:"f is bool", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("f").kind == "bool"  },
+      { name:"a is 7", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("a").v, 7) },
+      { name:"b is 7.5", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("b").v, 7.5) },
+      { name:"c is 10", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("c").v, 10) },
+      { name:`d is "a7"`, step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("d").v, "a7") },
+      { name:"e is false", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("e").v, false) },
+      { name:"f is false", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("f").v, false) },
     ] },
 
     { name:"primitives",
@@ -81,7 +94,7 @@ run_checks([
       { name:"s is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
     ] },
 
-  { name:"primitives",
+  { name:"while loop",
     source:`int x = 10;
     int n = 1;
     while(x > 0){

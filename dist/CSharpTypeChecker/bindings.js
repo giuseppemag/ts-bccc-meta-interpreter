@@ -140,103 +140,13 @@ exports.tuple_value = function (r, args) {
         return check_args.then(function (arg_ts) { return ts_bccc_2.co_unit(types_1.mk_typing(types_1.tuple_type(arg_ts.toArray().map(function (a_t) { return a_t.type; })), Sem.tuple_expr_rt(arg_ts.toArray().map(function (a_t) { return a_t.sem; })))); });
     };
 };
-exports.gt = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_gt_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_gt_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (>)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.lt = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_lt_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_lt_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (<)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.geq = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_geq_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_geq_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (>=)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.leq = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_leq_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_leq_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (<=)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.eq = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_eq_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_eq_rt(a_t.sem, b_t.sem)))
-                        : types_1.type_equals(a_t.type, types_1.bool_type) ?
-                            ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_eq_rt(a_t.sem, b_t.sem)))
-                            : types_1.type_equals(a_t.type, types_1.string_type) ?
-                                ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.string_eq_rt(a_t.sem, b_t.sem)))
-                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (==)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.neq = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.int_neq_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.float_neq_rt(a_t.sem, b_t.sem)))
-                        : types_1.type_equals(a_t.type, types_1.string_type) ?
-                            ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.string_neq_rt(a_t.sem, b_t.sem)))
-                            : types_1.type_equals(a_t.type, types_1.bool_type) ?
-                                ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-                                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (!=)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
-exports.xor = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.bool_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_neq_rt(a_t.sem, b_t.sem)))
-                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (^)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot compare expressions of different types!" });
-        });
-    }); };
-};
+exports.gt = function (r, a, b) { return exports.bin_op(r, a, b, ">"); };
+exports.lt = function (r, a, b) { return exports.bin_op(r, a, b, "<"); };
+exports.geq = function (r, a, b) { return exports.bin_op(r, a, b, ">="); };
+exports.leq = function (r, a, b) { return exports.bin_op(r, a, b, "<="); };
+exports.eq = function (r, a, b) { return exports.bin_op(r, a, b, "=="); };
+exports.neq = function (r, a, b) { return exports.bin_op(r, a, b, "!="); };
+exports.xor = function (r, a, b) { return exports.bin_op(r, a, b, "^"); };
 exports.mk_empty_surface = function (r, w, h, col) {
     return function (_) { return w(types_1.no_constraints).then(function (w_t) {
         return h(types_1.no_constraints).then(function (h_t) {
@@ -410,6 +320,26 @@ exports.mk_other_surface = function (r, s, dx, dy, sx, sy, rot) {
         });
     }); };
 };
+exports.unary_op = function (r, a, op) {
+    var op_from_type = function (a_t, t) {
+        return exports.get_class(r, t).then(function (t_c) {
+            if (!t_c.methods.has(op))
+                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (" + op + ") operator." });
+            var op_method = t_c.methods.get(op);
+            if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
+                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has a (" + op + ") operator, but it is malformed." });
+            var args = op_method.typing.type.in.args;
+            var a1 = function (_) { return ts_bccc_2.co_unit(a_t); };
+            var op_method_stmt = function (_) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(types_1.type_to_string(t), op)));
+            };
+            return exports.coerce(r, a1, args[0])(types_1.no_constraints).then(function (a_f) {
+                return exports.call_lambda(r, op_method_stmt, [function (_) { return ts_bccc_2.co_unit(a_f); }])(types_1.no_constraints);
+            });
+        });
+    };
+    return function (_) { return a(types_1.no_constraints).then(function (a_t) { return op_from_type(a_t, a_t.type); }); };
+};
 exports.bin_op = function (r, a, b, op) {
     var op_from_type = function (a_t, b_t, t) {
         return exports.get_class(r, t).then(function (t_c) {
@@ -477,13 +407,7 @@ exports.arrow = function (r, parameters, closure, body) {
         }));
     };
 };
-exports.not = function (r, a) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return types_1.type_equals(a_t.type, types_1.bool_type) ?
-            ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_not_rt(a_t.sem)))
-            : ts_bccc_2.co_error({ range: r, message: "Error: unsupported type for unary operator (!)!" });
-    }); };
-};
+exports.not = function (r, a) { return exports.unary_op(r, a, "!"); };
 exports.length = function (r, a) {
     return function (_) { return a(types_1.no_constraints).then(function (a_t) {
         return types_1.type_equals(a_t.type, types_1.string_type) ?

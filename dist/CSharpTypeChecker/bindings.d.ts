@@ -32,6 +32,7 @@ export declare let mk_polygon: (r: SourceRange, points: Stmt, col: Stmt, rot: St
 export declare let mk_text: (r: SourceRange, t: Stmt, x: Stmt, y: Stmt, s: Stmt, col: Stmt, rot: Stmt) => Stmt;
 export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, rot: Stmt) => Stmt;
 export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt, rot: Stmt) => Stmt;
+export declare let unary_op: (r: SourceRange, a: Stmt, op: string) => Stmt;
 export declare let bin_op: (r: SourceRange, a: Stmt, b: Stmt, op: string) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

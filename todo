@@ -15,19 +15,16 @@
   [ ] typechecker
   [ ] runtime?
 [g] automatically cast int+float -> float, double+int -> double, etc.
-  [ ] t1,t2 -> (cast1:Expr->Expr, cast2:Expr->Expr, res_t:Type)
-  [ ] toString operators
   [ ] coercion of tuples to records
-  [ ] test each operator
   [g] standard library
-    [ ] template for basic operators of primitives
-    [ ] +, -, *, /, %, &&, ||, >, <, >=, <=, ==, !=
-    [ ] string
+    [ ] ToString method
     [ ] renderers (and their (+) operation)
-    [ ] hidden in GO
 [g] coercion everywhere we use type_equals
 [g] operator overloading in regular classes
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
+
+[g] Overloading (-^2) vs (-^1)
+  [ ] Unary - operator
 
 [g] Inheritance
   [ ] Extends
@@ -36,7 +33,7 @@
   [ ] protected
   [ ] virtual
   [ ] override
-  [ ] polymorphism (<= instead of == while typechecking)
+  [ ] polymorphism (coerce instead of == while typechecking)
   [ ] Covariance/contravariance in function calls and variable assignments
 
 [g] Closures in regular functions
@@ -61,7 +58,7 @@
 [g] renderers defined in standard library
 
 
-[m] add C# to playground and exam
+[m] add C# to playground
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
 [m] Getters vs function application (test example below):
   (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => y => x * y)));
@@ -76,6 +73,7 @@
 [m] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
 [m] multidimensional array + array in class attributes
 
+[m] add checks to tests which have none
 [m] Use code font in debugger tables
 [m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
 [m] use something visual instead of debugger and typechecker_debugger
