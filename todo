@@ -17,7 +17,6 @@
   [ ] html rendering
 [g] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Filesystem simulator
-[g] HTML renderers for server simulator
 
 [g] explicit casting
   [ ] parser
@@ -26,8 +25,6 @@
 [g] standard library
   [ ] unit/void
   [ ] ToString method: there must always be an underlying class in the standard library
-  [ ] String::Length
-  [ ] renderers (and their (+) operation)
 
 [g] operator overloading in regular classes
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
@@ -40,8 +37,8 @@
   [ ] protected
   [ ] virtual
   [ ] override
-  [ ] polymorphism (coerce instead of == while typechecking)
   [ ] Covariance/contravariance in function calls and variable assignments
+  [ ] Object with `ToString() { return "" }`
 
 [g] Generics
   [ ] Array<T> in standard library
@@ -58,14 +55,8 @@
   [ ] `Python` semantics should be properly called `C#` semantics
 
 [g] Databases
-
-[g] destructuring assignment of records and tuples
-[g] Move ccc_aux to CCC repo
+[g] HTML renderers for server simulator
 [g] Structs
-[g] Use mutable state, then clone it to the immutable memory upon `dbg`
-[g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
-[g] Invoke statically typed semantics
-[g] renderers defined in standard library
 
 [m] add `null`
 [m] add C# to playground
@@ -131,15 +122,6 @@
 [m] Python syntax
 
 
-[ ] Cleanup/whishlist
-  [ ] `while` with fixpoint
-  [ ] `resolve_method` with fixpoint
-  [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
-  [ ] Memory values as sums (of basic types)
-  [ ] breakpoint right after return (`ret_break?`)
-  [ ] Intellisense editor
-  [ ] Integration in VSCode
-
 [m] constructor name check upper/lower case
 
 [m]
@@ -149,4 +131,21 @@
   public Vector2 Div(double c){
     return this.Times(1.0 / c);
   }
+
+
+[ ] Cleanup/whishlist
+  [ ] `while` with fixpoint
+  [ ] `resolve_method` with fixpoint
+  [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
+  [ ] Memory values as sums (of basic types)
+  [ ] breakpoint right after return (`ret_break?`)
+  [ ] Intellisense editor
+  [ ] Integration in VSCode
+  [g] destructuring assignment of records and tuples
+  [g] Move ccc_aux to CCC repo
+  [g] Use mutable state, then clone it to the immutable memory upon `dbg`
+  [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
+  [g] Invoke statically typed semantics
+  [g] renderers defined in standard library, with (+) operator
+  [g] String::Length in standard library
 

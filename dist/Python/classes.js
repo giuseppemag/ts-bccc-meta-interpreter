@@ -50,7 +50,7 @@ exports.method_get_rt = function (M_name, this_addr) {
 };
 exports.method_get_expr_rt = function (M_name, this_expr) {
     return this_expr.then(function (this_addr) {
-        return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error") :
+        return this_addr.value.k != "ref" ? memory_1.runtime_error("runtime type error, method not found") :
             exports.method_get_rt(M_name, this_addr.value);
     });
 };

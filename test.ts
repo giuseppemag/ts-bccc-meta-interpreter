@@ -21,17 +21,8 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    class Counter {
-      private int cnt = -5;
-      public Counter(int from) {
-        this.cnt = from;
-      }
-      public void tick(int delta) {
-        this.cnt = this.cnt + delta;
-      }
-    }
-    Counter c = new Counter (5);
-    c.tick (3);
+var x = 200;
+var y = x.ToString();
 `
 
     // let hrstart = process.hrtime()

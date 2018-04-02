@@ -49,7 +49,7 @@ export let method_get_rt = function(M_name:ValueName, this_addr:HeapRef) : ExprR
 
 export let method_get_expr_rt = function(M_name:ValueName, this_expr:ExprRt<Sum<Val, Val>>) : ExprRt<Sum<Val, Val>> {
   return this_expr.then(this_addr =>
-    this_addr.value.k != "ref" ? runtime_error(`runtime type error`) :
+    this_addr.value.k != "ref" ? runtime_error(`runtime type error, method not found`) :
     method_get_rt(M_name, this_addr.value))
 }
 

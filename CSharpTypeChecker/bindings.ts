@@ -650,14 +650,16 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
   return constraints => this_ref(no_constraints).then(this_ref_t =>
          co_get_state<State, Err>().then(bindings => {
 
-            if (this_ref_t.type.kind == "arr") {
+            if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
+              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.string_length_rt(this_ref_t.sem))))
+            } else if (this_ref_t.type.kind == "arr") {
               if(F_or_M_name == "Length")
                 return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
               else
                 return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation.`})
             }
             else
-              if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+              if (this_ref_t.type.kind != "int" && this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
               let item = /^Item/
               let m = F_or_M_name.match(item)
               if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
@@ -683,10 +685,10 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               }
            }
 
-           let C_name = this_ref_t.type.C_name
-           if (!bindings.bindings.has(this_ref_t.type.C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} is undefined`})
-           let C_def = bindings.bindings.get(this_ref_t.type.C_name)
-           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${this_ref_t.type.C_name} is not a class`})
+           let C_name = this_ref_t.type.kind == "int" ? "int" : this_ref_t.type.C_name
+           if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
+           let C_def = bindings.bindings.get(C_name)
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} is not a class`})
 
            if (C_def.fields.has(F_or_M_name)){
             let F_def = C_def.fields.get(F_or_M_name)
@@ -713,14 +715,23 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                   return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_or_M_name)} from ${context.C_name}`})
               }
               if (M_def.typing.type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: method ${C_name}::${JSON.stringify(F_or_M_name)} is not a lambda in ${context.kind == "class" ?  context.C_name : JSON.stringify(context)}`})
-              return co_unit(mk_typing(M_def.modifiers.has("static") ? M_def.typing.type : M_def.typing.type.out,
-                      M_def.modifiers.has("static") ?
-                        Sem.static_method_get_expr_rt(C_name, F_or_M_name)
-                      :
-                      //call_lambda
-                        Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
+              if (M_def.modifiers.has("static")) {
+                if (this_ref_t.type.kind == "int") {
+                  return co_unit(mk_typing(fun_type(tuple_type([]), M_def.typing.type, r),
+                    Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]),
+                      [], [], r)
+                  ))
+                } else {
+                  return co_unit(mk_typing(M_def.typing.type,
+                    Sem.static_method_get_expr_rt(C_name, F_or_M_name)))
+                  }
+              } else {
+                return co_unit(mk_typing(M_def.typing.type.out,
+                  Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
+
+              }
             }
-            return co_error<State,Err,Typing>({ range:r, message:`Error: class ${this_ref_t.type.C_name} does not contain field ${F_or_M_name}`})
+            return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_or_M_name}`})
 
           }
          ))

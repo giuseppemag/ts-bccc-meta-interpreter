@@ -10,6 +10,15 @@ import { Typing, State, MethodTyping, FieldType, Err, CallingContext } from './c
 
 let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSharp.mk_typing(t, sem))
 
+let to_string  = (t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
+  (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["public", "static"], is_constructor:false, range:minus_two_range,
+  return_t:CSharp.string_type, name:"ToString", parameters:[{ name:"a", type:t }],
+  body:from_js(
+        CSharp.string_type,
+        Sem.get_v_rt("a").then(a_v =>
+          Sem.return_rt(Sem.val_expr(apply(inl(), op(a_v.value))))
+        )) })
+
 let unary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:minus_two_range,
   return_t:t, name:name, parameters:[{ name:"a", type:t }],
@@ -57,6 +66,7 @@ let bool = CSharp.def_class(minus_two_range, "bool", [
 
 let int = CSharp.def_class(minus_two_range, "int", [
     casting_operator("string", CSharp.int_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
+    to_string(CSharp.int_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
     casting_operator("float", CSharp.int_type, CSharp.float_type, a_v => Sem.mk_float_val(a_v.v as number)),
     binary_operator("+", CSharp.int_type, (a_v, b_v) => Sem.mk_int_val((a_v.v as number) + (b_v.v as number))),
     binary_operator("-", CSharp.int_type, (a_v, b_v) => Sem.mk_int_val((a_v.v as number) - (b_v.v as number))),
