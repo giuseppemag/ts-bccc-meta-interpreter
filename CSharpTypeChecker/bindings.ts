@@ -655,7 +655,6 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                 return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
               else
                 return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation.`})
-
             }
             else
               if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {

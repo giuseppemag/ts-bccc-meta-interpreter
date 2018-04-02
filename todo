@@ -25,7 +25,7 @@
   [ ] runtime?
 [g] standard library
   [ ] unit/void
-  [ ] ToString method
+  [ ] ToString method: there must always be an underlying class in the standard library
   [ ] String::Length
   [ ] renderers (and their (+) operation)
 
@@ -43,6 +43,10 @@
   [ ] polymorphism (coerce instead of == while typechecking)
   [ ] Covariance/contravariance in function calls and variable assignments
 
+[g] Generics
+  [ ] Array<T> in standard library
+  [ ] Tuple in standard library
+
 [g] Closures in regular functions
 
 [g] Access modifiers: incompatibility errors do not bubble up correctly
@@ -58,7 +62,6 @@
 [g] destructuring assignment of records and tuples
 [g] Move ccc_aux to CCC repo
 [g] Structs
-[g] Generics
 [g] Use mutable state, then clone it to the immutable memory upon `dbg`
 [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
 [g] Invoke statically typed semantics
