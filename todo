@@ -14,7 +14,7 @@
   [ ] parser
   [ ] typechecker
   [ ] runtime?
-[g] automatically cast int+float -> float, double+int -> double, etc.
+[g] simple polymorphism
   [ ] coercion of tuples to records
   [g] standard library
     [ ] ToString method
