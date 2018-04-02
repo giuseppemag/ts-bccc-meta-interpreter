@@ -1,3 +1,21 @@
+[g] explicit casting
+  [ ] parser
+  [ ] typechecker and runtime both via `coerce`
+[g] Inheritance
+  [ ] Extends
+  [ ] Interface
+  [ ] abstract
+  [ ] protected
+  [ ] virtual
+  [ ] override
+  [ ] Covariance/contravariance in function calls and variable assignments
+  [ ] Object with `ToString() { return "" }`
+[g] Generics
+  [ ] Array<T> in standard library
+  [ ] Tuple in standard library
+[g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
+  [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
+  [ ] add unary - to standard library
 [g] unit tests
   [ ] failed coercions and wrong types
     [ ] primitives and operations
@@ -17,32 +35,6 @@
   [ ] html rendering
 [g] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Filesystem simulator
-
-[g] explicit casting
-  [ ] parser
-  [ ] typechecker
-  [ ] runtime?
-[g] standard library
-  [ ] unit/void
-  [ ] ToString method: there must always be an underlying class in the standard library
-
-[g] operator overloading in regular classes
-  [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
-  [ ] add unary - to standard library
-
-[g] Inheritance
-  [ ] Extends
-  [ ] Interface
-  [ ] abstract
-  [ ] protected
-  [ ] virtual
-  [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
-  [ ] Object with `ToString() { return "" }`
-
-[g] Generics
-  [ ] Array<T> in standard library
-  [ ] Tuple in standard library
 
 [g] Closures in regular functions
 
@@ -73,6 +65,10 @@
 [m] `Func<void,*>` should draw as `Func<*>`
 [m] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
 [m] multidimensional array + array in class attributes
+[m] `var y = 200.ToString();` does not parse
+[m] `var y = 1.5.ToString();` does not parse
+[m] `var y = true.ToString();` does not parse
+[m] `var y = 1.5f.ToString();` does not parse
 
 [m] add checks to tests which have none
 [m] Use code font in debugger tables

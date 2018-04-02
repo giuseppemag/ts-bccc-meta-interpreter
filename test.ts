@@ -21,7 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-var x = 200;
+var x = 2.5;
 var y = x.ToString();
 `
 

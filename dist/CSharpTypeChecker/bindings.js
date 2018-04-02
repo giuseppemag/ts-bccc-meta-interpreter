@@ -657,7 +657,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 else
                     return ts_bccc_2.co_error({ range: r, message: "Invalid array operation." });
             }
-            else if (this_ref_t.type.kind != "int" && this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+            else if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
                 var item = /^Item/;
                 var m = F_or_M_name.match(item);
                 if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
@@ -678,13 +678,12 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                         catch (error) {
                             return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + "." });
                         }
-                    }
-                    else {
-                        return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when getting field " + F_or_M_name + " from " + JSON.stringify(this_ref_t) + "." });
+                        // } else {
+                        //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
                     }
                 }
             }
-            var C_name = this_ref_t.type.kind == "int" ? "int" : this_ref_t.type.C_name;
+            var C_name = this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj" ? this_ref_t.type.C_name : types_1.type_to_string(this_ref_t.type);
             if (!bindings.bindings.has(C_name))
                 return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
             var C_def = bindings.bindings.get(C_name);
@@ -715,11 +714,11 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 if (M_def.typing.type.kind != "fun")
                     return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + JSON.stringify(F_or_M_name) + " is not a lambda in " + (context.kind == "class" ? context.C_name : JSON.stringify(context)) });
                 if (M_def.modifiers.has("static")) {
-                    if (this_ref_t.type.kind == "int") {
-                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([]), M_def.typing.type, r), Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]), [], [], r)));
+                    if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
+                        return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type, Sem.static_method_get_expr_rt(C_name, F_or_M_name)));
                     }
                     else {
-                        return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type, Sem.static_method_get_expr_rt(C_name, F_or_M_name)));
+                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([]), M_def.typing.type, r), Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]), [], [], r)));
                     }
                 }
                 else {
@@ -815,7 +814,7 @@ exports.call_cons = function (r, context, C_name, arg_values) {
     }); };
 };
 exports.get_class = function (r, t) {
-    return t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" ?
+    return t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" || t.kind == "unit" ?
         ts_bccc_1.co_get_state().then(function (bindings) {
             if (!bindings.bindings.has(t.kind))
                 return ts_bccc_2.co_error({ message: "Cannot find class for primitive type " + JSON.stringify(t), range: r });

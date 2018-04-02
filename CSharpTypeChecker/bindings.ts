@@ -659,7 +659,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                 return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation.`})
             }
             else
-              if (this_ref_t.type.kind != "int" && this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
+              if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
               let item = /^Item/
               let m = F_or_M_name.match(item)
               if (this_ref_t.type.kind == "tuple" && m != null && m.length != 0) {
@@ -679,13 +679,13 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                   } catch (error) {
                     return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
                   }
-                } else {
-                  return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
+                // } else {
+                //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
                 }
               }
            }
 
-           let C_name = this_ref_t.type.kind == "int" ? "int" : this_ref_t.type.C_name
+           let C_name = this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj" ? this_ref_t.type.C_name : type_to_string(this_ref_t.type)
            if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} is not a class`})
@@ -716,15 +716,15 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               }
               if (M_def.typing.type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: method ${C_name}::${JSON.stringify(F_or_M_name)} is not a lambda in ${context.kind == "class" ?  context.C_name : JSON.stringify(context)}`})
               if (M_def.modifiers.has("static")) {
-                if (this_ref_t.type.kind == "int") {
-                  return co_unit(mk_typing(fun_type(tuple_type([]), M_def.typing.type, r),
-                    Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]),
-                      [], [], r)
-                  ))
-                } else {
+                if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
                   return co_unit(mk_typing(M_def.typing.type,
                     Sem.static_method_get_expr_rt(C_name, F_or_M_name)))
-                  }
+                  } else {
+                    return co_unit(mk_typing(fun_type(tuple_type([]), M_def.typing.type, r),
+                    Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]),
+                    [], [], r)
+                  ))
+                }
               } else {
                 return co_unit(mk_typing(M_def.typing.type.out,
                   Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
@@ -824,7 +824,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
 }
 
 export let get_class = (r:SourceRange, t:Type) : Coroutine<State, Err, ObjType> =>
-  t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" ?
+  t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" || t.kind == "unit" ?
   co_get_state<State, Err>().then(bindings => {
     if (!bindings.bindings.has(t.kind)) return co_error<State, Err, ObjType>({ message: `Cannot find class for primitive type ${JSON.stringify(t)}`, range:r })
     let t_t = bindings.bindings.get(t.kind)

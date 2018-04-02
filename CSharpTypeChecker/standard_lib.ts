@@ -56,7 +56,8 @@ let casting_operator = (name:string, from_t:CSharp.Type, to_t:CSharp.Type, conv:
         )) })
 
 let bool = CSharp.def_class(minus_two_range, "bool", [
-    casting_operator("string", CSharp.int_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
+    casting_operator("string", CSharp.bool_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
+    to_string(CSharp.bool_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
     unary_operator("!", CSharp.bool_type, (a_v) => Sem.mk_bool_val(!(a_v.v as boolean))),
     binary_operator("^", CSharp.bool_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as boolean) != (b_v.v as boolean))),
     binary_operator("&&", CSharp.bool_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as boolean) && (b_v.v as boolean))),
@@ -84,7 +85,8 @@ let int = CSharp.def_class(minus_two_range, "int", [
   [], true)
 
 export let float = CSharp.def_class(minus_two_range, "float", [
-  casting_operator("string", CSharp.int_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
+  casting_operator("string", CSharp.float_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
+  to_string(CSharp.float_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   casting_operator("double", CSharp.float_type, CSharp.double_type, a_v => Sem.mk_float_val(a_v.v as number)),
   binary_operator("+", CSharp.float_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) + (b_v.v as number))),
   binary_operator("-", CSharp.float_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) - (b_v.v as number))),
@@ -102,6 +104,7 @@ export let float = CSharp.def_class(minus_two_range, "float", [
 
 export let double = CSharp.def_class(minus_two_range, "double", [
   casting_operator("string", CSharp.double_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
+  to_string(CSharp.double_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   binary_operator("+", CSharp.double_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) + (b_v.v as number))),
   unary_operator("-", CSharp.double_type, (a_v) => Sem.mk_float_val(-(a_v.v as number))),
   binary_operator("-", CSharp.double_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) - (b_v.v as number))),
@@ -117,10 +120,16 @@ export let double = CSharp.def_class(minus_two_range, "double", [
 [], true)
 
 let string = CSharp.def_class(minus_two_range, "string", [
-    binary_operator("+", CSharp.string_type, (a_v, b_v) => Sem.mk_string_val((a_v.v as string) + (b_v.v as string))),
-    comparison_operator("==", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) == (b_v.v as string))),
-    comparison_operator("!=", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) != (b_v.v as string))),
-  ],
+  to_string(CSharp.string_type, a_v => Sem.mk_string_val(a_v.v as string)),
+  binary_operator("+", CSharp.string_type, (a_v, b_v) => Sem.mk_string_val((a_v.v as string) + (b_v.v as string))),
+  comparison_operator("==", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) == (b_v.v as string))),
+  comparison_operator("!=", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) != (b_v.v as string))),
+],
+[], true)
+
+let unit = CSharp.def_class(minus_two_range, "unit", [
+  to_string(CSharp.unit_type, a_v => Sem.mk_string_val("")),
+],
 [], true)
 
 let math = CSharp.def_class(minus_two_range, "Math", [
@@ -138,5 +147,6 @@ export let standard_lib = () => CSharp.semicolon(minus_two_range, int,
   CSharp.semicolon(minus_two_range, float,
   CSharp.semicolon(minus_two_range, double,
   CSharp.semicolon(minus_two_range, string,
-  CSharp.semicolon(minus_two_range, bool, math)))))
+  CSharp.semicolon(minus_two_range, bool,
+  CSharp.semicolon(minus_two_range, unit, math))))))
 

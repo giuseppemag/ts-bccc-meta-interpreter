@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nvar x = 200;\nvar y = x.ToString();\n";
+        var source = "\nvar x = 2.5;\nvar y = x.ToString();\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {
