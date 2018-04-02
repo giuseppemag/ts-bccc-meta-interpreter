@@ -9,11 +9,11 @@ export declare let decl_v: (r: SourceRange, v: string, t: Type, is_constant?: bo
 export declare let decl_and_init_v: (r: SourceRange, v: string, t: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_const: (r: SourceRange, c: string, t: Type, e: Stmt) => Stmt;
 export declare let set_v: (r: SourceRange, v: string, e: Stmt) => Stmt;
-export declare let bool: (b: boolean) => Stmt;
-export declare let str: (s: string) => Stmt;
-export declare let int: (i: number) => Stmt;
-export declare let float: (i: number) => Stmt;
-export declare let double: (i: number) => Stmt;
+export declare let bool: (r: SourceRange, b: boolean) => Stmt;
+export declare let str: (r: SourceRange, s: string) => Stmt;
+export declare let int: (r: SourceRange, i: number) => Stmt;
+export declare let float: (r: SourceRange, i: number) => Stmt;
+export declare let double: (r: SourceRange, i: number) => Stmt;
 export declare let tuple_value: (r: SourceRange, args: Stmt[]) => Stmt;
 export declare let gt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let lt: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;

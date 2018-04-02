@@ -183,12 +183,12 @@ export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
   : [n]}
 
 export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n => context =>
-  n.ast.kind == "int" ? int(n.ast.value)
-  : n.ast.kind == "double" ? double(n.ast.value)
-  : n.ast.kind == "float" ? float(n.ast.value)
-  : n.ast.kind == "string" ? str(n.ast.value)
+  n.ast.kind == "int" ? int(n.range, n.ast.value)
+  : n.ast.kind == "double" ? double(n.range, n.ast.value)
+  : n.ast.kind == "float" ? float(n.range, n.ast.value)
+  : n.ast.kind == "string" ? str(n.range, n.ast.value)
   : n.ast.kind == "bracket" ? ast_to_type_checker(n.ast.e)(context)
-  : n.ast.kind == "bool" ? bool(n.ast.value)
+  : n.ast.kind == "bool" ? bool(n.range, n.ast.value)
   : n.ast.kind == "noop" ? done
   : n.ast.kind == ";" ? semicolon(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "for" ? for_loop(n.range, ast_to_type_checker(n.ast.i)(context), ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.b)(context))

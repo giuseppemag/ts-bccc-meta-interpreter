@@ -229,15 +229,22 @@ run_checks([
     }
     var s1 = describe (100);
     var s2 = describe (101);
+
+    Func<float, float> f = x => x * 2.5f;
+    var a = 5;
+    var b = f(a);
+
     typechecker_debugger;
     debugger;`,
     checks:[
       { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+      { name:"b is float", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("b").kind, "float") },
       { name:"x is removed", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.has("x"), false) },
       { name:"s1 is string", step:2, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("s1").kind, "string") },
       { name:"x is 100", step:4, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 100) },
       { name:"x is 101", step:5, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.stack.get(0).get(0).get("x").v, 101) },
       { name:`s2 is "odd"`, step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("s2").v, "odd") },
+      { name:`b is 12.5"`, step:6, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("b").v, 12.5) },
     ]
   },
 
@@ -277,11 +284,11 @@ run_checks([
     source:`
     Func<int,int> d = x => x * 2;
     Func<int,int> p2 = x => x + 2;
-    Func<int,int> then (Func<int,int> f,Func<int,int> g){
+    Func<int,int> then (Func<int,int> f, Func<int,int> g){
       typechecker_debugger;
       return x => g (f (x));
     }
-    Func<int,int> d_p2 = then (d,p2);
+    Func<int,int> d_p2 = then(d,p2);
     typechecker_debugger;
     var x = d_p2(10);
     debugger;`,

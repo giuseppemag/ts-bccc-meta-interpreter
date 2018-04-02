@@ -120,14 +120,16 @@ run_checks([
     },
     {
         name: "functions",
-        source: "string describe (int x){\n      typechecker_debugger;\n      debugger;\n      if(x % 2 == 0){\n        return \"even\";\n      }\n      else{\n        return \"odd\";\n      }\n    }\n    var s1 = describe (100);\n    var s2 = describe (101);\n    typechecker_debugger;\n    debugger;",
+        source: "string describe (int x){\n      typechecker_debugger;\n      debugger;\n      if(x % 2 == 0){\n        return \"even\";\n      }\n      else{\n        return \"odd\";\n      }\n    }\n    var s1 = describe (100);\n    var s2 = describe (101);\n\n    Func<float, float> f = x => x * 2.5f;\n    var a = 5;\n    var b = f(a);\n\n    typechecker_debugger;\n    debugger;",
         checks: [
             { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x").kind, "int"); } },
+            { name: "b is float", step: 2, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("b").kind, "float"); } },
             { name: "x is removed", step: 2, expected_kind: "bindings", check: function (s) { return assert_equal(s.has("x"), false); } },
             { name: "s1 is string", step: 2, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("s1").kind, "string"); } },
             { name: "x is 100", step: 4, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("x").v, 100); } },
             { name: "x is 101", step: 5, expected_kind: "memory", check: function (s) { return assert_equal(s.stack.get(0).get(0).get("x").v, 101); } },
             { name: "s2 is \"odd\"", step: 6, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("s2").v, "odd"); } },
+            { name: "b is 12.5\"", step: 6, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("b").v, 12.5); } },
         ]
     },
     {
@@ -143,7 +145,7 @@ run_checks([
         ]
     },
     { name: "anonymous functions",
-        source: "\n    Func<int,int> d = x => x * 2;\n    Func<int,int> p2 = x => x + 2;\n    Func<int,int> then (Func<int,int> f,Func<int,int> g){\n      typechecker_debugger;\n      return x => g (f (x));\n    }\n    Func<int,int> d_p2 = then (d,p2);\n    typechecker_debugger;\n    var x = d_p2(10);\n    debugger;",
+        source: "\n    Func<int,int> d = x => x * 2;\n    Func<int,int> p2 = x => x + 2;\n    Func<int,int> then (Func<int,int> f, Func<int,int> g){\n      typechecker_debugger;\n      return x => g (f (x));\n    }\n    Func<int,int> d_p2 = then(d,p2);\n    typechecker_debugger;\n    var x = d_p2(10);\n    debugger;",
         checks: [
             { name: "f is Func", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("f")), "Func<int,int>"); } },
             { name: "d is Func", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(CSharp.type_to_string(s.get("d")), "Func<int,int>"); } },

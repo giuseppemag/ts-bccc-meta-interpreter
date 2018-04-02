@@ -90,12 +90,12 @@ exports.extract_tuple_args = function (n) {
         : [n];
 };
 exports.ast_to_type_checker = function (n) { return function (context) {
-    return n.ast.kind == "int" ? bindings_1.int(n.ast.value)
-        : n.ast.kind == "double" ? bindings_1.double(n.ast.value)
-            : n.ast.kind == "float" ? bindings_1.float(n.ast.value)
-                : n.ast.kind == "string" ? bindings_1.str(n.ast.value)
+    return n.ast.kind == "int" ? bindings_1.int(n.range, n.ast.value)
+        : n.ast.kind == "double" ? bindings_1.double(n.range, n.ast.value)
+            : n.ast.kind == "float" ? bindings_1.float(n.range, n.ast.value)
+                : n.ast.kind == "string" ? bindings_1.str(n.range, n.ast.value)
                     : n.ast.kind == "bracket" ? exports.ast_to_type_checker(n.ast.e)(context)
-                        : n.ast.kind == "bool" ? bindings_1.bool(n.ast.value)
+                        : n.ast.kind == "bool" ? bindings_1.bool(n.range, n.ast.value)
                             : n.ast.kind == "noop" ? bindings_1.done
                                 : n.ast.kind == ";" ? bindings_1.semicolon(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
                                     : n.ast.kind == "for" ? bindings_1.for_loop(n.range, exports.ast_to_type_checker(n.ast.i)(context), exports.ast_to_type_checker(n.ast.c)(context), exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.b)(context))

@@ -1,4 +1,13 @@
 [g] unit tests
+  [ ] failed coercions and wrong types
+    [ ] primitives and operations
+    [ ] field getter and setter
+    [ ] in both functions and methods
+      [ ] return types
+      [ ] arguments
+      [ ] anonymous functions
+      [ ] arrays
+      [ ] anonymous functions given to wrong contexts
   [ ] rendering
   [ ] files
   [ ] inheritance
@@ -10,21 +19,19 @@
 [g] Filesystem simulator
 [g] HTML renderers for server simulator
 
-[g] coercion everywhere we use type_equals
-[g] simple polymorphism
-  [ ] coercion of tuples to records
-  [g] standard library
-    [ ] ToString method
-    [ ] renderers (and their (+) operation)
-[g] operator overloading in regular classes
-  [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
 [g] explicit casting
   [ ] parser
   [ ] typechecker
   [ ] runtime?
+[g] standard library
+  [ ] unit/void
+  [ ] ToString method
+  [ ] String::Length
+  [ ] renderers (and their (+) operation)
 
-[g] Overloading (-^2) vs (-^1)
-  [ ] Unary - operator
+[g] operator overloading in regular classes
+  [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
+  [ ] add unary - to standard library
 
 [g] Inheritance
   [ ] Extends
@@ -57,7 +64,7 @@
 [g] Invoke statically typed semantics
 [g] renderers defined in standard library
 
-
+[m] add `null`
 [m] add C# to playground
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
 [m] Getters vs function application (test example below):

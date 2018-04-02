@@ -21,10 +21,18 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-var x = 2 + 5;
-var y = x - 1;
-typechecker_debugger;
-    `
+    class Counter {
+      private int cnt = -5;
+      public Counter(int from) {
+        this.cnt = from;
+      }
+      public void tick(int delta) {
+        this.cnt = this.cnt + delta;
+      }
+    }
+    Counter c = new Counter (5);
+    c.tick (3);
+`
 
     // let hrstart = process.hrtime()
 
