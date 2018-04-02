@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nint x = 10;\nint y = 20;\nint z = x + y;\n";
+        var source = "\nvar x = 2 + 5;\nvar y = 5 * 1.5f;\nvar z = 2.5 + (5 * 1.5f);\ntypechecker_debugger;\n    ";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

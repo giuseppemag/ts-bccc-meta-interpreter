@@ -410,91 +410,45 @@ exports.mk_other_surface = function (r, s, dx, dy, sx, sy, rot) {
         });
     }); };
 };
-// polymorphic plus: extract definition of plus for both sides
-// try to cast both arguments to extracted definitions
-// run both trials in parser_or
-exports.plus = function (r, a, b) {
-    var plus_from_type = function (a_t, b_t, t) {
+exports.bin_op = function (r, a, b, op) {
+    var op_from_type = function (a_t, b_t, t) {
         return exports.get_class(r, t).then(function (t_c) {
-            if (!t_c.methods.has("+"))
-                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (+) operator." });
-            var plus = t_c.methods.get("+");
-            if (plus.typing.type.kind != "fun" || plus.typing.type.in.kind != "tuple" || plus.typing.type.in.args.length != 2)
-                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has a (+) operator, but it is malformed." });
-            var args = plus.typing.type.in.args;
+            if (!t_c.methods.has(op))
+                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (" + op + ") operator." });
+            var op_method = t_c.methods.get(op);
+            if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 2)
+                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has a (" + op + ") operator, but it is malformed." });
+            var args = op_method.typing.type.in.args;
             var a1 = function (_) { return ts_bccc_2.co_unit(a_t); };
             var b1 = function (_) { return ts_bccc_2.co_unit(b_t); };
-            var plus_stmt = function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(plus.typing.type, Sem.static_method_get_expr_rt(types_1.type_to_string(a_t.type), "+"))); };
-            return exports.coerce(r, a1)(ts_bccc_1.apply(ts_bccc_1.inl(), args[0])).then(function (a_f) {
-                return exports.coerce(r, b1)(ts_bccc_1.apply(ts_bccc_1.inl(), args[1])).then(function (b_f) {
-                    return exports.call_lambda(r, plus_stmt, [a1, b1])(types_1.no_constraints);
+            var op_method_stmt = function (_) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(types_1.type_to_string(t), op)));
+            };
+            return exports.coerce(r, a1, args[0])(types_1.no_constraints).then(function (a_f) {
+                return exports.coerce(r, b1, args[1])(types_1.no_constraints).then(function (b_f) {
+                    return exports.call_lambda(r, op_method_stmt, [function (_) { return ts_bccc_2.co_unit(a_f); }, function (_) { return ts_bccc_2.co_unit(b_f); }])(types_1.no_constraints);
                 });
             });
         });
     };
     return function (_) { return a(types_1.no_constraints).then(function (a_t) {
         return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, types_1.render_surface_type) &&
+            return op == "+" && types_1.type_equals(a_t.type, types_1.render_surface_type) &&
                 (types_1.type_equals(b_t.type, types_1.circle_type) || types_1.type_equals(b_t.type, types_1.square_type)
                     || types_1.type_equals(b_t.type, types_1.ellipse_type) || types_1.type_equals(b_t.type, types_1.rectangle_type)
                     || types_1.type_equals(b_t.type, types_1.sprite_type) || types_1.type_equals(b_t.type, types_1.line_type)
                     || types_1.type_equals(b_t.type, types_1.polygon_type) || types_1.type_equals(b_t.type, types_1.text_type)
                     || types_1.type_equals(b_t.type, types_1.other_render_surface_type)) ?
                 ts_bccc_2.co_unit(types_1.mk_typing(types_1.render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
-                : ccc_aux_1.co_catch(function (e1, e2) { return console.log(JSON.stringify([e1, e2])) || ({ range: r, message: "Error: unsupported types for operator (+)!" }); })(plus_from_type(a_t, b_t, a_t.type))(plus_from_type(a_t, b_t, b_t.type));
+                : ccc_aux_1.co_catch(function (e1, e2) { return ({ range: r, message: "Error: unsupported types for operator (" + op + ")!" }); })(op_from_type(a_t, b_t, a_t.type))(op_from_type(a_t, b_t, b_t.type));
         });
     }); };
 };
-exports.minus = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.int_minus_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(a_t.type, Sem.float_minus_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (-)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot subtract expressions of different types!" });
-        });
-    }); };
-};
-exports.div = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(a_t.type, Sem.float_div_rt(a_t.sem, b_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (/)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot divide expressions of different types!" });
-        });
-    }); };
-};
-exports.times = function (r, a, b, sr) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.int_times_rt(a_t.sem, b_t.sem, sr)))
-                    : types_1.type_equals(a_t.type, types_1.float_type) || types_1.type_equals(a_t.type, types_1.double_type) ?
-                        ts_bccc_2.co_unit(types_1.mk_typing(a_t.type, Sem.float_times_rt(a_t.sem, b_t.sem, sr)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error (" + sr.to_string() + "): unsupported types for operator (*)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error (" + sr.to_string() + "): cannot multiply expressions of incompatible types!" });
-        });
-    }); };
-};
-exports.mod = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) ?
-                types_1.type_equals(a_t.type, types_1.int_type) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.int_mod_rt(a_t.sem, b_t.sem)))
-                    : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (-)!" })
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot mod expressions of different types!" });
-        });
-    }); };
-};
+exports.plus = function (r, a, b) { return exports.bin_op(r, a, b, "+"); };
+exports.minus = function (r, a, b) { return exports.bin_op(r, a, b, "-"); };
+exports.div = function (r, a, b) { return exports.bin_op(r, a, b, "/"); };
+exports.times = function (r, a, b, sr) { return exports.bin_op(r, a, b, "*"); };
+exports.mod = function (r, a, b) { return exports.bin_op(r, a, b, "%"); };
 exports.minus_unary = function (r, a) {
     return function (_) { return a(types_1.no_constraints).then(function (a_t) {
         return types_1.type_equals(a_t.type, types_1.int_type) ?
@@ -504,24 +458,8 @@ exports.minus_unary = function (r, a) {
                 : ts_bccc_2.co_error({ range: r, message: "Error: unsupported type for unary operator (-)!" });
     }); };
 };
-exports.or = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) && types_1.type_equals(a_t.type, types_1.bool_type) ?
-                ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_plus_rt(a_t.sem, b_t.sem)))
-                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (||)!" });
-        });
-    }); };
-};
-exports.and = function (r, a, b) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return b(types_1.no_constraints).then(function (b_t) {
-            return types_1.type_equals(a_t.type, b_t.type) && types_1.type_equals(a_t.type, types_1.bool_type) ?
-                ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_times_rt(a_t.sem, b_t.sem)))
-                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for operator (&&)!" });
-        });
-    }); };
-};
+exports.or = function (r, a, b) { return exports.bin_op(r, a, b, "||"); };
+exports.and = function (r, a, b) { return exports.bin_op(r, a, b, "&&"); };
 exports.arrow = function (r, parameters, closure, body) {
     return function (constraints) {
         if (constraints.kind == "right")
@@ -1049,28 +987,28 @@ exports.get_class = function (r, t) {
         : t.kind == "obj" ? ts_bccc_2.co_unit(t)
             : ts_bccc_2.co_error({ message: "Cannot get class for type " + JSON.stringify(t), range: r });
 };
-exports.coerce = function (r, e) {
-    return function (t) { return e(types_1.no_constraints).then(function (e_v) { return exports.get_class(r, e_v.type).then(function (e_c) {
-        if (t.kind == "right")
-            return ts_bccc_2.co_error({ message: "Cannot coerce to unspecified type.", range: r });
-        var t_name = types_1.type_to_string(t.value);
+exports.coerce = function (r, e, t) {
+    return function (_) { return e(types_1.no_constraints).then(function (e_v) { return exports.get_class(r, e_v.type).then(function (e_c) {
+        var t_name = types_1.type_to_string(t);
         var e_type_name = types_1.type_to_string(e_v.type);
-        if (t_name == e_type_name)
+        // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
+        if (types_1.type_equals(t, e_v.type))
             return ts_bccc_2.co_unit(e_v);
         var casting_operators = e_c.methods.filter(function (m) { return m != undefined && m.modifiers.some(function (mod) { return mod == "casting"; }) && m.modifiers.some(function (mod) { return mod == "operator"; }) && m.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (c_op, c_op_name) { return ({ body: c_op, name: c_op_name }); }).toArray();
+        // console.log(`I have found the following casting operators on ${e_type_name}: ${JSON.stringify(casting_operators.map(c => c.name))}`)
         var coercions = casting_operators.map(function (c_op) {
             var c_op_typing = function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(e_type_name, c_op.name))); };
             var coercion = exports.call_lambda(r, c_op_typing, [function (_) { return ts_bccc_2.co_unit(e_v); }]);
+            // console.log(`Processing coercion ${c_op.name}, which entails a function to ${type_to_string(c_op.body.typing.type)}`)
             if (c_op.name == t_name) {
+                // console.log(`Found. Returning.`)
                 return coercion;
             }
             else {
-                return function (_) { return exports.coerce(r, coercion)(t); };
+                // console.log(`Recursing. The target is still ${JSON.stringify(t)}`)
+                return exports.coerce(r, coercion, t);
             }
         });
-        return ccc_aux_1.comm_list_coroutine(Immutable.List(coercions.map(function (c) { return c(types_1.no_constraints); }))).then(function (casts) {
-            return !casts.isEmpty() ? ts_bccc_2.co_unit(casts.first())
-                : ts_bccc_2.co_error({ message: "Cannot convert expression with type " + JSON.stringify(e_v.type) + " to " + t_name + ".", range: r });
-        });
+        return ccc_aux_1.co_catch_many({ message: "Cannot cast from " + e_type_name + " to " + t_name, range: r })(Immutable.List(coercions.map(function (c) { return c(types_1.no_constraints); })));
     }); }); };
 };

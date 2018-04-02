@@ -17,14 +17,15 @@
 [g] automatically cast int+float -> float, double+int -> double, etc.
   [ ] t1,t2 -> (cast1:Expr->Expr, cast2:Expr->Expr, res_t:Type)
   [ ] toString operators
-  [ ] tuples vs records (see array case, requires generics)
+  [ ] coercion of tuples to records
+  [ ] test each operator
   [g] standard library
-    [ ] int
-    [ ] float
-    [ ] double
+    [ ] template for basic operators of primitives
+    [ ] +, -, *, /, %, &&, ||, >, <, >=, <=, ==, !=
     [ ] string
     [ ] renderers (and their (+) operation)
     [ ] hidden in GO
+[g] coercion everywhere we use type_equals
 [g] operator overloading in regular classes
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
 
@@ -118,6 +119,8 @@
 
 [m] `using` statement and `IDisposable`
 [m] Exam mode in desktop application
+
+[m] Python syntax
 
 
 [ ] Cleanup/whishlist

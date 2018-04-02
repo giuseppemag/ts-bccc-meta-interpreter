@@ -11,5 +11,6 @@ export declare let comm_list_coroutine: <S, E, A>(ps: Immutable.List<CCC.Corouti
 export declare let co_lookup: <S, E, A>(p: CCC.Coroutine<S, E, A>) => CCC.Coroutine<S, E, A>;
 export declare let co_not: <S, E, A>(e: E) => (p: CCC.Coroutine<S, E, A>) => CCC.Coroutine<S, E, Unit>;
 export declare let co_catch: <S, E, A>(merge_errors: (e1: E, e2: E) => E) => (p: CCC.Coroutine<S, E, A>) => (on_err: CCC.Coroutine<S, E, A>) => CCC.Coroutine<S, E, A>;
+export declare let co_catch_many: <S, E, A>(empty_error: E) => (p: Immutable.List<CCC.Coroutine<S, E, A>>) => CCC.Coroutine<S, E, A>;
 export declare let co_map_error: <S, E, E1, A>(f: (_: E) => E1) => (p: CCC.Coroutine<S, E, A>) => CCC.Coroutine<S, E1, A>;
 export declare let co_stateless: <S, E, A>(p: CCC.Coroutine<S, E, A>) => CCC.Coroutine<S, E, A>;

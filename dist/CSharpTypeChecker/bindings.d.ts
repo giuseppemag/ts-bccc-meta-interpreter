@@ -32,6 +32,7 @@ export declare let mk_polygon: (r: SourceRange, points: Stmt, col: Stmt, rot: St
 export declare let mk_text: (r: SourceRange, t: Stmt, x: Stmt, y: Stmt, s: Stmt, col: Stmt, rot: Stmt) => Stmt;
 export declare let mk_sprite: (r: SourceRange, sprite: Stmt, x: Stmt, y: Stmt, w: Stmt, h: Stmt, rot: Stmt) => Stmt;
 export declare let mk_other_surface: (r: SourceRange, s: Stmt, dx: Stmt, dy: Stmt, sx: Stmt, sy: Stmt, rot: Stmt) => Stmt;
+export declare let bin_op: (r: SourceRange, a: Stmt, b: Stmt, op: string) => Stmt;
 export declare let plus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let minus: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let div: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
@@ -82,4 +83,4 @@ export declare let field_set: (r: SourceRange, context: CallingContext, this_ref
 }, new_value: Stmt) => Stmt;
 export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[]) => Stmt;
 export declare let get_class: (r: SourceRange, t: Type) => CCC.Coroutine<State, Err, ObjType>;
-export declare let coerce: (r: SourceRange, e: Stmt) => Stmt;
+export declare let coerce: (r: SourceRange, e: Stmt, t: Type) => Stmt;

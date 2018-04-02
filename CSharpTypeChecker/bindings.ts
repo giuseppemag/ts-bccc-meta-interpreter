@@ -5,7 +5,7 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range } from "../source_range"
 import * as Sem from "../Python/python"
-import { comm_list_coroutine, co_stateless, co_catch } from "../ccc_aux";
+import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType } from "./types";
 
@@ -378,31 +378,30 @@ export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, 
 }
 
 
-// polymorphic plus: extract definition of plus for both sides
-// try to cast both arguments to extracted definitions
-// run both trials in parser_or
-export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  let plus_from_type = (a_t:Typing, b_t:Typing, t:Type) =>
+export let bin_op = function(r:SourceRange, a:Stmt, b:Stmt, op:string) : Stmt {
+  let op_from_type = (a_t:Typing, b_t:Typing, t:Type) =>
     get_class(r, t).then(t_c => {
-      if (!t_c.methods.has("+")) return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (+) operator.`})
-      let plus = t_c.methods.get("+")
-      if (plus.typing.type.kind != "fun" || plus.typing.type.in.kind != "tuple" || plus.typing.type.in.args.length != 2)
-        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has a (+) operator, but it is malformed.`})
+      if (!t_c.methods.has(op))
+        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (${op}) operator.`})
+      let op_method = t_c.methods.get(op)
+      if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 2)
+        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has a (${op}) operator, but it is malformed.`})
 
-      let args = plus.typing.type.in.args
+      let args = op_method.typing.type.in.args
       let a1:Stmt = _ => co_unit<State,Err,Typing>(a_t)
       let b1:Stmt = _ => co_unit<State,Err,Typing>(b_t)
 
-      let plus_stmt:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(plus.typing.type, Sem.static_method_get_expr_rt(type_to_string(a_t.type), "+")))
+      let op_method_stmt:Stmt = _ =>
+        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(type_to_string(t), op)))
 
-      return coerce(r, a1)(apply(inl(), args[0])).then(a_f =>
-        coerce(r, b1)(apply(inl(), args[1])).then(b_f =>
-          call_lambda(r, plus_stmt, [a1, b1])(no_constraints)))
+      return coerce(r, a1, args[0])(no_constraints).then(a_f =>
+          coerce(r, b1, args[1])(no_constraints).then(b_f =>
+          call_lambda(r, op_method_stmt, [_ => co_unit(a_f), _ => co_unit(b_f)])(no_constraints)))
     })
 
   return _ => a(no_constraints).then(a_t =>
          b(no_constraints).then(b_t =>
-          type_equals(a_t.type, render_surface_type) &&
+          op == "+" && type_equals(a_t.type, render_surface_type) &&
             (type_equals(b_t.type, circle_type) || type_equals(b_t.type, square_type)
             || type_equals(b_t.type, ellipse_type) || type_equals(b_t.type, rectangle_type)
             || type_equals(b_t.type, sprite_type) || type_equals(b_t.type, line_type)
@@ -410,59 +409,19 @@ export let plus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
             || type_equals(b_t.type, other_render_surface_type)
             ) ?
             co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
-          : co_catch<State, Err, Typing>((e1:Err, e2:Err) : Err => console.log(JSON.stringify([e1, e2])) || ({ range:r, message:"Error: unsupported types for operator (+)!" }))
-          (plus_from_type(a_t, b_t, a_t.type))(plus_from_type(a_t, b_t, b_t.type))))
+          : co_catch<State, Err, Typing>((e1:Err, e2:Err) : Err => ({ range:r, message:`Error: unsupported types for operator (${op})!` }))
+          (op_from_type(a_t, b_t, a_t.type))(op_from_type(a_t, b_t, b_t.type))))
 }
 
-export let minus = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_minus_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(a_t.type, Sem.float_minus_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (-)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot subtract expressions of different types!" })
-        ))
-}
+export let plus = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "+")
 
-export let div = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_div_rt(a_t.sem, b_t.sem)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(a_t.type, Sem.float_div_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (/)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot divide expressions of different types!" })
-        ))
-}
+export let minus = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "-")
 
-export let times = function(r:SourceRange, a:Stmt, b:Stmt, sr:SourceRange) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_times_rt(a_t.sem, b_t.sem, sr)))
-            : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(a_t.type, Sem.float_times_rt(a_t.sem, b_t.sem, sr)))
-            : co_error<State,Err,Typing>({ range:r, message:`Error (${sr.to_string()}): unsupported types for operator (*)!` })
-          : co_error<State,Err,Typing>({ range:r, message:`Error (${sr.to_string()}): cannot multiply expressions of incompatible types!` })
-        ))
-}
+export let div = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "/")
 
-export let mod = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) ?
-            type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_mod_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (-)!" })
-          : co_error<State,Err,Typing>({ range:r, message:"Error: cannot mod expressions of different types!" })
-        ))
-}
+export let times = (r:SourceRange, a:Stmt, b:Stmt, sr:SourceRange) : Stmt => bin_op(r, a, b, "*")
+
+export let mod = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "%")
 
 export let minus_unary = function(r:SourceRange, a:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
@@ -474,23 +433,9 @@ export let minus_unary = function(r:SourceRange, a:Stmt) : Stmt {
         )
 }
 
-export let or = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_plus_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (||)!" })
-        ))
-}
+export let or = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "||")
 
-export let and = function(r:SourceRange, a:Stmt, b:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         b(no_constraints).then(b_t =>
-          type_equals(a_t.type, b_t.type) && type_equals(a_t.type, bool_type) ?
-             co_unit(mk_typing(bool_type, Sem.bool_times_rt(a_t.sem, b_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for operator (&&)!" })
-        ))
-}
+export let and = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "&&")
 
 export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:Array<ValueName>, body:Stmt) : Stmt {
   return constraints => {
@@ -1044,25 +989,29 @@ export let get_class = (r:SourceRange, t:Type) : Coroutine<State, Err, ObjType> 
   : t.kind == "obj" ? co_unit<State, Err, ObjType>(t)
   : co_error<State, Err, ObjType>({ message: `Cannot get class for type ${JSON.stringify(t)}`, range:r })
 
-export let coerce = (r:SourceRange, e:Stmt) : Stmt =>
-  t => e(no_constraints).then(e_v => get_class(r, e_v.type).then(e_c => {
-    if (t.kind == "right") return co_error<State,Err,Typing>({ message:"Cannot coerce to unspecified type.", range:r })
-    let t_name = type_to_string(t.value)
+export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
+  _ => e(no_constraints).then(e_v => get_class(r, e_v.type).then(e_c => {
+    let t_name = type_to_string(t)
     let e_type_name = type_to_string(e_v.type)
-    if (t_name == e_type_name) return co_unit(e_v)
+
+    // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
+
+    if (type_equals(t, e_v.type)) return co_unit(e_v)
 
     let casting_operators = e_c.methods.filter(m => m != undefined && m.modifiers.some(mod => mod == "casting") && m.modifiers.some(mod => mod == "operator") && m.modifiers.some(mod => mod == "static")).map((c_op, c_op_name) => ({ body:c_op, name:c_op_name}) ).toArray() as { body:MethodTyping, name:string}[]
+    // console.log(`I have found the following casting operators on ${e_type_name}: ${JSON.stringify(casting_operators.map(c => c.name))}`)
     let coercions = casting_operators.map(c_op => {
       let c_op_typing:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(e_type_name, c_op.name)))
       let coercion = call_lambda(r, c_op_typing, [_ => co_unit<State,Err,Typing>(e_v)])
+      // console.log(`Processing coercion ${c_op.name}, which entails a function to ${type_to_string(c_op.body.typing.type)}`)
       if (c_op.name == t_name) {
+        // console.log(`Found. Returning.`)
         return coercion
       } else {
-        return (_:TypeConstraints) => coerce(r, coercion)(t)
+        // console.log(`Recursing. The target is still ${JSON.stringify(t)}`)
+        return coerce(r, coercion, t)
       }
     })
 
-    return comm_list_coroutine(Immutable.List<Coroutine<State, Err, Typing>>(coercions.map(c => c(no_constraints)))).then(casts =>
-        !casts.isEmpty() ? co_unit(casts.first())
-        : co_error<State,Err,Typing>({ message:`Cannot convert expression with type ${JSON.stringify(e_v.type)} to ${t_name}.`, range:r }))
+    return co_catch_many<State,Err,Typing>({ message:`Cannot cast from ${e_type_name} to ${t_name}`, range:r})(Immutable.List<Coroutine<State, Err, Typing>>(coercions.map(c => c(no_constraints))))
   }))

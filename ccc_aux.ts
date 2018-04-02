@@ -1,4 +1,4 @@
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod, fun3, co_get_state, co_set_state, Option, CoPreRes, CoCont, CoRet, CoRes } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, distribute_sum_prod_inv, distribute_sum_prod, fun3, co_get_state, co_set_state, Option, CoPreRes, CoCont, CoRet, CoRes, continuation, no_error } from "ts-bccc"
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Immutable from "immutable"
@@ -79,11 +79,14 @@ export let co_catch = <S, E, A>(merge_errors:(e1:E,e2:E)=>E) => (p: Coroutine<S,
       let k = res.value.value.fst
       let s1 = res.value.value.snd
       let k1 = co_catch<S,E,A>(merge_errors)(k)(co_set_state<S,E>(s).then(_ => on_err))
-      let res1 = k1.run.f(s1)
-      return res1
+      return apply(continuation<S,E,A>().then(no_error<S,E,A>()), { fst:k1, snd:s1 })
     }
     return res
   }))
+
+export let co_catch_many = <S, E, A>(empty_error:E) => (p: Immutable.List<Coroutine<S, E, A>>) : Coroutine<S, E, A> =>
+  p.isEmpty() ? co_error<S,E,A>(empty_error)
+  : co_catch<S,E,A>((_,e) => e)(p.first())(co_catch_many<S,E,A>(empty_error)(p.skip(1).toList()))
 
 export let co_map_error = <S, E, E1, A>(f:(_:E) => E1) => (p:Coroutine<S,E,A>) : Coroutine<S, E1, A> =>
   mk_coroutine<S,E1,A>(fun(
@@ -97,8 +100,7 @@ export let co_map_error = <S, E, E1, A>(f:(_:E) => E1) => (p:Coroutine<S,E,A>) :
       let k = res.value.value.fst
       let s1 = res.value.value.snd
       let k1:Coroutine<S,E1,A> = co_map_error<S,E,E1,A>(f)(k)
-      let res1:CoPreRes<S,E1,A> = k1.run.f(s1)
-      return res1
+      return apply(continuation<S,E1,A>().then(no_error<S,E1,A>()), { fst:k1, snd:s1 })
     }
     let actual_res = res.value.value
     let h:CoPreRes<S,E1,A> = apply(inr<E1,CoRes<S,E1,A>>().after(inr<CoCont<S,E1,A>,CoRet<S,E1,A>>()), actual_res)

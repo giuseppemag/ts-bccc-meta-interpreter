@@ -21,10 +21,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-int x = 10;
-int y = 20;
-int z = x + y;
-`
+var x = 2 + 5;
+var y = 5 * 1.5f;
+var z = 2.5 + (5 * 1.5f);
+typechecker_debugger;
+    `
 
     // let hrstart = process.hrtime()
 

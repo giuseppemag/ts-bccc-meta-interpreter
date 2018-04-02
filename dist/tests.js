@@ -39,6 +39,12 @@ var run_checks = function (tests, only_test) {
     console.log("\x1b[37mdone");
 };
 run_checks([
+    { name: "operators",
+        source: "int x;\n    int y = 10;\n    bool z = true;\n    string s = \"Hello statically typed languages!\";\n    typechecker_debugger;",
+        checks: [
+            { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "int"; } },
+            { name: "s is string", step: 1, expected_kind: "bindings", check: function (s) { return s.get("s").kind == "string"; } }
+        ] },
     { name: "primitives",
         source: "int x;\n    int y = 10;\n    bool z = true;\n    string s = \"Hello statically typed languages!\";\n    typechecker_debugger;",
         checks: [

@@ -75,12 +75,15 @@ exports.co_catch = function (merge_errors) { return function (p) { return functi
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
             var k1 = exports.co_catch(merge_errors)(k)(ts_bccc_1.co_set_state(s).then(function (_) { return on_err; }));
-            var res1 = k1.run.f(s1);
-            return res1;
+            return ts_bccc_1.apply(ts_bccc_1.continuation().then(ts_bccc_1.no_error()), { fst: k1, snd: s1 });
         }
         return res;
     }));
 }; }; };
+exports.co_catch_many = function (empty_error) { return function (p) {
+    return p.isEmpty() ? ts_bccc_2.co_error(empty_error)
+        : exports.co_catch(function (_, e) { return e; })(p.first())(exports.co_catch_many(empty_error)(p.skip(1).toList()));
+}; };
 exports.co_map_error = function (f) { return function (p) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
         var res = p.run.f(s);
@@ -92,8 +95,7 @@ exports.co_map_error = function (f) { return function (p) {
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
             var k1 = exports.co_map_error(f)(k);
-            var res1 = k1.run.f(s1);
-            return res1;
+            return ts_bccc_1.apply(ts_bccc_1.continuation().then(ts_bccc_1.no_error()), { fst: k1, snd: s1 });
         }
         var actual_res = res.value.value;
         var h = ts_bccc_1.apply(ts_bccc_1.inr().after(ts_bccc_1.inr()), actual_res);

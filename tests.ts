@@ -59,7 +59,18 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
 
 
 run_checks([
-  { name:"primitives",
+  { name:"operators",
+    source:`int x;
+    int y = 10;
+    bool z = true;
+    string s = "Hello statically typed languages!";
+    typechecker_debugger;`,
+    checks:[
+      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "int" },
+      { name:"s is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
+    ] },
+
+    { name:"primitives",
     source:`int x;
     int y = 10;
     bool z = true;
