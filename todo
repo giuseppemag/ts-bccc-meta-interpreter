@@ -126,6 +126,7 @@
   [ ] Intellisense editor
   [ ] Integration in VSCode
 
+[m] constructor name check upper/lower case
 
 [m]
   public Vector2 Times(double c){
@@ -134,3 +135,4 @@
   public Vector2 Div(double c){
     return this.Times(1.0 / c);
   }
+
