@@ -354,15 +354,6 @@ exports.arrow = function (r, parameters, closure, body) {
     };
 };
 exports.not = function (r, a) { return exports.unary_op(r, a, "!"); };
-exports.length = function (r, a) {
-    return function (constraints) { return ensure_constraints(r, constraints)(a(types_1.no_constraints).then(function (a_t) {
-        return types_1.type_equals(a_t.type, types_1.string_type) ?
-            ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.string_length_rt(a_t.sem)))
-            : a_t.type.kind == "arr" ?
-                ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, a_t.sem.then(function (a_val) { return Sem.get_arr_len_rt(a_val.value); })))
-                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported type for unary operator (-)!" });
-    })); };
-};
 exports.get_index = function (r, a, i) {
     return function (constraints) { return ensure_constraints(r, constraints)(a(types_1.no_constraints).then(function (a_t) {
         return i(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (i_t) {

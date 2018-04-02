@@ -44,7 +44,6 @@ export declare let or: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let and: (r: SourceRange, a: Stmt, b: Stmt) => Stmt;
 export declare let arrow: (r: SourceRange, parameters: Parameter[], closure: string[], body: Stmt) => Stmt;
 export declare let not: (r: SourceRange, a: Stmt) => Stmt;
-export declare let length: (r: SourceRange, a: Stmt) => Stmt;
 export declare let get_index: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_index: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
 export declare let breakpoint: (r: SourceRange) => (_: Stmt) => Stmt;

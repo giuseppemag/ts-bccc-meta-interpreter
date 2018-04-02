@@ -334,16 +334,6 @@ export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:
 
 export let not = (r:SourceRange, a:Stmt) : Stmt => unary_op(r, a, "!")
 
-export let length = function(r:SourceRange, a:Stmt) : Stmt {
-  return constraints => ensure_constraints(r, constraints)(a(no_constraints).then(a_t =>
-            type_equals(a_t.type, string_type) ?
-             co_unit(mk_typing(int_type, Sem.string_length_rt(a_t.sem)))
-            : a_t.type.kind == "arr" ?
-             co_unit(mk_typing(int_type, a_t.sem.then(a_val => Sem.get_arr_len_rt(a_val.value))))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (-)!" })
-        ))
-}
-
 export let get_index = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
   return constraints => ensure_constraints(r, constraints)(a(no_constraints).then(a_t =>
          i(apply(inl(), int_type)).then(i_t =>
