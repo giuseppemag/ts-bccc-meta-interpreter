@@ -570,10 +570,15 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
         is_internal: is_internal,
         C_name: C_name,
         methods: Immutable.Map(methods.map(function (m) {
+            // console.log("===>>> ",m.name,JSON.stringify(m.modifiers.filter(md => md == "static").length == 0 ?
+            // mk_typing(fun_type(ref_type(C_name), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
+            // mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt)))
             return [
                 m.name,
                 {
-                    typing: types_1.mk_typing(types_1.fun_type(types_1.tuple_type((m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ? [types_1.ref_type(C_name)] : []).concat(m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), Sem.done_rt),
+                    typing: m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ?
+                        types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type((m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), m.range), Sem.done_rt) :
+                        types_1.mk_typing(types_1.fun_type(types_1.tuple_type(m.parameters.map(function (p) { return p.type; })), m.return_t, m.range), Sem.done_rt),
                     modifiers: Immutable.Set(m.modifiers)
                 }
             ];

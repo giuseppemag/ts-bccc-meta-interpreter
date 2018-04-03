@@ -77,8 +77,8 @@ var free_variables = function (n, bound) {
                                                 // export interface MkEmptyRenderGrid { kind: "mk-empty-render-grid", w:ParserRes, h:ParserRes }
                                                 // export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
                                                 : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
-                                                    : n.ast.kind == "ternary_if" ? Immutable.Set()
-                                                        : n.ast.kind == "ternary_then_else" ? Immutable.Set()
+                                                    : n.ast.kind == "ternary_if" ? free_variables(n.ast.condition, bound).union(free_variables(n.ast.then_else, bound))
+                                                        : n.ast.kind == "ternary_then_else" ? free_variables(n.ast._then, bound).union(free_variables(n.ast._else, bound))
                                                             : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
                                                                 : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set([n.ast.value]) : Immutable.Set())
                                                                     : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ? Immutable.Set()

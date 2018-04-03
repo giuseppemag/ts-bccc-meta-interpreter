@@ -21,28 +21,21 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    int AddArray(int[] a) {
-      int sum = 0;
-      for(int i = 0; i < a.Length; i = i + 1) {
-        sum = sum + a[i];
+    class Vector2 {
+      public double x;
+      public double y;
+    
+      public Vector2(double x, double y) {
+        this.x = x ;
+        this.y = y;
       }
-      return sum;
+    
+      public Vector2 Plus(Vector2 v) {
+        return new Vector2(this.x + v.x, this.y + v.y);
+      }
     }
     
-    int MinArray(int[] a) {
-      int min = a[0];
-      for(int i = 1; i < a.Length; i = i + 1) {
-        if(a[i] < min) { min = a[i]; } 
-      }
-      return min;
-    }
-    
-    Func<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});
-    
-    var l = f(AddArray, MinArray);
-    var res1 = l(true);
-    debugger;
-    var res2 = l(false);
+    var v1 = new Vector2(10.0, 5.0);
     typechecker_debugger;
     debugger;
 `

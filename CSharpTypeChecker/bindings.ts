@@ -562,10 +562,16 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
     C_name:C_name,
     methods:Immutable.Map<Name, MethodTyping>(
       methods.map(m => {
+        // console.log("===>>> ",m.name,JSON.stringify(m.modifiers.filter(md => md == "static").length == 0 ?
+        // mk_typing(fun_type(ref_type(C_name), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
+        // mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt)))
         return [
           m.name,
           {
-            typing:mk_typing(fun_type(tuple_type((m.modifiers.filter(md => md == "static").length == 0 ?  [ref_type(C_name)] : []).concat(m.parameters.map(p => p.type))), m.return_t, m.range), Sem.done_rt),
+            typing:
+              m.modifiers.filter(md => md == "static").length == 0 ?
+              mk_typing(fun_type(tuple_type([ref_type(C_name)]), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
+              mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt),
             modifiers:Immutable.Set<Modifier>(m.modifiers)
           }
         ]

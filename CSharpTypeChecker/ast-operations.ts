@@ -165,8 +165,8 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
 
   : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
 
-  : n.ast.kind == "ternary_if" ? Immutable.Set<ValueName>()
-  : n.ast.kind == "ternary_then_else" ? Immutable.Set<ValueName>()
+  : n.ast.kind == "ternary_if" ? free_variables(n.ast.condition, bound).union(free_variables(n.ast.then_else, bound))
+  : n.ast.kind == "ternary_then_else" ? free_variables(n.ast._then, bound).union(free_variables(n.ast._else, bound))
 
 
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
