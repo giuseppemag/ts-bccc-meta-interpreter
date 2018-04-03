@@ -512,8 +512,8 @@ var v2 = new Vector2(10.0,5.0);
 var v3 = Vector2.Times(v1, 1.0);
 typechecker_debugger;
 debugger;`,
-    checks:[{ name:"v1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("v1") },
-            { name:"v1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("v1") }]
+    checks:[{ name:"v1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("v1") },
+            { name:"v1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("v1") }]
             
   },
   {
@@ -542,8 +542,8 @@ DataSet ds = new DataSet(elems);
 var res = ds.ComputeAverage();
 typechecker_debugger;
 debugger;`,
-    checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("elems") },
-            { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("elems") }]
+    checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("elems") },
+            { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("elems") }]
   },
   {
     name:"DataSet2",
@@ -596,8 +596,8 @@ var res2 = ds.Maximum();
 var res3 = ds.MostFrequent();
 typechecker_debugger;
 debugger;`,
-checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("elems") },
-        { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("elems") }]
+checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("elems") },
+        { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("elems") }]
   },
   {
     name:"DataSet3",
@@ -626,8 +626,8 @@ var res1 = ds.Map(x => x + 1);
 ds.MutableMap(x => x + 1);
 typechecker_debugger;
 debugger;`,
-checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("elems") },
-        { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("elems") }]
+checks:[{ name:"elems is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("elems") },
+        { name:"elems is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("elems") }]
   },
   {
     name:"Arrays",
@@ -639,8 +639,8 @@ if( c[0] >= 0 )
 c[0] = 100;
 typechecker_debugger;
 debugger;`,
-checks:[{ name:"b is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("b") },
-        { name:"b is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("b") }]
+checks:[{ name:"b is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("b") },
+        { name:"b is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("b") }]
   },
   {
     name:"Arrays",
@@ -649,8 +649,8 @@ checks:[{ name:"b is in scope", step:1, expected_kind:"bindings", check:(s:CShar
 debugger;
 typechecker_debugger;
 `,
-checks:[{ name:"v is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("v") },
-        { name:"v is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("v") }]
+checks:[{ name:"v is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("v") },
+        { name:"v is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("v") }]
   },
   {
     name:"Classes",
@@ -671,8 +671,8 @@ var s = dogs[1].bark();
 typechecker_debugger;
 debugger;
 `,
-checks:[{ name:"dogs is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("dogs") },
-        { name:"dogs is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("dogs") }]
+checks:[{ name:"dogs is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("dogs") },
+        { name:"dogs is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("dogs") }]
   },
   {
     name:"Functions and Closures",
@@ -684,8 +684,8 @@ var x = m(7);
 typechecker_debugger;
 debugger;
 `,
-checks:[{ name:"l is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("l") },
-        { name:"l is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("l") }]
+checks:[{ name:"l is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("l") },
+        { name:"l is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("l") }]
   },
   {
     name:"Classes",
@@ -708,8 +708,8 @@ var v2 = v1.Plus(new Vector2(1.0, 2.0));
 typechecker_debugger;
 debugger;
 `,
-checks:[{ name:"v1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("v1") },
-        { name:"v1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("v1") }]
+checks:[{ name:"v1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("v1") },
+        { name:"v1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("v1") }]
   },
   {
     name:"Arrays and classes",
@@ -745,8 +745,8 @@ var tot_p = hr.TotalPoints();
 typechecker_debugger;
 debugger;
 `,
-checks:[{ name:"hr is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("hr") },
-        { name:"hr is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("hr") }]
+checks:[{ name:"hr is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("hr") },
+        { name:"hr is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("hr") }]
   },
   {
     name:"Arrays and classes",
@@ -774,8 +774,8 @@ var res2 = l(false);
 typechecker_debugger;
 debugger;
 `,
-checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => !s.has("res1") },
-        { name:"res1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => !s.globals.get(0).has("res1") }]
+checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("res1") },
+        { name:"res1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("res1") }]
   },
 ])
 

@@ -246,67 +246,67 @@ run_checks([
     {
         name: "Vector2",
         source: "class Vector2 {\n  public double x;\n  public double y;\n  public Vector2(double x, double y){\n    this.x = x;\n    this.y = y;\n  }\n  public double Length(){\n    return Math.sqrt(this.x * this.x + this.y * this.y);\n  }\n  public static Vector2 Plus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x + v2.x, v1.y + v2.y);\n  }\n  public static Vector2 Minus(Vector2 v1, Vector2 v2){\n    return new Vector2(v1.x - v2.x, v1.y - v2.y);\n  }\n  public static Vector2 Times(Vector2 v1, double c){\n    return new Vector2(v1.x * c, v1.y * c);\n  }\n  public static Vector2 Div(Vector2 v1, double c){\n    return Vector2.Times(v1, 1.0 / c);\n  }\n}\n\nvar v1 = new Vector2(0.0,0.0);\nvar v2 = new Vector2(10.0,5.0);\nvar v3 = Vector2.Times(v1, 1.0);\ntypechecker_debugger;\ndebugger;",
-        checks: [{ name: "v1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("v1"); } },
-            { name: "v1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("v1"); } }]
+        checks: [{ name: "v1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("v1"); } },
+            { name: "v1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("v1"); } }]
     },
     {
         name: "DataSet1",
         source: "class DataSet{\n  (float, float, float)[] elems;\n  public DataSet((float, float, float)[] elems){\n    this.elems = elems;\n  }\n  public (float, float, float) ComputeAverage(){\n    (float, float, float) acc = (0.0f,0.0f,0.0f);\n    float total = 0.0f;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      var Item1 = this.elems[i].Item1 + acc.Item1;\n      var Item2 = this.elems[i].Item2 + acc.Item2;\n      var Item3 = this.elems[i].Item3 + acc.Item3;\n      acc = (Item1, Item2, Item3);\n      total = total + 1.0f;\n    }\n    return (acc.Item1 / total, acc.Item2 / total, acc.Item3 / total);\n  }\n}\n\n(float, float, float)[] elems = new (float, float, float)[]{(1.0f,1.0f,1.0f), (2.0f,2.0f,2.0f)};\nDataSet ds = new DataSet(elems);\nvar res = ds.ComputeAverage();\ntypechecker_debugger;\ndebugger;",
-        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("elems"); } },
-            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("elems"); } }]
+        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("elems"); } },
+            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("elems"); } }]
     },
     {
         name: "DataSet2",
         source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n  public double Minimum(){\n    double min = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] < min){\n        min = this.elems[i];\n      }\n    }\n    return min;\n  }\n\n  public double Maximum(){\n    double max = this.elems[0];\n    for(int i = 1; i < this.elems.Length; i=i+1){\n      if(this.elems[i] > max){\n        max = this.elems[i];\n      }\n    }\n    return max;\n  }\n  public double MostFrequent(){\n    int max_freq = 0;\n    double most_freq = 0.0;\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      int i_freq = 0;\n      for(int j = 0; j < this.elems.Length; j=j+1){\n        if(this.elems[i] == this.elems[j]){\n          i_freq = i_freq + 1;\n        }\n      }\n      if(i_freq > max_freq){\n        max_freq = i_freq;\n        most_freq = this.elems[i];\n      }\n    }\n    return most_freq;\n  }\n}\ndouble[] elems = new double[]{1.0,1.0,1.0,2.0,2.0,2.0};\nDataSet ds = new DataSet(elems);\nvar res1 = ds.Minimum();\nvar res2 = ds.Maximum();\nvar res3 = ds.MostFrequent();\ntypechecker_debugger;\ndebugger;",
-        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("elems"); } },
-            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("elems"); } }]
+        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("elems"); } },
+            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("elems"); } }]
     },
     {
         name: "DataSet3",
         source: "class DataSet{\n  double[] elems;\n  public DataSet(double[] elems){\n    this.elems = elems;\n  }\n\n  public DataSet Map(Func<double, double> f){\n    double[] new_elems = new double[this.elems.Length];\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      new_elems[i] = f(this.elems[i]);\n    }\n    return new DataSet(new_elems);\n  }\n  public void MutableMap(Func<double, double> f){\n    for(int i = 0; i < this.elems.Length; i=i+1){\n      this.elems[i] = f(this.elems[i]);\n    }\n  }\n}\ndouble[] elems = new double[]{1.0,1.0,1.0,2.0,2.0,2.0};\nDataSet ds = new DataSet(elems);\nvar res1 = ds.Map(x => x + 1);\nds.MutableMap(x => x + 1);\ntypechecker_debugger;\ndebugger;",
-        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("elems"); } },
-            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("elems"); } }]
+        checks: [{ name: "elems is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("elems"); } },
+            { name: "elems is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("elems"); } }]
     },
     {
         name: "Arrays",
         source: "var a = new int[] { 0, 1, 2, 3 };\nvar b = new int[] { 4, 5, 6, 7 };\nvar c = a;\nif( c[0] >= 0 )\n  c = b;\nc[0] = 100;\ntypechecker_debugger;\ndebugger;",
-        checks: [{ name: "b is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("b"); } },
-            { name: "b is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("b"); } }]
+        checks: [{ name: "b is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("b"); } },
+            { name: "b is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("b"); } }]
     },
     {
         name: "Arrays",
         source: "Func<int, string[], string> f = (i, a) => a[i];\n(string,string) v = ( f( 2, (new string[] { \"a\", \"b\", \"c\", \"d\" })), f( 1, (new string[] { \"e\", \"f\" })) );\ndebugger;\ntypechecker_debugger;\n",
-        checks: [{ name: "v is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("v"); } },
-            { name: "v is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("v"); } }]
+        checks: [{ name: "v is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("v"); } },
+            { name: "v is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("v"); } }]
     },
     {
         name: "Classes",
         source: "class Dog {\n  string name;\n\n  public Dog(string n) {\n    this.name = n;\n  }\n  public string bark() {\n    debugger;\n    return \"whoof \" + this.name;\n  }\n}\n\nvar dogs = new Dog[] { new Dog(\"Pedro\"), new Dog(\"Avena\") };\nvar s = dogs[1].bark();\ntypechecker_debugger;\ndebugger;\n",
-        checks: [{ name: "dogs is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("dogs"); } },
-            { name: "dogs is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("dogs"); } }]
+        checks: [{ name: "dogs is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("dogs"); } },
+            { name: "dogs is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("dogs"); } }]
     },
     {
         name: "Functions and Closures",
         source: "Func<int, Func<int,int>, Func<int,int>, Func<int,int>> choose = (x, f, g) => x > 0 ? f : (y => g(x*y));\n\nvar l = choose(3, x => x+1, x => x*2);\nvar m = choose(-5, x => x-1, x => x/2);\nvar x = m(7);\ntypechecker_debugger;\ndebugger;\n",
-        checks: [{ name: "l is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("l"); } },
-            { name: "l is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("l"); } }]
+        checks: [{ name: "l is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("l"); } },
+            { name: "l is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("l"); } }]
     },
     {
         name: "Classes",
         source: "class Vector2 {\n  public double x;\n  public double y;\n\n  public Vector2(double x, double y) {\n    this.x = x ;\n    this.y = y;\n  }\n\n  public Vector2 Plus(Vector2 v) {\n    return new Vector2(this.x + v.x, this.y + v.y);\n  }\n}\n\nvar v1 = new Vector2(10.0, 5.0);\nvar v2 = v1.Plus(new Vector2(1.0, 2.0));\ntypechecker_debugger;\ndebugger;\n",
-        checks: [{ name: "v1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("v1"); } },
-            { name: "v1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("v1"); } }]
+        checks: [{ name: "v1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("v1"); } },
+            { name: "v1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("v1"); } }]
     },
     {
         name: "Arrays and classes",
         source: "class School {\n  (string name, string desc, int points)[] courses;\n\n  public School() {\n    this.courses = new (string name, string desc, int points)[0];\n  }\n\n  public int TotalPoints() {\n    int tot = 0;\n    for(int i = 0; i < this.courses.Length; i = i + 1) {\n      tot = tot + this.courses[i].points;\n    }\n    return tot;\n  }\n\n  public void AddCourse(string n, string d, int p) {\n    var newAmountCourses = this.courses.Length + 1;\n    (string name, string desc, int points)[] newCourses = new (string name, string desc, int points)[newAmountCourses];\n    for(int i = 0; i < this.courses.Length; i = i + 1) {\n      newCourses[i] = this.courses[i];\n    }\n    newCourses[newAmountCourses-1] = (n, d, p);\n    this.courses = newCourses;\n  }\n}\nvar hr = new School();\nhr.AddCourse(\"Dev1\", \"Basics of programming\", 4);\nhr.AddCourse(\"Dev5\", \"Basics of web development\", 4);\nvar tot_p = hr.TotalPoints();\ntypechecker_debugger;\ndebugger;\n",
-        checks: [{ name: "hr is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("hr"); } },
-            { name: "hr is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("hr"); } }]
+        checks: [{ name: "hr is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("hr"); } },
+            { name: "hr is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("hr"); } }]
     },
     {
         name: "Arrays and classes",
         source: "int AddArray(int[] a) {\n  int sum = 0;\n  for(int i = 0; i < a.Length; i = i + 1) {\n    sum = sum + a[i];\n  }\n  return sum;\n}\n\nint MinArray(int[] a) {\n  int min = a[0];\n  for(int i = 1; i < a.Length; i = i + 1) {\n    if(a[i] < min) { min = a[i]; }\n  }\n  return min;\n}\n\nFunc<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n\nvar l = f(AddArray, MinArray);\nvar res1 = l(true);\nvar res2 = l(false);\ntypechecker_debugger;\ndebugger;\n",
-        checks: [{ name: "res1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return !s.has("res1"); } },
-            { name: "res1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return !s.globals.get(0).has("res1"); } }]
+        checks: [{ name: "res1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("res1"); } },
+            { name: "res1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("res1"); } }]
     },
 ]);
