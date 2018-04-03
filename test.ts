@@ -21,38 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    class Tank{
-      public Func<void, void> move;
-      int position_x;
-      public Tank(){
-        this.position_x = 0;
-        this.move = this.move_slow;
-      }
-      void move_slow(){
-        this.position_x = this.position_x + 1;
-        debugger;
-      }
-      void move_fast(){
-        this.position_x = this.position_x + 1;
-        debugger;
-      }
-      public void upgrade(){
-        var m_f = this.move_fast;
-        this.move = m_f;
-      }
-}
-    
-var t1= new Tank();
-var t2= new Tank();
-debugger;
-t1.move();
-t2.move();
-t1.upgrade();
-debugger;
-t1.move();
-t2.move();
-debugger;
-typechecker_debugger;
+Fun<int,int> a = x => x;
 `
 
     // let hrstart = process.hrtime()

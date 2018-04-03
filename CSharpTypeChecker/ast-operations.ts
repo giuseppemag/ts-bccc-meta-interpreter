@@ -103,9 +103,9 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     : s.ast.value == "ellipse" ? ellipse_type
     : s.ast.value == "rectangle" ? rectangle_type
     : s.ast.value == "var" ? var_type
-    : ref_type(s.ast.value) :
+    : ref_type(s.ast.value) : 
   s.ast.kind == "array decl" ? arr_type(ast_to_csharp_type(s.ast.t))
-  : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
+  : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Fun" && s.ast.args.length >= 1 ?
     fun_type(tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
   : s.ast.kind == "tuple type decl" ?
     tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
@@ -235,7 +235,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
   : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ?
     if_then_else(n.range, ast_to_type_checker(n.ast.condition)(context), ast_to_type_checker(n.ast.then_else.ast._then)(context), ast_to_type_checker(n.ast.then_else.ast._else)(context))
-
+  
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ?
     set_arr_el(n.range,

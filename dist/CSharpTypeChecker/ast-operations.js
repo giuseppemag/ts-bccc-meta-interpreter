@@ -24,7 +24,7 @@ var ast_to_csharp_type = function (s) {
                                                                 : s.ast.value == "var" ? types_1.var_type
                                                                     : types_1.ref_type(s.ast.value) :
         s.ast.kind == "array decl" ? types_1.arr_type(ast_to_csharp_type(s.ast.t))
-            : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
+            : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Fun" && s.ast.args.length >= 1 ?
                 types_1.fun_type(types_1.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
                 : s.ast.kind == "tuple type decl" ?
                     types_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
