@@ -762,10 +762,7 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
               return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name.att_name)} from ${context.C_name}`})
            }
            return new_value(apply(inl(), F_def.type)).then(new_value_t => {
-<<<<<<< HEAD
-=======
              //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
->>>>>>> Improved comparison between unit arg and empty array in call lambda
              return co_unit(mk_typing(unit_type,
               F_def.modifiers.has("static") ?
               Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
