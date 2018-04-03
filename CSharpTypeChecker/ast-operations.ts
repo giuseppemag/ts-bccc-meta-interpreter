@@ -105,7 +105,7 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     : s.ast.value == "var" ? var_type
     : ref_type(s.ast.value) : 
   s.ast.kind == "array decl" ? arr_type(ast_to_csharp_type(s.ast.t))
-  : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Fun" && s.ast.args.length >= 1 ?
+  : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
     fun_type(tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
   : s.ast.kind == "tuple type decl" ?
     tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))

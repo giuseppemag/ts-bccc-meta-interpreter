@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nFun<int,int> a = x => x;\n";
+        var source = "\n    int AddArray(int[] a) {\n      int sum = 0;\n      for(int i = 0; i < a.Length; i = i + 1) {\n        sum = sum + a[i];\n      }\n      return sum;\n    }\n    \n    int MinArray(int[] a) {\n      int min = a[0];\n      for(int i = 1; i < a.Length; i = i + 1) {\n        if(a[i] < min) { min = a[i]; } \n      }\n      return min;\n    }\n    \n    Func<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n    \n    var l = f(AddArray, MinArray);\n    var res1 = l(true);\n    debugger;\n    var res2 = l(false);\n    typechecker_debugger;\n    debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {
