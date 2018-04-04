@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    class Vector2 {\n      public double x;\n      public double y;\n    \n      public Vector2(double x, double y) {\n        this.x = x ;\n        this.y = y;\n      }\n    \n      public Vector2 Plus(Vector2 v) {\n        return new Vector2(this.x + v.x, this.y + v.y);\n      }\n    }\n    \n    var v1 = new Vector2(10.0, 5.0);\n    typechecker_debugger;\n    debugger;\n";
+        var source = "class Tank{\n  public Func<void, void> move;\n  int position_x;\n  public Tank(){\n    this.position_x = 0;\n    this.move = this.move_slow;\n    debugger;\n  }\n  void move_slow(){\n    this.position_x = this.position_x + 1;\n    debugger;\n  }\n  void move_fast(){\n    this.position_x = this.position_x + 10;\n    debugger;\n  }\n  public void upgrade(){\n    this.move = this.move_fast;\n  }\n}\n    \nvar t1= new Tank();\nvar t2= new Tank();\ndebugger;\nt1.move();\nt2.move();\nt1.upgrade();\ndebugger;\nt1.move();\nt2.move();\ndebugger;\ntypechecker_debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

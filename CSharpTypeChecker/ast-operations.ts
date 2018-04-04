@@ -331,5 +331,5 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "other surface" ?
     mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context), ast_to_type_checker(n.ast.rotation)(context))
 
-  : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)})()
+  : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n.ast.kind)} + ${JSON.stringify(n.range)}`)})()
 
