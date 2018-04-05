@@ -420,7 +420,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
     //   expr().then(e =>
     //   co_unit<ParserState,ParserError,ParserRes>(mk_not(e))))
     return parser_or<SymTable>(not_op.then(_ => expr_after_op(symbols, callables, table.ops, "not", mk_unary((l, is_callable) => ({ kind: "res", value: mk_not(l as any) })))),
-          parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(res.range, l as any, res.val) })))),
+          parser_or<SymTable>(index_of.then(res => expr_after_op(symbols, callables, table.ops, "[]", mk_unary((l, is_callable) => ({ kind: "res", value: mk_get_array_value_at(join_source_ranges((l as ParserRes).range, res.range), l as any, res.val) })))),
           parser_or<SymTable>(question_mark_keyword.then(_ => expr_after_op(symbols, callables, table.ops, "?", mk_binary((l, r) => mk_ternary_if(join_source_ranges(l.range, r.range) ,l, r)))),
           parser_or<SymTable>(colon_keyword.then(_ => expr_after_op(symbols, callables, table.ops, ":", mk_binary((l, r) => mk_ternary_then_else(join_source_ranges(l.range, r.range) ,l, r)))),
           parser_or<SymTable>(dot_sign.then(_ => expr_after_op(symbols, callables, table.ops, ".", mk_binary((l, r) => mk_field_ref(l, r)))),
