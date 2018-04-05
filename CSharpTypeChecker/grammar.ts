@@ -636,17 +636,26 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   if_keyword.then(if_keyword =>
   partial_match.then(_ =>
   expr().then(c =>
-  left_curly_bracket.then(_ =>    
-  un_bracketized_statement().then(t =>
-  right_curly_bracket.then(t_r_cb =>    
-  parser_or<ParserRes>(
-    else_keyword.then(_ =>
-      left_curly_bracket.then(_ =>    
-      un_bracketized_statement().then(e =>
-      right_curly_bracket.then(e_r_cb =>    
-      full_match.then(_ =>
-      co_unit(mk_if_then_else(join_source_ranges(if_keyword, e_r_cb),c, t, e))))))),
-    co_unit(mk_if_then(join_source_ranges(if_keyword, t_r_cb),c, t))))))))))
+  parser_or<ParserRes>(    
+    left_curly_bracket.then(_ =>    
+      un_bracketized_statement().then(t =>
+      right_curly_bracket.then(t_r_cb =>    
+      parser_or<ParserRes>(
+        else_keyword.then(_ =>
+          left_curly_bracket.then(_ =>    
+          un_bracketized_statement().then(e =>
+          right_curly_bracket.then(e_r_cb =>    
+          full_match.then(_ =>
+          co_unit(mk_if_then_else(join_source_ranges(if_keyword, e_r_cb),c, t, e))))))),
+        co_unit(mk_if_then(join_source_ranges(if_keyword, t_r_cb),c, t)))))),
+      stmt().then(t =>
+        parser_or<ParserRes>(
+          else_keyword.then(_ =>
+            stmt().then(e =>
+            full_match.then(_ =>
+            co_unit(mk_if_then_else(join_source_ranges(if_keyword, e.range),c, t, e))))),
+          co_unit(mk_if_then(join_source_ranges(if_keyword, t.range),c, t)))),
+    )))))
 
 let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) => Parser) =>
   no_match.then(_ =>

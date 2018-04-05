@@ -399,7 +399,7 @@ var if_conditional = function (stmt) {
         return primitives_1.if_keyword.then(function (if_keyword) {
             return partial_match.then(function (_) {
                 return exports.expr().then(function (c) {
-                    return primitives_1.left_curly_bracket.then(function (_) {
+                    return primitives_1.parser_or(primitives_1.left_curly_bracket.then(function (_) {
                         return un_bracketized_statement().then(function (t) {
                             return primitives_1.right_curly_bracket.then(function (t_r_cb) {
                                 return primitives_1.parser_or(primitives_1.else_keyword.then(function (_) {
@@ -415,7 +415,15 @@ var if_conditional = function (stmt) {
                                 }), ts_bccc_1.co_unit(primitives_1.mk_if_then(source_range_1.join_source_ranges(if_keyword, t_r_cb), c, t)));
                             });
                         });
-                    });
+                    }), stmt().then(function (t) {
+                        return primitives_1.parser_or(primitives_1.else_keyword.then(function (_) {
+                            return stmt().then(function (e) {
+                                return full_match.then(function (_) {
+                                    return ts_bccc_1.co_unit(primitives_1.mk_if_then_else(source_range_1.join_source_ranges(if_keyword, e.range), c, t, e));
+                                });
+                            });
+                        }), ts_bccc_1.co_unit(primitives_1.mk_if_then(source_range_1.join_source_ranges(if_keyword, t.range), c, t)));
+                    }));
                 });
             });
         });
