@@ -663,7 +663,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 if (F_or_M_name == "Length")
                     return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))));
                 else
-                    return ts_bccc_2.co_error({ range: r, message: "Invalid array operation." });
+                    return ts_bccc_2.co_error({ range: r, message: "Invalid array operation at " + JSON.stringify(r) });
             }
             else if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
                 var item = /^Item/;
@@ -674,7 +674,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                         return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(this_ref_t.type.args[item_index], Sem.tuple_get_rt(r, this_ref_t.sem, item_index))));
                     }
                     catch (error) {
-                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + "." });
+                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + " at " + JSON.stringify(r) });
                     }
                 }
                 else {
@@ -684,7 +684,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                             return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(this_ref_t.type.args.get(F_or_M_name), Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name))));
                         }
                         catch (error) {
-                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + "." });
+                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + " at " + JSON.stringify(r) });
                         }
                         // } else {
                         //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})

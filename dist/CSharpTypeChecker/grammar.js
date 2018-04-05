@@ -399,14 +399,22 @@ var if_conditional = function (stmt) {
         return primitives_1.if_keyword.then(function (if_keyword) {
             return partial_match.then(function (_) {
                 return exports.expr().then(function (c) {
-                    return stmt().then(function (t) {
-                        return primitives_1.parser_or(primitives_1.else_keyword.then(function (_) {
-                            return stmt().then(function (e) {
-                                return full_match.then(function (_) {
-                                    return ts_bccc_1.co_unit(primitives_1.mk_if_then_else(source_range_1.join_source_ranges(if_keyword, e.range), c, t, e));
-                                });
+                    return primitives_1.left_curly_bracket.then(function (_) {
+                        return un_bracketized_statement().then(function (t) {
+                            return primitives_1.right_curly_bracket.then(function (t_r_cb) {
+                                return primitives_1.parser_or(primitives_1.else_keyword.then(function (_) {
+                                    return primitives_1.left_curly_bracket.then(function (_) {
+                                        return un_bracketized_statement().then(function (e) {
+                                            return primitives_1.right_curly_bracket.then(function (e_r_cb) {
+                                                return full_match.then(function (_) {
+                                                    return ts_bccc_1.co_unit(primitives_1.mk_if_then_else(source_range_1.join_source_ranges(if_keyword, e_r_cb), c, t, e));
+                                                });
+                                            });
+                                        });
+                                    });
+                                }), ts_bccc_1.co_unit(primitives_1.mk_if_then(source_range_1.join_source_ranges(if_keyword, t_r_cb), c, t)));
                             });
-                        }), ts_bccc_1.co_unit(primitives_1.mk_if_then(source_range_1.join_source_ranges(if_keyword, t.range), c, t)));
+                        });
                     });
                 });
             });
@@ -423,9 +431,13 @@ var for_loop = function (stmt) {
                             return semicolon.then(function (_) {
                                 return stmt(true).then(function (s) {
                                     return primitives_1.right_bracket.then(function (_) {
-                                        return stmt().then(function (b) {
-                                            return full_match.then(function (_) {
-                                                return ts_bccc_1.co_unit(primitives_1.mk_for(source_range_1.join_source_ranges(for_keyword_range, b.range), i, c, s, b));
+                                        return primitives_1.left_curly_bracket.then(function (_) {
+                                            return un_bracketized_statement().then(function (b) {
+                                                return primitives_1.right_curly_bracket.then(function (r_b) {
+                                                    return full_match.then(function (_) {
+                                                        return ts_bccc_1.co_unit(primitives_1.mk_for(source_range_1.join_source_ranges(for_keyword_range, r_b), i, c, s, b));
+                                                    });
+                                                });
                                             });
                                         });
                                     });
@@ -443,9 +455,13 @@ var while_loop = function (stmt) {
         return primitives_1.while_keyword.then(function (while_keyword_range) {
             return partial_match.then(function (_) {
                 return exports.expr().then(function (c) {
-                    return stmt().then(function (b) {
-                        return full_match.then(function (_) {
-                            return ts_bccc_1.co_unit(primitives_1.mk_while(source_range_1.join_source_ranges(while_keyword_range, b.range), c, b));
+                    return primitives_1.left_curly_bracket.then(function (_) {
+                        return un_bracketized_statement().then(function (b) {
+                            return primitives_1.right_curly_bracket.then(function (r_b) {
+                                return full_match.then(function (_) {
+                                    return ts_bccc_1.co_unit(primitives_1.mk_while(source_range_1.join_source_ranges(while_keyword_range, r_b), c, b));
+                                });
+                            });
                         });
                     });
                 });
@@ -463,6 +479,17 @@ var bracketized_statement = function () {
                             return ts_bccc_1.co_unit(__assign({}, s, { range: source_range_1.join_source_ranges(l_b_r, r_b_r) }));
                         });
                     });
+                });
+            });
+        });
+    });
+};
+var un_bracketized_statement = function () {
+    return no_match.then(function (_) {
+        return partial_match.then(function (_) {
+            return function_statements(ccc_aux_1.co_lookup(primitives_1.right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (s) {
+                return full_match.then(function (_) {
+                    return ts_bccc_1.co_unit(s);
                 });
             });
         });

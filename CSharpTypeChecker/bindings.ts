@@ -665,7 +665,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               if(F_or_M_name == "Length")
                 return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
               else
-                return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation.`})
+                return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation at ${JSON.stringify(r)}`})
             }
             else
               if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
@@ -677,7 +677,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                   return ensure_constraints(r, constraints)(co_unit(mk_typing(this_ref_t.type.args[item_index],
                           Sem.tuple_get_rt(r, this_ref_t.sem, item_index))))
                 } catch (error) {
-                  return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
+                  return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name} at ${JSON.stringify(r)}`})
                 }
               } else {
                 // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
@@ -686,7 +686,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                     return ensure_constraints(r, constraints)(co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name),
                             Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name))))
                   } catch (error) {
-                    return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}.`})
+                    return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name} at ${JSON.stringify(r)}`})
                   }
                 // } else {
                 //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})

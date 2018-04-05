@@ -636,13 +636,17 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   if_keyword.then(if_keyword =>
   partial_match.then(_ =>
   expr().then(c =>
-  stmt().then(t =>
+  left_curly_bracket.then(_ =>    
+  un_bracketized_statement().then(t =>
+  right_curly_bracket.then(t_r_cb =>    
   parser_or<ParserRes>(
     else_keyword.then(_ =>
-    stmt().then(e =>
-    full_match.then(_ =>
-    co_unit(mk_if_then_else(join_source_ranges(if_keyword, e.range),c, t, e))))),
-    co_unit(mk_if_then(join_source_ranges(if_keyword, t.range),c, t))))))))
+      left_curly_bracket.then(_ =>    
+      un_bracketized_statement().then(e =>
+      right_curly_bracket.then(e_r_cb =>    
+      full_match.then(_ =>
+      co_unit(mk_if_then_else(join_source_ranges(if_keyword, e_r_cb),c, t, e))))))),
+    co_unit(mk_if_then(join_source_ranges(if_keyword, t_r_cb),c, t))))))))))
 
 let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) => Parser) =>
   no_match.then(_ =>
@@ -654,18 +658,22 @@ let for_loop : (_:() => Parser) => Parser = (stmt:(ignore_semicolon?:boolean) =>
   semicolon.then(_ =>
   stmt(true).then(s =>
   right_bracket.then(_ =>
-  stmt().then(b =>
+  left_curly_bracket.then(_ =>
+  un_bracketized_statement().then(b =>
+  right_curly_bracket.then(r_b =>
   full_match.then(_ =>
-  co_unit(mk_for(join_source_ranges(for_keyword_range, b.range), i, c, s, b)))))))))))))
+  co_unit(mk_for(join_source_ranges(for_keyword_range, r_b), i, c, s, b)))))))))))))))
 
 let while_loop : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   no_match.then(_ =>
   while_keyword.then(while_keyword_range =>
   partial_match.then(_ =>
   expr().then(c =>
-  stmt().then(b =>
+  left_curly_bracket.then(_ =>
+  un_bracketized_statement().then(b =>
+  right_curly_bracket.then(r_b =>
   full_match.then(_ =>
-  co_unit(mk_while(join_source_ranges(while_keyword_range, b.range), c, b))))))))
+  co_unit(mk_while(join_source_ranges(while_keyword_range, r_b), c, b))))))))))
 
 let bracketized_statement = () =>
   no_match.then(_ =>
@@ -675,6 +683,13 @@ let bracketized_statement = () =>
   right_curly_bracket.then(r_b_r =>
   full_match.then(_ =>
   co_unit({...s, range:join_source_ranges(l_b_r, r_b_r)})))))))
+
+let un_bracketized_statement = () =>
+  no_match.then(_ =>
+  partial_match.then(_ =>
+  function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(s =>
+  full_match.then(_ =>
+  co_unit(s)))))
 
 let constructor_declaration = () =>
   no_match.then(_ =>

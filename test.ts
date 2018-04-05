@@ -20,38 +20,27 @@ export module ImpLanguageWithSuspend {
 export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
-    let source = `class Tank{
-  public Func<void, void> move;
-  int position_x;
-  public Tank(){
-    this.position_x = 0;
-    this.move = this.move_slow;
-    debugger;
-  }
-  void move_slow(){
-    this.position_x = this.position_x + 1;
-    debugger;
-  }
-  void move_fast(){
-    this.position_x = this.position_x + 10;
-    debugger;
-  }
-  public void upgrade(){
-    this.move = this.move_fast;
-  }
+    let source = `var x = 1;
+if(1 > 1){
+ x = 5;
 }
-    
-var t1= new Tank();
-var t2= new Tank();
-debugger;
-t1.move();
-t2.move();
-t1.upgrade();
-debugger;
-t1.move();
-t2.move();
-debugger;
-typechecker_debugger;
+if(1 > 1){
+  x = 5;
+  x = 5;
+}
+if(1 >= 1){
+  x = 5;
+}
+else{
+  x = 5; 
+}
+if(1 >= 1){
+  x = 5;
+}
+else{
+  x = 5; 
+  x = 5; 
+}
 `
 
     // let hrstart = process.hrtime()
