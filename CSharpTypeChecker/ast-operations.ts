@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 
 import { ValueName } from '../main'
-import { join_source_ranges } from '../source_range'
+import { join_source_ranges, print_range, print_range } from '../source_range'
 import {
   and,
   arrow,
@@ -111,7 +111,10 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
   : s.ast.kind == "record type decl" ?
     record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)])))
-  : (() => { console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); throw new Error(`Unsupported ast type: ${JSON.stringify(s)}`)})()
+  : (() => { 
+    //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); 
+    throw new Error(`Unsupported ast type: ${print_range(s.range)}`)
+  })()
 
 export let global_calling_context:CallingContext =  ({ kind:"global scope" })
 
@@ -173,7 +176,10 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
-  : (() => { console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`(FV) Unsupported ast node: ${JSON.stringify(n)}`)})()
+  : (() => { 
+    //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); 
+    throw new Error(`(FV) Unsupported ast node: ${print_range(n.range)}`)
+  })()
 
 
 export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
@@ -216,16 +222,16 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "=>" ? arrow(n.range,
       extract_tuple_args(n.ast.l).map(a => {
         if (a.ast.kind != "id") {
-          console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
-          throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)
+          //console.log(`Error: unsupported ast node: ${print_range(n.range)}`)
+          throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
         }
         return { name:a.ast.value, type:var_type }
       }),
       // [ { name:n.ast.l.ast.value, type:var_type } ],
       free_variables(n.ast.r, Immutable.Set<ValueName>(extract_tuple_args(n.ast.l).map(a => {
         if (a.ast.kind != "id") {
-          console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
-          throw new Error(`Unsupported ast node: ${JSON.stringify(n)}`)
+          //console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
+          throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
         }
         return a.ast.value
       }))).toArray(), ast_to_type_checker(n.ast.r)(context))
@@ -331,5 +337,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "other surface" ?
     mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context), ast_to_type_checker(n.ast.rotation)(context))
 
-  : (() => { console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`); throw new Error(`Unsupported ast node: ${JSON.stringify(n.ast.kind)} + ${JSON.stringify(n.range)}`)})()
+  : (() => { 
+    //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`); 
+    throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
+  })()
 

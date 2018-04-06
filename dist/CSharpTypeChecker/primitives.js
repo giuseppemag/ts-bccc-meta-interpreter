@@ -500,5 +500,5 @@ exports.not_op = exports.unaryop_sign("not");
 exports.eof = exports.ignore_whitespace(ts_bccc_1.co_get_state().then(function (s) {
     if (s.tokens.isEmpty())
         return ts_bccc_1.co_unit(source_range_1.zero_range);
-    return ts_bccc_1.co_error({ range: s.tokens.first().range, message: "expected eof, found " + s.tokens.first().kind, priority: s.branch_priority });
+    return ts_bccc_1.co_error({ range: s.tokens.first().range, message: "expected eof, found " + s.tokens.first().kind + " at " + source_range_1.print_range(s.tokens.first().range), priority: s.branch_priority });
 }));

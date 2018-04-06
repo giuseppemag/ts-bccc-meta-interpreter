@@ -1,6 +1,6 @@
 import { Coroutine, co_error, co_set_state, Unit, co_get_state, co_unit, apply } from "ts-bccc";
 import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, par } from "./grammar";
-import { mk_range, SourceRange, zero_range, join_source_ranges } from "../source_range";
+import { mk_range, SourceRange, zero_range, join_source_ranges, print_range } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import { co_catch, co_repeat, some, none } from "../ccc_aux";
 import * as Immutable from 'immutable'
@@ -474,5 +474,5 @@ export const not_op = unaryop_sign("not")
 export const eof: Coroutine<ParserState,ParserError,SourceRange> = ignore_whitespace(co_get_state<ParserState, ParserError>().then(s => {
   if (s.tokens.isEmpty())
     return co_unit(zero_range)
-    return co_error({ range:s.tokens.first().range, message:`expected eof, found ${s.tokens.first().kind}`, priority:s.branch_priority })
+    return co_error({ range:s.tokens.first().range, message:`expected eof, found ${s.tokens.first().kind} at ${print_range(s.tokens.first().range)}`, priority:s.branch_priority })
   }))

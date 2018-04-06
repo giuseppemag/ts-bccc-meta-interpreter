@@ -30,7 +30,10 @@ var ast_to_csharp_type = function (s) {
                     types_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
                     : s.ast.kind == "record type decl" ?
                         types_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
-                        : (function () { console.log("Error: unsupported ast type: " + JSON.stringify(s)); throw new Error("Unsupported ast type: " + JSON.stringify(s)); })();
+                        : (function () {
+                            //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); 
+                            throw new Error("Unsupported ast type: " + source_range_1.print_range(s.range));
+                        })();
 };
 exports.global_calling_context = ({ kind: "global scope" });
 var union_many = function (a) {
@@ -83,7 +86,10 @@ var free_variables = function (n, bound) {
                                                                 : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set([n.ast.value]) : Immutable.Set())
                                                                     : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ? Immutable.Set()
                                                                         : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); })))
-                                                                            : (function () { console.log("Error (FV): unsupported ast node: " + JSON.stringify(n)); throw new Error("(FV) Unsupported ast node: " + JSON.stringify(n)); })();
+                                                                            : (function () {
+                                                                                //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); 
+                                                                                throw new Error("(FV) Unsupported ast node: " + source_range_1.print_range(n.range));
+                                                                            })();
 };
 exports.extract_tuple_args = function (n) {
     return n.ast.kind == "," ? [n.ast.l].concat(exports.extract_tuple_args(n.ast.r)) : n.ast.kind == "bracket" ? exports.extract_tuple_args(n.ast.e)
@@ -118,16 +124,16 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                         : n.ast.kind == "||" ? bindings_1.or(n.range, exports.ast_to_type_checker(n.ast.l)(context), exports.ast_to_type_checker(n.ast.r)(context))
                                                                                                             : n.ast.kind == "=>" ? bindings_1.arrow(n.range, exports.extract_tuple_args(n.ast.l).map(function (a) {
                                                                                                                 if (a.ast.kind != "id") {
-                                                                                                                    console.log("Error: unsupported ast node: " + JSON.stringify(n));
-                                                                                                                    throw new Error("Unsupported ast node: " + JSON.stringify(n));
+                                                                                                                    //console.log(`Error: unsupported ast node: ${print_range(n.range)}`)
+                                                                                                                    throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));
                                                                                                                 }
                                                                                                                 return { name: a.ast.value, type: types_1.var_type };
                                                                                                             }), 
                                                                                                             // [ { name:n.ast.l.ast.value, type:var_type } ],
                                                                                                             free_variables(n.ast.r, Immutable.Set(exports.extract_tuple_args(n.ast.l).map(function (a) {
                                                                                                                 if (a.ast.kind != "id") {
-                                                                                                                    console.log("Error: unsupported ast node: " + JSON.stringify(n));
-                                                                                                                    throw new Error("Unsupported ast node: " + JSON.stringify(n));
+                                                                                                                    //console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
+                                                                                                                    throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));
                                                                                                                 }
                                                                                                                 return a.ast.value;
                                                                                                             }))).toArray(), exports.ast_to_type_checker(n.ast.r)(context))
@@ -209,5 +215,8 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                                                                                                 bindings_1.mk_sprite(n.range, exports.ast_to_type_checker(n.ast.sprite)(context), exports.ast_to_type_checker(n.ast.cx)(context), exports.ast_to_type_checker(n.ast.cy)(context), exports.ast_to_type_checker(n.ast.w)(context), exports.ast_to_type_checker(n.ast.h)(context), exports.ast_to_type_checker(n.ast.rotation)(context))
                                                                                                                                                                                                                                 : n.ast.kind == "other surface" ?
                                                                                                                                                                                                                                     bindings_1.mk_other_surface(n.range, exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.dx)(context), exports.ast_to_type_checker(n.ast.dy)(context), exports.ast_to_type_checker(n.ast.sx)(context), exports.ast_to_type_checker(n.ast.sy)(context), exports.ast_to_type_checker(n.ast.rotation)(context))
-                                                                                                                                                                                                                                    : (function () { console.log("Error: unsupported ast node: " + JSON.stringify(n)); throw new Error("Unsupported ast node: " + JSON.stringify(n.ast.kind) + " + " + JSON.stringify(n.range)); })();
+                                                                                                                                                                                                                                    : (function () {
+                                                                                                                                                                                                                                        //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`); 
+                                                                                                                                                                                                                                        throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));
+                                                                                                                                                                                                                                    })();
 }; };
