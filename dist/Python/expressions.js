@@ -93,11 +93,16 @@ exports.mk_polygon_rt = function (points, col, rot) {
     return points.then(function (points_v) {
         return col.then(function (col_v) {
             return rot.then(function (rot_v) {
-                return col_v.value.k == "s" && rot_v.value.k == "f" && points_v.value.k == "arr" ?
-                    exports.render_surface_operation_expr(python_1.mk_polygon_op(points_v.value.v.elements.toArray().map(function (e) {
-                        return e.k == "tuple" && e.v[0].k == "f" && e.v[1].k == "f" ? ({ x: e.v[0].v, y: e.v[1].v }) : ({ x: 0, y: 0 });
-                    }), col_v.value.v, rot_v.value.v))
-                    : memory_1.runtime_error("Type error: cannot create polygon with " + points_v.value.v + ", " + col_v.value.v + ", and " + rot_v.value.v + ".");
+                return points_v.value.k != "ref" ? memory_1.runtime_error("Type error: cannot create polygon with " + points_v.value.v + ", " + col_v.value.v + ", and " + rot_v.value.v + ".")
+                    :
+                        memory_1.get_heap_v_rt(points_v.value.v).then(function (points_arr_v) {
+                            return col_v.value.k == "s" && rot_v.value.k == "f" && points_arr_v.value.k == "arr" ?
+                                exports.render_surface_operation_expr(python_1.mk_polygon_op(points_arr_v.value.v.elements.toArray().map(function (e) {
+                                    return e.k == "tuple" && e.v[0].k == "f" && e.v[1].k == "f" ? ({ x: e.v[0].v, y: e.v[1].v }) :
+                                        ({ x: 0, y: 0 });
+                                }), col_v.value.v, rot_v.value.v))
+                                : memory_1.runtime_error("Type error: cannot create polygon with " + points_v.value.v + ", " + col_v.value.v + ", and " + rot_v.value.v + ".");
+                        });
             });
         });
     });

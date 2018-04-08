@@ -21,14 +21,34 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-int[] a = new int[] { 10, 20, 5 };
-double first(int[] x) {
-  x[0] = x[0] * 2;
-  return x[0];
+abstract class Animal{
+  public abstract string MakeSound();
+}
+class Cat : Animal{
+  public override string MakeSound(){
+     return "miao";
+  }
 }
 
-var y = first(a);
+class LargeCat : Cat {
+  public override string MakeSound(){
+    return "MIAO";
+ }
+}
+
+Cat c = new LargeCat();
+var s = c.MakeSound();
 `
+
+/*
+defs
+  Animal.methods := { MakeSound : null }
+  Cat.methods := { MakeSound : this => () => "miao" }
+
+  <new Cat()> -> this.base.MakeSound = Cat.methods(this)
+
+  <(x:Cat).MakeSound()> -> Cat.methods.MakeSound(this)
+*/
 
     // let hrstart = process.hrtime()
 

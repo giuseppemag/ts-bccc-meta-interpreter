@@ -1,21 +1,17 @@
+[g] coerce type correctly in new_array and new_array_and_int
 [g] explicit casting
   [ ] parser
   [ ] typechecker and runtime both via `coerce`
 [g] Inheritance
-  [ ] Extends
-  [ ] Interface
-  [ ] abstract
-  [ ] protected
-  [ ] virtual
-  [ ] override
-  [ ] Covariance/contravariance in function calls and variable assignments
   [ ] Object with `ToString() { return "" }`
 [g] Generics
   [ ] Array<T> in standard library
   [ ] Tuple in standard library
 [g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
+  [ ] method overloading
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
   [ ] add unary - to standard library
+[g] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
 [g] unit tests
   [ ] failed coercions and wrong types
     [ ] primitives and operations
@@ -33,14 +29,15 @@
   [ ] exceptions
   [ ] fancy features (yield return, LINQ)
   [ ] html rendering
-[g] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Filesystem simulator
 
 [g] Closures in regular functions
 
 [g] Access modifiers: incompatibility errors do not bubble up correctly
-[g] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-[g] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+[g] Errors
+  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [ ] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] Grammar.ts becomes a whole directory of files
@@ -63,20 +60,13 @@
 [m] procedures (functions returning `void`)
 [m] draw functions returning `void` as `Action`
 [m] `Func<void,*>` should draw as `Func<*>`
-[m] test `s = s + polygon (new (int,int)[] { (1,1), (2,2) (3,3) }) "red" 0;` when arrays are done
-[m] multidimensional array + array in class attributes
-[m] `var y = 200.ToString();` does not parse
-[m] `var y = 1.5.ToString();` does not parse
-[m] `var y = true.ToString();` does not parse
-[m] `var y = 1.5f.ToString();` does not parse
+[m] multidimensional array
 
-[m] add checks to tests which have none
 [m] Use code font in debugger tables
-[m] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
+
 [m] use something visual instead of debugger and typechecker_debugger
 [m] errors with source range over code in editor
   [ ] Print properly (no `JSON.stringify`)
-[m] function parameters should have a range
 [m] comments
 [m] highlighting with proper style
 [m] properties
@@ -116,17 +106,19 @@
 [m] Exam mode in desktop application
 
 [m] Python syntax
-
-
-[m] constructor name check upper/lower case
-
-[m]
-  public Vector2 Times(double c){
-    return new Vector2(this.x * c, this.y * c);
-  }
-  public Vector2 Div(double c){
-    return this.Times(1.0 / c);
-  }
+[m] var a = 1 + + 1; does print a proper error
+[m] inheritance
+  [ ] base in class fields (both in actual and temp)
+  [ ] before constructor body call base(args)
+  [ ] field_get and field_set lookup recursively in base
+    [ ] looking up in the methods is done if all recursive base lookups have failed
+  [ ] method lookup looks recursively in the inherited C_def.base
+  [ ] virtual and abstract methods are lambda fields which are already applied to this in the constructor before body
+    [ ] abstract M : this => A => R ~~> field M : Func<A,R>
+  [ ] override == field_set of method field
+  [ ] abstract methods are initialized to null in the constructor
+  [ ] interfaces are abstract classes with only abstract methods
+  [ ] private vs protected
 
 
 [ ] Cleanup/whishlist
