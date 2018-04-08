@@ -94,7 +94,7 @@ export module GrammarBasics {
       : ({range:r, kind:"id", v:s })),
 
     parse_prefix_regex(/^-?[0-9]+\.[0-9]*f/, (s,r) => ({range:r,  kind:"float", v:parseFloat(s) })),
-    parse_prefix_regex(/^-?[0-9]+\.[0-9]*/, (s,r) => ({range:r,  kind:"double", v:parseFloat(s) })),
+    parse_prefix_regex(/^-?[0-9]+\.[0-9]+/, (s,r) => ({range:r,  kind:"double", v:parseFloat(s) })),
     parse_prefix_regex(/^-?[0-9]+/, (s,r) => ({range:r,  kind:"int", v:parseInt(s) })),
 
     parse_prefix_regex(/^\n/, (s,r) => ({range:r, kind:"nl"})),

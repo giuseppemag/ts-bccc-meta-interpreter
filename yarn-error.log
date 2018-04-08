@@ -1,5 +1,5 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js test
+  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js main
 
 PATH: 
   C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\dotnet\;C:\Program Files\Novell\iPrint;C:\Users\Dr Abbadi\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Users\Dr Abbadi\AppData\Roaming\npm;C:\Users\Dr Abbadi\AppData\Local\Yarn\bin;C:\Users\Dr Abbadi\AppData\Local\Programs\MiKTeX 2.9\miktex\bin\x64\
@@ -16,7 +16,7 @@ Platform:
 npm manifest: 
   {
     "name": "ts-bccc-meta-compiler",
-    "version": "1.0.71",
+    "version": "1.0.77",
     "description": "A meta-compiler based on the ts-bccc package.",
     "typings": "dist/main.d.ts",
     "typescript": {
@@ -2681,9 +2681,9 @@ Lockfile:
     version "0.14.5"
     resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
   
-  typescript@^2.6.1:
-    version "2.7.2"
-    resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.7.2.tgz#2d615a1ef4aee4f574425cdff7026edf81919836"
+  typescript@^2.7.2:
+    version "2.8.1"
+    resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.8.1.tgz#6160e4f8f195d5ba81d4876f9c0cc1fbc0820624"
   
   unc-path-regex@^0.1.2:
     version "0.1.2"
@@ -2871,7 +2871,7 @@ Trace:
   Error: Command failed.
   Exit code: 1
   Command: C:\Windows\system32\cmd.exe
-  Arguments: /d /s /c node dist/tests.js
+  Arguments: /d /s /c node dist/test.js
   Directory: C:\Users\Dr Abbadi\Documents\Git\ts-bccc-meta-interpreter
   Output:
   

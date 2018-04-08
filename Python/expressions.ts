@@ -111,14 +111,18 @@ export let mk_polygon_rt = function(points:ExprRt<Sum<Val,Val>>, col:ExprRt<Sum<
   return points.then(points_v =>
           col.then(col_v =>
           rot.then(rot_v =>
-          col_v.value.k == "s" && rot_v.value.k == "f" && points_v.value.k == "arr" ?
-            render_surface_operation_expr(
-              mk_polygon_op(
-                points_v.value.v.elements.toArray().map(e =>
-                  e.k == "tuple" && e.v[0].k == "f" && e.v[1].k == "f" ? ({ x:e.v[0].v as number, y:e.v[1].v as number }) : ({ x:0, y:0 })),
-                  col_v.value.v, rot_v.value.v))
-          : runtime_error(`Type error: cannot create polygon with ${points_v.value.v}, ${col_v.value.v}, and ${rot_v.value.v}.`)
-          )))
+          points_v.value.k != "ref" ? runtime_error(`Type error: cannot create polygon with ${points_v.value.v}, ${col_v.value.v}, and ${rot_v.value.v}.`)
+          : 
+          get_heap_v_rt(points_v.value.v).then(points_arr_v =>
+          col_v.value.k == "s" && rot_v.value.k == "f" && points_arr_v.value.k == "arr" ?
+                render_surface_operation_expr(
+                  mk_polygon_op(
+                    points_arr_v.value.v.elements.toArray().map(e =>
+                      e.k == "tuple" && e.v[0].k == "f" && e.v[1].k == "f" ? ({ x:e.v[0].v as number, y:e.v[1].v as number }) : 
+                      ({ x:0, y:0 })),
+                      col_v.value.v, rot_v.value.v))
+            : runtime_error(`Type error: cannot create polygon with ${points_v.value.v}, ${col_v.value.v}, and ${rot_v.value.v}.`)
+            ))))
 }
 
 export let mk_text_rt = function (text:ExprRt<Sum<Val,Val>>, x: ExprRt<Sum<Val,Val>>, y:ExprRt<Sum<Val,Val>>, s:ExprRt<Sum<Val,Val>>, color:ExprRt<Sum<Val,Val>>, rotation:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> {
