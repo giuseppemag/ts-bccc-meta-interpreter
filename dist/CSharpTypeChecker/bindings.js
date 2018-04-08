@@ -61,7 +61,7 @@ exports.decl_v = function (r, v, t, is_constant) {
     return function (_) {
         return ts_bccc_1.co_get_state().then(function (s) {
             return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + JSON.stringify(v) });
+                : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
         });
     };
 };
@@ -69,7 +69,7 @@ exports.decl_and_init_v = function (r, v, t, e, is_constant) {
     return function (_) { return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
         return ts_bccc_1.co_get_state().then(function (s) {
             if (s.bindings.has(v))
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + JSON.stringify(v) });
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
             var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(exports.wrap_co);
             var g = ts_bccc_1.curry(f);
             var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, e_val.type, { is_constant: is_constant != undefined ? is_constant : false }))), {});
@@ -96,7 +96,7 @@ exports.set_v = function (r, v, e) {
                 return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_v_expr_rt(v, e_val.sem)));
             }
             else {
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign anything to " + v + ": it is a constant." });
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot assign anything to constant " + v + "." });
             }
         });
     }); };
@@ -125,7 +125,7 @@ exports.tuple_value = function (r, args) {
         if (constraints.kind == "left" && constraints.value.kind == "record")
             constraints = ts_bccc_1.apply(ts_bccc_1.inl(), types_1.tuple_type(constraints.value.args.toArray()));
         if (constraints.kind == "left" && constraints.value.kind != "tuple")
-            return ts_bccc_2.co_error({ range: r, message: "Error: wrong constraints " + JSON.stringify(constraints) + " when typechecking tuple." });
+            return ts_bccc_2.co_error({ range: r, message: "Error: expected type " + types_1.type_to_string(constraints.value) + " when typechecking tuple." });
         var check_args = ccc_aux_1.comm_list_coroutine(Immutable.List(args.map(function (a, a_i) {
             return a(constraints.kind == "left" && constraints.value.kind == "tuple" ? ts_bccc_1.apply(ts_bccc_1.inl(), constraints.value.args[a_i])
                 : types_1.no_constraints);
@@ -286,7 +286,7 @@ exports.unary_op = function (r, a, op) {
                 return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (" + op + ") operator." });
             var op_method = t_c.methods.get(op);
             if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
-                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has a (" + op + ") operator, but it is malformed." });
+                return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has an operator (" + op + "), but it is malformed." });
             var args = op_method.typing.type.in.args;
             var op_method_stmt = function (_) {
                 return ts_bccc_2.co_unit(types_1.mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(types_1.type_to_string(t), op)));
@@ -349,10 +349,10 @@ exports.and = function (r, a, b) { return exports.bin_op(r, a, b, "&&"); };
 exports.arrow = function (r, parameters, closure, body) {
     return function (constraints) {
         if (constraints.kind == "right")
-            return ts_bccc_2.co_error({ range: r, message: "Error: empty context when defining anonymous function (=>)!" });
+            return ts_bccc_2.co_error({ range: r, message: "Error: empty context when defining anonymous function (=>)." });
         var expected_type = constraints.value;
         if (expected_type.kind != "fun")
-            return ts_bccc_2.co_error({ range: r, message: "Error: expected " + expected_type.kind + ", found function." });
+            return ts_bccc_2.co_error({ range: r, message: "Error: expected " + types_1.type_to_string(expected_type) + ", found function." });
         var input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in];
         var output = expected_type.out;
         var parameter_declarations = parameters.map(function (p, p_i) { return (__assign({}, p, { type: input[p_i] })); }).map(function (p) { return exports.decl_v(r, p.name, p.type, true); }).reduce(function (p, q) { return exports.semicolon(r, p, q); }, exports.done);
@@ -369,7 +369,7 @@ exports.get_index = function (r, a, i) {
         return i(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (i_t) {
             return a_t.type.kind == "arr" ?
                 ts_bccc_2.co_unit(types_1.mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-                : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for array lookup!" });
+                : ts_bccc_2.co_error({ range: r, message: "Error: cannot perform array lookup on type " + types_1.type_to_string(a_t.type) });
         });
     })); };
 };
@@ -377,11 +377,11 @@ exports.set_index = function (r, a, i, e) {
     return function (constraints) { return ensure_constraints(r, constraints)(a(types_1.no_constraints).then(function (a_t) {
         return i(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (i_t) {
             return a_t.type.kind != "arr" ?
-                ts_bccc_2.co_error({ range: r, message: "Error: array set operation is only permitted on arrays!" })
+                ts_bccc_2.co_error({ range: r, message: "Error: cannot perform array lookup on type " + types_1.type_to_string(a_t.type) })
                 : e(ts_bccc_1.apply(ts_bccc_1.inl(), a_t.type.arg)).then(function (e_t) {
                     return a_t.type.kind == "arr" ?
                         ts_bccc_2.co_unit(types_1.mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-                        : ts_bccc_2.co_error({ range: r, message: "Error: unsupported types for writing in an array!" });
+                        : ts_bccc_2.co_error({ range: r, message: "Error: cannot perform array lookup on type " + types_1.type_to_string(a_t.type) });
                 });
         });
     })); };
@@ -410,7 +410,9 @@ exports.if_then_else = function (r, c, t, e) {
         return ccc_aux_1.co_stateless(t(expected_type)).then(function (t_t) {
             return ccc_aux_1.co_stateless(e(expected_type)).then(function (e_t) {
                 var on_type = ts_bccc_1.fun(function (t_i) { return function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(t_i, Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))); }; });
-                var on_error = ts_bccc_1.constant(function (_) { return ts_bccc_2.co_error({ range: r, message: "Error: the branches of a conditional should have compatible types!" }); });
+                var on_error = ts_bccc_1.constant(function (_) {
+                    return ts_bccc_2.co_error({ range: r, message: "Error: the branches of a conditional should have compatible types." });
+                });
                 var res = ts_bccc_1.apply(on_type.plus(on_error), exports.lub(t_t.type, e_t.type));
                 return res(types_1.no_constraints);
             });
@@ -512,7 +514,7 @@ exports.call_lambda = function (r, lambda, arg_values) {
                 lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" && lambda_t.type.in.args.length == 1 && lambda_t.type.in.args[0].kind == "unit" &&
                     arg_values.length == 0 ?
                     ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; })))) :
-                    ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.type) + " with arguments " + JSON.stringify([args_t.toArray().map(function (a) { return a.type; })]) })
+                    ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.type) + " with arguments " + JSON.stringify([args_t.toArray().map(function (a) { return types_1.type_to_string(a.type); })]) })
                 :
                     ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
         });
@@ -528,7 +530,7 @@ exports.ret = function (r, p) {
 };
 exports.new_array = function (r, type, len) {
     return function (constraints) { return constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value) ?
-        ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context. " + JSON.stringify([constraints, type]) })
+        ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + types_1.type_to_string(constraints.value) })
         : len(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (len_t) {
             return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)));
         }); };
@@ -536,29 +538,21 @@ exports.new_array = function (r, type, len) {
 exports.new_array_and_init = function (r, type, args) {
     return function (constraints) {
         if (constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value))
-            return ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context." });
+            return ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + types_1.type_to_string(constraints.value) });
         var xs = Immutable.List(args.map(function (a) { return a(ts_bccc_1.apply(ts_bccc_1.inl(), type)); }));
         return ccc_aux_1.comm_list_coroutine(xs).then(function (xs_t) {
             var arg_types = xs_t.toArray().map(function (x_t) { return x_t.type; });
             // arg_types must all be of type `type`
             var arg_values = xs_t.toArray().map(function (x_t) { return x_t.sem; });
             return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_with_values_rt(arg_values)));
-            // return co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`})
         });
     };
-};
-exports.get_arr_len = function (r, a) {
-    return coerce_to_constraint(r, function (_) { return a(types_1.no_constraints).then(function (a_t) {
-        return a_t.type.kind == "arr" ?
-            ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
-            : ts_bccc_2.co_error({ range: r, message: "Error: array length requires an array" });
-    }); }, types_1.int_type);
 };
 exports.get_arr_el = function (r, a, i) {
     return function (constraints) { return a(types_1.no_constraints).then(function (a_t) {
         return i(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (i_t) {
             if (a_t.type.kind != "arr")
-                return ts_bccc_2.co_error({ range: r, message: "Error: array getter requires an array and an integer as arguments" });
+                return ts_bccc_2.co_error({ range: r, message: "Error: expected an array, instead found " + types_1.type_to_string(a_t.type) + "." });
             var arr_arg = a_t.type.arg;
             return coerce_to_constraint(r, function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(arr_arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem))); }, arr_arg)(constraints);
         });
@@ -571,7 +565,7 @@ exports.set_arr_el = function (r, a, i, e) {
                 return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)));
             });
         })
-            : ts_bccc_2.co_error({ range: r, message: "Error: array setter requires an array and an integer as arguments" });
+            : ts_bccc_2.co_error({ range: r, message: "Error: expected an array, instead found " + types_1.type_to_string(a_t.type) + "." });
     }); };
 };
 exports.def_class = function (r, C_name, methods_from_context, fields_from_context, is_internal) {
@@ -674,11 +668,8 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
             if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
                 return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.string_length_rt(this_ref_t.sem))));
             }
-            else if (this_ref_t.type.kind == "arr") {
-                if (F_or_M_name == "Length")
-                    return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))));
-                else
-                    return ts_bccc_2.co_error({ range: r, message: "Invalid array operation at " + JSON.stringify(r) });
+            else if (this_ref_t.type.kind == "arr" && F_or_M_name == "Length") {
+                return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))));
             }
             else if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
                 var item = /^Item/;
@@ -689,20 +680,17 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                         return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(this_ref_t.type.args[item_index], Sem.tuple_get_rt(r, this_ref_t.sem, item_index))));
                     }
                     catch (error) {
-                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + " at " + JSON.stringify(r) });
+                        return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + ". }" });
                     }
                 }
                 else {
-                    // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
                     if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
                         try {
                             return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(this_ref_t.type.args.get(F_or_M_name), Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name))));
                         }
                         catch (error) {
-                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + " at " + JSON.stringify(r) });
+                            return ts_bccc_2.co_error({ range: r, message: "Invalid field getter " + F_or_M_name + ". }" });
                         }
-                        // } else {
-                        //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
                     }
                 }
             }
@@ -711,14 +699,14 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
             var C_def = bindings.bindings.get(C_name);
             if (C_def.kind != "obj")
-                return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " is not a class" });
+                return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " is not a class." });
             if (C_def.fields.has(F_or_M_name)) {
                 var F_def = C_def.fields.get(F_or_M_name);
                 if (!F_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_or_M_name) + " from global scope" });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + F_or_M_name + "." });
                     else if (context.C_name != C_name)
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_or_M_name) + " from " + context.C_name });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + F_or_M_name + "." });
                 }
                 return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(F_def.type, F_def.modifiers.has("static") ?
                     Sem.static_field_get_expr_rt(C_name, F_or_M_name)
@@ -730,12 +718,12 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 // console.log("This is this", JSON.stringify(this_ref_t))
                 if (!M_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + JSON.stringify(F_or_M_name) + " from global scope" });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + F_or_M_name + "." });
                     else if (context.C_name != C_name)
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + JSON.stringify(F_or_M_name) + " from " + context.C_name });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + C_name + "::" + F_or_M_name + "." });
                 }
                 if (M_def.typing.type.kind != "fun")
-                    return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + JSON.stringify(F_or_M_name) + " is not a lambda in " + (context.kind == "class" ? context.C_name : JSON.stringify(context)) });
+                    return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + F_or_M_name + " is not a lambda." });
                 if (M_def.modifiers.has("static")) {
                     if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
                         return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type, Sem.static_method_get_expr_rt(C_name, F_or_M_name)));
@@ -748,7 +736,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                     return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type.out, Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])));
                 }
             }
-            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain field " + F_or_M_name });
+            return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " does not contain field or method " + F_or_M_name });
         });
     }); };
 };
@@ -757,7 +745,7 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
         return (F_name.kind == "att_arr" ? F_name.index(types_1.no_constraints) : ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_expr(false)))).then(function (maybe_index) {
             return ts_bccc_1.co_get_state().then(function (bindings) {
                 if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-                    return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when setting field " + F_name.att_name + "." });
+                    return ts_bccc_2.co_error({ range: r, message: "Error: expected reference or class name when setting " + F_name.att_name + "." });
                 }
                 var C_name = this_ref_t.type.C_name;
                 if (!bindings.bindings.has(C_name))
@@ -766,13 +754,13 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                 if (C_def.kind != "obj")
                     return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
                 if (!C_def.fields.has(F_name.att_name))
-                    return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain field " + F_name.att_name });
+                    return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain " + F_name.att_name });
                 var F_def = C_def.fields.get(F_name.att_name);
                 if (!F_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + JSON.stringify(F_name.att_name) + " from global scope" });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + F_name.att_name + "." });
                     else if (context.C_name != C_name)
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + JSON.stringify(F_name.att_name) + " from " + context.C_name });
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + F_name.att_name + "." });
                 }
                 return new_value(ts_bccc_1.apply(ts_bccc_1.inl(), F_def.type)).then(function (new_value_t) {
                     //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
@@ -787,17 +775,17 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
 exports.call_cons = function (r, context, C_name, arg_values) {
     return function (constraints) { return ts_bccc_1.co_get_state().then(function (bindings) {
         if (!bindings.bindings.has(C_name))
-            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined" });
+            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined." });
         var C_def = bindings.bindings.get(C_name);
         if (C_def.kind != "obj")
-            return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class" });
+            return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class." });
         if (!C_def.methods.has(C_name)) {
-            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not have constructors" });
+            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " has no constructors." });
         }
         var lambda_t = C_def.methods.get(C_name);
         if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
             lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple")
-            return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + JSON.stringify(lambda_t.typing.type) });
+            return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + types_1.type_to_string(lambda_t.typing.type) });
         var expected_args = lambda_t.typing.type.out.in.args;
         var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
             return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
@@ -818,9 +806,9 @@ exports.call_cons = function (r, context, C_name, arg_values) {
         }).toArray().reduce(function (a, b) { return exports.semicolon(r, a, b); }, exports.done);
         if (!lambda_t.modifiers.has("public")) {
             if (context.kind == "global scope")
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + " from global scope" });
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
             else if (context.C_name != C_name)
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + " from " + context.C_name });
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
         }
         return ensure_constraints(r, constraints)(lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
             check_arguments.then(function (args_t) {
@@ -829,22 +817,22 @@ exports.call_cons = function (r, context, C_name, arg_values) {
                         (lambda_t.typing.type.out.kind == "fun" &&
                             lambda_t.typing.type.out.in.kind == "tuple" &&
                             arg_values.length != lambda_t.typing.type.out.in.args.length) ?
-                        ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + JSON.stringify(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t) })
+                        ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t.toArray().map(function (t) { return types_1.type_to_string(t.type); })) })
                         :
                             ts_bccc_2.co_unit(types_1.mk_typing(types_1.ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }), init_fields_t.sem)));
                 });
             })
-            : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + JSON.stringify(lambda_t.typing.type) }));
+            : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + types_1.type_to_string(lambda_t.typing.type) }));
     }); };
 };
 exports.get_class = function (r, t) {
     return t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" || t.kind == "unit" ?
         ts_bccc_1.co_get_state().then(function (bindings) {
             if (!bindings.bindings.has(t.kind))
-                return ts_bccc_2.co_error({ message: "Cannot find class for primitive type " + JSON.stringify(t), range: r });
+                return ts_bccc_2.co_error({ message: "Cannot find class for primitive type " + types_1.type_to_string(t), range: r });
             var t_t = bindings.bindings.get(t.kind);
             if (t_t.kind != "obj")
-                ts_bccc_2.co_error({ message: "Malformed class for primitive type " + JSON.stringify(t), range: r });
+                ts_bccc_2.co_error({ message: "Malformed class for primitive type " + types_1.type_to_string(t), range: r });
             var t_obj = t_t;
             return ts_bccc_2.co_unit(t_obj);
         })
@@ -864,17 +852,13 @@ exports.coerce = function (r, e, t) {
             var e_type_name = types_1.type_to_string(e_v.type);
             // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
             var casting_operators = e_c.methods.filter(function (m) { return m != undefined && m.modifiers.some(function (mod) { return mod == "casting"; }) && m.modifiers.some(function (mod) { return mod == "operator"; }) && m.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (c_op, c_op_name) { return ({ body: c_op, name: c_op_name }); }).toArray();
-            // console.log(`I have found the following casting operators on ${e_type_name}: ${JSON.stringify(casting_operators.map(c => c.name))}`)
             var coercions = casting_operators.map(function (c_op) {
                 var c_op_typing = function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(e_type_name, c_op.name))); };
                 var coercion = exports.call_lambda(r, c_op_typing, [function (_) { return ts_bccc_2.co_unit(e_v); }]);
-                // console.log(`Processing coercion ${c_op.name}, which entails a function to ${type_to_string(c_op.body.typing.type)}`)
                 if (c_op.name == t_name) {
-                    // console.log(`Found. Returning.`)
                     return coercion;
                 }
                 else {
-                    // console.log(`Recursing. The target is still ${JSON.stringify(t)}`)
                     return exports.coerce(r, coercion, t);
                 }
             });

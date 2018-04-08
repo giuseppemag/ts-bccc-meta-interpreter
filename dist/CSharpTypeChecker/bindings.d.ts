@@ -69,7 +69,6 @@ export declare let call_by_name: (r: SourceRange, f_n: string, args: Stmt[]) => 
 export declare let ret: (r: SourceRange, p: Stmt) => Stmt;
 export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
-export declare let get_arr_len: (r: SourceRange, a: Stmt) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
 export declare let def_class: (r: SourceRange, C_name: string, methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;

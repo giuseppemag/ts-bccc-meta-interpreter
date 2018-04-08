@@ -3,7 +3,7 @@ import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, fun2, inl, in
 import * as CCC from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
-import { SourceRange, mk_range, zero_range } from "../source_range"
+import { SourceRange, mk_range, zero_range, print_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
@@ -59,12 +59,12 @@ export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean
   return _ =>
     co_get_state<State,Err>().then(s =>
     !s.bindings.has(v) ? mk_coroutine<State,Err,Typing>(apply(g, args))
-    : co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${JSON.stringify(v)}` }))
+    : co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${v}` }))
 }
 export let decl_and_init_v = function(r:SourceRange, v:Name, t:Type, e:Stmt, is_constant?:boolean) : Stmt {
   return _ => e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State,Err>().then(s => {
-    if (s.bindings.has(v)) return co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${JSON.stringify(v)}` })
+    if (s.bindings.has(v)) return co_error<State,Err,Typing>({ range:r, message:`Error: cannot redeclare variable ${v}` })
     let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
     let g = curry(f)
     let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...e_val.type, is_constant:is_constant != undefined ? is_constant : false})), {})
@@ -88,7 +88,7 @@ export let set_v = function(r:SourceRange, v:Name, e:Stmt) : Stmt {
            if (!v_val.type.is_constant) {
              return co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
             } else {
-              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign anything to ${v}: it is a constant.` })
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot assign anything to constant ${v}.` })
             }
           }
         ))
@@ -119,7 +119,7 @@ export let tuple_value = function(r:SourceRange, args:Array<Stmt>) : Stmt {
     if (constraints.kind == "left" && constraints.value.kind == "record")
       constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))
     if (constraints.kind == "left" && constraints.value.kind != "tuple")
-      return co_error<State,Err,Typing>({ range:r, message:`Error: wrong constraints ${JSON.stringify(constraints)} when typechecking tuple.` })
+      return co_error<State,Err,Typing>({ range:r, message:`Error: expected type ${type_to_string(constraints.value)} when typechecking tuple.` })
     let check_args = comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(args.map((a, a_i) =>
       a(constraints.kind == "left" && constraints.value.kind == "tuple" ? apply(inl(), constraints.value.args[a_i])
         : no_constraints))))
@@ -256,7 +256,7 @@ export let unary_op = function(r:SourceRange, a:Stmt, op:string) : Stmt {
         return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (${op}) operator.`})
       let op_method = t_c.methods.get(op)
       if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
-        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has a (${op}) operator, but it is malformed.`})
+        return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has an operator (${op}), but it is malformed.`})
 
       let args = op_method.typing.type.in.args
       let op_method_stmt:Stmt = _ =>
@@ -328,9 +328,9 @@ export let and = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "&&")
 
 export let arrow = function(r:SourceRange, parameters:Array<Parameter>, closure:Array<ValueName>, body:Stmt) : Stmt {
   return constraints => {
-    if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: empty context when defining anonymous function (=>)!" })
+    if (constraints.kind == "right") return co_error<State,Err,Typing>({ range:r, message:"Error: empty context when defining anonymous function (=>)." })
     let expected_type = constraints.value
-    if (expected_type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: expected ${expected_type.kind}, found function.` })
+    if (expected_type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: expected ${type_to_string(expected_type)}, found function.` })
     let input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in]
     let output = expected_type.out
     let parameter_declarations = parameters.map((p,p_i) => ({...p, type:input[p_i]})).map(p => decl_v(r, p.name, p.type, true)).reduce((p,q) => semicolon(r, p, q), done)
@@ -348,7 +348,7 @@ export let get_index = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
          i(apply(inl(), int_type)).then(i_t =>
           a_t.type.kind == "arr" ?
             co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-          : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for array lookup!" })
+          : co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
         )))
 }
 
@@ -356,11 +356,11 @@ export let set_index = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return constraints => ensure_constraints(r, constraints)(a(no_constraints).then(a_t =>
          i(apply(inl(), int_type)).then(i_t =>
           a_t.type.kind != "arr" ?
-            co_error<State,Err,Typing>({ range:r, message:"Error: array set operation is only permitted on arrays!" })
+            co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
           : e(apply(inl(), a_t.type.arg)).then(e_t =>
             a_t.type.kind == "arr" ?
               co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
-            : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported types for writing in an array!" })
+            : co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
         ))))
 }
 
@@ -395,7 +395,8 @@ export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt
           co_stateless<State,Err,Typing>(e(expected_type)).then(e_t => {
 
           let on_type : Fun<TypeInformation, Stmt> = fun(t_i => (_:TypeConstraints) => co_unit<State,Err,Typing>(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
-          let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(_ => co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types!" }))
+          let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(_ =>
+            co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types." }))
 
           let res = apply(on_type.plus(on_error), lub(t_t.type, e_t.type))
 
@@ -499,7 +500,7 @@ export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<S
       lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" && lambda_t.type.in.args.length == 1 && lambda_t.type.in.args[0].kind == "unit" &&
       arg_values.length == 0 ?
       co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))) :
-      co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => a.type)])}`})
+      co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => type_to_string(a.type))])}`})
       :
       co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
     )
@@ -518,7 +519,7 @@ export let ret = function(r:SourceRange, p:Stmt) : Stmt {
 
 export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
   return constraints => constraints.kind == "left" && !type_equals(arr_type(type), constraints.value) ?
-          co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context. ${JSON.stringify([constraints, type])}`})
+          co_error<State,Err,Typing>({ range:r, message:`Error: array type ${type_to_string(type)} does not match context ${type_to_string(constraints.value)}`})
           : len(apply(inl(), int_type)).then(len_t =>
             co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem))))
 }
@@ -526,31 +527,22 @@ export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
 export let new_array_and_init = function(r:SourceRange, type:Type, args:Stmt[]) : Stmt {
   return constraints => {
     if (constraints.kind == "left" && !type_equals(arr_type(type), constraints.value))
-      return co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context.`})
+      return co_error<State,Err,Typing>({ range:r, message:`Error: array type ${type_to_string(type)} does not match context ${type_to_string(constraints.value)}`})
     let xs = Immutable.List<Coroutine<State,Err,Typing>>(args.map(a => a(apply(inl(), type))))
     return comm_list_coroutine(xs).then(xs_t => {
       let arg_types = xs_t.toArray().map(x_t => x_t.type)
       // arg_types must all be of type `type`
       let arg_values = xs_t.toArray().map(x_t => x_t.sem)
       return co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_with_values_rt(arg_values)))
-      // return co_error<State,Err,Typing>({ range:r, message:`Error: argument of array constructor must be of type int`})
     })
   }
-}
-
-export let get_arr_len = function(r:SourceRange, a:Stmt) : Stmt {
-  return coerce_to_constraint(r, _ => a(no_constraints).then(a_t =>
-         a_t.type.kind == "arr"  ?
-           co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
-         : co_error<State,Err,Typing>({ range:r, message:`Error: array length requires an array`})
-        ), int_type)
 }
 
 export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
   return constraints => a(no_constraints).then(a_t =>
          i(apply(inl(), int_type)).then(i_t => {
           if (a_t.type.kind != "arr")
-            return co_error<State,Err,Typing>({ range:r, message:`Error: array getter requires an array and an integer as arguments`})
+            return co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, instead found ${type_to_string(a_t.type)}.`})
           let arr_arg = a_t.type.arg
           return coerce_to_constraint(r, _ => co_unit(mk_typing(arr_arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem))), arr_arg)(constraints)
          }
@@ -563,7 +555,7 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
          i(apply(inl(), int_type)).then(i_t =>
           co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
         ))
-        : co_error<State,Err,Typing>({ range:r, message:`Error: array setter requires an array and an integer as arguments`}))
+        : co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, instead found ${type_to_string(a_t.type)}.`}))
 }
 
 export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
@@ -676,11 +668,8 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
 
             if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
               return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.string_length_rt(this_ref_t.sem))))
-            } else if (this_ref_t.type.kind == "arr") {
-              if(F_or_M_name == "Length")
-                return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
-              else
-                return co_error<State,Err,Typing>({ range:r, message:`Invalid array operation at ${JSON.stringify(r)}`})
+            } else if (this_ref_t.type.kind == "arr" && F_or_M_name == "Length") {
+              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
             }
             else
               if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
@@ -692,19 +681,16 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                   return ensure_constraints(r, constraints)(co_unit(mk_typing(this_ref_t.type.args[item_index],
                           Sem.tuple_get_rt(r, this_ref_t.sem, item_index))))
                 } catch (error) {
-                  return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name} at ${JSON.stringify(r)}`})
+                  return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}. }`})
                 }
               } else {
-                // console.log("Checking getter on", JSON.stringify(this_ref_t.type))
                 if (this_ref_t.type.kind == "record" && this_ref_t.type.args.has(F_or_M_name)) {
                   try {
                     return ensure_constraints(r, constraints)(co_unit(mk_typing(this_ref_t.type.args.get(F_or_M_name),
                             Sem.record_get_rt(r, this_ref_t.sem, F_or_M_name))))
                   } catch (error) {
-                    return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name} at ${JSON.stringify(r)}`})
+                    return co_error<State,Err,Typing>({ range:r, message:`Invalid field getter ${F_or_M_name}. }`})
                   }
-                // } else {
-                //   return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when getting field ${F_or_M_name} from ${JSON.stringify(this_ref_t)}.`})
                 }
               }
            }
@@ -712,15 +698,15 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
            let C_name = this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj" ? this_ref_t.type.C_name : type_to_string(this_ref_t.type)
            if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
-           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} is not a class`})
+           if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} is not a class.`})
 
            if (C_def.fields.has(F_or_M_name)){
             let F_def = C_def.fields.get(F_or_M_name)
             if (!F_def.modifiers.has("public")) {
               if (context.kind == "global scope")
-                return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${JSON.stringify(F_or_M_name)} from global scope`})
+                return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${F_or_M_name}.`})
               else if (context.C_name != C_name)
-                return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_or_M_name)} from ${context.C_name}`})
+                return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${C_name}::${F_or_M_name}.`})
             }
             return ensure_constraints(r, constraints)(co_unit<State,Err,Typing>(mk_typing(F_def.type,
                       F_def.modifiers.has("static") ?
@@ -734,11 +720,11 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
 
               if (!M_def.modifiers.has("public")) {
                 if (context.kind == "global scope")
-                  return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${JSON.stringify(F_or_M_name)} from global scope`})
+                  return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public method ${F_or_M_name}.`})
                 else if (context.C_name != C_name)
-                  return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public field ${C_name}::${JSON.stringify(F_or_M_name)} from ${context.C_name}`})
+                  return co_error<State,Err,Typing>({ range:r, message:`Error: cannot get non-public method ${C_name}::${F_or_M_name}.`})
               }
-              if (M_def.typing.type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: method ${C_name}::${JSON.stringify(F_or_M_name)} is not a lambda in ${context.kind == "class" ?  context.C_name : JSON.stringify(context)}`})
+              if (M_def.typing.type.kind != "fun") return co_error<State,Err,Typing>({ range:r, message:`Error: method ${C_name}::${F_or_M_name} is not a lambda.`})
               if (M_def.modifiers.has("static")) {
                 if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
                   return co_unit(mk_typing(M_def.typing.type,
@@ -755,7 +741,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
 
               }
             }
-            return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_or_M_name}`})
+            return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} does not contain field or method ${F_or_M_name}`})
 
           }
          ))
@@ -767,20 +753,20 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
          (F_name.kind == "att_arr" ? F_name.index(no_constraints) : co_unit<State, Err, Typing>(mk_typing(bool_type, Sem.bool_expr(false)))).then(maybe_index =>
          co_get_state<State, Err>().then(bindings => {
            if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
-             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting field ${F_name.att_name}.`})
+             return co_error<State,Err,Typing>({ range:r, message:`Error: expected reference or class name when setting ${F_name.att_name}.`})
            }
            let C_name:string = this_ref_t.type.C_name
            if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
            let C_def = bindings.bindings.get(C_name)
            if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type ${C_name} is not a class`})
-           if (!C_def.fields.has(F_name.att_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain field ${F_name.att_name}`})
+           if (!C_def.fields.has(F_name.att_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not contain ${F_name.att_name}`})
            let F_def = C_def.fields.get(F_name.att_name)
 
            if (!F_def.modifiers.has("public")) {
             if (context.kind == "global scope")
-              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${JSON.stringify(F_name.att_name)} from global scope`})
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${F_name.att_name}.`})
             else if (context.C_name != C_name)
-              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${JSON.stringify(F_name.att_name)} from ${context.C_name}`})
+              return co_error<State,Err,Typing>({ range:r, message:`Error: cannot set non-public field ${C_name}::${F_name.att_name}.`})
            }
            return new_value(apply(inl(), F_def.type)).then(new_value_t => {
              //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
@@ -796,17 +782,17 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
 
 export let call_cons = function(r:SourceRange, context:CallingContext, C_name:string, arg_values:Array<Stmt>) : Stmt {
   return constraints => co_get_state<State, Err>().then(bindings => {
-    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined`})
+    if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined.`})
     let C_def = bindings.bindings.get(C_name)
-    if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class`})
+    if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class.`})
     if (!C_def.methods.has(C_name)) {
-      return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} does not have constructors`})
+      return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} has no constructors.`})
     }
     let lambda_t = C_def.methods.get(C_name)
 
     if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
         lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple" )
-      return co_error<State,Err,Typing>({ range:r, message:`Error: invalid constructor type ${JSON.stringify(lambda_t.typing.type)}`})
+      return co_error<State,Err,Typing>({ range:r, message:`Error: invalid constructor type ${type_to_string(lambda_t.typing.type)}`})
 
     let expected_args = lambda_t.typing.type.out.in.args
 
@@ -829,9 +815,9 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
 
     if (!lambda_t.modifiers.has("public")) {
       if (context.kind == "global scope")
-        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from global scope`})
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name}.`})
       else if (context.C_name != C_name)
-        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name} from ${context.C_name}`})
+        return co_error<State,Err,Typing>({ range:r, message:`Error: cannot call non-public constructor ${C_name}.`})
     }
     return ensure_constraints(r, constraints)(lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
         check_arguments.then(args_t =>
@@ -840,20 +826,20 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
           (lambda_t.typing.type.out.kind == "fun" &&
           lambda_t.typing.type.out.in.kind == "tuple" &&
           arg_values.length != lambda_t.typing.type.out.in.args.length) ?
-            co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${JSON.stringify(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t)}`})
+            co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}`})
           :
             co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))
           ))
-      : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${JSON.stringify(lambda_t.typing.type)}`}))
+      : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}`}))
   })
 }
 
 export let get_class = (r:SourceRange, t:Type) : Coroutine<State, Err, ObjType> =>
   t.kind == "int" || t.kind == "float" || t.kind == "string" || t.kind == "double" || t.kind == "bool" || t.kind == "unit" ?
   co_get_state<State, Err>().then(bindings => {
-    if (!bindings.bindings.has(t.kind)) return co_error<State, Err, ObjType>({ message: `Cannot find class for primitive type ${JSON.stringify(t)}`, range:r })
+    if (!bindings.bindings.has(t.kind)) return co_error<State, Err, ObjType>({ message: `Cannot find class for primitive type ${type_to_string(t)}`, range:r })
     let t_t = bindings.bindings.get(t.kind)
-    if (t_t.kind != "obj") co_error<State, Err, ObjType>({ message: `Malformed class for primitive type ${JSON.stringify(t)}`, range:r })
+    if (t_t.kind != "obj") co_error<State, Err, ObjType>({ message: `Malformed class for primitive type ${type_to_string(t)}`, range:r })
     let t_obj:ObjType = t_t as ObjType
     return co_unit(t_obj)
   })
@@ -877,16 +863,12 @@ export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
     // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
 
     let casting_operators = e_c.methods.filter(m => m != undefined && m.modifiers.some(mod => mod == "casting") && m.modifiers.some(mod => mod == "operator") && m.modifiers.some(mod => mod == "static")).map((c_op, c_op_name) => ({ body:c_op, name:c_op_name}) ).toArray() as { body:MethodTyping, name:string}[]
-    // console.log(`I have found the following casting operators on ${e_type_name}: ${JSON.stringify(casting_operators.map(c => c.name))}`)
     let coercions = casting_operators.map(c_op => {
       let c_op_typing:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(e_type_name, c_op.name)))
       let coercion = call_lambda(r, c_op_typing, [_ => co_unit<State,Err,Typing>(e_v)])
-      // console.log(`Processing coercion ${c_op.name}, which entails a function to ${type_to_string(c_op.body.typing.type)}`)
       if (c_op.name == t_name) {
-        // console.log(`Found. Returning.`)
         return coercion
       } else {
-        // console.log(`Recursing. The target is still ${JSON.stringify(t)}`)
         return coerce(r, coercion, t)
       }
     })
