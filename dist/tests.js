@@ -61,6 +61,11 @@ run_checks([
             { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "int"; } },
             { name: "s is string", step: 1, expected_kind: "bindings", check: function (s) { return s.get("s").kind == "string"; } }
         ] },
+    { name: "primitive casting",
+        source: "var x = 10 as string;\n    typechecker_debugger;",
+        checks: [
+            { name: "x is int", step: 1, expected_kind: "bindings", check: function (s) { return s.get("x").kind == "string"; } },
+        ] },
     { name: "while loop",
         source: "int x = 10;\n    int n = 1;\n    while(x > 0){\n      n  = n * x;\n      x  = x - 1;\n    }\n    typechecker_debugger;",
         checks: [
@@ -308,5 +313,14 @@ run_checks([
         source: "int AddArray(int[] a) {\n  int sum = 0;\n  for(int i = 0; i < a.Length; i = i + 1) {\n    sum = sum + a[i];\n  }\n  return sum;\n}\n\nint MinArray(int[] a) {\n  int min = a[0];\n  for(int i = 1; i < a.Length; i = i + 1) {\n    if(a[i] < min) { min = a[i]; }\n  }\n  return min;\n}\n\nFunc<Func<int[],int>, Func<int[],int>, Func<bool, int>> f = (g,h) => b => b ? g(new int[]  { 1, 2, 3 }) : h(new int[] {4, 5, 6});\n\nvar l = f(AddArray, MinArray);\nvar res1 = l(true);\nvar res2 = l(false);\ntypechecker_debugger;\ndebugger;\n",
         checks: [{ name: "res1 is in scope", step: 1, expected_kind: "bindings", check: function (s) { return s.has("res1"); } },
             { name: "res1 is in the runtime", step: 3, expected_kind: "memory", check: function (s) { return s.globals.get(0).has("res1"); } }]
+    },
+    {
+        name: "Lambda's in different contexts",
+        source: "  class C {\n    Func<int,int> f;\n    public C() {\n      this.f = a => a * 3;\n    }\n\n    public void reset(Func<int,int> f) {\n      this.f = f;\n    }\n\n    public int invoke(int arg) {\n      return this.f(arg);\n    }\n  }\n\n\n  var a = new Func<int,int>[2];\n  a[0] = x => x + 1;\n  a[1] = x => x * 2;\n\n  var y1 = a[1](4);\n\n  var c = new C();\n  var y2 = c.invoke(5);\n  c.reset(x => x / 2);\n  var y3 = c.invoke(20);\n  debugger;",
+        checks: [
+            { name: "y1 is 8", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y1").v, 8); } },
+            { name: "y2 is 15", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y2").v, 15); } },
+            { name: "y3 is 10", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y3").v, 10); } },
+        ]
     },
 ]);

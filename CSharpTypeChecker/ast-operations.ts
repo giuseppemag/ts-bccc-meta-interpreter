@@ -57,6 +57,7 @@ import {
   while_do,
   xor,
   tuple_value,
+  coerce,
 } from './bindings'
 import {
   float_type,
@@ -128,7 +129,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   n.ast.kind == ";" || n.ast.kind == "+" || n.ast.kind == "-" || n.ast.kind == "/" || n.ast.kind == "*"
   || n.ast.kind == "%" || n.ast.kind == "<" || n.ast.kind == ">" || n.ast.kind == "<=" || n.ast.kind == ">="
   || n.ast.kind == "==" || n.ast.kind == "!=" || n.ast.kind == "xor" || n.ast.kind == "&&" || n.ast.kind == "||"
-  || n.ast.kind == "," ?
+  || n.ast.kind == "," || n.ast.kind == "as" ?
     free_variables(n.ast.l, bound).union(free_variables(n.ast.r, bound))
 
   : n.ast.kind == "empty surface" ?
@@ -167,17 +168,23 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   // export interface MkRenderGridPixel { kind: "mk-render-grid-pixel", w:ParserRes, h:ParserRes, status:ParserRes }
 
   : n.ast.kind == "not" || n.ast.kind == "bracket" ? free_variables(n.ast.e, bound)
+  : n.ast.kind == "return" ? free_variables(n.ast.value, bound)
+
+  : n.ast.kind == "if" ? free_variables(n.ast.c, bound).union(free_variables(n.ast.t, bound)).union(n.ast.e.kind == "left" ? free_variables(n.ast.e.value, bound) : Immutable.Set<string>())
+  : n.ast.kind == "while" ? free_variables(n.ast.c, bound).union(free_variables(n.ast.b, bound))
 
   : n.ast.kind == "ternary_if" ? free_variables(n.ast.condition, bound).union(free_variables(n.ast.then_else, bound))
   : n.ast.kind == "ternary_then_else" ? free_variables(n.ast._then, bound).union(free_variables(n.ast._else, bound))
-
 
   : n.ast.kind == "=>" && n.ast.l.ast.kind == "id" ? free_variables(n.ast.r, bound.add(n.ast.l.ast.value))
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
+
+  : n.ast.kind == "debugger" || n.ast.kind == "typechecker_debugger" ? Immutable.Set<string>()
+
   : (() => {
-    //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`);
+    console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`);
     throw new Error(`(FV) Unsupported ast node: ${print_range(n.range)}`)
   })()
 
@@ -201,6 +208,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "while" ? while_do(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.b)(context))
   : n.ast.kind == "if" ? if_then_else(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.t)(context),
                             n.ast.e.kind == "right" ? done : ast_to_type_checker(n.ast.e.value)(context))
+  : n.ast.kind == "as" ? coerce(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_csharp_type(n.ast.r))
   : n.ast.kind == "+" ? plus(n.range, ast_to_type_checker(n.ast.l)(context),
                                              ast_to_type_checker(n.ast.r)(context))
   : n.ast.kind == "-" ? minus(n.range, ast_to_type_checker(n.ast.l)(context),
@@ -269,7 +277,10 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.ast.kind == "id" ? d.r.ast.value : "", type:ast_to_csharp_type(d.l)})),
         body:ast_to_type_checker(n.ast.body)(context),
         range:n.range },
-        [])
+        []
+        // free_variables(n.ast.body,
+        //   Immutable.Set<string>(n.ast.arg_decls.toArray().map(d => d.r.ast.kind == "id" ? d.r.ast.value : ""))).toArray()
+        )
   : n.ast.kind == "class" ?
     def_class(n.range, n.ast.C_name,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({

@@ -44,6 +44,16 @@ exports.get_v = function (r, v) {
     var i = ts_bccc_2.mk_coroutine(h);
     return function (constraints) { return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" ? i : exports.coerce(r, function (_) { return i; }, constraints.value)(types_1.no_constraints); };
 };
+exports.decl_forced_v = function (r, v, t, is_constant) {
+    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
+    var g = ts_bccc_1.curry(f);
+    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+    return function (_) {
+        return ts_bccc_1.co_get_state().then(function (s) {
+            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+        });
+    };
+};
 exports.decl_v = function (r, v, t, is_constant) {
     var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
     var g = ts_bccc_1.curry(f);
@@ -439,7 +449,7 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
     var return_t = def.return_t;
     var body = def.body;
     var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
-        return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
+        return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
     }, exports.done));
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(types_1.no_constraints).then(function (_) {
@@ -517,8 +527,8 @@ exports.ret = function (r, p) {
     }); };
 };
 exports.new_array = function (r, type, len) {
-    return function (constraints) { return constraints.kind == "left" && !types_1.type_equals(type, constraints.value) ?
-        ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context." })
+    return function (constraints) { return constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value) ?
+        ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context. " + JSON.stringify([constraints, type]) })
         : len(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (len_t) {
             return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)));
         }); };

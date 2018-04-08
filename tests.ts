@@ -94,6 +94,13 @@ run_checks([
       { name:"s is string", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("s").kind == "string"  }
     ] },
 
+  { name:"primitive casting",
+    source:`var x = 10 as string;
+    typechecker_debugger;`,
+    checks:[
+      { name:"x is int", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("x").kind == "string" },
+    ] },
+
   { name:"while loop",
     source:`int x = 10;
     int n = 1;
@@ -514,7 +521,7 @@ typechecker_debugger;
 debugger;`,
     checks:[{ name:"v1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("v1") },
             { name:"v1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("v1") }]
-            
+
   },
   {
     name:"DataSet1",
@@ -748,6 +755,7 @@ debugger;
 checks:[{ name:"hr is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("hr") },
         { name:"hr is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("hr") }]
   },
+
   {
     name:"Arrays and classes",
     source:`int AddArray(int[] a) {
@@ -777,6 +785,42 @@ debugger;
 checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.has("res1") },
         { name:"res1 is in the runtime", step:3, expected_kind:"memory", check:(s:MemRt) => s.globals.get(0).has("res1") }]
   },
+
+  {
+    name:"Lambda's in different contexts",
+    source:`  class C {
+    Func<int,int> f;
+    public C() {
+      this.f = a => a * 3;
+    }
+
+    public void reset(Func<int,int> f) {
+      this.f = f;
+    }
+
+    public int invoke(int arg) {
+      return this.f(arg);
+    }
+  }
+
+
+  var a = new Func<int,int>[2];
+  a[0] = x => x + 1;
+  a[1] = x => x * 2;
+
+  var y1 = a[1](4);
+
+  var c = new C();
+  var y2 = c.invoke(5);
+  c.reset(x => x / 2);
+  var y3 = c.invoke(20);
+  debugger;`,
+  checks:[
+    { name:"y1 is 8", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y1").v, 8) },
+    { name:"y2 is 15", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y2").v, 15) },
+    { name:"y3 is 10", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y3").v, 10) },
+  ]},
+
 ])
 
 

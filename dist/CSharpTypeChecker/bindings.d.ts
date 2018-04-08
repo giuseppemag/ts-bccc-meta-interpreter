@@ -5,6 +5,7 @@ import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefin
 export declare let wrap_co_res: Fun<Prod<Typing, State>, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>;
 export declare let wrap_co: Fun<Prod<Typing, State>, Sum<Err, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>>;
 export declare let get_v: (r: SourceRange, v: string) => Stmt;
+export declare let decl_forced_v: (r: SourceRange, v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_v: (r: SourceRange, v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_and_init_v: (r: SourceRange, v: string, t: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_const: (r: SourceRange, c: string, t: Type, e: Stmt) => Stmt;

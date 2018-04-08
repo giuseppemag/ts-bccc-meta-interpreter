@@ -21,6 +21,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
+`
+
+
+
+/*
 abstract class Animal{
   public abstract string MakeSound();
 }
@@ -38,16 +43,6 @@ class LargeCat : Cat {
 
 Cat c = new LargeCat();
 var s = c.MakeSound();
-`
-
-/*
-defs
-  Animal.methods := { MakeSound : null }
-  Cat.methods := { MakeSound : this => () => "miao" }
-
-  <new Cat()> -> this.base.MakeSound = Cat.methods(this)
-
-  <(x:Cat).MakeSound()> -> Cat.methods.MakeSound(this)
 */
 
     // let hrstart = process.hrtime()

@@ -34,6 +34,7 @@ export declare const mk_semicolon: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_bin_op: (k: BinOpKind) => (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_pair: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_arrow: (l: ParserRes, r: ParserRes) => ParserRes;
+export declare const mk_as: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_plus: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_minus: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_times: (l: ParserRes, r: ParserRes) => ParserRes;
@@ -160,6 +161,7 @@ export declare const protected_modifier: Coroutine<ParserState, ParserError, Sou
 export declare const static_modifier: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const override_modifier: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const virtual_modifier: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const as_op: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const plus_op: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const minus_op: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const times_op: Coroutine<ParserState, ParserError, SourceRange>;

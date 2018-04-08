@@ -12,15 +12,25 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nabstract class Animal{\n  public abstract string MakeSound();\n}\nclass Cat : Animal{\n  public override string MakeSound(){\n     return \"miao\";\n  }\n}\n\nclass LargeCat : Cat {\n  public override string MakeSound(){\n    return \"MIAO\";\n }\n}\n\nCat c = new LargeCat();\nvar s = c.MakeSound();\n";
+        var source = "\n";
         /*
-        defs
-          Animal.methods := { MakeSound : null }
-          Cat.methods := { MakeSound : this => () => "miao" }
+        abstract class Animal{
+          public abstract string MakeSound();
+        }
+        class Cat : Animal{
+          public override string MakeSound(){
+             return "miao";
+          }
+        }
         
-          <new Cat()> -> this.base.MakeSound = Cat.methods(this)
+        class LargeCat : Cat {
+          public override string MakeSound(){
+            return "MIAO";
+         }
+        }
         
-          <(x:Cat).MakeSound()> -> Cat.methods.MakeSound(this)
+        Cat c = new LargeCat();
+        var s = c.MakeSound();
         */
         // let hrstart = process.hrtime()
         var output = "";

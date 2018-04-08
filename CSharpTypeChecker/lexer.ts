@@ -19,7 +19,7 @@ import {
 import { co_catch, co_repeat, co_run_to_end } from '../ccc_aux'
 import { mk_range, SourceRange } from '../source_range'
 
-export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","
+export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","|"as"
 export type UnaryOpKind = "not"
 
 export type ReservedKeyword = "for"|"while"|"if"|"then"|"else"|"private"|"public"|"static"|"protected"|"virtual"|"override"|"class"|"new"|"debugger"|"typechecker_debugger"|"return"|"?"|":"
@@ -89,6 +89,7 @@ export module GrammarBasics {
       : s == "other_surface" || s == "empty_surface" || s == "ellipse"
       || s == "sprite" || s == "circle" || s == "rectangle" || s == "text"
       || s == "line" || s == "polygon" || s == "square" ? ({range:r, kind:s as RenderingKind})
+      : s == "as" ? ({range:r, kind:"as" })
 
       : s == "true" || s == "false" ? ({range:r, kind:"bool", v:(s == "true") })
       : ({range:r, kind:"id", v:s })),

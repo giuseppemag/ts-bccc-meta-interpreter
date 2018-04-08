@@ -43,6 +43,15 @@ export let get_v = function(r:SourceRange, v:Name) : Stmt {
   let i = mk_coroutine<State,Err,Typing>(h)
   return constraints => constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" ? i : coerce(r, _ => i, constraints.value)(no_constraints)
 }
+export let decl_forced_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean) : Stmt {
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
+  let g = curry(f)
+  let args = apply(constant<Unit,Name>(v).times(constant<Unit,TypeInformation>({...t, is_constant:is_constant != undefined ? is_constant : false})), {})
+  return _ =>
+    co_get_state<State,Err>().then(s =>
+    mk_coroutine<State,Err,Typing>(apply(g, args))
+    )
+}
 export let decl_v = function(r:SourceRange, v:Name, t:Type, is_constant?:boolean) : Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
   let g = curry(f)
@@ -428,7 +437,7 @@ export let mk_lambda = function(r:SourceRange, def:LambdaDefinition, closure_par
   let body = def.body
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
                      closure_parameters.reduce<Stmt>((acc, cp) =>
-                      semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
+                      semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
   return  _ => Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings(no_constraints).then(_ =>
           body(apply(inl(), return_t)).then(body_t =>
@@ -508,8 +517,8 @@ export let ret = function(r:SourceRange, p:Stmt) : Stmt {
 }
 
 export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
-  return constraints => constraints.kind == "left" && !type_equals(type, constraints.value) ?
-          co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context.`})
+  return constraints => constraints.kind == "left" && !type_equals(arr_type(type), constraints.value) ?
+          co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context. ${JSON.stringify([constraints, type])}`})
           : len(apply(inl(), int_type)).then(len_t =>
             co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem))))
 }

@@ -54,6 +54,7 @@ export const mk_semicolon = (l:ParserRes,r:ParserRes) : ParserRes => ({ range:jo
 export const mk_bin_op = (k:BinOpKind) => (l:ParserRes,r:ParserRes) : ParserRes => ({ range:join_source_ranges(l.range, r.range), ast:{ kind: k, l:l, r:r }})
 export const mk_pair = mk_bin_op(",")
 export const mk_arrow = mk_bin_op("=>")
+export const mk_as = mk_bin_op("as")
 export const mk_plus = mk_bin_op("+")
 export const mk_minus = mk_bin_op("-")
 export const mk_times = mk_bin_op("*")
@@ -81,9 +82,9 @@ export const mk_constructor_call = (new_range:SourceRange, C_name:string, actual
 
 export const mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actual:ParserRes) : ParserRes =>
   ({ range:new_range, ast:{ kind:"array_cons_call", type:_type, actual:actual } })
-  
+
 export const mk_array_cons_call_and_init = (new_range:SourceRange, _type:ParserRes, actuals:ParserRes[]) : ParserRes =>
-  ({ range:new_range, ast:{ kind:"array_cons_call_and_init", type:_type, actuals:actuals } })  
+  ({ range:new_range, ast:{ kind:"array_cons_call_and_init", type:_type, actuals:actuals } })
 
 export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
   ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, range:range})
@@ -450,6 +451,8 @@ export const protected_modifier = symbol("protected", "protected")
 export const static_modifier = symbol("static", "static")
 export const override_modifier = symbol("override", "override")
 export const virtual_modifier = symbol("virtual", "virtual")
+
+export const as_op = binop_sign("as")
 
 export const plus_op = binop_sign("+")
 export const minus_op = binop_sign("-")

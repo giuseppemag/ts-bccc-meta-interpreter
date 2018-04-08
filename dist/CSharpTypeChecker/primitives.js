@@ -60,6 +60,7 @@ exports.mk_semicolon = function (l, r) { return ({ range: source_range_1.join_so
 exports.mk_bin_op = function (k) { return function (l, r) { return ({ range: source_range_1.join_source_ranges(l.range, r.range), ast: { kind: k, l: l, r: r } }); }; };
 exports.mk_pair = exports.mk_bin_op(",");
 exports.mk_arrow = exports.mk_bin_op("=>");
+exports.mk_as = exports.mk_bin_op("as");
 exports.mk_plus = exports.mk_bin_op("+");
 exports.mk_minus = exports.mk_bin_op("-");
 exports.mk_times = exports.mk_bin_op("*");
@@ -481,6 +482,7 @@ exports.protected_modifier = exports.symbol("protected", "protected");
 exports.static_modifier = exports.symbol("static", "static");
 exports.override_modifier = exports.symbol("override", "override");
 exports.virtual_modifier = exports.symbol("virtual", "virtual");
+exports.as_op = exports.binop_sign("as");
 exports.plus_op = exports.binop_sign("+");
 exports.minus_op = exports.binop_sign("-");
 exports.times_op = exports.binop_sign("*");

@@ -43,8 +43,9 @@ var GrammarBasics;
                 : s == "other_surface" || s == "empty_surface" || s == "ellipse"
                     || s == "sprite" || s == "circle" || s == "rectangle" || s == "text"
                     || s == "line" || s == "polygon" || s == "square" ? ({ range: r, kind: s })
-                    : s == "true" || s == "false" ? ({ range: r, kind: "bool", v: (s == "true") })
-                        : ({ range: r, kind: "id", v: s });
+                    : s == "as" ? ({ range: r, kind: "as" })
+                        : s == "true" || s == "false" ? ({ range: r, kind: "bool", v: (s == "true") })
+                            : ({ range: r, kind: "id", v: s });
         }),
         parse_prefix_regex(/^-?[0-9]+\.[0-9]*f/, function (s, r) { return ({ range: r, kind: "float", v: parseFloat(s) }); }),
         parse_prefix_regex(/^-?[0-9]+\.[0-9]+/, function (s, r) { return ({ range: r, kind: "double", v: parseFloat(s) }); }),

@@ -107,6 +107,8 @@ import {
   colon_keyword,
   mk_ternary_if,
   mk_ternary_then_else,
+  mk_as,
+  as_op,
 } from './primitives';
 
 let priority_operators_table =
@@ -129,6 +131,7 @@ let priority_operators_table =
   .set("xor", {priority:4, associativity:"right"})
   .set("&&", {priority:4, associativity:"right"})
   .set("||", {priority:4, associativity:"right"})
+  .set("as", {priority:4, associativity:"right"})
   .set(":", {priority:3, associativity:"right"})
   .set("?", {priority:2, associativity:"left"})
   .set("=>", {priority:1, associativity:"right"})
@@ -243,7 +246,7 @@ let index_of : Coroutine<ParserState,ParserError,{val:ParserRes, range:SourceRan
                   expr().then(actual =>
                   right_square_bracket.then(rs =>
                   co_unit({val:actual, range:join_source_ranges(ls,rs)})
-                  )))               
+                  )))
 
 export let par : Coroutine<ParserState,ParserError,{val:ParserRes[], range:SourceRange}> =
   no_match.then(_ =>
@@ -390,7 +393,7 @@ let comma_to_array = (comma:ParserRes) : ParserRes[] =>
       return [comma]
     }
   }
-  
+
 type unary_or_binary_op =
   { kind: "binary", f: (l: ParserRes, r: ParserRes) => ParserRes } |
   { kind: "unary", f: (l: ParserRes | "none", is_callable: boolean) => { kind: "res" | "0-ary_push_back", value: ParserRes } }
@@ -430,7 +433,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
             actuals = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] : actuals
             return expr_after_op(symbols,  l!= "none" ? callables.push(is_callable(l)) : callables, table.ops, "()",
               mk_unary((_l, is_callable) => {
-                
+
 
                 return _l == "none" ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
                   : !is_callable ? { kind: "0-ary_push_back", value: mk_bracket(actuals[0], range) }
@@ -441,6 +444,7 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(arrow_op.then(_ => expr_after_op(symbols, callables, table.ops, "=>", mk_binary((l, r) => //console.log("mk_arrow-1", JSON.stringify(l)) ||
                                                                                                                         //console.log("mk_arrow-2", JSON.stringify(r)) ||
                                                                                                                         mk_arrow(l, r)))),
+          parser_or<SymTable>(as_op.then(_ => expr_after_op(symbols, callables, table.ops, "as", mk_binary((l, r) => mk_as(l, r)))),
           parser_or<SymTable>(plus_op.then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
           parser_or<SymTable>(minus_op.then(_ => expr_after_op(symbols, callables, table.ops, "-", mk_binary((l, r) => mk_minus(l, r)))),
           parser_or<SymTable>(co_stateless<ParserState, ParserError, ParserRes>(negative_number).then(_ => expr_after_op(symbols, callables, table.ops, "+", mk_binary((l, r) => mk_plus(l, r)))),
@@ -457,9 +461,9 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
           parser_or<SymTable>(or_op.then(_ => expr_after_op(symbols, callables, table.ops, "||", mk_binary((l, r) => mk_or(l, r)))),
           parser_or<SymTable>(xor_op.then(_ => expr_after_op(symbols, callables, table.ops, "xor", mk_binary((l, r) => mk_xor(l, r)))),
           co_unit({ ...table, symbols: symbols, callables: callables })
-        )))))))))))))))))))))))
+        ))))))))))))))))))))))))
       }
-  
+
   // return parser_or<SymTable>(term().then(l => cases(l).then(res => console.log("RES1", res)||co_unit(res))), cases("none").then(res => console.log("RES2", res) || co_unit(res)))
   return parser_or<SymTable>(term(try_par?try_par:false).then(l => cases(l)), cases("none"))
 }
@@ -472,7 +476,7 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     right_bracket.then(rb =>
 
     {
-      let args = 
+      let args =
         actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
         actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
       return co_unit(mk_constructor_call(join_source_ranges(new_range, rb), class_name.id, args))}
@@ -493,11 +497,11 @@ let array_new_and_init = () : Coroutine<ParserState, ParserError, ParserRes> =>
     type_decl(false).then(array_type =>
     left_square_bracket.then(_ =>
     right_square_bracket.then(_ =>
-    left_curly_bracket.then(_ => 
+    left_curly_bracket.then(_ =>
     actuals().then(_actuals =>
-    right_curly_bracket.then(rs => 
+    right_curly_bracket.then(rs =>
     {
-      
+
       let actuals = _actuals[0].ast.kind == "," ? comma_to_array(_actuals[0]) : _actuals
       return co_unit(mk_array_cons_call_and_init(join_source_ranges(new_range, rs), array_type, actuals))
     }
@@ -561,7 +565,7 @@ let type_decl = (check_array_decl=true) : Coroutine<ParserState,ParserError,Pars
   parser_or<ParserRes>(
     check_array_decl ?
       parser_or<ParserRes>(
-        tuple_or_record.then(t => 
+        tuple_or_record.then(t =>
           array(t)
         ),
         tuple_or_record) : tuple_or_record,
@@ -636,15 +640,15 @@ let if_conditional : (_:() => Parser) => Parser = (stmt:() => Parser) =>
   if_keyword.then(if_keyword =>
   partial_match.then(_ =>
   expr().then(c =>
-  parser_or<ParserRes>(    
-    left_curly_bracket.then(_ =>    
+  parser_or<ParserRes>(
+    left_curly_bracket.then(_ =>
       un_bracketized_statement().then(t =>
-      right_curly_bracket.then(t_r_cb =>    
+      right_curly_bracket.then(t_r_cb =>
       parser_or<ParserRes>(
         else_keyword.then(_ =>
-          left_curly_bracket.then(_ =>    
+          left_curly_bracket.then(_ =>
           un_bracketized_statement().then(e =>
-          right_curly_bracket.then(e_r_cb =>    
+          right_curly_bracket.then(e_r_cb =>
           full_match.then(_ =>
           co_unit(mk_if_then_else(join_source_ranges(if_keyword, e_r_cb),c, t, e))))))),
         co_unit(mk_if_then(join_source_ranges(if_keyword, t_r_cb),c, t)))))),

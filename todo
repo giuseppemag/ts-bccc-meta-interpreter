@@ -1,17 +1,30 @@
-[g] coerce type correctly in new_array and new_array_and_int
-[g] explicit casting
-  [ ] parser
-  [ ] typechecker and runtime both via `coerce`
-[g] Inheritance
-  [ ] Object with `ToString() { return "" }`
-[g] Generics
-  [ ] Array<T> in standard library
-  [ ] Tuple in standard library
+[g] Access modifiers: incompatibility errors do not bubble up correctly
+[g] Errors
+  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
+  [ ] Improve type-checking error messages: "cannot ..., expected ..., found ..."
+
 [g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
   [ ] method overloading
   [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
   [ ] add unary - to standard library
-[g] test: pass lambda to method, constructor, assign to field, set into array (`constraints` parameter must be set)
+
+[g] remove old-style method resolution from semantics
+
+[g] Filesystem simulator
+[g] Inheritance
+  [ ] Object with `ToString() { return "" }`
+[g] Generics
+  [ ] Add generic classes as T => { ... }
+    [ ] Cache instances as invisible defs
+  [ ] Array<T> in standard library
+  [ ] Tuple in standard library
+[g] closure of functions: free_variables vs decl/decl_and_init (`bound` should become the state)
+
+[g] Databases
+[g] HTML renderers for server simulator
+[g] Structs
+
 [g] unit tests
   [ ] failed coercions and wrong types
     [ ] primitives and operations
@@ -29,23 +42,10 @@
   [ ] exceptions
   [ ] fancy features (yield return, LINQ)
   [ ] html rendering
-[g] Filesystem simulator
 
-[g] Closures in regular functions
-
-[g] Access modifiers: incompatibility errors do not bubble up correctly
-[g] Errors
-  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [ ] Improve type-checking error messages: "cannot ..., expected ..., found ..."
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
-  [ ] Grammar.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
-
-[g] Databases
-[g] HTML renderers for server simulator
-[g] Structs
 
 [m] add `null`
 [m] add C# to playground
