@@ -508,12 +508,16 @@ export let ret = function(r:SourceRange, p:Stmt) : Stmt {
 }
 
 export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
-  return _ => len(apply(inl(), int_type)).then(len_t =>
-           co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem))))
+  return constraints => constraints.kind == "left" && !type_equals(type, constraints.value) ?
+          co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context.`})
+          : len(apply(inl(), int_type)).then(len_t =>
+            co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem))))
 }
 
 export let new_array_and_init = function(r:SourceRange, type:Type, args:Stmt[]) : Stmt {
-  return _ => {
+  return constraints => {
+    if (constraints.kind == "left" && !type_equals(arr_type(type), constraints.value))
+      return co_error<State,Err,Typing>({ range:r, message:`Error: array type does not match context.`})
     let xs = Immutable.List<Coroutine<State,Err,Typing>>(args.map(a => a(apply(inl(), type))))
     return comm_list_coroutine(xs).then(xs_t => {
       let arg_types = xs_t.toArray().map(x_t => x_t.type)
@@ -526,19 +530,21 @@ export let new_array_and_init = function(r:SourceRange, type:Type, args:Stmt[]) 
 }
 
 export let get_arr_len = function(r:SourceRange, a:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
+  return coerce_to_constraint(r, _ => a(no_constraints).then(a_t =>
          a_t.type.kind == "arr"  ?
            co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
          : co_error<State,Err,Typing>({ range:r, message:`Error: array length requires an array`})
-        )
+        ), int_type)
 }
 
 export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
-  return _ => a(no_constraints).then(a_t =>
-         i(apply(inl(), int_type)).then(i_t =>
-         a_t.type.kind == "arr" ?
-           co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-         : co_error<State,Err,Typing>({ range:r, message:`Error: array getter requires an array and an integer as arguments`})
+  return constraints => a(no_constraints).then(a_t =>
+         i(apply(inl(), int_type)).then(i_t => {
+          if (a_t.type.kind != "arr")
+            return co_error<State,Err,Typing>({ range:r, message:`Error: array getter requires an array and an integer as arguments`})
+          let arr_arg = a_t.type.arg
+          return coerce_to_constraint(r, _ => co_unit(mk_typing(arr_arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem))), arr_arg)(constraints)
+         }
         ))
 }
 

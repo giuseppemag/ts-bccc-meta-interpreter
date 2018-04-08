@@ -12,7 +12,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nvar a = 1 + + 1;\n";
+        var source = "\nint[] a = new int[] { 10, 20, 5 };\ndouble first(int[] x) {\n  x[0] = x[0] * 2;\n  return x[0];\n}\n\nvar y = first(a);\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

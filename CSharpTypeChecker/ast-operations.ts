@@ -1,7 +1,7 @@
 import * as Immutable from 'immutable';
 
 import { ValueName } from '../main'
-import { join_source_ranges, print_range, print_range } from '../source_range'
+import { join_source_ranges, print_range } from '../source_range'
 import {
   and,
   arrow,
@@ -103,7 +103,7 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     : s.ast.value == "ellipse" ? ellipse_type
     : s.ast.value == "rectangle" ? rectangle_type
     : s.ast.value == "var" ? var_type
-    : ref_type(s.ast.value) : 
+    : ref_type(s.ast.value) :
   s.ast.kind == "array decl" ? arr_type(ast_to_csharp_type(s.ast.t))
   : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
     fun_type(tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
@@ -111,8 +111,8 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
   : s.ast.kind == "record type decl" ?
     record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)])))
-  : (() => { 
-    //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); 
+  : (() => {
+    //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`);
     throw new Error(`Unsupported ast type: ${print_range(s.range)}`)
   })()
 
@@ -176,8 +176,8 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
-  : (() => { 
-    //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); 
+  : (() => {
+    //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`);
     throw new Error(`(FV) Unsupported ast node: ${print_range(n.range)}`)
   })()
 
@@ -241,7 +241,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
   : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ?
     if_then_else(n.range, ast_to_type_checker(n.ast.condition)(context), ast_to_type_checker(n.ast.then_else.ast._then)(context), ast_to_type_checker(n.ast.then_else.ast._else)(context))
-  
+
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ?
     set_arr_el(n.range,
@@ -337,8 +337,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "other surface" ?
     mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context), ast_to_type_checker(n.ast.rotation)(context))
 
-  : (() => { 
-    //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`); 
+  : (() => {
+    //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`);
     throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
   })()
 

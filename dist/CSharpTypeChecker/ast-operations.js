@@ -31,7 +31,7 @@ var ast_to_csharp_type = function (s) {
                     : s.ast.kind == "record type decl" ?
                         types_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
                         : (function () {
-                            //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`); 
+                            //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`);
                             throw new Error("Unsupported ast type: " + source_range_1.print_range(s.range));
                         })();
 };
@@ -87,7 +87,7 @@ var free_variables = function (n, bound) {
                                                                     : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ? Immutable.Set()
                                                                         : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); })))
                                                                             : (function () {
-                                                                                //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`); 
+                                                                                //console.log(`Error (FV): unsupported ast node: ${JSON.stringify(n)}`);
                                                                                 throw new Error("(FV) Unsupported ast node: " + source_range_1.print_range(n.range));
                                                                             })();
 };
@@ -216,7 +216,7 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                                                                                                 : n.ast.kind == "other surface" ?
                                                                                                                                                                                                                                     bindings_1.mk_other_surface(n.range, exports.ast_to_type_checker(n.ast.s)(context), exports.ast_to_type_checker(n.ast.dx)(context), exports.ast_to_type_checker(n.ast.dy)(context), exports.ast_to_type_checker(n.ast.sx)(context), exports.ast_to_type_checker(n.ast.sy)(context), exports.ast_to_type_checker(n.ast.rotation)(context))
                                                                                                                                                                                                                                     : (function () {
-                                                                                                                                                                                                                                        //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`); 
+                                                                                                                                                                                                                                        //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`);
                                                                                                                                                                                                                                         throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));
                                                                                                                                                                                                                                     })();
 }; };

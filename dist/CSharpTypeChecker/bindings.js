@@ -517,12 +517,16 @@ exports.ret = function (r, p) {
     }); };
 };
 exports.new_array = function (r, type, len) {
-    return function (_) { return len(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (len_t) {
-        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)));
-    }); };
+    return function (constraints) { return constraints.kind == "left" && !types_1.type_equals(type, constraints.value) ?
+        ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context." })
+        : len(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (len_t) {
+            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_rt(len_t.sem)));
+        }); };
 };
 exports.new_array_and_init = function (r, type, args) {
-    return function (_) {
+    return function (constraints) {
+        if (constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value))
+            return ts_bccc_2.co_error({ range: r, message: "Error: array type does not match context." });
         var xs = Immutable.List(args.map(function (a) { return a(ts_bccc_1.apply(ts_bccc_1.inl(), type)); }));
         return ccc_aux_1.comm_list_coroutine(xs).then(function (xs_t) {
             var arg_types = xs_t.toArray().map(function (x_t) { return x_t.type; });
@@ -534,18 +538,19 @@ exports.new_array_and_init = function (r, type, args) {
     };
 };
 exports.get_arr_len = function (r, a) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
+    return coerce_to_constraint(r, function (_) { return a(types_1.no_constraints).then(function (a_t) {
         return a_t.type.kind == "arr" ?
             ts_bccc_2.co_unit(types_1.mk_typing(types_1.int_type, Sem.get_arr_len_expr_rt(a_t.sem)))
             : ts_bccc_2.co_error({ range: r, message: "Error: array length requires an array" });
-    }); };
+    }); }, types_1.int_type);
 };
 exports.get_arr_el = function (r, a, i) {
-    return function (_) { return a(types_1.no_constraints).then(function (a_t) {
+    return function (constraints) { return a(types_1.no_constraints).then(function (a_t) {
         return i(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (i_t) {
-            return a_t.type.kind == "arr" ?
-                ts_bccc_2.co_unit(types_1.mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
-                : ts_bccc_2.co_error({ range: r, message: "Error: array getter requires an array and an integer as arguments" });
+            if (a_t.type.kind != "arr")
+                return ts_bccc_2.co_error({ range: r, message: "Error: array getter requires an array and an integer as arguments" });
+            var arr_arg = a_t.type.arg;
+            return coerce_to_constraint(r, function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(arr_arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem))); }, arr_arg)(constraints);
         });
     }); };
 };
