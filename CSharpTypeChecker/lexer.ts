@@ -17,7 +17,7 @@ import {
 } from 'ts-bccc'
 
 import { co_catch, co_repeat, co_run_to_end } from '../ccc_aux'
-import { mk_range, SourceRange } from '../source_range'
+import { mk_range, SourceRange, zero_range } from '../source_range'
 
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","|"as"
 export type UnaryOpKind = "not"
@@ -42,7 +42,8 @@ export type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" 
 
 
 export module GrammarBasics {
-  type LexerError = string
+  export interface LexerError { message:string, range:SourceRange }
+
   type LexerState = { buffer:string, line_index:number, column_index:number }
   interface Lexer extends Coroutine<LexerState,LexerError,Token> {}
 
@@ -50,7 +51,7 @@ export module GrammarBasics {
   = (r,t) => mk_coroutine<LexerState,LexerError,Token>(fun(s => {
     let m = s.buffer.match(r)
     if (m == null || m.length == 0) {
-      return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), `Syntax error: cannot match token at (${s.line_index}, ${s.column_index}), ${s.buffer.substr(0, Math.min(s.buffer.length, 5))}...`)
+      return apply(inl<LexerError, CoRes<LexerState,LexerError,Token>>(), { range:mk_range(s.line_index, s.column_index, s.line_index, s.column_index + s.buffer.length), message:`Syntax error: cannot match token at (${s.line_index}, ${s.column_index}), ${s.buffer.substr(0, Math.min(s.buffer.length, 5))}...` })
     } else {
       let rest = s.buffer.replace(r, "")
       // console.log("Lexing", r, s.buffer)
@@ -69,7 +70,7 @@ export module GrammarBasics {
   let lex_catch = co_catch<LexerState,LexerError,Token>(fst_err)
 
   let lex_catch_many = (tokens:Immutable.List<Lexer>) : Lexer => tokens.isEmpty() ?
-      co_error<LexerState,LexerError,Token>("No lexer available.")
+      co_error<LexerState,LexerError,Token>({ range:zero_range, message:"" })
     :
       lex_catch(tokens.first())(lex_catch_many(tokens.rest().toList()))
 

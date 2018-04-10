@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
 import { comm_list_coroutine } from "../ccc_aux";
 
-export let runtime_error = function(e:ErrVal) : ExprRt<Sum<Val,Val>> { return co_error<MemRt, ErrVal, Sum<Val,Val>>(e) }
+export let runtime_error = function(r:SourceRange, e:string) : ExprRt<Sum<Val,Val>> { return co_error<MemRt, ErrVal, Sum<Val,Val>>({ message:e, range:r }) }
 export type Bool = boolean
 
 export interface Lambda { body:ExprRt<Sum<Val,Val>>, parameters:Array<ValueName>, closure: Scope, range:SourceRange }
@@ -36,9 +36,9 @@ export type Val = { v:Unit, k:"u" } | { v:string, k:"s" } | { v:number, k:"f" } 
                 | { v:RenderSurface, k:"render surface" } | { v:RenderSurfaceOperation, k:"render surface operation" }
 export interface Scope extends Immutable.Map<ValueName, Val> {}
 export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueName, Val>> {}
-export interface Interface {  base:Sum<Interface, Unit>, 
-                              static_methods:Immutable.Map<ValueName, StmtRt>, 
-                              methods:Immutable.Map<ValueName, StmtRt>, 
+export interface Interface {  base:Sum<Interface, Unit>,
+                              static_methods:Immutable.Map<ValueName, StmtRt>,
+                              methods:Immutable.Map<ValueName, StmtRt>,
                               static_fields:Immutable.Map<ValueName, Val>,
                               is_internal:boolean,
                               range:SourceRange }
@@ -73,7 +73,7 @@ export let mk_render_surface_operation_val = (s:RenderSurfaceOperation) : Val =>
 export let tuple_to_record = (v:Val, labels:Array<string>) : Val => v.k == "tuple" ?
   mk_record_val(Immutable.Map<ValueName, Val>(v.v.map((a,a_i) => [labels[a_i], a]))) : v
 
-export type ErrVal = string
+export interface ErrVal { message:string, range:SourceRange }
 
 let find_last_scope = <T>(scopes: Scopes, p:(_:Scope) => Sum<Unit, T>) : Sum<Unit, T> => {
   let i = scopes.count() - 1
@@ -231,9 +231,9 @@ export let decl_v_rt = function (v: ValueName, vals: Sum<Val,Val>): StmtRt {
   let f = ((constant<MemRt, string>(v).times(constant<MemRt, Val>(val))).times(id<MemRt>())).then(store_co)
   return mk_coroutine(f)
 }
-export let get_v_rt = function (v: ValueName): ExprRt<Sum<Val,Val>> {
+export let get_v_rt = function (r:SourceRange, v: ValueName): ExprRt<Sum<Val,Val>> {
   let f:Fun<MemRt, Sum<Unit, Prod<MemRt, Sum<Val,Val>>>> = constant<MemRt, string>(v).times(id<MemRt>()).then(load_rt).times(id<MemRt>()).then(CCC.swap_prod()).then(CCC.distribute_sum_prod()).then(snd<MemRt,Unit>().map_plus(id()))
-  let g_err = constant<Unit,ErrVal>(`Error: variable ${v} cannot be found.`).then(Co.error<MemRt,ErrVal,Sum<Val,Val>>())
+  let g_err = constant<Unit,ErrVal>({ message:`Error: variable ${v} cannot be found.`, range:r }).then(Co.error<MemRt,ErrVal,Sum<Val,Val>>())
   let g_res = swap_prod<MemRt,Sum<Val,Val>>().then(Co.value<MemRt,ErrVal,Sum<Val,Val>>()).then(Co.result<MemRt,ErrVal,Sum<Val,Val>>()).then(Co.no_error<MemRt,ErrVal,Sum<Val,Val>>())
   let g:Fun<Sum<Unit,Prod<MemRt,Sum<Val,Val>>>, Co.CoPreRes<MemRt,ErrVal,Sum<Val,Val>>> = g_err.plus(g_res)
   return mk_coroutine(f.then(g))
@@ -257,48 +257,48 @@ export let new_arr_with_args_rt = function (args:Sum<Val,Val>[]): ExprRt<Sum<Val
   return (heap_alloc_co)
 }
 
-export let new_arr_expr_rt = function (len:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val,Val>> {
-  return len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
+export let new_arr_expr_rt = function (r:SourceRange, len:ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val,Val>> {
+  return len.then(len_v => len_v.value.k != "i" ? runtime_error(r, `Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
 }
 export let new_arr_expr_with_values_rt = function (args:Array<ExprRt<Sum<Val,Val>>>): ExprRt<Sum<Val,Val>> {
   return comm_list_coroutine(Immutable.List<ExprRt<Sum<Val,Val>>>(args)).then(args_v => new_arr_with_args_rt(args_v.toArray()))
-  // len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
+  // len.then(len_v => len_v.value.k != "i" ? runtime_error(r, `Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
 }
-export let get_arr_len_rt = function(a_ref:Val) : ExprRt<Sum<Val,Val>> {
-  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
-         get_heap_v_rt(a_ref.v).then(a_val =>
-         a_val.value.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
+export let get_arr_len_rt = function(r:SourceRange, a_ref:Val) : ExprRt<Sum<Val,Val>> {
+  return a_ref.k != "ref" ? runtime_error(r, `Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+         get_heap_v_rt(r, a_ref.v).then(a_val =>
+         a_val.value.k != "arr" ? runtime_error(r, `Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
          co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), mk_int_val(a_val.value.v.length))))
 }
-export let get_arr_len_expr_rt = function(a:ExprRt<Sum<Val,Val>>) : ExprRt<Sum<Val,Val>> {
-  return a.then(a_val => get_arr_len_rt(a_val.value))
+export let get_arr_len_expr_rt = function(r:SourceRange, a:ExprRt<Sum<Val,Val>>) : ExprRt<Sum<Val,Val>> {
+  return a.then(a_val => get_arr_len_rt(r, a_val.value))
 }
-export let get_arr_el_rt = function(a_ref:Val, i:number) : ExprRt<Sum<Val,Val>> {
-  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
-         get_heap_v_rt(a_ref.v).then(a_val =>
-         a_val.value.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
-         !a_val.value.v.elements.has(i) ? runtime_error(`Cannot find element ${i} on ${a_val.value.v}.`) :
+export let get_arr_el_rt = function(r:SourceRange, a_ref:Val, i:number) : ExprRt<Sum<Val,Val>> {
+  return a_ref.k != "ref" ? runtime_error(r, `Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+         get_heap_v_rt(r, a_ref.v).then(a_val =>
+         a_val.value.k != "arr" ? runtime_error(r, `Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
+         !a_val.value.v.elements.has(i) ? runtime_error(r, `Cannot find element ${i} on ${a_val.value.v}.`) :
          co_unit<MemRt,ErrVal,Sum<Val,Val>>(apply(inl(), a_val.value.v.elements.get(i))))
 }
-export let get_arr_el_expr_rt = function(a:ExprRt<Sum<Val,Val>>, i:ExprRt<Sum<Val,Val>>) : ExprRt<Sum<Val,Val>> {
+export let get_arr_el_expr_rt = function(r:SourceRange, a:ExprRt<Sum<Val,Val>>, i:ExprRt<Sum<Val,Val>>) : ExprRt<Sum<Val,Val>> {
   return a.then(a_val =>
          i.then(i_val =>
-         i_val.value.k != "i" ? runtime_error(`Index ${i_val} is not an integer.`) :
-         get_arr_el_rt(a_val.value, i_val.value.v)))
+         i_val.value.k != "i" ? runtime_error(r, `Index ${i_val} is not an integer.`) :
+         get_arr_el_rt(r, a_val.value, i_val.value.v)))
 }
-export let set_arr_el_rt = function(a_ref:Val, i:number, v:Val) : StmtRt {
-  return a_ref.k != "ref" ? runtime_error(`Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
-         get_heap_v_rt(a_ref.v).then(a_val =>
-         a_val.value.k != "arr" ? runtime_error(`Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
+export let set_arr_el_rt = function(r:SourceRange, a_ref:Val, i:number, v:Val) : StmtRt {
+  return a_ref.k != "ref" ? runtime_error(r, `Cannot lookup element on ${a_ref.v} as it is not an array reference.`) :
+         get_heap_v_rt(r, a_ref.v).then(a_val =>
+         a_val.value.k != "arr" ? runtime_error(r, `Cannot lookup element on ${a_val.value.v} as it is not an array.`) :
          set_heap_v_rt(a_ref.v, {...a_val.value, v:{...a_val.value.v, length:Math.max(i+1, a_val.value.v.length), elements:a_val.value.v.elements.set(i, v)} }))
 }
-export let set_arr_el_expr_rt = function(a:ExprRt<Sum<Val,Val>>, i:ExprRt<Sum<Val,Val>>, e:ExprRt<Sum<Val,Val>>) : StmtRt {
+export let set_arr_el_expr_rt = function(r:SourceRange, a:ExprRt<Sum<Val,Val>>, i:ExprRt<Sum<Val,Val>>, e:ExprRt<Sum<Val,Val>>) : StmtRt {
   return a.then(a_val =>
          i.then(i_val =>
          {
-           if(i_val.value.k != "i") return runtime_error(`Index ${i_val} is not an integer.`)
+           if(i_val.value.k != "i") return runtime_error(r, `Index ${i_val} is not an integer.`)
            let i = i_val.value
-           return e.then(e_val => set_arr_el_rt(a_val.value, i.v, e_val.value))
+           return e.then(e_val => set_arr_el_rt(r, a_val.value, i.v, e_val.value))
           }))
 }
 export let set_heap_v_rt = function (v: ValueName, val: Val): StmtRt {
@@ -306,9 +306,9 @@ export let set_heap_v_rt = function (v: ValueName, val: Val): StmtRt {
   let f = ((constant<MemRt, string>(v).times(constant<MemRt, Val>(val))).times(id<MemRt>())).then(store_co)
   return mk_coroutine(f)
 }
-export let get_heap_v_rt = function (v: ValueName): ExprRt<Sum<Val,Val>> {
+export let get_heap_v_rt = function (r:SourceRange, v: ValueName): ExprRt<Sum<Val,Val>> {
   let f = (constant<MemRt, string>(v).times(id<MemRt>()).then(load_heap_rt.then(id().map_plus(inl<Val,Val>())))).times(id<MemRt>()).then(swap_prod()).then(CCC.distribute_sum_prod()).then(snd<MemRt,Unit>().map_plus(swap_prod()))
-  let g1 = constant<Unit,ErrVal>(`Cannot find heap entry ${v}.`).then(Co.error<MemRt,ErrVal,Sum<Val,Val>>())
+  let g1 = constant<Unit,ErrVal>({ message:`Cannot find heap entry ${v}.`, range:r }).then(Co.error<MemRt,ErrVal,Sum<Val,Val>>())
   let g2 = Co.no_error<MemRt, ErrVal, Sum<Val,Val>>().after(Co.result<MemRt, ErrVal, Sum<Val,Val>>().after(Co.value<MemRt, ErrVal, Sum<Val,Val>>()))
   let g = g1.plus(g2)
   return mk_coroutine(f.then(g))
@@ -319,10 +319,10 @@ export let set_class_def_rt = function (v: ValueName, int: Interface): StmtRt {
   let g = f
   return mk_coroutine(f)
 }
-export let get_class_def_rt = function (v: ValueName): ExprRt<Interface> {
+export let get_class_def_rt = function (r:SourceRange, v: ValueName): ExprRt<Interface> {
   let f = (constant<MemRt, string>(v).times(id<MemRt>()).then(load_class_def_rt)).times(id<MemRt>()).then(
             swap_prod()).then(CCC.distribute_sum_prod()).then(snd<MemRt,Unit>().map_plus(swap_prod<MemRt,Interface>()))
-  let g1 = constant<Unit,ErrVal>(`Cannot find class ${v}.`).then(Co.error<MemRt,ErrVal,Interface>())
+  let g1 = constant<Unit,ErrVal>({ message: `Cannot find class ${v}.`, range:r }).then(Co.error<MemRt,ErrVal,Interface>())
   let g2 = Co.no_error<MemRt, ErrVal, Interface>().after(Co.result<MemRt, ErrVal, Interface>().after(Co.value<MemRt, ErrVal, Interface>()))
   let g:Fun<Sum<Unit,Prod<Interface,MemRt>>,Co.CoPreRes<MemRt,ErrVal,Interface>> = g1.plus(g2)
   return mk_coroutine(f.then(g))
@@ -332,9 +332,9 @@ export let set_fun_def_rt = function (v: ValueName, l: Lambda): StmtRt {
   let f = ((constant<MemRt, string>(v).times(constant<MemRt, Lambda>(l))).times(id<MemRt>())).then(store_co)
   return mk_coroutine(f)
 }
-export let get_fun_def_rt = function (v: ValueName): ExprRt<Lambda> {
+export let get_fun_def_rt = function (r:SourceRange, v: ValueName): ExprRt<Lambda> {
   let f = (constant<MemRt, string>(v).times(id<MemRt>()).then(load_fun_def_rt)).times(id<MemRt>()).then(swap_prod()).then(CCC.distribute_sum_prod()).then(snd<MemRt,Unit>().map_plus(swap_prod()))
-  let g1 = constant<Unit,ErrVal>(`Cannot find function definition ${v}.`).then(Co.error<MemRt,ErrVal,Lambda>())
+  let g1 = constant<Unit,ErrVal>({ message:`Cannot find function definition ${v}.`, range:r }).then(Co.error<MemRt,ErrVal,Lambda>())
   let g2 = Co.no_error<MemRt, ErrVal, Lambda>().after(Co.result<MemRt, ErrVal, Lambda>().after(Co.value<MemRt, ErrVal, Lambda>()))
   let g = g1.plus(g2)
   return mk_coroutine(f.then(g))

@@ -2,7 +2,7 @@ import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
-export declare let runtime_error: (e: string) => ExprRt<Sum<Val, Val>>;
+export declare let runtime_error: (r: SourceRange, e: string) => ExprRt<Sum<Val, Val>>;
 export declare type Bool = boolean;
 export interface Lambda {
     body: ExprRt<Sum<Val, Val>>;
@@ -175,7 +175,10 @@ export declare let mk_sprite_op: (sprite: string, x: number, y: number, width: n
 export declare let mk_other_surface_op: (s: RenderSurface, dx: number, dy: number, sx: number, sy: number, rotation: number) => RenderSurfaceOperation;
 export declare let mk_render_surface_operation_val: (s: RenderSurfaceOperation) => Val;
 export declare let tuple_to_record: (v: Val, labels: string[]) => Val;
-export declare type ErrVal = string;
+export interface ErrVal {
+    message: string;
+    range: SourceRange;
+}
 export interface MemRt {
     highlighting: SourceRange;
     globals: Scopes;
@@ -206,22 +209,22 @@ export declare let set_highlighting_rt: (r: SourceRange) => ExprRt<Sum<Val, Val>
 export declare let set_v_expr_rt: (v: string, e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let set_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val, Val>>;
 export declare let decl_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val, Val>>;
-export declare let get_v_rt: (v: string) => ExprRt<Sum<Val, Val>>;
+export declare let get_v_rt: (r: SourceRange, v: string) => ExprRt<Sum<Val, Val>>;
 export declare let new_obj_rt: () => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_rt: (len: number) => ExprRt<Sum<Val, Val>>;
 export declare let mk_expr_from_val: (v: Val) => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_with_args_rt: (args: Sum<Val, Val>[]) => ExprRt<Sum<Val, Val>>;
-export declare let new_arr_expr_rt: (len: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let new_arr_expr_rt: (r: SourceRange, len: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let new_arr_expr_with_values_rt: (args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
-export declare let get_arr_len_rt: (a_ref: Val) => ExprRt<Sum<Val, Val>>;
-export declare let get_arr_len_expr_rt: (a: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let get_arr_el_rt: (a_ref: Val, i: number) => ExprRt<Sum<Val, Val>>;
-export declare let get_arr_el_expr_rt: (a: ExprRt<Sum<Val, Val>>, i: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let set_arr_el_rt: (a_ref: Val, i: number, v: Val) => ExprRt<Sum<Val, Val>>;
-export declare let set_arr_el_expr_rt: (a: ExprRt<Sum<Val, Val>>, i: ExprRt<Sum<Val, Val>>, e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let get_arr_len_rt: (r: SourceRange, a_ref: Val) => ExprRt<Sum<Val, Val>>;
+export declare let get_arr_len_expr_rt: (r: SourceRange, a: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let get_arr_el_rt: (r: SourceRange, a_ref: Val, i: number) => ExprRt<Sum<Val, Val>>;
+export declare let get_arr_el_expr_rt: (r: SourceRange, a: ExprRt<Sum<Val, Val>>, i: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let set_arr_el_rt: (r: SourceRange, a_ref: Val, i: number, v: Val) => ExprRt<Sum<Val, Val>>;
+export declare let set_arr_el_expr_rt: (r: SourceRange, a: ExprRt<Sum<Val, Val>>, i: ExprRt<Sum<Val, Val>>, e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let set_heap_v_rt: (v: string, val: Val) => ExprRt<Sum<Val, Val>>;
-export declare let get_heap_v_rt: (v: string) => ExprRt<Sum<Val, Val>>;
+export declare let get_heap_v_rt: (r: SourceRange, v: string) => ExprRt<Sum<Val, Val>>;
 export declare let set_class_def_rt: (v: string, int: Interface) => ExprRt<Sum<Val, Val>>;
-export declare let get_class_def_rt: (v: string) => ExprRt<Interface>;
+export declare let get_class_def_rt: (r: SourceRange, v: string) => ExprRt<Interface>;
 export declare let set_fun_def_rt: (v: string, l: Lambda) => ExprRt<Sum<Val, Val>>;
-export declare let get_fun_def_rt: (v: string) => ExprRt<Lambda>;
+export declare let get_fun_def_rt: (r: SourceRange, v: string) => ExprRt<Lambda>;

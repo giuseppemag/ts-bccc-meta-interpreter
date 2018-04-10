@@ -21,7 +21,7 @@ exports.get_stream = function (source) {
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left") {
             var error_1 = parse_result.value;
-            return { kind: "error", show: function () { return ({ kind: "message", message: error_1, range: source_range_1.mk_range(0, 0, 0, 0) }); } };
+            return { kind: "error", show: function () { return ({ kind: "message", message: error_1.message, range: error_1.range }); } };
         }
         var tokens = Immutable.List(parse_result.value);
         var res = ccc_aux_1.co_run_to_end(CSharp.program_prs(), grammar_1.mk_parser_state(tokens));
@@ -41,7 +41,7 @@ exports.get_stream = function (source) {
                 var k = ts_bccc_1.apply(p.run, s);
                 if (k.kind == "left") {
                     var error_2 = k.value;
-                    return { kind: "error", show: function () { return ({ kind: "message", message: error_2, range: source_range_1.mk_range(0, 0, 0, 0) }); } };
+                    return { kind: "error", show: function () { return ({ kind: "message", message: error_2.message, range: error_2.range }); } };
                 }
                 if (k.value.kind == "left") {
                     return runtime_stream_1(k.value.value);
@@ -82,6 +82,6 @@ exports.get_stream = function (source) {
     }
     catch (e) {
         console.log(e);
-        return { kind: "error", show: function () { return ({ kind: "message", message: "Internal error: " + e + "\nOriginal code:" + source + "}", range: source_range_1.mk_range(0, 0, 0, 0) }); } };
+        return { kind: "error", show: function () { return ({ kind: "message", message: "Internal error: " + e + "\n}", range: source_range_1.mk_range(0, 0, 0, 0) }); } };
     }
 };

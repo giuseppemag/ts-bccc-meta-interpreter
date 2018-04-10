@@ -32,7 +32,7 @@ export let wrap_co = wrap_co_res.then(Co.no_error())
 export let get_v = function(r:SourceRange, v:Name) : Stmt {
   let f = load.then(
     constant<Unit,Err>({ range:r, message:`Error: variable ${v} does not exist.` }).map_plus(
-    (id<TypeInformation>().times(constant<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>>(Sem.get_v_rt(v)))).then(mk_typing_cat_full)
+    (id<TypeInformation>().times(constant<TypeInformation, Sem.ExprRt<Sum<Sem.Val,Sem.Val>>>(Sem.get_v_rt(r, v)))).then(mk_typing_cat_full)
   ))
   let g = snd<Name,State>().times(f).then(distribute_sum_prod())
   let g1 = g.then(
@@ -150,7 +150,7 @@ export let mk_empty_surface = function(r:SourceRange, w:Stmt, h:Stmt, col:Stmt) 
   return _ => w(apply(inl(), double_type)).then(w_t =>
               h(apply(inl(), double_type)).then(h_t =>
               col(apply(inl(), string_type)).then(col_t =>
-                co_unit(mk_typing(render_surface_type, Sem.mk_empty_render_surface_rt(w_t.sem, h_t.sem, col_t.sem)))
+                co_unit(mk_typing(render_surface_type, Sem.mk_empty_render_surface_rt(r, w_t.sem, h_t.sem, col_t.sem)))
             )))
 }
 
@@ -159,7 +159,7 @@ export let mk_circle = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:
               y(apply(inl(), double_type)).then(y_t =>
               radius(apply(inl(), double_type)).then(r_t =>
               col(apply(inl(), string_type)).then(col_t =>
-                co_unit(mk_typing(circle_type, Sem.mk_circle_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
+                co_unit(mk_typing(circle_type, Sem.mk_circle_rt(r, x_t.sem, y_t.sem, r_t.sem, col_t.sem)))
               ))))
 }
 
@@ -169,7 +169,7 @@ export let mk_square = function(r:SourceRange, x:Stmt, y:Stmt, radius:Stmt, col:
               radius(apply(inl(), double_type)).then(r_t =>
               col(apply(inl(), string_type)).then(col_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(square_type, Sem.mk_square_rt(x_t.sem, y_t.sem, r_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(square_type, Sem.mk_square_rt(r, x_t.sem, y_t.sem, r_t.sem, col_t.sem, rot_t.sem)))
               )))))
 }
 
@@ -180,7 +180,7 @@ export let mk_ellipse = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt, 
               h(apply(inl(), double_type)).then(h_t =>
               col(apply(inl(), string_type)).then(col_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(ellipse_type, Sem.mk_ellipse_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(ellipse_type, Sem.mk_ellipse_rt(r, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
               ))))))
 }
 
@@ -191,7 +191,7 @@ export let mk_rectangle = function(r:SourceRange, x:Stmt, y:Stmt, w:Stmt, h:Stmt
               h(apply(inl(), double_type)).then(h_t =>
               col(apply(inl(), string_type)).then(col_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(rectangle_type, Sem.mk_rectangle_rt(x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(rectangle_type, Sem.mk_rectangle_rt(r, x_t.sem, y_t.sem, w_t.sem, h_t.sem, col_t.sem, rot_t.sem)))
               ))))))
 }
 
@@ -203,7 +203,7 @@ export let mk_line = function(r:SourceRange, x1:Stmt, y1:Stmt, x2:Stmt, y2:Stmt,
               w(apply(inl(), double_type)).then(w_t =>
               col(apply(inl(), string_type)).then(col_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(line_type, Sem.mk_line_rt(x1_t.sem, y1_t.sem, x2_t.sem, y2_t.sem, w_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(line_type, Sem.mk_line_rt(r, x1_t.sem, y1_t.sem, x2_t.sem, y2_t.sem, w_t.sem, col_t.sem, rot_t.sem)))
               )))))))
 }
 
@@ -211,7 +211,7 @@ export let mk_polygon = function(r:SourceRange, points:Stmt, col:Stmt, rot:Stmt)
   return _ => points(apply(inl(), arr_type(tuple_type([double_type, double_type])))).then(points_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
               col(apply(inl(), string_type)).then(col_t =>
-                co_unit(mk_typing(polygon_type, Sem.mk_polygon_rt(points_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(polygon_type, Sem.mk_polygon_rt(r, points_t.sem, col_t.sem, rot_t.sem)))
               )))
 }
 
@@ -222,7 +222,7 @@ export let mk_text = function(r:SourceRange, t:Stmt, x:Stmt, y:Stmt, s:Stmt, col
               s(apply(inl(), double_type)).then(s_t =>
               col(apply(inl(), string_type)).then(col_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(text_type, Sem.mk_text_rt(t_t.sem, x_t.sem, y_t.sem, s_t.sem, col_t.sem, rot_t.sem)))
+                co_unit(mk_typing(text_type, Sem.mk_text_rt(r, t_t.sem, x_t.sem, y_t.sem, s_t.sem, col_t.sem, rot_t.sem)))
               ))))))
 }
 
@@ -233,7 +233,7 @@ export let mk_sprite = function(r:SourceRange, sprite:Stmt, x:Stmt, y:Stmt, w:St
               w(apply(inl(), double_type)).then(w_t =>
               h(apply(inl(), double_type)).then(h_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, rot_t.sem)))
+                co_unit(mk_typing(sprite_type, Sem.mk_sprite_rt(r, s_t.sem, x_t.sem, y_t.sem, w_t.sem, h_t.sem, rot_t.sem)))
               ))))))
 }
 
@@ -244,7 +244,7 @@ export let mk_other_surface = function(r:SourceRange, s:Stmt, dx:Stmt, dy:Stmt, 
               sy(apply(inl(), double_type)).then(sy_t =>
               s(apply(inl(), render_surface_type)).then(s_t =>
               rot(apply(inl(), double_type)).then(rot_t =>
-                co_unit(mk_typing(other_render_surface_type, Sem.mk_other_surface_rt(s_t.sem, dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, rot_t.sem)))
+                co_unit(mk_typing(other_render_surface_type, Sem.mk_other_surface_rt(r, s_t.sem, dx_t.sem, dy_t.sem, sx_t.sem, sy_t.sem, rot_t.sem)))
               ))))))
 }
 
@@ -260,7 +260,7 @@ export let unary_op = function(r:SourceRange, a:Stmt, op:string) : Stmt {
 
       let args = op_method.typing.type.in.args
       let op_method_stmt:Stmt = _ =>
-        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(type_to_string(t), op)))
+        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(r, type_to_string(t), op)))
 
       return a(apply(inl(), args[0])).then(a_f =>
           call_lambda(r, op_method_stmt, [_ => co_unit(a_f)])(no_constraints))
@@ -281,7 +281,7 @@ export let bin_op = function(r:SourceRange, a:Stmt, b:Stmt, op:string) : Stmt {
       let args = op_method.typing.type.in.args
 
       let op_method_stmt:Stmt = _ =>
-        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(type_to_string(t), op)))
+        co_unit<State,Err,Typing>(mk_typing(op_method.typing.type, Sem.static_method_get_expr_rt(r, type_to_string(t), op)))
 
       return a(apply(inl(), args[0])).then(a_f =>
             b(apply(inl(), args[1])).then(b_f =>
@@ -297,7 +297,7 @@ export let bin_op = function(r:SourceRange, a:Stmt, b:Stmt, op:string) : Stmt {
             || type_equals(b_t.type, polygon_type) || type_equals(b_t.type, text_type)
             || type_equals(b_t.type, other_render_surface_type)
             ) ?
-            co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(a_t.sem, b_t.sem)))
+            co_unit(mk_typing(render_surface_type, Sem.render_surface_plus_rt(r, a_t.sem, b_t.sem)))
           : co_catch<State, Err, Typing>((e1:Err, e2:Err) : Err => ({ range:r, message:`Error: unsupported types for operator (${op})!` }))
           (op_from_type(a_t.type))(op_from_type(b_t.type)))))
 }
@@ -315,9 +315,9 @@ export let mod = (r:SourceRange, a:Stmt, b:Stmt) : Stmt => bin_op(r, a, b, "%")
 export let minus_unary = function(r:SourceRange, a:Stmt) : Stmt {
   return constraints => ensure_constraints(r, constraints)(a(no_constraints).then(a_t =>
             type_equals(a_t.type, int_type) ?
-             co_unit(mk_typing(int_type, Sem.int_minus_unary_rt(a_t.sem)))
+             co_unit(mk_typing(int_type, Sem.int_minus_unary_rt(r, a_t.sem)))
             : type_equals(a_t.type, float_type) || type_equals(a_t.type, double_type) ?
-             co_unit(mk_typing(float_type, Sem.float_minus_unary_rt(a_t.sem)))
+             co_unit(mk_typing(float_type, Sem.float_minus_unary_rt(r, a_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:"Error: unsupported type for unary operator (-)!" })
         ))
 }
@@ -347,7 +347,7 @@ export let get_index = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
   return constraints => ensure_constraints(r, constraints)(a(no_constraints).then(a_t =>
          i(apply(inl(), int_type)).then(i_t =>
           a_t.type.kind == "arr" ?
-            co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem)))
+            co_unit(mk_typing(a_t.type.arg, Sem.get_arr_el_expr_rt(r, a_t.sem, i_t.sem)))
           : co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
         )))
 }
@@ -359,7 +359,7 @@ export let set_index = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
             co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
           : e(apply(inl(), a_t.type.arg)).then(e_t =>
             a_t.type.kind == "arr" ?
-              co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+              co_unit(mk_typing(a_t.type.arg, Sem.set_arr_el_expr_rt(r, a_t.sem, i_t.sem, e_t.sem)))
             : co_error<State,Err,Typing>({ range:r, message:`Error: cannot perform array lookup on type ${type_to_string(a_t.type)}` })
         ))))
 }
@@ -394,7 +394,7 @@ export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt
           co_stateless<State,Err,Typing>(t(expected_type)).then(t_t =>
           co_stateless<State,Err,Typing>(e(expected_type)).then(e_t => {
 
-          let on_type : Fun<TypeInformation, Stmt> = fun(t_i => (_:TypeConstraints) => co_unit<State,Err,Typing>(mk_typing(t_i,Sem.if_then_else_rt(c_t.sem, t_t.sem, e_t.sem))))
+          let on_type : Fun<TypeInformation, Stmt> = fun(t_i => (_:TypeConstraints) => co_unit<State,Err,Typing>(mk_typing(t_i,Sem.if_then_else_rt(r, c_t.sem, t_t.sem, e_t.sem))))
           let on_error : Fun<Unit, Stmt> = constant<Unit, Stmt>(_ =>
             co_error<State,Err,Typing>({ range:r, message:"Error: the branches of a conditional should have compatible types." }))
 
@@ -406,7 +406,7 @@ export let if_then_else = function(r:SourceRange, c:Stmt, t:Stmt, e:Stmt) : Stmt
 
 export let while_do = function(r:SourceRange, c:Stmt, b:Stmt) : Stmt {
   return _ => co_stateless<State,Err,Typing>(c(apply(inl(), bool_type)).then(c_t =>
-         b(no_constraints).then(t_t => co_unit(mk_typing(t_t.type,Sem.while_do_rt(c_t.sem, t_t.sem)))
+         b(no_constraints).then(t_t => co_unit(mk_typing(t_t.type, Sem.while_do_rt(r, c_t.sem, t_t.sem)))
          )))
 }
 
@@ -415,7 +415,7 @@ export let for_loop = function(r:SourceRange, i:Stmt, c:Stmt, s:Stmt, b:Stmt) : 
           i(no_constraints).then(i_t =>
           c(apply(inl(), bool_type)).then(c_t =>
           s(no_constraints).then(s_t =>
-          b(no_constraints).then(b_t => co_unit(mk_typing(b_t.type,Sem.for_loop_rt(i_t.sem, c_t.sem, s_t.sem, b_t.sem)))
+          b(no_constraints).then(b_t => co_unit(mk_typing(b_t.type, Sem.for_loop_rt(r, i_t.sem, c_t.sem, s_t.sem, b_t.sem)))
           )))))
 }
 
@@ -499,10 +499,10 @@ export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<S
       arg_values.length != lambda_t.type.in.args.length ?
       lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" && lambda_t.type.in.args.length == 1 && lambda_t.type.in.args[0].kind == "unit" &&
       arg_values.length == 0 ?
-      co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))) :
+      co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))) :
       co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => type_to_string(a.type))])}`})
       :
-      co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+      co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
     )
   }))
 }
@@ -521,7 +521,7 @@ export let new_array = function(r:SourceRange, type:Type, len:Stmt) : Stmt {
   return constraints => constraints.kind == "left" && !type_equals(arr_type(type), constraints.value) ?
           co_error<State,Err,Typing>({ range:r, message:`Error: array type ${type_to_string(type)} does not match context ${type_to_string(constraints.value)}`})
           : len(apply(inl(), int_type)).then(len_t =>
-            co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(len_t.sem))))
+            co_unit(mk_typing(arr_type(type), Sem.new_arr_expr_rt(r, len_t.sem))))
 }
 
 export let new_array_and_init = function(r:SourceRange, type:Type, args:Stmt[]) : Stmt {
@@ -544,7 +544,7 @@ export let get_arr_el = function(r:SourceRange, a:Stmt, i:Stmt) : Stmt {
           if (a_t.type.kind != "arr")
             return co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, instead found ${type_to_string(a_t.type)}.`})
           let arr_arg = a_t.type.arg
-          return coerce_to_constraint(r, _ => co_unit(mk_typing(arr_arg, Sem.get_arr_el_expr_rt(a_t.sem, i_t.sem))), arr_arg)(constraints)
+          return coerce_to_constraint(r, _ => co_unit(mk_typing(arr_arg, Sem.get_arr_el_expr_rt(r, a_t.sem, i_t.sem))), arr_arg)(constraints)
          }
         ))
 }
@@ -553,7 +553,7 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
   return _ => a(no_constraints).then(a_t =>
          a_t.type.kind == "arr" ? e(apply(inl(), a_t.type.arg)).then(e_t =>
          i(apply(inl(), int_type)).then(i_t =>
-          co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(a_t.sem, i_t.sem, e_t.sem)))
+          co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(r, a_t.sem, i_t.sem, e_t.sem)))
         ))
         : co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, instead found ${type_to_string(a_t.type)}.`}))
 }
@@ -649,13 +649,13 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
             else {
               let v = f.initial_value.value
               return (_:TypeConstraints) => v(apply(inl(), f.type)).then(v_v =>
-                co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.static_field_set_expr_rt(C_name, { att_name:f.name, kind:"att" }, v_v.sem))))
+                co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.static_field_set_expr_rt(r, C_name, { att_name:f.name, kind:"att" }, v_v.sem))))
             }
           }).reduce((a,b) => semicolon(r,a,b), done)
 
           return co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type, is_constant:true}) }).then(_ =>
             init_static_fields(no_constraints).then(init_static_fields_t =>
-              co_unit(mk_typing(unit_type, Sem.declare_class_rt(C_name, C_int).then(_ => init_static_fields_t.sem)))
+              co_unit(mk_typing(unit_type, Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem)))
             )
           )
           }
@@ -667,9 +667,9 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
          co_get_state<State, Err>().then(bindings => {
 
             if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
-              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.string_length_rt(this_ref_t.sem))))
+              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.string_length_rt(r, this_ref_t.sem))))
             } else if (this_ref_t.type.kind == "arr" && F_or_M_name == "Length") {
-              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(this_ref_t.sem))))
+              return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.get_arr_len_expr_rt(r, this_ref_t.sem))))
             }
             else
               if (this_ref_t.type.kind != "ref" && this_ref_t.type.kind != "obj") {
@@ -710,8 +710,8 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
             }
             return ensure_constraints(r, constraints)(co_unit<State,Err,Typing>(mk_typing(F_def.type,
                       F_def.modifiers.has("static") ?
-                          Sem.static_field_get_expr_rt(C_name, F_or_M_name)
-                        : Sem.field_get_expr_rt(F_or_M_name, this_ref_t.sem))))
+                          Sem.static_field_get_expr_rt(r, C_name, F_or_M_name)
+                        : Sem.field_get_expr_rt(r, F_or_M_name, this_ref_t.sem))))
            }
             else if (C_def.methods.has(F_or_M_name)){
               let M_def = C_def.methods.get(F_or_M_name)
@@ -728,16 +728,16 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               if (M_def.modifiers.has("static")) {
                 if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
                   return co_unit(mk_typing(M_def.typing.type,
-                    Sem.static_method_get_expr_rt(C_name, F_or_M_name)))
+                    Sem.static_method_get_expr_rt(r, C_name, F_or_M_name)))
                   } else {
                     return co_unit(mk_typing(fun_type(tuple_type([]), M_def.typing.type, r),
-                    Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(Sem.static_method_get_expr_rt(C_name, F_or_M_name), [this_ref_t.sem]),
+                    Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(r, Sem.static_method_get_expr_rt(r, C_name, F_or_M_name), [this_ref_t.sem]),
                     [], [], r)
                   ))
                 }
               } else {
                 return co_unit(mk_typing(M_def.typing.type.out,
-                  Sem.call_lambda_expr_rt(Sem.method_get_expr_rt(F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
+                  Sem.call_lambda_expr_rt(r, Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
 
               }
             }
@@ -772,8 +772,8 @@ export let field_set = function(r:SourceRange, context:CallingContext, this_ref:
              //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
              return co_unit(mk_typing(unit_type,
               F_def.modifiers.has("static") ?
-              Sem.static_field_set_expr_rt(C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
-              : Sem.field_set_expr_rt(F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem, this_ref_t.sem)))
+              Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem)
+              : Sem.field_set_expr_rt(r, F_name.kind == "att" ? F_name : {...F_name, index:maybe_index.sem}, new_value_t.sem, this_ref_t.sem)))
             })
           }
          )))
@@ -809,7 +809,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
       else {
         let v = f.initial_value.value
         return (_:TypeConstraints) => v(no_constraints).then(v_v =>
-          co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.field_set_expr_rt({ att_name:f_name, kind:"att" }, v_v.sem, Sem.get_v_rt("this")))))
+          co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.field_set_expr_rt(r, { att_name:f_name, kind:"att" }, v_v.sem, Sem.get_v_rt(r, "this")))))
       }
     }).toArray().reduce((a,b) => semicolon(r,a,b), done)
 
@@ -828,7 +828,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
           arg_values.length != lambda_t.typing.type.out.in.args.length) ?
             co_error<State,Err,Typing>({ range:r, message:`Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}`})
           :
-            co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))
+            co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))
           ))
       : co_error<State,Err,Typing>({ range:r, message:`Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}`}))
   })
@@ -864,7 +864,7 @@ export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
 
     let casting_operators = e_c.methods.filter(m => m != undefined && m.modifiers.some(mod => mod == "casting") && m.modifiers.some(mod => mod == "operator") && m.modifiers.some(mod => mod == "static")).map((c_op, c_op_name) => ({ body:c_op, name:c_op_name}) ).toArray() as { body:MethodTyping, name:string}[]
     let coercions = casting_operators.map(c_op => {
-      let c_op_typing:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(e_type_name, c_op.name)))
+      let c_op_typing:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(r, e_type_name, c_op.name)))
       let coercion = call_lambda(r, c_op_typing, [_ => co_unit<State,Err,Typing>(e_v)])
       if (c_op.name == t_name) {
         return coercion

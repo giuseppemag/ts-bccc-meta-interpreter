@@ -1,7 +1,4 @@
 [g] Access modifiers: incompatibility errors do not bubble up correctly
-[g] Errors
-  [ ] tokenizer error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
-  [ ] run-time error = { priority:number, message:string, range:SourceRange } (also in debugger stream)
 
 [g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
   [ ] method overloading
@@ -82,7 +79,6 @@
 [m] ForEach
 
 [m] LINQ
-[m] C# 7 pattern matching
 [m] async/await
 [m] Extension methods
 [ ] (System.Diagnostics.GC) Garbage collection (and `heap_alloc` fills in the gaps)
@@ -118,6 +114,8 @@
   [ ] abstract methods are initialized to null in the constructor
   [ ] interfaces are abstract classes with only abstract methods
   [ ] private vs protected
+  [ ] C# 7 pattern matching via `actual_class` in (all?) base instances
+
 
 
 [ ] Cleanup/whishlist

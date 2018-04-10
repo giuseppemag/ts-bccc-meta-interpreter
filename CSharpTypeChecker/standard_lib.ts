@@ -15,7 +15,7 @@ let to_string  = (t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
   return_t:CSharp.string_type, name:"ToString", parameters:[{ name:"a", type:t }],
   body:from_js(
         CSharp.string_type,
-        Sem.get_v_rt("a").then(a_v =>
+        Sem.get_v_rt(minus_two_range, "a").then(a_v =>
           Sem.return_rt(Sem.val_expr(apply(inl(), op(a_v.value))))
         )) })
 
@@ -24,7 +24,7 @@ let unary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =
   return_t:t, name:name, parameters:[{ name:"a", type:t }],
   body:from_js(
         t,
-        Sem.get_v_rt("a").then(a_v =>
+        Sem.get_v_rt(minus_two_range, "a").then(a_v =>
           Sem.return_rt(Sem.val_expr(apply(inl(), op(a_v.value))))
         )) })
 
@@ -33,7 +33,7 @@ let binary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.Val)
   return_t:t, name:name, parameters:[{ name:"a", type:t }, { name:"b", type:t }],
   body:from_js(
         t,
-        Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+        Sem.get_v_rt(minus_two_range, "a").then(a_v => Sem.get_v_rt(minus_two_range, "b").then(b_v =>
           Sem.return_rt(Sem.val_expr(apply(inl(), op(a_v.value, b_v.value))))
         ))) })
 
@@ -42,7 +42,7 @@ let comparison_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.
   return_t:CSharp.bool_type, name:name, parameters:[{ name:"a", type:t }, { name:"b", type:t }],
   body:from_js(
         CSharp.bool_type,
-        Sem.get_v_rt("a").then(a_v => Sem.get_v_rt("b").then(b_v =>
+        Sem.get_v_rt(minus_two_range, "a").then(a_v => Sem.get_v_rt(minus_two_range, "b").then(b_v =>
           Sem.return_rt(Sem.val_expr(apply(inl(), op(a_v.value, b_v.value))))
         ))) })
 
@@ -51,7 +51,7 @@ let casting_operator = (name:string, from_t:CSharp.Type, to_t:CSharp.Type, conv:
   return_t:to_t, name:name, parameters:[{ name:"a", type:from_t }],
   body:from_js(
         to_t,
-        Sem.get_v_rt("a").then(a_v =>
+        Sem.get_v_rt(minus_two_range, "a").then(a_v =>
         Sem.return_rt(Sem.val_expr(apply(inl(), conv(a_v.value))))
         )) })
 
@@ -137,7 +137,7 @@ let math = CSharp.def_class(minus_two_range, "Math", [
             return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
             body:from_js(
                   CSharp.double_type,
-                  Sem.get_v_rt("a").then(a_v =>
+                  Sem.get_v_rt(minus_two_range, "a").then(a_v =>
                   Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v as number))
                   ))) }),
       ],

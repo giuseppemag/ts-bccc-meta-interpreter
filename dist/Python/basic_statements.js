@@ -8,22 +8,22 @@ exports.done_rt = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), memory_1.mk
 exports.dbg_rt = function (range) { return function (v) { return memory_1.set_highlighting_rt(range).then(function (_) { return Co.suspend().then(function (_) { return ts_bccc_2.co_unit(v); }); }); }; };
 var push_new_context = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.push_inner_scope_rt, memory_1.empty_scope_val).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 var pop_current_context = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.pop_inner_scope_rt, memory_1.empty_scope_val).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
-exports.if_then_else_rt = function (c, f, g) {
-    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error("Error: conditional expression " + c_val + " is not a boolean.")
+exports.if_then_else_rt = function (r, c, f, g) {
+    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error(r, "Error: conditional expression " + c_val + " is not a boolean.")
         : c_val.value.v ?
             push_new_context.then(function (_) { return f.then(function (res) { return pop_current_context.then(function (_) { return ts_bccc_2.co_unit(res); }); }); }) :
             push_new_context.then(function (_) { return g.then(function (res) { return pop_current_context.then(function (_) { return ts_bccc_2.co_unit(res); }); }); }); });
 };
-exports.while_do_rt = function (c, k) {
-    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error("Error: conditional expression " + c_val + " is not a boolean.")
+exports.while_do_rt = function (r, c, k) {
+    return c.then(function (c_val) { return c_val.value.k != "b" ? memory_1.runtime_error(r, "Error: conditional expression " + c_val + " is not a boolean.")
         : c_val.value.v ?
-            push_new_context.then(function (_) { return k.then(function (k_res) { return pop_current_context.then(function (_) { return exports.while_do_rt(c, k); }); }); }) :
+            push_new_context.then(function (_) { return k.then(function (k_res) { return pop_current_context.then(function (_) { return exports.while_do_rt(r, c, k); }); }); }) :
             exports.done_rt; });
 };
-exports.for_loop_rt = function (i, c, s, b) {
+exports.for_loop_rt = function (r, i, c, s, b) {
     return push_new_context.then(function (_) {
         return i.then(function (_) {
-            return exports.while_do_rt(c, b.then(function (_) { return s; })).then(function (_) {
+            return exports.while_do_rt(r, c, b.then(function (_) { return s; })).then(function (_) {
                 return pop_current_context.then(function (_) {
                     return exports.done_rt;
                 });

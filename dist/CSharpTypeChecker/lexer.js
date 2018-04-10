@@ -9,7 +9,7 @@ var GrammarBasics;
     var parse_prefix_regex = function (r, t) { return ts_bccc_1.mk_coroutine(ts_bccc_1.fun(function (s) {
         var m = s.buffer.match(r);
         if (m == null || m.length == 0) {
-            return ts_bccc_1.apply(ts_bccc_1.inl(), "Syntax error: cannot match token at (" + s.line_index + ", " + s.column_index + "), " + s.buffer.substr(0, Math.min(s.buffer.length, 5)) + "...");
+            return ts_bccc_1.apply(ts_bccc_1.inl(), { range: source_range_1.mk_range(s.line_index, s.column_index, s.line_index, s.column_index + s.buffer.length), message: "Syntax error: cannot match token at (" + s.line_index + ", " + s.column_index + "), " + s.buffer.substr(0, Math.min(s.buffer.length, 5)) + "..." });
         }
         else {
             var rest = s.buffer.replace(r, "");
@@ -27,7 +27,7 @@ var GrammarBasics;
     var fst_err = function (x, y) { return x; };
     var lex_catch = ccc_aux_1.co_catch(fst_err);
     var lex_catch_many = function (tokens) { return tokens.isEmpty() ?
-        ts_bccc_1.co_error("No lexer available.")
+        ts_bccc_1.co_error({ range: source_range_1.zero_range, message: "" })
         :
             lex_catch(tokens.first())(lex_catch_many(tokens.rest().toList())); };
     var eof = parse_prefix_regex(/^$/, function (s, r) { return ({ range: r, kind: "eof" }); });

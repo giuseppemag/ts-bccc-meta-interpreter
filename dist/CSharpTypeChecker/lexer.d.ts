@@ -63,5 +63,9 @@ export declare type Token = ({
 };
 export declare type RenderingKind = "empty_surface" | "circle" | "square" | "rectangle" | "ellipse" | "sprite" | "other_surface" | "text" | "line" | "polygon";
 export declare module GrammarBasics {
-    let tokenize: (source: string) => Sum<string, Token[]>;
+    interface LexerError {
+        message: string;
+        range: SourceRange;
+    }
+    let tokenize: (source: string) => Sum<LexerError, Token[]>;
 }

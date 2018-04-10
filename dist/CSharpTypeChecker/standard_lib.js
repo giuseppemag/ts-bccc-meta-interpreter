@@ -8,35 +8,35 @@ var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit
 var to_string = function (t, op) {
     return function (_) { return ({ modifiers: ["public", "static"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.string_type, name: "ToString", parameters: [{ name: "a", type: t }],
-        body: from_js(CSharp.string_type, Sem.get_v_rt("a").then(function (a_v) {
+        body: from_js(CSharp.string_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value))));
         })) }); };
 };
 var unary_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: t, name: name, parameters: [{ name: "a", type: t }],
-        body: from_js(t, Sem.get_v_rt("a").then(function (a_v) {
+        body: from_js(t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value))));
         })) }); };
 };
 var binary_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: t, name: name, parameters: [{ name: "a", type: t }, { name: "b", type: t }],
-        body: from_js(t, Sem.get_v_rt("a").then(function (a_v) { return Sem.get_v_rt("b").then(function (b_v) {
+        body: from_js(t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) { return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value, b_v.value))));
         }); })) }); };
 };
 var comparison_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.bool_type, name: name, parameters: [{ name: "a", type: t }, { name: "b", type: t }],
-        body: from_js(CSharp.bool_type, Sem.get_v_rt("a").then(function (a_v) { return Sem.get_v_rt("b").then(function (b_v) {
+        body: from_js(CSharp.bool_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) { return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value, b_v.value))));
         }); })) }); };
 };
 var casting_operator = function (name, from_t, to_t, conv) {
     return function (_) { return ({ modifiers: ["static", "public", "casting", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: to_t, name: name, parameters: [{ name: "a", type: from_t }],
-        body: from_js(to_t, Sem.get_v_rt("a").then(function (a_v) {
+        body: from_js(to_t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), conv(a_v.value))));
         })) }); };
 };
@@ -108,7 +108,7 @@ var unit = CSharp.def_class(source_range_1.minus_two_range, "unit", [
 var math = CSharp.def_class(source_range_1.minus_two_range, "Math", [
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "sqrt", parameters: [{ name: "a", type: CSharp.double_type }],
-        body: from_js(CSharp.double_type, Sem.get_v_rt("a").then(function (a_v) {
+        body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v)));
         })) }); },
 ], [], true);

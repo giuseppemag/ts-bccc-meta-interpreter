@@ -15,7 +15,7 @@ var ts_bccc_2 = require("ts-bccc");
 var Co = require("ts-bccc");
 var source_range_1 = require("../source_range");
 var ccc_aux_1 = require("../ccc_aux");
-exports.runtime_error = function (e) { return ts_bccc_2.co_error(e); };
+exports.runtime_error = function (r, e) { return ts_bccc_2.co_error({ message: e, range: r }); };
 exports.init_array_val = function (len) { return ({ elements: Immutable.Map(Immutable.Range(0, len).map(function (i) { return [i, exports.mk_unit_val]; })), length: len }); };
 exports.init_array_with_args_val = function (vals) { return ({ elements: Immutable.Map(Immutable.Range(0, vals.length).toArray().map(function (i) { return [i, vals[i]]; })), length: vals.length }); };
 exports.empty_scope_val = Immutable.Map();
@@ -191,9 +191,9 @@ exports.decl_v_rt = function (v, vals) {
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
-exports.get_v_rt = function (v) {
+exports.get_v_rt = function (r, v) {
     var f = ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_rt).times(ts_bccc_1.id()).then(CCC.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.id()));
-    var g_err = ts_bccc_1.constant("Error: variable " + v + " cannot be found.").then(Co.error());
+    var g_err = ts_bccc_1.constant({ message: "Error: variable " + v + " cannot be found.", range: r }).then(Co.error());
     var g_res = ts_bccc_1.swap_prod().then(Co.value()).then(Co.result()).then(Co.no_error());
     var g = g_err.plus(g_res);
     return ts_bccc_2.mk_coroutine(f.then(g));
@@ -214,53 +214,53 @@ exports.new_arr_with_args_rt = function (args) {
     var heap_alloc_co = ts_bccc_2.mk_coroutine(ts_bccc_1.constant(exports.mk_arr_val(exports.init_array_with_args_val(args.map(function (arg) { return arg.value; })))).times(ts_bccc_1.id()).then(exports.heap_alloc_rt).then((ts_bccc_1.inl()).map_times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
     return (heap_alloc_co);
 };
-exports.new_arr_expr_rt = function (len) {
-    return len.then(function (len_v) { return len_v.value.k != "i" ? exports.runtime_error("Cannot create array of length " + len_v.value.v + " as it is not an integer.") : exports.new_arr_rt(len_v.value.v); });
+exports.new_arr_expr_rt = function (r, len) {
+    return len.then(function (len_v) { return len_v.value.k != "i" ? exports.runtime_error(r, "Cannot create array of length " + len_v.value.v + " as it is not an integer.") : exports.new_arr_rt(len_v.value.v); });
 };
 exports.new_arr_expr_with_values_rt = function (args) {
     return ccc_aux_1.comm_list_coroutine(Immutable.List(args)).then(function (args_v) { return exports.new_arr_with_args_rt(args_v.toArray()); });
-    // len.then(len_v => len_v.value.k != "i" ? runtime_error(`Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
+    // len.then(len_v => len_v.value.k != "i" ? runtime_error(r, `Cannot create array of length ${len_v.value.v} as it is not an integer.`) : new_arr_rt(len_v.value.v))
 };
-exports.get_arr_len_rt = function (a_ref) {
-    return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
-        exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+exports.get_arr_len_rt = function (r, a_ref) {
+    return a_ref.k != "ref" ? exports.runtime_error(r, "Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+        exports.get_heap_v_rt(r, a_ref.v).then(function (a_val) {
+            return a_val.value.k != "arr" ? exports.runtime_error(r, "Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
                 ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_int_val(a_val.value.v.length)));
         });
 };
-exports.get_arr_len_expr_rt = function (a) {
-    return a.then(function (a_val) { return exports.get_arr_len_rt(a_val.value); });
+exports.get_arr_len_expr_rt = function (r, a) {
+    return a.then(function (a_val) { return exports.get_arr_len_rt(r, a_val.value); });
 };
-exports.get_arr_el_rt = function (a_ref, i) {
-    return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
-        exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
-                !a_val.value.v.elements.has(i) ? exports.runtime_error("Cannot find element " + i + " on " + a_val.value.v + ".") :
+exports.get_arr_el_rt = function (r, a_ref, i) {
+    return a_ref.k != "ref" ? exports.runtime_error(r, "Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+        exports.get_heap_v_rt(r, a_ref.v).then(function (a_val) {
+            return a_val.value.k != "arr" ? exports.runtime_error(r, "Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+                !a_val.value.v.elements.has(i) ? exports.runtime_error(r, "Cannot find element " + i + " on " + a_val.value.v + ".") :
                     ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), a_val.value.v.elements.get(i)));
         });
 };
-exports.get_arr_el_expr_rt = function (a, i) {
+exports.get_arr_el_expr_rt = function (r, a, i) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
-            return i_val.value.k != "i" ? exports.runtime_error("Index " + i_val + " is not an integer.") :
-                exports.get_arr_el_rt(a_val.value, i_val.value.v);
+            return i_val.value.k != "i" ? exports.runtime_error(r, "Index " + i_val + " is not an integer.") :
+                exports.get_arr_el_rt(r, a_val.value, i_val.value.v);
         });
     });
 };
-exports.set_arr_el_rt = function (a_ref, i, v) {
-    return a_ref.k != "ref" ? exports.runtime_error("Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
-        exports.get_heap_v_rt(a_ref.v).then(function (a_val) {
-            return a_val.value.k != "arr" ? exports.runtime_error("Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
+exports.set_arr_el_rt = function (r, a_ref, i, v) {
+    return a_ref.k != "ref" ? exports.runtime_error(r, "Cannot lookup element on " + a_ref.v + " as it is not an array reference.") :
+        exports.get_heap_v_rt(r, a_ref.v).then(function (a_val) {
+            return a_val.value.k != "arr" ? exports.runtime_error(r, "Cannot lookup element on " + a_val.value.v + " as it is not an array.") :
                 exports.set_heap_v_rt(a_ref.v, __assign({}, a_val.value, { v: __assign({}, a_val.value.v, { length: Math.max(i + 1, a_val.value.v.length), elements: a_val.value.v.elements.set(i, v) }) }));
         });
 };
-exports.set_arr_el_expr_rt = function (a, i, e) {
+exports.set_arr_el_expr_rt = function (r, a, i, e) {
     return a.then(function (a_val) {
         return i.then(function (i_val) {
             if (i_val.value.k != "i")
-                return exports.runtime_error("Index " + i_val + " is not an integer.");
+                return exports.runtime_error(r, "Index " + i_val + " is not an integer.");
             var i = i_val.value;
-            return e.then(function (e_val) { return exports.set_arr_el_rt(a_val.value, i.v, e_val.value); });
+            return e.then(function (e_val) { return exports.set_arr_el_rt(r, a_val.value, i.v, e_val.value); });
         });
     });
 };
@@ -269,9 +269,9 @@ exports.set_heap_v_rt = function (v, val) {
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(val))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
-exports.get_heap_v_rt = function (v) {
+exports.get_heap_v_rt = function (r, v) {
     var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_heap_rt.then(ts_bccc_1.id().map_plus(ts_bccc_1.inl())))).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
-    var g1 = ts_bccc_1.constant("Cannot find heap entry " + v + ".").then(Co.error());
+    var g1 = ts_bccc_1.constant({ message: "Cannot find heap entry " + v + ".", range: r }).then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
@@ -282,9 +282,9 @@ exports.set_class_def_rt = function (v, int) {
     var g = f;
     return ts_bccc_2.mk_coroutine(f);
 };
-exports.get_class_def_rt = function (v) {
+exports.get_class_def_rt = function (r, v) {
     var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_class_def_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
-    var g1 = ts_bccc_1.constant("Cannot find class " + v + ".").then(Co.error());
+    var g1 = ts_bccc_1.constant({ message: "Cannot find class " + v + ".", range: r }).then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));
@@ -294,9 +294,9 @@ exports.set_fun_def_rt = function (v, l) {
     var f = ((ts_bccc_1.constant(v).times(ts_bccc_1.constant(l))).times(ts_bccc_1.id())).then(store_co);
     return ts_bccc_2.mk_coroutine(f);
 };
-exports.get_fun_def_rt = function (v) {
+exports.get_fun_def_rt = function (r, v) {
     var f = (ts_bccc_1.constant(v).times(ts_bccc_1.id()).then(exports.load_fun_def_rt)).times(ts_bccc_1.id()).then(ts_bccc_1.swap_prod()).then(CCC.distribute_sum_prod()).then(ts_bccc_1.snd().map_plus(ts_bccc_1.swap_prod()));
-    var g1 = ts_bccc_1.constant("Cannot find function definition " + v + ".").then(Co.error());
+    var g1 = ts_bccc_1.constant({ message: "Cannot find function definition " + v + ".", range: r }).then(Co.error());
     var g2 = Co.no_error().after(Co.result().after(Co.value()));
     var g = g1.plus(g2);
     return ts_bccc_2.mk_coroutine(f.then(g));

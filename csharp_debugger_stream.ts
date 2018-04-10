@@ -35,7 +35,7 @@ export let get_stream = (source:string) : DebuggerStream => {
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") {
       let error = parse_result.value
-      return { kind:"error", show:() => ({ kind:"message", message:error, range:mk_range(0,0,0,0) }) }
+      return { kind:"error", show:() => ({ kind:"message", message:error.message, range:error.range }) }
     }
 
     let tokens = Immutable.List<CSharp.Token>(parse_result.value)
@@ -60,7 +60,7 @@ export let get_stream = (source:string) : DebuggerStream => {
         let k = apply(p.run, s)
         if (k.kind == "left") {
           let error = k.value
-          return { kind:"error", show:() => ({ kind:"message", message:error, range:mk_range(0,0,0,0) }) }
+          return { kind:"error", show:() => ({ kind:"message", message:error.message, range:error.range }) }
         }
         if (k.value.kind == "left") {
           return runtime_stream(k.value.value)
@@ -103,6 +103,6 @@ export let get_stream = (source:string) : DebuggerStream => {
   }
   catch(e){
     console.log(e)
-    return { kind:"error", show:() => ({ kind:"message", message:`Internal error: ${e}\nOriginal code:${source}}`, range:mk_range(0,0,0,0) }) }
+    return { kind:"error", show:() => ({ kind:"message", message:`Internal error: ${e}\n}`, range:mk_range(0,0,0,0) }) }
   }
 }

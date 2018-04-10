@@ -11,24 +11,24 @@ export let dbg_rt = (range:SourceRange) => function<A> (v:A) : ExprRt<A> { retur
 let push_new_context = mk_coroutine(apply(push_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
 let pop_current_context = mk_coroutine(apply(pop_inner_scope_rt, empty_scope_val).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
 
-export let if_then_else_rt = function(c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
-  return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
+export let if_then_else_rt = function(r:SourceRange, c:ExprRt<Sum<Val,Val>>, f:StmtRt, g:StmtRt) : StmtRt {
+  return c.then(c_val => c_val.value.k != "b" ? runtime_error(r, `Error: conditional expression ${c_val} is not a boolean.`)
                          : c_val.value.v ?
                 push_new_context.then(_ => f.then(res => pop_current_context.then(_ => co_unit(res)))) :
                 push_new_context.then(_ => g.then(res => pop_current_context.then(_ => co_unit(res)))))
 }
 
-export let while_do_rt = function (c: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
-  return c.then(c_val => c_val.value.k != "b" ? runtime_error(`Error: conditional expression ${c_val} is not a boolean.`)
+export let while_do_rt = function(r:SourceRange, c: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
+  return c.then(c_val => c_val.value.k != "b" ? runtime_error(r, `Error: conditional expression ${c_val} is not a boolean.`)
                          : c_val.value.v ?
-                push_new_context.then(_ => k.then(k_res => pop_current_context.then(_ => while_do_rt(c,k)))) :
+                push_new_context.then(_ => k.then(k_res => pop_current_context.then(_ => while_do_rt(r,c,k)))) :
                 done_rt)
 }
 
-export let for_loop_rt = function (i: ExprRt<Sum<Val,Val>>, c: ExprRt<Sum<Val,Val>>, s: ExprRt<Sum<Val,Val>>, b: StmtRt): StmtRt {
+export let for_loop_rt = function(r:SourceRange, i: ExprRt<Sum<Val,Val>>, c: ExprRt<Sum<Val,Val>>, s: ExprRt<Sum<Val,Val>>, b: StmtRt): StmtRt {
   return push_new_context.then(_ =>
           i.then(_ =>
-          while_do_rt(c, b.then(_ => s)).then(_ =>
+          while_do_rt(r, c, b.then(_ => s)).then(_ =>
           pop_current_context.then(_ =>
           done_rt))))
 }
