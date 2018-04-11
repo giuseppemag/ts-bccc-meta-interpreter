@@ -90,15 +90,18 @@ exports.mk_array_cons_call = function (new_range, _type, actual) {
 exports.mk_array_cons_call_and_init = function (new_range, _type, actuals) {
     return ({ range: new_range, ast: { kind: "array_cons_call_and_init", type: _type, actuals: actuals } });
 };
-exports.mk_constructor_declaration = function (range, function_name, arg_decls, body) {
-    return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body, range: range });
+exports.mk_constructor_declaration = function (range, function_name, arg_decls, params_base_call, body) {
+    return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body, params_base_call: params_base_call, range: range });
 };
 exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body) {
     return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range });
 };
-exports.mk_class_declaration = function (C_name, fields, methods, constructors, range) {
+exports.mk_class_declaration = function (C_name, extends_class, implements_interfaces, fields, methods, constructors, range) {
     return ({ range: range,
-        ast: { kind: "class", C_name: C_name, fields: fields, methods: methods, constructors: constructors } });
+        ast: { kind: "class", C_name: C_name,
+            extends_class: extends_class,
+            implements_interfaces: implements_interfaces,
+            fields: fields, methods: methods, constructors: constructors } });
 };
 exports.mk_private = function (sr) { return ({ range: sr, ast: { kind: "private" } }); };
 exports.mk_public = function (sr) { return ({ range: sr, ast: { kind: "public" } }); };
@@ -458,6 +461,7 @@ exports.semicolon_sign = exports.symbol(";", "semicolon");
 exports.comma_sign = exports.symbol(",", "comma");
 exports.class_keyword = exports.symbol("class", "class");
 exports.new_keyword = exports.symbol("new", "new");
+exports.base = exports.symbol("base", "base");
 exports.surface_keyword = exports.symbol("surface", "surface");
 exports.empty_surface_keyword = exports.symbol("empty_surface", "empty_surface");
 exports.sprite_keyword = exports.symbol("sprite", "sprite");

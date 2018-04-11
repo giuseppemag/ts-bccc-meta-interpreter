@@ -52,6 +52,20 @@
 [g] renderers defined in standard library, with (+) operator
 [g] String::Length in standard library
 
+[m] inheritance
+  [ ] base in class fields (both in actual and temp)
+  [ ] before constructor body call base(args)
+  [ ] field_get and field_set lookup recursively in base
+    [ ] looking up in the methods is done if all recursive base lookups have failed
+  [ ] method lookup looks recursively in the inherited C_def.base
+  [ ] virtual and abstract methods are lambda fields which are already applied to this in the constructor before body
+    [ ] abstract M : this => A => R ~~> field M : Func<A,R>
+  [ ] override == field_set of method field
+  [ ] abstract methods are initialized to null in the constructor
+  [ ] interfaces are abstract classes with only abstract methods
+  [ ] private vs protected
+  [ ] C# 7 pattern matching via `actual_class` in (all?) base instances
+
 [m] add `null`
 [m] add C# to playground
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
@@ -111,19 +125,7 @@
 
 [m] Python syntax
 [m] var a = 1 + + 1; does not print a proper error
-[m] inheritance
-  [ ] base in class fields (both in actual and temp)
-  [ ] before constructor body call base(args)
-  [ ] field_get and field_set lookup recursively in base
-    [ ] looking up in the methods is done if all recursive base lookups have failed
-  [ ] method lookup looks recursively in the inherited C_def.base
-  [ ] virtual and abstract methods are lambda fields which are already applied to this in the constructor before body
-    [ ] abstract M : this => A => R ~~> field M : Func<A,R>
-  [ ] override == field_set of method field
-  [ ] abstract methods are initialized to null in the constructor
-  [ ] interfaces are abstract classes with only abstract methods
-  [ ] private vs protected
-  [ ] C# 7 pattern matching via `actual_class` in (all?) base instances
+
 
 
 

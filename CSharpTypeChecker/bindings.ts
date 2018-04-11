@@ -556,13 +556,22 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
          i(apply(inl(), int_type)).then(i_t =>
           co_unit(mk_typing(unit_type, Sem.set_arr_el_expr_rt(r, a_t.sem, i_t.sem, e_t.sem)))
         ))
-        : co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, instead found ${type_to_string(a_t.type)}.`}))
+        : co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, iclearnstead found ${type_to_string(a_t.type)}.`}))
 }
 
-export let def_class = function(r:SourceRange, C_name:string, methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
+export let def_class = function(r:SourceRange, C_name:string, extends_class:Option<string>, implements_interfaces:string[], methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
   let context:CallingContext = { kind:"class", C_name:C_name }
   let methods = methods_from_context.map(m => m(context))
   let fields = fields_from_context.map(f => f(context))
+  if(extends_class.kind == "left") {
+    let base:FieldDefinition =  {  
+                                  name: "base",
+                                  type: { kind:"ref", C_name:extends_class.value} as Type,
+                                  modifiers:["public"] as Modifier[], 
+                                  initial_value:apply(inr<Stmt, Unit>(), {}) 
+                                }
+    fields = fields.concat([base])
+  }
   let C_type_placeholder:Type = {
     range: r,
     kind: "obj",

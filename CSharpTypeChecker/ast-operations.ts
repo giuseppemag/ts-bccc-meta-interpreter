@@ -86,6 +86,7 @@ import {
 } from './types'
 import { ParserRes } from './grammar'
 import { inr, apply, inl, Unit } from 'ts-bccc';
+import { mk_constructor_call, mk_semicolon, mk_assign, mk_field_ref } from './primitives';
 
 let ast_to_csharp_type = (s:ParserRes) : Type =>
   s.ast.kind == "id" ?
@@ -283,6 +284,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         )
   : n.ast.kind == "class" ?
     def_class(n.range, n.ast.C_name,
+      n.ast.extends_class,
+      [],
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(m.decl.return_type),
@@ -293,14 +296,20 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           is_constructor:false
         })).concat(
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
+
           name:c.decl.name,
           return_t:unit_type,
           parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-          body:ast_to_type_checker(c.decl.body)(context),
+          body:
+            n.ast.kind == "class" && n.ast.extends_class.kind == "left"
+            ? ast_to_type_checker(mk_semicolon(
+                mk_assign(mk_field_ref({range:c.decl.range,ast:{kind: "id" as "id", value: "this"}}, {range:c.decl.range, ast:{kind: "id" as "id", value: "base"}}),
+                          mk_constructor_call(n.range, n.ast.extends_class.value, c.decl.params_base_call)), c.decl.body))(context) 
+            : ast_to_type_checker(c.decl.body)(context),
           range:c.decl.body.range,
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:true
-        })) ),
+        }))),
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
         type:ast_to_csharp_type(f.decl.l),

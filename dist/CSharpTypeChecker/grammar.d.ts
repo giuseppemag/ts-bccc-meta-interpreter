@@ -131,9 +131,19 @@ export interface ConstructorAST {
 export interface ClassAST {
     kind: "class";
     C_name: string;
+    extends_class: Option<string>;
+    implements_interfaces: string[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
     constructors: Immutable.List<ConstructorAST>;
+}
+export interface ConstructorDeclarationAST {
+    kind: "cons_decl";
+    range: SourceRange;
+    name: string;
+    arg_decls: Immutable.List<DeclAST>;
+    params_base_call: ParserRes[];
+    body: ParserRes;
 }
 export interface BinOpAST {
     kind: BinOpKind;
@@ -143,13 +153,6 @@ export interface BinOpAST {
 export interface UnaryOpAST {
     kind: UnaryOpKind;
     e: ParserRes;
-}
-export interface ConstructorDeclarationAST {
-    kind: "cons_decl";
-    range: SourceRange;
-    name: string;
-    arg_decls: Immutable.List<DeclAST>;
-    body: ParserRes;
 }
 export interface FunctionDeclarationAST {
     kind: "func_decl";

@@ -109,6 +109,7 @@ import {
   mk_ternary_then_else,
   mk_as,
   as_op,
+  base,
 } from './primitives';
 
 let priority_operators_table =
@@ -166,11 +167,12 @@ export interface UnitAST { kind: "unit" }
 export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
-export interface ClassAST { kind: "class", C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
+
+export interface ClassAST { kind: "class", C_name:string, extends_class:Option<string>, implements_interfaces:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
+export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
-export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionDeclarationAST { kind:"func_decl", range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
@@ -704,13 +706,7 @@ let un_bracketized_statement = () =>
   full_match.then(_ =>
   co_unit(s)))))
 
-let constructor_declaration = () =>
-  no_match.then(_ =>
-  identifier_token.then(function_name =>
-  left_bracket.then(_ =>
-  partial_match.then(_ =>
-  arg_decls().then(arg_decls =>
-  right_bracket.then(_ =>
+let constructor_body = (function_name:{id: string;range: SourceRange}, arg_decls:DeclAST[], params_base_call:ParserRes[]) =>
   left_curly_bracket.then(_ =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
   right_curly_bracket.then(rb =>
@@ -718,7 +714,26 @@ let constructor_declaration = () =>
   co_unit(mk_constructor_declaration(join_source_ranges(function_name.range, rb),
                                   function_name.id,
                                   Immutable.List<DeclAST>(arg_decls),
-                                  body))))))))))))
+                                  params_base_call,
+                                  body))))))
+let constructor_declaration = () =>
+  no_match.then(_ =>
+  identifier_token.then(function_name =>
+  left_bracket.then(_ =>
+  partial_match.then(_ =>
+  arg_decls().then(arg_decls =>
+  right_bracket.then(_ =>
+  parser_or<ConstructorDeclarationAST>(
+    colon_keyword.then(_ =>
+      base.then(_ =>
+      left_bracket.then(_ =>
+      partial_match.then(_ =>
+      actuals().then(params =>
+      right_bracket.then(_ =>
+      constructor_body(function_name, arg_decls, params))))))),
+    constructor_body(function_name, arg_decls, [])
+  )    
+  ))))))
 
 let function_declaration = () =>
   no_match.then(_ =>
@@ -738,11 +753,8 @@ let function_declaration = () =>
                                   Immutable.List<DeclAST>(arg_decls),
                                   body)))))))))))))
 
-let class_declaration = () =>
-  no_match.then(_ =>
-  class_keyword.then(initial_range =>
-  partial_match.then(_ =>
-  identifier_token.then(class_name =>
+
+let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_class:Option<string>) =>
   left_curly_bracket.then(_ =>
   class_statements().then(declarations =>
   right_curly_bracket.then(closing_curly_range =>
@@ -750,11 +762,26 @@ let class_declaration = () =>
   co_unit(
     mk_class_declaration(
       class_name.id,
+      extends_class,
+      [], // add here interfaces
       declarations.fst,
       declarations.snd.fst,
       declarations.snd.snd,
       join_source_ranges(initial_range, closing_curly_range))
-  )))))))))
+  )))))                                  
+
+let class_declaration = () =>
+  no_match.then(_ =>
+  class_keyword.then(initial_range =>
+  partial_match.then(_ =>
+  identifier_token.then(class_name =>
+  parser_or<ParserRes>(
+    colon_keyword.then(_ =>
+    identifier_token.then(extends_class =>
+    class_body(class_name, initial_range, apply(inl(),extends_class.id))
+    )),
+    class_body(class_name, initial_range, apply(inr(),{}))
+  )))))
 
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(

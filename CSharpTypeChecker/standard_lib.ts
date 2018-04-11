@@ -1,5 +1,5 @@
 import { Map } from "immutable"
-import { co_run, co_unit, Coroutine, Fun, fun, Prod, Sum, Unit, apply, inl } from 'ts-bccc';
+import { co_run, co_unit, Coroutine, Fun, fun, Prod, Sum, Unit, apply, inl, inr } from 'ts-bccc';
 import * as CCC from 'ts-bccc';
 import * as Co from 'ts-bccc';
 
@@ -55,7 +55,7 @@ let casting_operator = (name:string, from_t:CSharp.Type, to_t:CSharp.Type, conv:
         Sem.return_rt(Sem.val_expr(apply(inl(), conv(a_v.value))))
         )) })
 
-let bool = CSharp.def_class(minus_two_range, "bool", [
+let bool = CSharp.def_class(minus_two_range, "bool", apply(inr(),{}), [], [
     casting_operator("string", CSharp.bool_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
     to_string(CSharp.bool_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
     unary_operator("!", CSharp.bool_type, (a_v) => Sem.mk_bool_val(!(a_v.v as boolean))),
@@ -65,7 +65,7 @@ let bool = CSharp.def_class(minus_two_range, "bool", [
   ],
   [], true)
 
-let int = CSharp.def_class(minus_two_range, "int", [
+let int = CSharp.def_class(minus_two_range, "int", apply(inr(),{}), [],[
     casting_operator("string", CSharp.int_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
     to_string(CSharp.int_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
     casting_operator("float", CSharp.int_type, CSharp.float_type, a_v => Sem.mk_float_val(a_v.v as number)),
@@ -84,7 +84,7 @@ let int = CSharp.def_class(minus_two_range, "int", [
   ],
   [], true)
 
-export let float = CSharp.def_class(minus_two_range, "float", [
+export let float = CSharp.def_class(minus_two_range, "float", apply(inr(),{}), [],[
   casting_operator("string", CSharp.float_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   to_string(CSharp.float_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   casting_operator("double", CSharp.float_type, CSharp.double_type, a_v => Sem.mk_float_val(a_v.v as number)),
@@ -102,7 +102,7 @@ export let float = CSharp.def_class(minus_two_range, "float", [
 ],
 [], true)
 
-export let double = CSharp.def_class(minus_two_range, "double", [
+export let double = CSharp.def_class(minus_two_range, "double", apply(inr(),{}), [],[
   casting_operator("string", CSharp.double_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   to_string(CSharp.double_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   binary_operator("+", CSharp.double_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) + (b_v.v as number))),
@@ -119,7 +119,7 @@ export let double = CSharp.def_class(minus_two_range, "double", [
 ],
 [], true)
 
-let string = CSharp.def_class(minus_two_range, "string", [
+let string = CSharp.def_class(minus_two_range, "string", apply(inr(),{}), [],[
   to_string(CSharp.string_type, a_v => Sem.mk_string_val(a_v.v as string)),
   binary_operator("+", CSharp.string_type, (a_v, b_v) => Sem.mk_string_val((a_v.v as string) + (b_v.v as string))),
   comparison_operator("==", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) == (b_v.v as string))),
@@ -127,12 +127,12 @@ let string = CSharp.def_class(minus_two_range, "string", [
 ],
 [], true)
 
-let unit = CSharp.def_class(minus_two_range, "unit", [
+let unit = CSharp.def_class(minus_two_range, "unit", apply(inr(),{}), [],[
   to_string(CSharp.unit_type, a_v => Sem.mk_string_val("")),
 ],
 [], true)
 
-let math = CSharp.def_class(minus_two_range, "Math", [
+let math = CSharp.def_class(minus_two_range, "Math", apply(inr(),{}), [],[
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
             body:from_js(

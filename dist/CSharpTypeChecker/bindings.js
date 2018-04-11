@@ -566,14 +566,23 @@ exports.set_arr_el = function (r, a, i, e) {
                 return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_arr_el_expr_rt(r, a_t.sem, i_t.sem, e_t.sem)));
             });
         })
-            : ts_bccc_2.co_error({ range: r, message: "Error: expected an array, instead found " + types_1.type_to_string(a_t.type) + "." });
+            : ts_bccc_2.co_error({ range: r, message: "Error: expected an array, iclearnstead found " + types_1.type_to_string(a_t.type) + "." });
     }); };
 };
-exports.def_class = function (r, C_name, methods_from_context, fields_from_context, is_internal) {
+exports.def_class = function (r, C_name, extends_class, implements_interfaces, methods_from_context, fields_from_context, is_internal) {
     if (is_internal === void 0) { is_internal = false; }
     var context = { kind: "class", C_name: C_name };
     var methods = methods_from_context.map(function (m) { return m(context); });
     var fields = fields_from_context.map(function (f) { return f(context); });
+    if (extends_class.kind == "left") {
+        var base = {
+            name: "base",
+            type: { kind: "ref", C_name: extends_class.value },
+            modifiers: ["public"],
+            initial_value: ts_bccc_1.apply(ts_bccc_1.inr(), {})
+        };
+        fields = fields.concat([base]);
+    }
     var C_type_placeholder = {
         range: r,
         kind: "obj",

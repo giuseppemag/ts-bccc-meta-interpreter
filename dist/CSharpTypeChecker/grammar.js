@@ -504,6 +504,17 @@ var un_bracketized_statement = function () {
         });
     });
 };
+var constructor_body = function (function_name, arg_decls, params_base_call) {
+    return primitives_1.left_curly_bracket.then(function (_) {
+        return function_statements(ccc_aux_1.co_lookup(primitives_1.right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
+            return primitives_1.right_curly_bracket.then(function (rb) {
+                return full_match.then(function (_) {
+                    return ts_bccc_1.co_unit(primitives_1.mk_constructor_declaration(source_range_1.join_source_ranges(function_name.range, rb), function_name.id, Immutable.List(arg_decls), params_base_call, body));
+                });
+            });
+        });
+    });
+};
 var constructor_declaration = function () {
     return no_match.then(function (_) {
         return primitives_1.identifier_token.then(function (function_name) {
@@ -511,15 +522,19 @@ var constructor_declaration = function () {
                 return partial_match.then(function (_) {
                     return arg_decls().then(function (arg_decls) {
                         return primitives_1.right_bracket.then(function (_) {
-                            return primitives_1.left_curly_bracket.then(function (_) {
-                                return function_statements(ccc_aux_1.co_lookup(primitives_1.right_curly_bracket).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (body) {
-                                    return primitives_1.right_curly_bracket.then(function (rb) {
-                                        return full_match.then(function (_) {
-                                            return ts_bccc_1.co_unit(primitives_1.mk_constructor_declaration(source_range_1.join_source_ranges(function_name.range, rb), function_name.id, Immutable.List(arg_decls), body));
+                            return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
+                                return primitives_1.base.then(function (_) {
+                                    return primitives_1.left_bracket.then(function (_) {
+                                        return partial_match.then(function (_) {
+                                            return actuals().then(function (params) {
+                                                return primitives_1.right_bracket.then(function (_) {
+                                                    return constructor_body(function_name, arg_decls, params);
+                                                });
+                                            });
                                         });
                                     });
                                 });
-                            });
+                            }), constructor_body(function_name, arg_decls, []));
                         });
                     });
                 });
@@ -552,20 +567,28 @@ var function_declaration = function () {
         });
     });
 };
+var class_body = function (class_name, initial_range, extends_class) {
+    return primitives_1.left_curly_bracket.then(function (_) {
+        return class_statements().then(function (declarations) {
+            return primitives_1.right_curly_bracket.then(function (closing_curly_range) {
+                return full_match.then(function (_) {
+                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_class, [], // add here interfaces
+                    declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                });
+            });
+        });
+    });
+};
 var class_declaration = function () {
     return no_match.then(function (_) {
         return primitives_1.class_keyword.then(function (initial_range) {
             return partial_match.then(function (_) {
                 return primitives_1.identifier_token.then(function (class_name) {
-                    return primitives_1.left_curly_bracket.then(function (_) {
-                        return class_statements().then(function (declarations) {
-                            return primitives_1.right_curly_bracket.then(function (closing_curly_range) {
-                                return full_match.then(function (_) {
-                                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
-                                });
-                            });
+                    return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
+                        return primitives_1.identifier_token.then(function (extends_class) {
+                            return class_body(class_name, initial_range, ts_bccc_1.apply(ts_bccc_1.inl(), extends_class.id));
                         });
-                    });
+                    }), class_body(class_name, initial_range, ts_bccc_1.apply(ts_bccc_1.inr(), {})));
                 });
             });
         });

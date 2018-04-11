@@ -1,4 +1,4 @@
-import { Coroutine, co_error, co_set_state, Unit, co_get_state, co_unit, apply } from "ts-bccc";
+import { Coroutine, co_error, co_set_state, Unit, co_get_state, co_unit, apply, Option } from "ts-bccc";
 import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, par } from "./grammar";
 import { mk_range, SourceRange, zero_range, join_source_ranges, print_range } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
@@ -86,15 +86,18 @@ export const mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actua
 export const mk_array_cons_call_and_init = (new_range:SourceRange, _type:ParserRes, actuals:ParserRes[]) : ParserRes =>
   ({ range:new_range, ast:{ kind:"array_cons_call_and_init", type:_type, actuals:actuals } })
 
-export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : ConstructorDeclarationAST =>
-  ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, range:range})
+export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes) : ConstructorDeclarationAST =>
+  ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, params_base_call: params_base_call, range:range})
 
 export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
   ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body, range:range})
 
-export const mk_class_declaration = (C_name:string, fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, range:SourceRange) : ParserRes =>
+export const mk_class_declaration = (C_name:string, extends_class:Option<string>, implements_interfaces:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, range:SourceRange) : ParserRes =>
   ({  range: range,
-      ast: {kind:"class", C_name:C_name, fields:fields, methods:methods, constructors:constructors } })
+      ast: {kind:"class", C_name:C_name, 
+            extends_class: extends_class,
+            implements_interfaces:implements_interfaces,
+            fields:fields, methods:methods, constructors:constructors } })
 
 export const mk_private = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"private"}})
 export const mk_public = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"public"}})
@@ -422,6 +425,7 @@ export const comma_sign = symbol(",", "comma")
 export const class_keyword = symbol("class", "class")
 export const new_keyword = symbol("new", "new")
 
+export const base = symbol("base", "base")
 export const surface_keyword = symbol("surface", "surface")
 export const empty_surface_keyword = symbol("empty_surface", "empty_surface")
 export const sprite_keyword = symbol("sprite", "sprite")
