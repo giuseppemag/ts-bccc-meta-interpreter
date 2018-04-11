@@ -111,11 +111,17 @@ var s = c.MakeSound();
     let stream = get_stream(source)
     while (stream.kind == "step") {
       let show = stream.show()
-      log("Step:", show.kind == "bindings" ? show.state : show.kind == "memory" ? show.memory : show)
+
+      //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
+      log("Step:", show.kind == "bindings" ? show.state : 
+                   show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
+                   show)
       stream = stream.next()
     }
     let show = stream.show()
-    log("Step:", show.kind == "bindings" ? show.state : show.kind == "memory" ? show.memory : show)
+    log("Step:", show.kind == "bindings" ? show.state : 
+                 show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
+                 show)
 
     return output
   }

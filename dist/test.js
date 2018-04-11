@@ -1,4 +1,12 @@
 "use strict";
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
 var CCC = require("ts-bccc");
@@ -62,11 +70,16 @@ var ImpLanguageWithSuspend;
         var stream = ImpLanguageWithSuspend.get_stream(source);
         while (stream.kind == "step") {
             var show_1 = stream.show();
-            log("Step:", show_1.kind == "bindings" ? show_1.state : show_1.kind == "memory" ? show_1.memory : show_1);
+            //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
+            log("Step:", show_1.kind == "bindings" ? show_1.state :
+                show_1.kind == "memory" ? __assign({}, show_1.memory, { classes: show_1.memory.classes.filter(function (c) { return c != undefined && !c.is_internal; }).toMap() }) :
+                    show_1);
             stream = stream.next();
         }
         var show = stream.show();
-        log("Step:", show.kind == "bindings" ? show.state : show.kind == "memory" ? show.memory : show);
+        log("Step:", show.kind == "bindings" ? show.state :
+            show.kind == "memory" ? __assign({}, show.memory, { classes: show.memory.classes.filter(function (c) { return c != undefined && !c.is_internal; }).toMap() }) :
+                show);
         return output;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));
