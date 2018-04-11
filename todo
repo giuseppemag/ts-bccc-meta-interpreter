@@ -53,8 +53,8 @@
 [g] String::Length in standard library
 
 [m] inheritance
-  [ ] base in class fields (both in actual and temp)
-  [ ] before constructor body call base(args)
+  [X] base in class fields (both in actual and temp)
+  [X] before constructor body call base(args)
   [ ] field_get and field_set lookup recursively in base
     [ ] looking up in the methods is done if all recursive base lookups have failed
   [ ] method lookup looks recursively in the inherited C_def.base
