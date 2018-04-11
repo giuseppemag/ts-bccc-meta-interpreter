@@ -8,6 +8,7 @@ import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType } from "./types";
+import { MultiMap } from "../multi_map";
 
 // Basic statements and expressions
 let ensure_constraints = (r:SourceRange, constraints:TypeConstraints) => (res:Coroutine<State,Err,Typing>) => {
@@ -254,7 +255,7 @@ export let unary_op = function(r:SourceRange, a:Stmt, op:string) : Stmt {
     get_class(r, t).then(t_c => {
       if (!t_c.methods.has(op))
         return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (${op}) operator.`})
-      let op_method = t_c.methods.get(op)
+      let op_method = t_c.methods.get(op).first()
       if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
         return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has an operator (${op}), but it is malformed.`})
 
@@ -274,7 +275,7 @@ export let bin_op = function(r:SourceRange, a:Stmt, b:Stmt, op:string) : Stmt {
     get_class(r, t).then(t_c => {
       if (!t_c.methods.has(op))
         return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has no (${op}) operator.`})
-      let op_method = t_c.methods.get(op)
+      let op_method = t_c.methods.get(op).first()
       if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 2)
         return co_error<State,Err,Typing>({ range:r, message:`Error: type ${type_to_string(t)} has a (${op}) operator, but it is malformed.`})
 
@@ -567,21 +568,18 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
     kind: "obj",
     is_internal:is_internal,
     C_name:C_name,
-    methods:Immutable.Map<Name, MethodTyping>(
+    methods:MultiMap<Name, MethodTyping>(
       methods.map(m => {
-        // console.log("===>>> ",m.name,JSON.stringify(m.modifiers.filter(md => md == "static").length == 0 ?
-        // mk_typing(fun_type(ref_type(C_name), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
-        // mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt)))
-        return [
-          m.name,
-          {
+        return {
+          k: m.name,
+          v: {
             typing:
               m.modifiers.filter(md => md == "static").length == 0 ?
               mk_typing(fun_type(tuple_type([ref_type(C_name)]), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
               mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt),
             modifiers:Immutable.Set<Modifier>(m.modifiers)
           }
-        ]
+        }
       })
     ),
     fields:Immutable.Map<Name, FieldType>(
@@ -607,8 +605,10 @@ export let def_class = function(r:SourceRange, C_name:string, methods_from_conte
             kind: "obj",
             is_internal:is_internal,
             C_name:C_name,
-            methods:Immutable.Map<Name, MethodTyping>(
-              methods_full_t.map(m => [m.def.name, { typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }])
+            methods:MultiMap<Name, MethodTyping>(
+              methods_full_t.map(m =>
+                ({  k:m.def.name,
+                    v:{ typing:m.typ, modifiers:Immutable.Set<Modifier>(m.def.modifiers) }}) )
             ),
             fields:Immutable.Map<Name, FieldType>(
               fields.filter(f => !f.modifiers.some(mod => mod == "static")).map(f =>
@@ -714,7 +714,7 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                         : Sem.field_get_expr_rt(r, F_or_M_name, this_ref_t.sem))))
            }
             else if (C_def.methods.has(F_or_M_name)){
-              let M_def = C_def.methods.get(F_or_M_name)
+              let M_def = C_def.methods.get(F_or_M_name).first()
               // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
               // console.log("This is this", JSON.stringify(this_ref_t))
 
@@ -788,7 +788,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
     if (!C_def.methods.has(C_name)) {
       return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} has no constructors.`})
     }
-    let lambda_t = C_def.methods.get(C_name)
+    let lambda_t = C_def.methods.get(C_name).first()
 
     if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
         lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple" )
@@ -844,7 +844,7 @@ export let get_class = (r:SourceRange, t:Type) : Coroutine<State, Err, ObjType> 
     return co_unit(t_obj)
   })
   : t.kind == "obj" ? co_unit<State, Err, ObjType>(t)
-  : co_unit<State, Err, ObjType>({ C_name:type_to_string(t), fields:Immutable.Map<Name, FieldType>(), methods:Immutable.Map<Name, MethodTyping>(), is_internal:true, range:zero_range, kind:"obj" })
+  : co_unit<State, Err, ObjType>({ C_name:type_to_string(t), fields:Immutable.Map<Name, FieldType>(), methods:MultiMap<Name, MethodTyping>([]), is_internal:true, range:zero_range, kind:"obj" })
 
 export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
   constraints => e(constraints).then(e_v => {
@@ -862,8 +862,14 @@ export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
 
     // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
 
-    let casting_operators = e_c.methods.filter(m => m != undefined && m.modifiers.some(mod => mod == "casting") && m.modifiers.some(mod => mod == "operator") && m.modifiers.some(mod => mod == "static")).map((c_op, c_op_name) => ({ body:c_op, name:c_op_name}) ).toArray() as { body:MethodTyping, name:string}[]
+    let casting_operators = e_c.methods.values().filter(m =>
+      m != undefined && m.v.modifiers.some(mod => mod == "casting") &&
+      m.v.modifiers.some(mod => mod == "operator") &&
+      m.v.modifiers.some(mod => mod == "static")).map(c_op => !c_op ? undefined : ({ body:c_op.v, name:c_op.k}) )
+      .toArray() // as { body:MethodTyping, name:string}[]
     let coercions = casting_operators.map(c_op => {
+      if (!c_op)
+        return (_:TypeConstraints) => co_error<State,Err,Typing>({ range:r, message:`Unexpected coercion error`})
       let c_op_typing:Stmt = _ => co_unit<State,Err,Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(r, e_type_name, c_op.name)))
       let coercion = call_lambda(r, c_op_typing, [_ => co_unit<State,Err,Typing>(e_v)])
       if (c_op.name == t_name) {

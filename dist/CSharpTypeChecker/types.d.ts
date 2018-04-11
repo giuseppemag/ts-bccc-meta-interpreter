@@ -4,6 +4,7 @@ import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
 import { Stmt } from "./csharp";
+import { MultiMap } from "../multi_map";
 export declare type Name = string;
 export interface Err {
     message: string;
@@ -41,7 +42,7 @@ export declare type ObjType = {
     kind: "obj";
     C_name: string;
     is_internal: boolean;
-    methods: Immutable.Map<Name, MethodTyping>;
+    methods: MultiMap<Name, MethodTyping>;
     fields: Immutable.Map<Name, FieldType>;
     range: SourceRange;
 };

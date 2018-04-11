@@ -21,7 +21,59 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-`
+    class Vector2 {
+      public double x;
+      public double y;
+      public Vector2(double x, double y){
+        this.x = x;
+        this.y = y;
+      }
+      public double Length(){
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+      }
+      public static Vector2 Plus(Vector2 v1, Vector2 v2){
+        return new Vector2(v1.x + v2.x, v1.y + v2.y);
+      }
+      public static Vector2 Minus(Vector2 v1, Vector2 v2){
+        return new Vector2(v1.x - v2.x, v1.y - v2.y);
+      }
+      public static Vector2 Times(Vector2 v1, double c){
+        return new Vector2(v1.x * c, v1.y * c);
+      }
+      public static Vector2 Div(Vector2 v1, double c){
+        return Vector2.Times(v1, 1.0 / c);
+      }
+    }
+
+    var v1 = new Vector2(0.0,0.0);
+    var v2 = new Vector2(10.0,5.0);
+    var v3 = Vector2.Times(v1, 1.0);
+    typechecker_debugger;
+    debugger;`
+
+// class C {
+//   int f;
+//   public C() {
+//     this.f = 1;
+//   }
+
+//   public void M(float x, float y) {
+//     this.f = this.f * x + y;
+//   }
+
+//   public void M(Func<int,int> f) {
+//     this.f = f(this.f);
+//   }
+
+//   public void M(Func<int,int> f, int x) {
+//     this.f = f(this.f) + x;
+//   }
+// }
+
+// var c = new C();
+// c.M(2, 3);
+// c.M(x => x + 1);
+// c.M(x => x * 3, 2);
 
 
 

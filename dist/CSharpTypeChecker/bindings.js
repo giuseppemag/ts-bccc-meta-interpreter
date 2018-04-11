@@ -17,6 +17,7 @@ var Sem = require("../Python/python");
 var ccc_aux_1 = require("../ccc_aux");
 var main_1 = require("../main");
 var types_1 = require("./types");
+var multi_map_1 = require("../multi_map");
 // Basic statements and expressions
 var ensure_constraints = function (r, constraints) { return function (res) {
     if (constraints.kind == "right")
@@ -284,7 +285,7 @@ exports.unary_op = function (r, a, op) {
         return exports.get_class(r, t).then(function (t_c) {
             if (!t_c.methods.has(op))
                 return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (" + op + ") operator." });
-            var op_method = t_c.methods.get(op);
+            var op_method = t_c.methods.get(op).first();
             if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 1)
                 return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has an operator (" + op + "), but it is malformed." });
             var args = op_method.typing.type.in.args;
@@ -303,7 +304,7 @@ exports.bin_op = function (r, a, b, op) {
         return exports.get_class(r, t).then(function (t_c) {
             if (!t_c.methods.has(op))
                 return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has no (" + op + ") operator." });
-            var op_method = t_c.methods.get(op);
+            var op_method = t_c.methods.get(op).first();
             if (op_method.typing.type.kind != "fun" || op_method.typing.type.in.kind != "tuple" || op_method.typing.type.in.args.length != 2)
                 return ts_bccc_2.co_error({ range: r, message: "Error: type " + types_1.type_to_string(t) + " has a (" + op + ") operator, but it is malformed." });
             var args = op_method.typing.type.in.args;
@@ -578,19 +579,16 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
         kind: "obj",
         is_internal: is_internal,
         C_name: C_name,
-        methods: Immutable.Map(methods.map(function (m) {
-            // console.log("===>>> ",m.name,JSON.stringify(m.modifiers.filter(md => md == "static").length == 0 ?
-            // mk_typing(fun_type(ref_type(C_name), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
-            // mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt)))
-            return [
-                m.name,
-                {
+        methods: multi_map_1.MultiMap(methods.map(function (m) {
+            return {
+                k: m.name,
+                v: {
                     typing: m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ?
                         types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type((m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), m.range), Sem.done_rt) :
                         types_1.mk_typing(types_1.fun_type(types_1.tuple_type(m.parameters.map(function (p) { return p.type; })), m.return_t, m.range), Sem.done_rt),
                     modifiers: Immutable.Set(m.modifiers)
                 }
-            ];
+            };
         })),
         fields: Immutable.Map(fields.map(function (f) {
             return [
@@ -612,7 +610,10 @@ exports.def_class = function (r, C_name, methods_from_context, fields_from_conte
                     kind: "obj",
                     is_internal: is_internal,
                     C_name: C_name,
-                    methods: Immutable.Map(methods_full_t.map(function (m) { return [m.def.name, { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) }]; })),
+                    methods: multi_map_1.MultiMap(methods_full_t.map(function (m) {
+                        return ({ k: m.def.name,
+                            v: { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) } });
+                    })),
                     fields: Immutable.Map(fields.filter(function (f) { return !f.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (f) {
                         return [f.name,
                             { type: f.type, initial_value: f.initial_value, modifiers: Immutable.Set(f.modifiers) }];
@@ -713,7 +714,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                     : Sem.field_get_expr_rt(r, F_or_M_name, this_ref_t.sem))));
             }
             else if (C_def.methods.has(F_or_M_name)) {
-                var M_def = C_def.methods.get(F_or_M_name);
+                var M_def = C_def.methods.get(F_or_M_name).first();
                 // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
                 // console.log("This is this", JSON.stringify(this_ref_t))
                 if (!M_def.modifiers.has("public")) {
@@ -782,7 +783,7 @@ exports.call_cons = function (r, context, C_name, arg_values) {
         if (!C_def.methods.has(C_name)) {
             return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " has no constructors." });
         }
-        var lambda_t = C_def.methods.get(C_name);
+        var lambda_t = C_def.methods.get(C_name).first();
         if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
             lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple")
             return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + types_1.type_to_string(lambda_t.typing.type) });
@@ -837,7 +838,7 @@ exports.get_class = function (r, t) {
             return ts_bccc_2.co_unit(t_obj);
         })
         : t.kind == "obj" ? ts_bccc_2.co_unit(t)
-            : ts_bccc_2.co_unit({ C_name: types_1.type_to_string(t), fields: Immutable.Map(), methods: Immutable.Map(), is_internal: true, range: source_range_1.zero_range, kind: "obj" });
+            : ts_bccc_2.co_unit({ C_name: types_1.type_to_string(t), fields: Immutable.Map(), methods: multi_map_1.MultiMap([]), is_internal: true, range: source_range_1.zero_range, kind: "obj" });
 };
 exports.coerce = function (r, e, t) {
     return function (constraints) { return e(constraints).then(function (e_v) {
@@ -851,8 +852,15 @@ exports.coerce = function (r, e, t) {
             var t_name = types_1.type_to_string(t);
             var e_type_name = types_1.type_to_string(e_v.type);
             // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
-            var casting_operators = e_c.methods.filter(function (m) { return m != undefined && m.modifiers.some(function (mod) { return mod == "casting"; }) && m.modifiers.some(function (mod) { return mod == "operator"; }) && m.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (c_op, c_op_name) { return ({ body: c_op, name: c_op_name }); }).toArray();
+            var casting_operators = e_c.methods.values().filter(function (m) {
+                return m != undefined && m.v.modifiers.some(function (mod) { return mod == "casting"; }) &&
+                    m.v.modifiers.some(function (mod) { return mod == "operator"; }) &&
+                    m.v.modifiers.some(function (mod) { return mod == "static"; });
+            }).map(function (c_op) { return !c_op ? undefined : ({ body: c_op.v, name: c_op.k }); })
+                .toArray(); // as { body:MethodTyping, name:string}[]
             var coercions = casting_operators.map(function (c_op) {
+                if (!c_op)
+                    return function (_) { return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" }); };
                 var c_op_typing = function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(r, e_type_name, c_op.name))); };
                 var coercion = exports.call_lambda(r, c_op_typing, [function (_) { return ts_bccc_2.co_unit(e_v); }]);
                 if (c_op.name == t_name) {

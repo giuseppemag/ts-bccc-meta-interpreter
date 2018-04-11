@@ -12,7 +12,26 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n";
+        var source = "\n    class Vector2 {\n      public double x;\n      public double y;\n      public Vector2(double x, double y){\n        this.x = x;\n        this.y = y;\n      }\n      public double Length(){\n        return Math.sqrt(this.x * this.x + this.y * this.y);\n      }\n      public static Vector2 Plus(Vector2 v1, Vector2 v2){\n        return new Vector2(v1.x + v2.x, v1.y + v2.y);\n      }\n      public static Vector2 Minus(Vector2 v1, Vector2 v2){\n        return new Vector2(v1.x - v2.x, v1.y - v2.y);\n      }\n      public static Vector2 Times(Vector2 v1, double c){\n        return new Vector2(v1.x * c, v1.y * c);\n      }\n      public static Vector2 Div(Vector2 v1, double c){\n        return Vector2.Times(v1, 1.0 / c);\n      }\n    }\n\n    var v1 = new Vector2(0.0,0.0);\n    var v2 = new Vector2(10.0,5.0);\n    var v3 = Vector2.Times(v1, 1.0);\n    typechecker_debugger;\n    debugger;";
+        // class C {
+        //   int f;
+        //   public C() {
+        //     this.f = 1;
+        //   }
+        //   public void M(float x, float y) {
+        //     this.f = this.f * x + y;
+        //   }
+        //   public void M(Func<int,int> f) {
+        //     this.f = f(this.f);
+        //   }
+        //   public void M(Func<int,int> f, int x) {
+        //     this.f = f(this.f) + x;
+        //   }
+        // }
+        // var c = new C();
+        // c.M(2, 3);
+        // c.M(x => x + 1);
+        // c.M(x => x * 3, 2);
         /*
         abstract class Animal{
           public abstract string MakeSound();

@@ -71,8 +71,7 @@ exports.type_equals = function (t1, t2) {
     if (t1.kind == "arr" && t2.kind == "arr")
         return exports.type_equals(t1.arg, t2.arg);
     if (t1.kind == "obj" && t2.kind == "obj")
-        return !t1.methods.some(function (v1, k1) { return v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !exports.type_equals(t2.methods.get(k1).typing.type, v1.typing.type); }) &&
-            !t2.methods.some(function (v2, k2) { return v2 == undefined || k2 == undefined || !t1.methods.has(k2); });
+        return t1.C_name == t2.C_name;
     return t1.kind == t2.kind;
 };
 exports.no_constraints = ts_bccc_1.inr().f({});

@@ -85,7 +85,7 @@ exports.double = CSharp.def_class(source_range_1.minus_two_range, "double", [
     casting_operator("string", CSharp.double_type, CSharp.string_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
     to_string(CSharp.double_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
     binary_operator("+", CSharp.double_type, function (a_v, b_v) { return Sem.mk_float_val(a_v.v + b_v.v); }),
-    unary_operator("-", CSharp.double_type, function (a_v) { return Sem.mk_float_val(-a_v.v); }),
+    // unary_operator("-", CSharp.double_type, (a_v) => Sem.mk_float_val(-(a_v.v as number))),
     binary_operator("-", CSharp.double_type, function (a_v, b_v) { return Sem.mk_float_val(a_v.v - b_v.v); }),
     binary_operator("*", CSharp.double_type, function (a_v, b_v) { return Sem.mk_float_val(a_v.v * b_v.v); }),
     binary_operator("/", CSharp.double_type, function (a_v, b_v) { return Sem.mk_float_val(a_v.v / b_v.v); }),

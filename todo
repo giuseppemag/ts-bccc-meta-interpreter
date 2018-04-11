@@ -2,7 +2,8 @@
 
 [g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
   [ ] method overloading
-  [ ] ensure right ariety: +, -, ... have ariety 2, -,! can have ariety 1
+  [ ] binary operator overloading
+  [ ] unary operator overloading
   [ ] add unary - to standard library
 
 [g] remove old-style method resolution from semantics
@@ -42,6 +43,14 @@
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
+
+[g] Move ccc_aux to CCC repo
+[g] Use mutable state, then clone it to the immutable memory upon `dbg`
+[g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
+[g] destructuring assignment of records and tuples
+[g] Invoke statically typed semantics
+[g] renderers defined in standard library, with (+) operator
+[g] String::Length in standard library
 
 [m] add `null`
 [m] add C# to playground
@@ -101,7 +110,7 @@
 [m] Exam mode in desktop application
 
 [m] Python syntax
-[m] var a = 1 + + 1; does print a proper error
+[m] var a = 1 + + 1; does not print a proper error
 [m] inheritance
   [ ] base in class fields (both in actual and temp)
   [ ] before constructor body call base(args)
@@ -120,17 +129,8 @@
 
 [ ] Cleanup/whishlist
   [ ] `while` with fixpoint
-  [ ] `resolve_method` with fixpoint
   [ ] Whole semantics must be fully categorical: no apply, almost everything becomes Fun<a,b>
   [ ] Memory values as sums (of basic types)
   [ ] breakpoint right after return (`ret_break?`)
   [ ] Intellisense editor
   [ ] Integration in VSCode
-  [g] destructuring assignment of records and tuples
-  [g] Move ccc_aux to CCC repo
-  [g] Use mutable state, then clone it to the immutable memory upon `dbg`
-  [g] Data-oriented memory: ints, floats, strings, ..., each an array for faster lookup
-  [g] Invoke statically typed semantics
-  [g] renderers defined in standard library, with (+) operator
-  [g] String::Length in standard library
-

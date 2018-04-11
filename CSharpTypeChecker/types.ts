@@ -8,6 +8,7 @@ import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
 import { Stmt } from "./csharp";
+import { MultiMap } from "../multi_map";
 
 export type Name = string
 export interface Err { message:string, range:SourceRange }
@@ -17,7 +18,8 @@ export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"
                                 | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
                                 | { kind:"other surface"} | { kind:"sprite"}
 export type ObjType = { kind:"obj", C_name:string,
-                        is_internal:boolean, methods:Immutable.Map<Name, MethodTyping>, fields:Immutable.Map<Name, FieldType>, range: SourceRange }
+                        is_internal:boolean, methods:MultiMap<Name, MethodTyping>,
+                        fields:Immutable.Map<Name, FieldType>, range: SourceRange }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type, range: SourceRange }
@@ -86,8 +88,7 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "record" && t2.kind == "record") return t1.args.count() == t2.args.count() &&
     t1.args.every((t1_arg,i) => t1_arg != undefined && i != undefined && t2.args.has(i) && type_equals(t1_arg, t2.args.get(i)))
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
-  if (t1.kind == "obj" && t2.kind == "obj") return !t1.methods.some((v1,k1) => v1 == undefined || k1 == undefined || !t2.methods.has(k1) || !type_equals(t2.methods.get(k1).typing.type, v1.typing.type)) &&
-      !t2.methods.some((v2,k2) => v2 == undefined || k2 == undefined || !t1.methods.has(k2))
+  if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
   return t1.kind == t2.kind
 }
 
