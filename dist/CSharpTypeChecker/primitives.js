@@ -94,13 +94,12 @@ exports.mk_constructor_declaration = function (range, function_name, arg_decls, 
     return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body, params_base_call: params_base_call, range: range });
 };
 exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body) {
-    return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range });
+    return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range, params_base_call: [] });
 };
-exports.mk_class_declaration = function (C_name, extends_class, implements_interfaces, fields, methods, constructors, range) {
+exports.mk_class_declaration = function (C_name, extends_or_implements, fields, methods, constructors, range) {
     return ({ range: range,
         ast: { kind: "class", C_name: C_name,
-            extends_class: extends_class,
-            implements_interfaces: implements_interfaces,
+            extends_or_implements: extends_or_implements,
             fields: fields, methods: methods, constructors: constructors } });
 };
 exports.mk_private = function (sr) { return ({ range: sr, ast: { kind: "private" } }); };

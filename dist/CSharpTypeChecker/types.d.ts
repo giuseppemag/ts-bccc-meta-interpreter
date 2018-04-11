@@ -43,6 +43,7 @@ export declare type ObjType = {
     C_name: string;
     is_internal: boolean;
     methods: MultiMap<Name, MethodTyping>;
+    class_kind: "normal" | "abstract" | "interface";
     fields: Immutable.Map<Name, FieldType>;
     range: SourceRange;
 };
@@ -151,6 +152,7 @@ export interface FunDefinition extends LambdaDefinition {
 export interface MethodDefinition extends FunDefinition {
     modifiers: Array<Modifier>;
     is_constructor: boolean;
+    params_base_call: Stmt[];
 }
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;

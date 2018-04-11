@@ -7,7 +7,7 @@ import { SourceRange, mk_range, zero_range, print_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
-import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType } from "./types";
+import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings } from "./types";
 import { MultiMap } from "../multi_map";
 
 // Basic statements and expressions
@@ -459,26 +459,33 @@ export let def_fun = function(r:SourceRange, def:FunDefinition, closure_paramete
 }
 
 
-export let def_method = function(r:SourceRange, C_name:string, def:MethodDefinition) : Stmt {
-
+export let def_method = function(r:SourceRange, C_name:string, _extends:Option<ObjType>, def:MethodDefinition) : Stmt {
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
   // console.log("params", JSON.stringify(parameters))
   let return_t = def.return_t
   let body = def.body
+  let _done:Stmt = done
+  let context:CallingContext = { kind:"class", C_name:C_name }
   let set_bindings = (is_static ? parameters : parameters.concat([{name:"this", type:ref_type(C_name)}]))
                         .reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc), done)
   return  _ => Co.co_get_state<State,Err>().then(initial_bindings =>
           set_bindings(no_constraints).then(_ =>
           body(apply(inl(), return_t)).then(body_t =>
+            (def.is_constructor &&
+              _extends.kind == "left"
+              ? // this is a constructor with base
+              field_set(r, context, get_v(r, "this"), {kind:"att",att_name:"base"}, call_cons(r, context, _extends.value.C_name, def.params_base_call))
+              : _done)
+            (apply(inl(), {kind:"unit" as "unit"})).then(base_sem=>
             Co.co_set_state<State,Err>(initial_bindings).then(_ =>
-              is_static ?
-                co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
-                      Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))
+              is_static ? co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
+                            Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))
               : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]),
                                            fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r), r),
-                        Sem.mk_lambda_rt(Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))
-          )))
+                        Sem.mk_lambda_rt(Sem.mk_lambda_rt(
+                          base_sem.sem.then(_ => body_t.sem), parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))
+          ))))
 }
 
 export let call_lambda = function(r:SourceRange, lambda:Stmt, arg_values:Array<Stmt>) : Stmt {
@@ -559,24 +566,37 @@ export let set_arr_el = function(r:SourceRange, a:Stmt, i:Stmt, e:Stmt) : Stmt {
         : co_error<State,Err,Typing>({ range:r, message:`Error: expected an array, iclearnstead found ${type_to_string(a_t.type)}.`}))
 }
 
-export let def_class = function(r:SourceRange, C_name:string, extends_class:Option<string>, implements_interfaces:string[], methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
+export let def_class = function(r:SourceRange, C_kind:"normal"|"abstract"|"interface", C_name:string, extends_or_implements:string[], methods_from_context:Array<(_:CallingContext) => MethodDefinition>, fields_from_context:Array<(_:CallingContext) => FieldDefinition>, is_internal=false) : Stmt {
   let context:CallingContext = { kind:"class", C_name:C_name }
   let methods = methods_from_context.map(m => m(context))
   let fields = fields_from_context.map(f => f(context))
-  if(extends_class.kind == "left") {
-    let base:FieldDefinition =  {  
-                                  name: "base",
-                                  type: { kind:"ref", C_name:extends_class.value} as Type,
-                                  modifiers:["public"] as Modifier[], 
-                                  initial_value:apply(inr<Stmt, Unit>(), {}) 
-                                }
-    fields = fields.concat([base])
-  }
+  fields = fields.concat(
+    extends_or_implements.map(e =>
+      {
+        let base:FieldDefinition =  {  
+                                      name: "base",
+                                      type: { kind:"ref", C_name:e} as Type,
+                                      modifiers:["public"] as Modifier[], 
+                                      initial_value:apply(inr<Stmt, Unit>(), {}) 
+                                    }
+        return base
+      }))
+  let get_class_kind = (name:string, bindings:Bindings):Option<ObjType> =>
+    {
+      if(bindings.has(name)){
+        let elem = bindings.get(name)
+        if(elem.kind == "obj"){
+          return apply(inl(),elem)
+        }
+      }
+      return apply(inr(),{})
+    }
   let C_type_placeholder:Type = {
     range: r,
     kind: "obj",
     is_internal:is_internal,
     C_name:C_name,
+    class_kind:C_kind,
     methods:MultiMap<Name, MethodTyping>(
       methods.map(m => {
         return {
@@ -606,11 +626,27 @@ export let def_class = function(r:SourceRange, C_name:string, extends_class:Opti
   }
 
   return _ => co_get_state<State, Err>().then(initial_bindings =>
-          co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type_placeholder, is_constant:true}) }).then(_ =>
-          comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(methods.map(m => def_method(m.range, C_name, m)(no_constraints)))).then(methods_t => {
+          co_set_state<State, Err>({...initial_bindings, bindings:initial_bindings.bindings.set(C_name, {...C_type_placeholder, is_constant:true}) }).then(_ => {
+          let concrete_extends_or_implements = extends_or_implements.map(c => get_class_kind(c, initial_bindings.bindings))
+          let tmp = concrete_extends_or_implements.filter(e => e.kind == "left" && e.value.class_kind != "interface")
+          if(tmp.length > 1){
+            return co_error({ message:"You can extend one concrete class at a time", range:r })
+          }
+        return comm_list_coroutine(Immutable.List<Coroutine<State,Err,Typing>>(methods.map(m => 
+            {
+              let concrete_extend : Option<ObjType> = apply(inr(),{})
+              if(tmp.length == 1){
+                let params = m.params_base_call
+                concrete_extend = apply(inl(), tmp[0].value as ObjType)
+              }
+              let res = def_method(m.range, C_name, concrete_extend, m)(no_constraints)
+              return res
+            }
+          ))).then(methods_t => {
           let methods_full_t = methods_t.zipWith((m_t,m_d) => ({ typ:m_t, def:m_d}), Immutable.Seq<MethodDefinition>(methods)).toArray()
           let C_type:Type = {
             range: r,
+            class_kind:C_kind,
             kind: "obj",
             is_internal:is_internal,
             C_name:C_name,
@@ -668,7 +704,7 @@ export let def_class = function(r:SourceRange, C_name:string, extends_class:Opti
             )
           )
           }
-          )))
+          )}))
 }
 
 export let field_get = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_or_M_name:string) : Stmt {
@@ -721,9 +757,12 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
                       F_def.modifiers.has("static") ?
                           Sem.static_field_get_expr_rt(r, C_name, F_or_M_name)
                         : Sem.field_get_expr_rt(r, F_or_M_name, this_ref_t.sem))))
-           }
-            else if (C_def.methods.has(F_or_M_name)){
-              let M_def = C_def.methods.get(F_or_M_name).first()
+           }           
+           else {
+            let C_def_obj = C_def
+            let method_try_get = () : Coroutine<State,Err,Typing> => {
+              if (C_def_obj.methods.has(F_or_M_name)){
+              let M_def = C_def_obj.methods.get(F_or_M_name).first()
               // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
               // console.log("This is this", JSON.stringify(this_ref_t))
 
@@ -747,14 +786,18 @@ export let field_get = function(r:SourceRange, context:CallingContext, this_ref:
               } else {
                 return co_unit(mk_typing(M_def.typing.type.out,
                   Sem.call_lambda_expr_rt(r, Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem), [this_ref_t.sem])))
-
               }
             }
             return co_error<State,Err,Typing>({ range:r, message:`Error: ${C_name} does not contain field or method ${F_or_M_name}`})
-
           }
-         ))
+
+        return co_catch<State,Err,Typing>((a,b) => a) 
+                        (field_get(r, context, field_get(r, context, this_ref, "base"), F_or_M_name)(constraints))
+                        (method_try_get())
+           }  }        
+    ))
 }
+
 
 export let field_set = function(r:SourceRange, context:CallingContext, this_ref:Stmt, F_name:{att_name:string, kind:"att"} |
                                                                                              {att_name:string, kind:"att_arr", index:Stmt}, new_value:Stmt) : Stmt {
@@ -794,6 +837,7 @@ export let call_cons = function(r:SourceRange, context:CallingContext, C_name:st
     if (!bindings.bindings.has(C_name)) return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} is undefined.`})
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State,Err,Typing>({ range:r, message:`Error: type  ${C_name} is not a class.`})
+    if (C_def.class_kind != "normal") return co_error<State,Err,Typing>({ range:r, message:`Error: cannot instantiate ${C_name} as it is not a concrete class.`})
     if (!C_def.methods.has(C_name)) {
       return co_error<State,Err,Typing>({ range:r, message:`Error: class ${C_name} has no constructors.`})
     }
@@ -853,7 +897,7 @@ export let get_class = (r:SourceRange, t:Type) : Coroutine<State, Err, ObjType> 
     return co_unit(t_obj)
   })
   : t.kind == "obj" ? co_unit<State, Err, ObjType>(t)
-  : co_unit<State, Err, ObjType>({ C_name:type_to_string(t), fields:Immutable.Map<Name, FieldType>(), methods:MultiMap<Name, MethodTyping>([]), is_internal:true, range:zero_range, kind:"obj" })
+  : co_unit<State, Err, ObjType>({ C_name:type_to_string(t), class_kind:"normal", fields:Immutable.Map<Name, FieldType>(), methods:MultiMap<Name, MethodTyping>([]), is_internal:true, range:zero_range, kind:"obj" })
 
 export let coerce = (r:SourceRange, e:Stmt, t:Type) : Stmt =>
   constraints => e(constraints).then(e_v => {

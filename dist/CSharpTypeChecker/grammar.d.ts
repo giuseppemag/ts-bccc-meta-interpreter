@@ -131,8 +131,7 @@ export interface ConstructorAST {
 export interface ClassAST {
     kind: "class";
     C_name: string;
-    extends_class: Option<string>;
-    implements_interfaces: string[];
+    extends_or_implements: string[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
     constructors: Immutable.List<ConstructorAST>;
@@ -156,6 +155,7 @@ export interface UnaryOpAST {
 }
 export interface FunctionDeclarationAST {
     kind: "func_decl";
+    params_base_call: ParserRes[];
     range: SourceRange;
     name: string;
     return_type: ParserRes;

@@ -5,7 +5,6 @@ var source_range_1 = require("../source_range");
 var bindings_1 = require("./bindings");
 var types_1 = require("./types");
 var ts_bccc_1 = require("ts-bccc");
-var primitives_1 = require("./primitives");
 var ast_to_csharp_type = function (s) {
     return s.ast.kind == "id" ?
         s.ast.value == "int" ? types_1.int_type
@@ -168,9 +167,10 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                                 //   Immutable.Set<string>(n.ast.arg_decls.toArray().map(d => d.r.ast.kind == "id" ? d.r.ast.value : ""))).toArray()
                                                                                                                                                                 )
                                                                                                                                                                 : n.ast.kind == "class" ?
-                                                                                                                                                                    bindings_1.def_class(n.range, n.ast.C_name, n.ast.extends_class, [], n.ast.methods.toArray().map(function (m) { return function (context) { return ({
+                                                                                                                                                                    bindings_1.def_class(n.range, "normal", n.ast.C_name, n.ast.extends_or_implements, n.ast.methods.toArray().map(function (m) { return function (context) { return ({
                                                                                                                                                                         name: m.decl.name,
                                                                                                                                                                         return_t: ast_to_csharp_type(m.decl.return_type),
+                                                                                                                                                                        params_base_call: [],
                                                                                                                                                                         parameters: m.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.ast.kind == "id" ? a.r.ast.value : "", type: ast_to_csharp_type(a.l) }); }),
                                                                                                                                                                         body: exports.ast_to_type_checker(m.decl.body)(context),
                                                                                                                                                                         range: source_range_1.join_source_ranges(m.decl.return_type.range, m.decl.body.range),
@@ -178,11 +178,10 @@ exports.ast_to_type_checker = function (n) { return function (context) {
                                                                                                                                                                         is_constructor: false
                                                                                                                                                                     }); }; }).concat(n.ast.constructors.toArray().map(function (c) { return function (context) { return ({
                                                                                                                                                                         name: c.decl.name,
+                                                                                                                                                                        params_base_call: c.decl.params_base_call.map(function (e) { return exports.ast_to_type_checker(e)(context); }),
                                                                                                                                                                         return_t: types_1.unit_type,
                                                                                                                                                                         parameters: c.decl.arg_decls.toArray().map(function (a) { return ({ name: a.r.ast.kind == "id" ? a.r.ast.value : "", type: ast_to_csharp_type(a.l) }); }),
-                                                                                                                                                                        body: n.ast.kind == "class" && n.ast.extends_class.kind == "left"
-                                                                                                                                                                            ? exports.ast_to_type_checker(primitives_1.mk_semicolon(primitives_1.mk_assign(primitives_1.mk_field_ref({ range: c.decl.range, ast: { kind: "id", value: "this" } }, { range: c.decl.range, ast: { kind: "id", value: "base" } }), primitives_1.mk_constructor_call(n.range, n.ast.extends_class.value, c.decl.params_base_call)), c.decl.body))(context)
-                                                                                                                                                                            : exports.ast_to_type_checker(c.decl.body)(context),
+                                                                                                                                                                        body: exports.ast_to_type_checker(c.decl.body)(context),
                                                                                                                                                                         range: c.decl.body.range,
                                                                                                                                                                         modifiers: c.modifiers.toArray().map(function (mod) { return mod.ast.kind; }),
                                                                                                                                                                         is_constructor: true

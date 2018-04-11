@@ -19,6 +19,7 @@ export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"
                                 | { kind:"other surface"} | { kind:"sprite"}
 export type ObjType = { kind:"obj", C_name:string,
                         is_internal:boolean, methods:MultiMap<Name, MethodTyping>,
+                        class_kind:"normal"|"abstract"|"interface"
                         fields:Immutable.Map<Name, FieldType>, range: SourceRange }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
@@ -94,9 +95,9 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
 
 export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting"
 export interface Parameter { name:Name, type:Type }
-export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt }
+export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
-export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean }
+export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Stmt[]  }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt> }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
 

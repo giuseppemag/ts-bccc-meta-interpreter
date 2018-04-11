@@ -375,6 +375,15 @@ var actuals = function () {
         }), ts_bccc_1.co_unit([a]));
     }), ts_bccc_1.co_unit(Array()));
 };
+var identifiers = function () {
+    return primitives_1.parser_or(primitives_1.identifier.then(function (a) {
+        return primitives_1.parser_or(comma.then(function (_) {
+            return identifiers().then(function (as) {
+                return ts_bccc_1.co_unit([a].concat(as));
+            });
+        }), ts_bccc_1.co_unit([a]));
+    }), ts_bccc_1.co_unit(Array()));
+};
 var arg_decls = function () {
     return primitives_1.parser_or(decl().then(function (d) {
         return primitives_1.parser_or(comma.then(function (_) {
@@ -567,13 +576,12 @@ var function_declaration = function () {
         });
     });
 };
-var class_body = function (class_name, initial_range, extends_class) {
+var class_body = function (class_name, initial_range, extends_or_implements) {
     return primitives_1.left_curly_bracket.then(function (_) {
         return class_statements().then(function (declarations) {
             return primitives_1.right_curly_bracket.then(function (closing_curly_range) {
                 return full_match.then(function (_) {
-                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_class, [], // add here interfaces
-                    declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_or_implements, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
                 });
             });
         });
@@ -585,10 +593,10 @@ var class_declaration = function () {
             return partial_match.then(function (_) {
                 return primitives_1.identifier_token.then(function (class_name) {
                     return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                        return primitives_1.identifier_token.then(function (extends_class) {
-                            return class_body(class_name, initial_range, ts_bccc_1.apply(ts_bccc_1.inl(), extends_class.id));
+                        return identifiers().then(function (extends_or_implements) {
+                            return class_body(class_name, initial_range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }));
                         });
-                    }), class_body(class_name, initial_range, ts_bccc_1.apply(ts_bccc_1.inr(), {})));
+                    }), class_body(class_name, initial_range, []));
                 });
             });
         });

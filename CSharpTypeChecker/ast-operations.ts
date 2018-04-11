@@ -283,12 +283,12 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         //   Immutable.Set<string>(n.ast.arg_decls.toArray().map(d => d.r.ast.kind == "id" ? d.r.ast.value : ""))).toArray()
         )
   : n.ast.kind == "class" ?
-    def_class(n.range, n.ast.C_name,
-      n.ast.extends_class,
-      [],
+    def_class(n.range, "normal", n.ast.C_name,
+      n.ast.extends_or_implements,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(m.decl.return_type),
+          params_base_call: ([]as Stmt[]),
           parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(m.decl.body)(context),
           range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
@@ -296,16 +296,11 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           is_constructor:false
         })).concat(
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
-
           name:c.decl.name,
+          params_base_call: c.decl.params_base_call.map(e => ast_to_type_checker(e)(context)),//c.decl.params_base_call,
           return_t:unit_type,
           parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-          body:
-            n.ast.kind == "class" && n.ast.extends_class.kind == "left"
-            ? ast_to_type_checker(mk_semicolon(
-                mk_assign(mk_field_ref({range:c.decl.range,ast:{kind: "id" as "id", value: "this"}}, {range:c.decl.range, ast:{kind: "id" as "id", value: "base"}}),
-                          mk_constructor_call(n.range, n.ast.extends_class.value, c.decl.params_base_call)), c.decl.body))(context) 
-            : ast_to_type_checker(c.decl.body)(context),
+          body:ast_to_type_checker(c.decl.body)(context),
           range:c.decl.body.range,
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:true

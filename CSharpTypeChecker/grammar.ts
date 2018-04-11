@@ -168,12 +168,12 @@ export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.L
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
-export interface ClassAST { kind: "class", C_name:string, extends_class:Option<string>, implements_interfaces:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
+export interface ClassAST { kind: "class", C_name:string, extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
 export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
-export interface FunctionDeclarationAST { kind:"func_decl", range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
+export interface FunctionDeclarationAST { kind:"func_decl", params_base_call:ParserRes[], range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
@@ -616,6 +616,16 @@ let actuals = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
     co_unit([a]))),
   co_unit(Array<ParserRes>()))
 
+let identifiers = () : Coroutine<ParserState, ParserError, ParserRes[]> =>
+  parser_or<Array<ParserRes>>(
+    identifier.then(a =>
+    parser_or<Array<ParserRes>>(
+      comma.then(_ =>
+        identifiers().then(as =>
+       co_unit([a, ...as]))),
+    co_unit([a]))),
+  co_unit(Array<ParserRes>()))
+
   let arg_decls = () : Coroutine<ParserState, ParserError, Array<DeclAST>> =>
   parser_or<Array<DeclAST>>(
     decl().then(d =>
@@ -754,7 +764,7 @@ let function_declaration = () =>
                                   body)))))))))))))
 
 
-let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_class:Option<string>) =>
+let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_or_implements:string[]) =>
   left_curly_bracket.then(_ =>
   class_statements().then(declarations =>
   right_curly_bracket.then(closing_curly_range =>
@@ -762,8 +772,7 @@ let class_body = (class_name:{id: string;range: SourceRange}, initial_range:Sour
   co_unit(
     mk_class_declaration(
       class_name.id,
-      extends_class,
-      [], // add here interfaces
+      extends_or_implements,
       declarations.fst,
       declarations.snd.fst,
       declarations.snd.snd,
@@ -777,10 +786,10 @@ let class_declaration = () =>
   identifier_token.then(class_name =>
   parser_or<ParserRes>(
     colon_keyword.then(_ =>
-    identifier_token.then(extends_class =>
-    class_body(class_name, initial_range, apply(inl(),extends_class.id))
+    identifiers().then(extends_or_implements =>
+    class_body(class_name, initial_range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""))
     )),
-    class_body(class_name, initial_range, apply(inr(),{}))
+    class_body(class_name, initial_range, [])
   )))))
 
 let outer_statement : () => Parser = () =>

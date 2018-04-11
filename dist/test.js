@@ -20,45 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass B {\n  int y;\n  public B(int y){\n    this.y = y;\n  }\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = x;\n  }\n}\n\nA a = new A(9);\ntypechecker_debugger;\ndebugger;";
-        // class C {
-        //   int f;
-        //   public C() {
-        //     this.f = 1;
-        //   }
-        //   public void M(float x, float y) {
-        //     this.f = this.f * x + y;
-        //   }
-        //   public void M(Func<int,int> f) {
-        //     this.f = f(this.f);
-        //   }
-        //   public void M(Func<int,int> f, int x) {
-        //     this.f = f(this.f) + x;
-        //   }
-        // }
-        // var c = new C();
-        // c.M(2, 3);
-        // c.M(x => x + 1);
-        // c.M(x => x * 3, 2);
-        /*
-        abstract class Animal{
-          public abstract string MakeSound();
-        }
-        class Cat : Animal{
-          public override string MakeSound(){
-             return "miao";
-          }
-        }
-        
-        class LargeCat : Cat {
-          public override string MakeSound(){
-            return "MIAO";
-         }
-        }
-        
-        Cat c = new LargeCat();
-        var s = c.MakeSound();
-        */
+        var source = "\nclass C {\n  public int w;\n  public C(int w){\n    this.w = w;\n  }\n}\nclass B:C {\n  int y;\n  public B(int y):base(y){\n    this.y = y;\n  }\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = this.w;\n  }\n}\n\nA a = new A(9);\ntypechecker_debugger;\ndebugger;";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

@@ -21,16 +21,22 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class B {
+class C {
+  public int w;
+  public C(int w){
+    this.w = w;
+  }
+}
+class B:C {
   int y;
-  public B(int y){
+  public B(int y):base(y){
     this.y = y;
   }
 }
 class A : B {
   int x;
   public A(int x) : base(x * 1000){
-    this.x = x;
+    this.x = this.w;
   }
 }
 
@@ -38,51 +44,6 @@ A a = new A(9);
 typechecker_debugger;
 debugger;`
 
-// class C {
-//   int f;
-//   public C() {
-//     this.f = 1;
-//   }
-
-//   public void M(float x, float y) {
-//     this.f = this.f * x + y;
-//   }
-
-//   public void M(Func<int,int> f) {
-//     this.f = f(this.f);
-//   }
-
-//   public void M(Func<int,int> f, int x) {
-//     this.f = f(this.f) + x;
-//   }
-// }
-
-// var c = new C();
-// c.M(2, 3);
-// c.M(x => x + 1);
-// c.M(x => x * 3, 2);
-
-
-
-/*
-abstract class Animal{
-  public abstract string MakeSound();
-}
-class Cat : Animal{
-  public override string MakeSound(){
-     return "miao";
-  }
-}
-
-class LargeCat : Cat {
-  public override string MakeSound(){
-    return "MIAO";
- }
-}
-
-Cat c = new LargeCat();
-var s = c.MakeSound();
-*/
 
     // let hrstart = process.hrtime()
 

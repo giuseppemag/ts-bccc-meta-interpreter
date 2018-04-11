@@ -63,7 +63,7 @@ export declare let mk_param: (name: string, type: Type) => {
 };
 export declare let mk_lambda: (r: SourceRange, def: LambdaDefinition, closure_parameters: string[], range: SourceRange) => Stmt;
 export declare let def_fun: (r: SourceRange, def: FunDefinition, closure_parameters: string[]) => Stmt;
-export declare let def_method: (r: SourceRange, C_name: string, def: MethodDefinition) => Stmt;
+export declare let def_method: (r: SourceRange, C_name: string, _extends: Sum<ObjType, Unit>, def: MethodDefinition) => Stmt;
 export declare let call_lambda: (r: SourceRange, lambda: Stmt, arg_values: Stmt[]) => Stmt;
 export declare let call_by_name: (r: SourceRange, f_n: string, args: Stmt[]) => Stmt;
 export declare let ret: (r: SourceRange, p: Stmt) => Stmt;
@@ -71,7 +71,7 @@ export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let def_class: (r: SourceRange, C_name: string, extends_class: Sum<string, Unit>, implements_interfaces: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_class: (r: SourceRange, C_kind: "normal" | "abstract" | "interface", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string) => Stmt;
 export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: {
     att_name: string;
