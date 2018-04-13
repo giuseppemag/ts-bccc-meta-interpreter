@@ -440,11 +440,18 @@ export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
     closure_parameters.reduce<Stmt>((acc, cp) =>
       semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
-  return _ => Co.co_get_state<State, Err>().then(initial_bindings =>
+  return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
+    
     set_bindings(no_constraints).then(_ =>
       body(apply(inl(), return_t)).then(body_t =>
-        Co.co_set_state<State, Err>(initial_bindings).then(_ =>
-          co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
+        {
+          let m_params:Type = parameters.length == 0 ? tuple_type([{kind:"unit"}]) : tuple_type((parameters.map(p => p.type)))
+          let _fun_type = fun_type(m_params, body_t.type, r)
+          if (constraints.kind == "left" && !type_equals(_fun_type, constraints.value)) 
+            return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
+          return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
+                    co_unit(mk_typing(_fun_type, Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
+        }
       )))
 }
 // export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
@@ -663,13 +670,14 @@ export let def_class = function (r: SourceRange, C_kind: "normal" | "abstract" |
       class_kind: C_kind,
       methods: MultiMap<Name, MethodTyping>(
         methods.map(m => {
+          let m_params:Type = m.parameters.length == 0 ? tuple_type([{kind:"unit"}]) : tuple_type((m.parameters.map(p => p.type)))
           return {
             k: m.name,
             v: {
               typing:
                 m.modifiers.filter(md => md == "static").length == 0 ?
-                  mk_typing(fun_type(tuple_type([ref_type(C_name)]), fun_type(tuple_type((m.parameters.map(p => p.type))), m.return_t, m.range), m.range), Sem.done_rt) :
-                  mk_typing(fun_type(tuple_type(m.parameters.map(p => p.type)), m.return_t, m.range), Sem.done_rt),
+                  mk_typing(fun_type(tuple_type([ref_type(C_name)]), fun_type(m_params, m.return_t, m.range), m.range), Sem.done_rt) :
+                  mk_typing(fun_type(m_params, m.return_t, m.range), Sem.done_rt),
               modifiers: Immutable.Set<Modifier>(m.modifiers)
             }
           }
@@ -865,7 +873,8 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
 
 
 export let field_set = function (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: { att_name: string, kind: "att" } |
-  { att_name: string, kind: "att_arr", index: Stmt }, new_value: Stmt): Stmt {
+                                                                                                  { att_name: string, kind: "att_arr", index: Stmt }, 
+                                  new_value: Stmt): Stmt {
   return _ => this_ref(no_constraints).then(this_ref_t =>
     (F_name.kind == "att_arr" ? F_name.index(no_constraints) : co_unit<State, Err, Typing>(mk_typing(bool_type, Sem.bool_expr(false)))).then(maybe_index =>
       co_get_state<State, Err>().then(bindings => {
@@ -891,7 +900,8 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot set non-public field ${C_name}::${F_name.att_name}.` })
         }
         return new_value(apply(inl(), F_def.type)).then(new_value_t => {
-          //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
+          console.log("comparing ", JSON.stringify([F_def.type, new_value_t.type]))
+
           return co_unit(mk_typing(unit_type,
             F_def.modifiers.has("static")
               ? Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : { ...F_name, index: maybe_index.sem }, new_value_t.sem)
@@ -1009,7 +1019,6 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
         m.v.modifiers.some(mod => mod == "operator") &&
         m.v.modifiers.some(mod => mod == "static")).map(c_op => !c_op ? undefined : ({ body: c_op.v, name: c_op.k }))
         .toArray() // as { body:MethodTyping, name:string}[]
-      console.log("yo dude!", JSON.stringify([e_c, casting_operators]))
       let coercions = casting_operators.map(c_op => {
         if (!c_op)
           return (_: TypeConstraints) => co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })

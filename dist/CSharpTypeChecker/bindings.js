@@ -454,11 +454,15 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
     var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
         return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
     }, exports.done));
-    return function (_) { return Co.co_get_state().then(function (initial_bindings) {
+    return function (constraints) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(types_1.no_constraints).then(function (_) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
+                var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
+                var _fun_type = types_1.fun_type(m_params, body_t.type, r);
+                if (constraints.kind == "left" && !types_1.type_equals(_fun_type, constraints.value))
+                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + types_1.type_to_string(constraints.value) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
                 return Co.co_set_state(initial_bindings).then(function (_) {
-                    return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
+                    return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
                 });
             });
         });
@@ -652,12 +656,13 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
             C_name: C_name,
             class_kind: C_kind,
             methods: multi_map_1.MultiMap(methods.map(function (m) {
+                var m_params = m.parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((m.parameters.map(function (p) { return p.type; })));
                 return {
                     k: m.name,
                     v: {
                         typing: m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ?
-                            types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type((m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), m.range), Sem.done_rt) :
-                            types_1.mk_typing(types_1.fun_type(types_1.tuple_type(m.parameters.map(function (p) { return p.type; })), m.return_t, m.range), Sem.done_rt),
+                            types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(m_params, m.return_t, m.range), m.range), Sem.done_rt) :
+                            types_1.mk_typing(types_1.fun_type(m_params, m.return_t, m.range), Sem.done_rt),
                         modifiers: Immutable.Set(m.modifiers)
                     }
                 };
@@ -864,7 +869,7 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + F_name.att_name + "." });
                 }
                 return new_value(ts_bccc_1.apply(ts_bccc_1.inl(), F_def.type)).then(function (new_value_t) {
-                    //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
+                    console.log("comparing ", JSON.stringify([F_def.type, new_value_t.type]));
                     return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, F_def.modifiers.has("static")
                         ? Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem)
                         : Sem.field_set_expr_rt(r, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem, this_ref_t.sem)));
@@ -980,7 +985,6 @@ exports.coerce = function (r, e, t) {
                     m.v.modifiers.some(function (mod) { return mod == "static"; });
             }).map(function (c_op) { return !c_op ? undefined : ({ body: c_op.v, name: c_op.k }); })
                 .toArray(); // as { body:MethodTyping, name:string}[]
-            console.log("yo dude!", JSON.stringify([e_c, casting_operators]));
             var coercions = casting_operators.map(function (c_op) {
                 if (!c_op)
                     return function (_) { return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" }); };

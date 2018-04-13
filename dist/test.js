@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C {\n  public int w;\n  public C(int w){\n    this.w = w;\n  }\n  public int Z(){\n    return 21;\n  }\n}\nabstract class B:C {\n  int y;\n  public B(int y):base(y){\n    this.y = y;\n  }\n  public abstract int T();\n  public abstract int K();\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = this.w;    \n  }\n  public override int T(){\n    return 1001;\n  }\n}\n\nvar a = new A(9);\nvar b = a as B;\nB c = new B(2);\ntypechecker_debugger;\ndebugger;";
+        var source = "\n    \nclass C {\n  public int w;\n  public C(int w){\n    this.w = w;\n  }\n  public int Z(){\n    return 21;\n  }\n}\nabstract class B:C {\n  int y;\n  public B(int y):base(y){\n    this.y = y;\n  }\n  public abstract int T();\n  public abstract int K();\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = this.w;    \n  }\n  public override int T(){\n    return 999999999999;\n  }\n}\n\nvar a = new A(9);\nvar b = a as B;\nvar c = b.T();\ntypechecker_debugger;\ndebugger;";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

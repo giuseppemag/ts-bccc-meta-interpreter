@@ -21,6 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
+    
 class C {
   public int w;
   public C(int w){
@@ -44,13 +45,13 @@ class A : B {
     this.x = this.w;    
   }
   public override int T(){
-    return 1001;
+    return 999999999999;
   }
 }
 
 var a = new A(9);
 var b = a as B;
-B c = new B(2);
+var c = b.T();
 typechecker_debugger;
 debugger;`
 
