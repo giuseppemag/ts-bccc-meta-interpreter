@@ -135,7 +135,7 @@ export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
 export declare let store: Fun<Prod<Prod<string, TypeInformation>, State>, State>;
 export declare let type_equals: (t1: Type, t2: Type) => boolean;
-export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting" | "abstract";
+export declare type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting" | "abstract" | "interface";
 export interface Parameter {
     name: Name;
     type: Type;

@@ -30,7 +30,7 @@ class C {
     return 21;
   }
 }
-class B:C {
+abstract class B:C {
   int y;
   public B(int y):base(y){
     this.y = y;
@@ -50,7 +50,7 @@ class A : B {
 
 var a = new A(9);
 var b = a as B;
-
+B c = new B(2);
 typechecker_debugger;
 debugger;`
 

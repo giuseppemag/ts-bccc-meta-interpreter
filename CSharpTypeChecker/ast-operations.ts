@@ -283,7 +283,10 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         //   Immutable.Set<string>(n.ast.arg_decls.toArray().map(d => d.r.ast.kind == "id" ? d.r.ast.value : ""))).toArray()
         )
   : n.ast.kind == "class" ?
-    def_class(n.range, "normal", n.ast.C_name,
+    def_class(n.range, 
+      (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
+       n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
+      n.ast.C_name,
       n.ast.extends_or_implements,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,

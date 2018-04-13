@@ -475,11 +475,11 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
           _extends.kind == "left"
           ? // this is a constructor with base
           abstract_methods.length == 0 ?
-            field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call))
+            field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call, true))
             :
             semicolon(
               r,
-              field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call)),
+              field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call, true)),
               abstract_methods.map(a_m =>
                 field_set(r, context, get_v(r, "this"),
                   { kind: "att", att_name: a_m.name },
@@ -902,12 +902,12 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
 }
 
 
-export let call_cons = function (r: SourceRange, context: CallingContext, C_name: string, arg_values: Array<Stmt>): Stmt {
+export let call_cons = function (r: SourceRange, context: CallingContext, C_name: string, arg_values: Array<Stmt>, is_internal:boolean = false): Stmt {
   return constraints => co_get_state<State, Err>().then(bindings => {
     if (!bindings.bindings.has(C_name)) return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} is undefined.` })
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State, Err, Typing>({ range: r, message: `Error: type  ${C_name} is not a class.` })
-    if (C_def.class_kind != "normal") return co_error<State, Err, Typing>({ range: r, message: `Error: cannot instantiate ${C_name} as it is not a concrete class.` })
+    if (C_def.class_kind != "normal" && !is_internal) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot instantiate ${C_name} as it is not a concrete class.` })
     if (!C_def.methods.has(C_name)) {
       return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} has no constructors.` })
     }

@@ -580,12 +580,12 @@ var function_declaration = function (modifiers) {
         });
     });
 };
-var class_body = function (class_name, initial_range, extends_or_implements) {
+var class_body = function (class_name, initial_range, extends_or_implements, modifiers) {
     return primitives_1.left_curly_bracket.then(function (_) {
         return class_statements().then(function (declarations) {
             return primitives_1.right_curly_bracket.then(function (closing_curly_range) {
                 return full_match.then(function (_) {
-                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_or_implements, declarations.fst, declarations.snd.fst, declarations.snd.snd, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_or_implements, declarations.fst, declarations.snd.fst, declarations.snd.snd, modifiers, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
                 });
             });
         });
@@ -593,14 +593,16 @@ var class_body = function (class_name, initial_range, extends_or_implements) {
 };
 var class_declaration = function () {
     return no_match.then(function (_) {
-        return primitives_1.class_keyword.then(function (initial_range) {
-            return partial_match.then(function (_) {
-                return primitives_1.identifier_token.then(function (class_name) {
-                    return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                        return identifiers().then(function (extends_or_implements) {
-                            return class_body(class_name, initial_range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }));
-                        });
-                    }), class_body(class_name, initial_range, []));
+        return class_modifiers().then(function (c_ms) {
+            return primitives_1.class_keyword.then(function (initial_range) {
+                return partial_match.then(function (_) {
+                    return primitives_1.identifier_token.then(function (class_name) {
+                        return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
+                            return identifiers().then(function (extends_or_implements) {
+                                return class_body(class_name, initial_range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
+                            });
+                        }), class_body(class_name, initial_range, [], Immutable.List(c_ms.toArray().map(function (m) { return m.ast; }))));
+                    });
                 });
             });
         });
@@ -643,6 +645,20 @@ var modifiers = function () {
                 m.ast.kind == "virtual" && ms.some(function (m) { return !m || m.ast.kind == "override"; }) ||
                 m.ast.kind == "override" && ms.some(function (m) { return !m || m.ast.kind == "virtual"; }) ||
                 m.ast.kind == "abstract" && ms.some(function (m) { return !m || m.ast.kind == "virtual"; }) ?
+                ts_bccc_1.co_get_state().then(function (s) {
+                    return ts_bccc_1.co_error({ range: m.range, priority: s.branch_priority, message: "Error: incompatible modifiers." });
+                })
+                : ts_bccc_1.co_unit(ms.push(m));
+        });
+    }), ts_bccc_1.co_unit(Immutable.List()));
+};
+var class_modifiers = function () {
+    return primitives_1.parser_or(modifier().then(function (m) {
+        return modifiers().then(function (ms) {
+            return m.ast.kind == "private" && ms.some(function (m) { return !m || m.ast.kind == "public"; }) ||
+                m.ast.kind == "public" && ms.some(function (m) { return !m || m.ast.kind == "private"; }) ||
+                m.ast.kind == "interface" && ms.some(function (m) { return !m || m.ast.kind == "abstract"; }) ||
+                m.ast.kind == "abstract" && ms.some(function (m) { return !m || m.ast.kind == "interface"; }) ?
                 ts_bccc_1.co_get_state().then(function (s) {
                     return ts_bccc_1.co_error({ range: m.range, priority: s.branch_priority, message: "Error: incompatible modifiers." });
                 })

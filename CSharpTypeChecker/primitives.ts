@@ -92,10 +92,11 @@ export const mk_constructor_declaration = (range:SourceRange, function_name:stri
 export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
   ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body, range:range, params_base_call:[]})
 
-export const mk_class_declaration = (C_name:string, extends_or_implements:string[],fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, range:SourceRange) : ParserRes =>
+export const mk_class_declaration = (C_name:string, extends_or_implements:string[],fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST>, range:SourceRange) : ParserRes =>
   ({  range: range,
       ast: {kind:"class", C_name:C_name, 
             extends_or_implements: extends_or_implements,
+            modifiers:modifiers,
             fields:fields, methods:methods, constructors:constructors } })
 
 export const mk_private = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"private"}})

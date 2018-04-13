@@ -142,7 +142,7 @@ let priority_operators_table =
   .set(",", {priority:0, associativity:"right"})
 
 
-export type ModifierAST = { kind:"abstract" } | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
+export type ModifierAST = { kind:"abstract" } | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" } | { kind:"interface" }
 
 export interface DebuggerAST { kind: "debugger" }
 export interface TCDebuggerAST { kind: "typechecker_debugger" }
@@ -171,7 +171,7 @@ export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.L
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
-export interface ClassAST { kind: "class", C_name:string, extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST> }
+export interface ClassAST { kind: "class", C_name:string, extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
 export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
@@ -775,7 +775,7 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
                                     body))))))))))))))
 
 
-let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_or_implements:string[]) =>
+let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_or_implements:string[], modifiers:Immutable.List<ModifierAST>) =>
   left_curly_bracket.then(_ =>
   class_statements().then(declarations =>
   right_curly_bracket.then(closing_curly_range =>
@@ -787,21 +787,23 @@ let class_body = (class_name:{id: string;range: SourceRange}, initial_range:Sour
       declarations.fst,
       declarations.snd.fst,
       declarations.snd.snd,
+      modifiers,
       join_source_ranges(initial_range, closing_curly_range))
   )))))                                  
 
 let class_declaration = () =>
   no_match.then(_ =>
+  class_modifiers().then(c_ms =>
   class_keyword.then(initial_range =>
   partial_match.then(_ =>
   identifier_token.then(class_name =>
   parser_or<ParserRes>(
     colon_keyword.then(_ =>
     identifiers().then(extends_or_implements =>
-    class_body(class_name, initial_range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""))
+    class_body(class_name, initial_range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
     )),
-    class_body(class_name, initial_range, [])
-  )))))
+    class_body(class_name, initial_range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+  ))))))
 
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(
@@ -864,6 +866,19 @@ let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:
   m.ast.kind == "virtual" && ms.some(m => !m || m.ast.kind == "override") ||
   m.ast.kind == "override" && ms.some(m => !m || m.ast.kind == "virtual") ||
   m.ast.kind == "abstract" && ms.some(m => !m || m.ast.kind == "virtual") ?
+    co_get_state<ParserState, ParserError>().then(s =>
+    co_error({ range:m.range, priority:s.branch_priority, message:"Error: incompatible modifiers." }))
+  : co_unit(ms.push(m)))),
+  co_unit(Immutable.List<{ range:SourceRange, ast:ModifierAST }>()))
+
+let class_modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:SourceRange, ast:ModifierAST }>> =>
+  parser_or<Immutable.List<{ range:SourceRange, ast:ModifierAST }>>(
+  modifier().then(m =>
+  modifiers().then(ms =>
+  m.ast.kind == "private" && ms.some(m => !m || m.ast.kind == "public") ||
+  m.ast.kind == "public" && ms.some(m => !m || m.ast.kind == "private") ||
+  m.ast.kind == "interface" && ms.some(m => !m || m.ast.kind == "abstract") ||
+  m.ast.kind == "abstract" && ms.some(m => !m || m.ast.kind == "interface") ?
     co_get_state<ParserState, ParserError>().then(s =>
     co_error({ range:m.range, priority:s.branch_priority, message:"Error: incompatible modifiers." }))
   : co_unit(ms.push(m)))),

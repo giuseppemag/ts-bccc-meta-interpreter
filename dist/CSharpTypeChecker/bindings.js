@@ -493,9 +493,9 @@ exports.def_method = function (r, C_name, _extends, def, abstract_methods) {
                     _extends.kind == "left"
                     ? // this is a constructor with base
                         abstract_methods.length == 0 ?
-                            exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call))
+                            exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true))
                             :
-                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call)), abstract_methods.map(function (a_m) {
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), abstract_methods.map(function (a_m) {
                                     return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
                                         return_t: a_m.return_t,
                                         parameters: a_m.parameters,
@@ -873,14 +873,15 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
         });
     }); };
 };
-exports.call_cons = function (r, context, C_name, arg_values) {
+exports.call_cons = function (r, context, C_name, arg_values, is_internal) {
+    if (is_internal === void 0) { is_internal = false; }
     return function (constraints) { return ts_bccc_1.co_get_state().then(function (bindings) {
         if (!bindings.bindings.has(C_name))
             return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined." });
         var C_def = bindings.bindings.get(C_name);
         if (C_def.kind != "obj")
             return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class." });
-        if (C_def.class_kind != "normal")
+        if (C_def.class_kind != "normal" && !is_internal)
             return ts_bccc_2.co_error({ range: r, message: "Error: cannot instantiate " + C_name + " as it is not a concrete class." });
         if (!C_def.methods.has(C_name)) {
             return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " has no constructors." });

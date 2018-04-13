@@ -94,7 +94,7 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   return t1.kind == t2.kind
 }
 
-export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting" | "abstract"
+export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting" | "abstract" | "interface"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }

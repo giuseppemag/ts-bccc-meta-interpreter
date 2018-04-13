@@ -16,6 +16,8 @@ export declare type ModifierAST = {
     kind: "virtual";
 } | {
     kind: "override";
+} | {
+    kind: "interface";
 };
 export interface DebuggerAST {
     kind: "debugger";
@@ -137,6 +139,7 @@ export interface ClassAST {
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
     constructors: Immutable.List<ConstructorAST>;
+    modifiers: Immutable.List<ModifierAST>;
 }
 export interface ConstructorDeclarationAST {
     kind: "cons_decl";
