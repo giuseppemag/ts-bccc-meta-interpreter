@@ -595,6 +595,18 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
         var context = { kind: "class", C_name: C_name };
         var _methods = methods_from_context.map(function (m) { return m(context); });
         var methods = _methods.filter(function (m) { return !m.modifiers.some(function (m) { return m == "abstract" || m == "virtual" || m == "override"; }); });
+        if (!methods.some(function (m) { return m.is_constructor; })) {
+            //let base_type: Type = { kind: "ref", C_name: ec.C_name }
+            var def_constructor = {
+                modifiers: ["public"], is_constructor: true, range: r,
+                return_t: types_1.unit_type,
+                name: C_name,
+                parameters: [],
+                params_base_call: [],
+                body: exports.done
+            };
+            methods = methods.concat([def_constructor]);
+        }
         if (extends_or_implements.some(function (c) { return !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"; }))
             return ts_bccc_2.co_error({ message: "Wrong definition of base types when declaring class " + C_name + ".", range: r });
         var fields = fields_from_context.map(function (f) { return f(context); });
@@ -869,7 +881,6 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot set non-public field " + C_name + "::" + F_name.att_name + "." });
                 }
                 return new_value(ts_bccc_1.apply(ts_bccc_1.inl(), F_def.type)).then(function (new_value_t) {
-                    console.log("comparing ", JSON.stringify([F_def.type, new_value_t.type]));
                     return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, F_def.modifiers.has("static")
                         ? Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem)
                         : Sem.field_set_expr_rt(r, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem, this_ref_t.sem)));
@@ -978,7 +989,6 @@ exports.coerce = function (r, e, t) {
         return exports.get_class(r, e_v.type).then(function (e_c) {
             var t_name = types_1.type_to_string(t);
             var e_type_name = types_1.type_to_string(e_v.type);
-            console.log("Coercing " + e_type_name + " -> " + JSON.stringify(t));
             var casting_operators = e_c.methods.values().filter(function (m) {
                 return m != undefined && m.v.modifiers.some(function (mod) { return mod == "casting"; }) &&
                     m.v.modifiers.some(function (mod) { return mod == "operator"; }) &&

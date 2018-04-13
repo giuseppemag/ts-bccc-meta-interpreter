@@ -105,6 +105,7 @@ export const mk_protected = (sr:SourceRange) : { range:SourceRange, ast:Modifier
 export const mk_static = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"static"}})
 export const mk_override = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"override"}})
 export const mk_abstract = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"abstract"}})
+export const mk_interface = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"interface"}})
 export const mk_virtual = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"virtual"}})
 
 export const mk_dbg = (sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "debugger" }})
@@ -457,6 +458,7 @@ export const static_modifier = symbol("static", "static")
 export const override_modifier = symbol("override", "override")
 export const virtual_modifier = symbol("virtual", "virtual")
 export const abstract_modifier = symbol("abstract", "abstract")
+export const interface_modifier = symbol("interface", "interface")
 
 export const as_op = binop_sign("as")
 

@@ -82,6 +82,10 @@ export declare const mk_abstract: (sr: SourceRange) => {
     range: SourceRange;
     ast: ModifierAST;
 };
+export declare const mk_interface: (sr: SourceRange) => {
+    range: SourceRange;
+    ast: ModifierAST;
+};
 export declare const mk_virtual: (sr: SourceRange) => {
     range: SourceRange;
     ast: ModifierAST;
@@ -167,6 +171,7 @@ export declare const static_modifier: Coroutine<ParserState, ParserError, Source
 export declare const override_modifier: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const virtual_modifier: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const abstract_modifier: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const interface_modifier: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const as_op: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const plus_op: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const minus_op: Coroutine<ParserState, ParserError, SourceRange>;

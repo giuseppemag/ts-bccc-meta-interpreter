@@ -593,6 +593,18 @@ export let def_class = function (r: SourceRange, C_kind: "normal" | "abstract" |
     let context: CallingContext = { kind: "class", C_name: C_name }
     let _methods = methods_from_context.map(m => m(context))
     let methods = _methods.filter(m => !m.modifiers.some(m => m == "abstract" || m == "virtual" || m == "override"))
+    if(!methods.some(m => m.is_constructor)){
+      //let base_type: Type = { kind: "ref", C_name: ec.C_name }
+      let def_constructor : MethodDefinition = {
+        modifiers:["public"], is_constructor:true, range:r,
+        return_t:unit_type, 
+        name:C_name, 
+        parameters:[],
+        params_base_call:[],
+        body: done 
+      }
+      methods = methods.concat([def_constructor])
+    }
 
     if (extends_or_implements.some(c => !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"))
       return co_error({ message: `Wrong definition of base types when declaring class ${C_name}.`, range: r })
@@ -900,7 +912,6 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot set non-public field ${C_name}::${F_name.att_name}.` })
         }
         return new_value(apply(inl(), F_def.type)).then(new_value_t => {
-          console.log("comparing ", JSON.stringify([F_def.type, new_value_t.type]))
 
           return co_unit(mk_typing(unit_type,
             F_def.modifiers.has("static")
@@ -1012,7 +1023,6 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
       let t_name = type_to_string(t)
       let e_type_name = type_to_string(e_v.type)
 
-      console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
 
       let casting_operators = e_c.methods.values().filter(m =>
         m != undefined && m.v.modifiers.some(mod => mod == "casting") &&

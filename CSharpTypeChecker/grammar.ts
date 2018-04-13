@@ -112,6 +112,8 @@ import {
   base,
   abstract_modifier,
   mk_abstract,
+  mk_interface,
+  interface_modifier,
 } from './primitives';
 import { Modifier } from './types';
 
@@ -789,7 +791,7 @@ let class_body = (class_name:{id: string;range: SourceRange}, initial_range:Sour
       declarations.snd.snd,
       modifiers,
       join_source_ranges(initial_range, closing_curly_range))
-  )))))                                  
+  )))))    
 
 let class_declaration = () =>
   no_match.then(_ =>
@@ -797,20 +799,41 @@ let class_declaration = () =>
   class_keyword.then(initial_range =>
   partial_match.then(_ =>
   identifier_token.then(class_name =>
-  parser_or<ParserRes>(
+  {
+    let range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
+    return parser_or<ParserRes>(
     colon_keyword.then(_ =>
     identifiers().then(extends_or_implements =>
-    class_body(class_name, initial_range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+    class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
     )),
-    class_body(class_name, initial_range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
-  ))))))
+    class_body(class_name, range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+  )})))))
+
+
+let interface_declaration = () =>
+  no_match.then(_ =>
+  class_modifiers().then(c_ms =>
+  partial_match.then(_ =>
+  identifier_token.then(class_name =>
+  {
+    if(c_ms.count() == 0) return co_get_state<ParserState, ParserError>().then(s =>
+                                  co_error<ParserState, ParserError, ParserRes>({ range:class_name.range, priority:s.branch_priority, message:`Error: missing modifiers to ${class_name.id}.` }))
+    let range = c_ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
+    return parser_or<ParserRes>(
+        colon_keyword.then(_ =>
+        identifiers().then(extends_or_implements =>
+        class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+        )),
+        class_body(class_name, range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+      )}))))
 
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(
     function_declaration([]).then(fun_decl =>
     co_unit<ParserState,ParserError,ParserRes>({ range: fun_decl.range, ast:fun_decl })),
   parser_or<ParserRes>(class_declaration(),
-  inner_statement()))
+  parser_or<ParserRes>(interface_declaration(),
+  inner_statement())))
 
 let unchanged = CCC.id<Coroutine<ParserState, ParserError, ParserRes>>().f
 
@@ -855,7 +878,8 @@ let modifier = () : Coroutine<ParserState, ParserError, { range:SourceRange, ast
   parser_or<{ range:SourceRange, ast:ModifierAST }>(virtual_modifier.then(r => co_unit(mk_virtual(r))),
   parser_or<{ range:SourceRange, ast:ModifierAST }>(override_modifier.then(r => co_unit(mk_override(r))),
   parser_or<{ range:SourceRange, ast:ModifierAST }>(abstract_modifier.then(r => co_unit(mk_abstract(r))),
-  static_modifier.then(r => co_unit(mk_static(r)))))))))
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(interface_modifier.then(r => co_unit(mk_interface(r))),
+  static_modifier.then(r => co_unit(mk_static(r))))))))))
 
 let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:SourceRange, ast:ModifierAST }>> =>
   parser_or<Immutable.List<{ range:SourceRange, ast:ModifierAST }>>(

@@ -38,7 +38,7 @@ var GrammarBasics;
                 || s == "for" || s == "while" || s == "if" || s == "else"
                 || s == "debugger" || s == "typechecker_debugger"
                 || s == "private" || s == "public" || s == "protected"
-                || s == "virtual" || s == "override" || s == "base" || s == "abstract"
+                || s == "virtual" || s == "override" || s == "base" || s == "abstract" || s == "interface"
                 || s == "static" ? ({ range: r, kind: s })
                 : s == "other_surface" || s == "empty_surface" || s == "ellipse"
                     || s == "sprite" || s == "circle" || s == "rectangle" || s == "text"

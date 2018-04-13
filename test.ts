@@ -21,7 +21,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    
+interface W {
+  int P();  
+  int Q(int i);  
+}
+
 class C {
   public int w;
   public C(int w){
@@ -29,6 +33,9 @@ class C {
   }
   public int Z(){
     return 21;
+  }
+  public virtual int Q(int x){
+    return 2111112 * x;
   }
 }
 abstract class B:C {
@@ -47,11 +54,19 @@ class A : B {
   public override int T(){
     return 999999999999;
   }
+  public override int Q(int z){
+    return 12222221 / z;
+  }
+}
+class Z {
+
 }
 
+Z z = new Z();
 var a = new A(9);
 var b = a as B;
 var c = b.T();
+var d = a.Q(2);
 typechecker_debugger;
 debugger;`
 
