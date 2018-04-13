@@ -21,7 +21,7 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-interface W {
+public interface W {
   int P();  
   int Q(int i);  
 }

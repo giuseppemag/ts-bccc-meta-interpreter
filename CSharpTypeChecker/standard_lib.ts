@@ -60,7 +60,7 @@ let casting_operator = (name:string, from_t:CSharp.Type, to_t:CSharp.Type, conv:
         Sem.return_rt(Sem.val_expr(apply(inl(), conv(a_v.value))))
         )) })
 
-let bool = CSharp.def_class(minus_two_range, "normal", "bool", [], [
+let bool = CSharp.def_class(minus_two_range, [], "normal", "bool", [], [
     casting_operator("string", CSharp.bool_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
     to_string(CSharp.bool_type, a_v => Sem.mk_string_val((a_v.v as boolean).toString())),
     unary_operator("!", CSharp.bool_type, (a_v) => Sem.mk_bool_val(!(a_v.v as boolean))),
@@ -70,7 +70,7 @@ let bool = CSharp.def_class(minus_two_range, "normal", "bool", [], [
   ],
   [], true)
 
-let int = CSharp.def_class(minus_two_range, "normal", "int", [], [
+let int = CSharp.def_class(minus_two_range, [], "normal", "int", [], [
     casting_operator("string", CSharp.int_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
     to_string(CSharp.int_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
     casting_operator("float", CSharp.int_type, CSharp.float_type, a_v => Sem.mk_float_val(a_v.v as number)),
@@ -89,7 +89,7 @@ let int = CSharp.def_class(minus_two_range, "normal", "int", [], [
   ],
   [], true)
 
-export let float = CSharp.def_class(minus_two_range, "normal", "float", [],[
+export let float = CSharp.def_class(minus_two_range, [], "normal", "float", [],[
   casting_operator("string", CSharp.float_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   to_string(CSharp.float_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   casting_operator("double", CSharp.float_type, CSharp.double_type, a_v => Sem.mk_float_val(a_v.v as number)),
@@ -107,7 +107,7 @@ export let float = CSharp.def_class(minus_two_range, "normal", "float", [],[
 ],
 [], true)
 
-export let double = CSharp.def_class(minus_two_range, "normal", "double", [],[
+export let double = CSharp.def_class(minus_two_range, [], "normal", "double", [],[
   casting_operator("string", CSharp.double_type, CSharp.string_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   to_string(CSharp.double_type, a_v => Sem.mk_string_val((a_v.v as number).toString())),
   binary_operator("+", CSharp.double_type, (a_v, b_v) => Sem.mk_float_val((a_v.v as number) + (b_v.v as number))),
@@ -124,7 +124,7 @@ export let double = CSharp.def_class(minus_two_range, "normal", "double", [],[
 ],
 [], true)
 
-let string = CSharp.def_class(minus_two_range, "normal", "string", [],[
+let string = CSharp.def_class(minus_two_range, [], "normal", "string", [],[
   to_string(CSharp.string_type, a_v => Sem.mk_string_val(a_v.v as string)),
   binary_operator("+", CSharp.string_type, (a_v, b_v) => Sem.mk_string_val((a_v.v as string) + (b_v.v as string))),
   comparison_operator("==", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) == (b_v.v as string))),
@@ -132,12 +132,12 @@ let string = CSharp.def_class(minus_two_range, "normal", "string", [],[
 ],
 [], true)
 
-let unit = CSharp.def_class(minus_two_range, "normal", "unit", [],[
+let unit = CSharp.def_class(minus_two_range, [], "normal", "unit", [],[
   to_string(CSharp.unit_type, a_v => Sem.mk_string_val("")),
 ],
 [], true)
 
-let math = CSharp.def_class(minus_two_range, "normal", "Math", [], [
+let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
             params_base_call:[],

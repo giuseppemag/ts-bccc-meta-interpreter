@@ -16,6 +16,7 @@ export interface MethodTyping {
 }
 export interface FieldType {
     type: Type;
+    is_used_as_base: boolean;
     modifiers: Immutable.Set<Modifier>;
     initial_value: Option<Stmt>;
 }
@@ -157,6 +158,7 @@ export interface MethodDefinition extends FunDefinition {
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;
     initial_value: Option<Stmt>;
+    is_used_as_base: boolean;
 }
 export declare type CallingContext = {
     kind: "global scope";

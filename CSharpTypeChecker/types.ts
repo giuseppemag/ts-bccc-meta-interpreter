@@ -13,7 +13,7 @@ import { MultiMap } from "../multi_map";
 export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
-export interface FieldType { type:Type, modifiers:Immutable.Set<Modifier>, initial_value:Option<Stmt> }
+export interface FieldType { type:Type, is_used_as_base:boolean,modifiers:Immutable.Set<Modifier>, initial_value:Option<Stmt> }
 export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"}
                                 | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
                                 | { kind:"other surface"} | { kind:"sprite"}
@@ -99,7 +99,7 @@ export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
 export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Stmt[]  }
-export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt> }
+export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt>, is_used_as_base:boolean }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
 
 export type TypeConstraints = Option<Type>

@@ -284,6 +284,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         )
   : n.ast.kind == "class" ?
     def_class(n.range, 
+      n.ast.modifiers.toArray().map(m => m.kind),
       (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
        n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
       n.ast.C_name,
@@ -311,6 +312,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
         type:ast_to_csharp_type(f.decl.l),
+        is_used_as_base:false,
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
         initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
       }))

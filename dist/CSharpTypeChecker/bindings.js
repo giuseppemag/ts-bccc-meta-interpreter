@@ -481,7 +481,7 @@ exports.def_fun = function (r, def, closure_parameters) {
         });
     }); };
 };
-exports.def_method = function (r, C_name, _extends, def, abstract_methods) {
+exports.def_method = function (r, C_name, _extends, _implements, def, abstract_methods) {
     var is_static = def.modifiers.some(function (m) { return m == "static"; });
     var parameters = def.parameters;
     var return_t = def.return_t;
@@ -490,6 +490,9 @@ exports.def_method = function (r, C_name, _extends, def, abstract_methods) {
     var context = { kind: "class", C_name: C_name };
     var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: types_1.ref_type(C_name) }]))
         .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
+    var interfaces_init = _implements.length > 0 ?
+        _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
+        : exports.done;
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(types_1.no_constraints).then(function (_) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
@@ -497,15 +500,15 @@ exports.def_method = function (r, C_name, _extends, def, abstract_methods) {
                     _extends.kind == "left"
                     ? // this is a constructor with base
                         abstract_methods.length == 0 ?
-                            exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true))
+                            exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), interfaces_init)
                             :
-                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), abstract_methods.map(function (a_m) {
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), exports.semicolon(r, abstract_methods.map(function (a_m) {
                                     return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
                                         return_t: a_m.return_t,
                                         parameters: a_m.parameters,
                                         body: a_m.body
                                     }, ["this"], r));
-                                }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))
+                                }).reduce(function (p, c) { return exports.semicolon(r, p, c); }), interfaces_init))
                     : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" }))).then(function (base_sem) {
                     return Co.co_set_state(initial_bindings).then(function (_) {
                         return is_static ? ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
@@ -589,14 +592,13 @@ exports.set_arr_el = function (r, a, i, e) {
             : ts_bccc_2.co_error({ range: r, message: "Error: expected an array, iclearnstead found " + types_1.type_to_string(a_t.type) + "." });
     }); };
 };
-exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_from_context, fields_from_context, is_internal) {
+exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implements, methods_from_context, fields_from_context, is_internal) {
     if (is_internal === void 0) { is_internal = false; }
     return function (_) { return ts_bccc_1.co_get_state().then(function (initial_bindings) {
         var context = { kind: "class", C_name: C_name };
         var _methods = methods_from_context.map(function (m) { return m(context); });
-        var methods = _methods.filter(function (m) { return !m.modifiers.some(function (m) { return m == "abstract" || m == "virtual" || m == "override"; }); });
+        var methods = C_kind == "interface" ? [] : _methods.filter(function (m) { return !m.modifiers.some(function (m) { return m == "abstract" || m == "virtual" || m == "override"; }); });
         if (!methods.some(function (m) { return m.is_constructor; })) {
-            //let base_type: Type = { kind: "ref", C_name: ec.C_name }
             var def_constructor = {
                 modifiers: ["public"], is_constructor: true, range: r,
                 return_t: types_1.unit_type,
@@ -607,13 +609,16 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
             };
             methods = methods.concat([def_constructor]);
         }
+        var s = extends_or_implements.filter(function (c) { return !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"; });
         if (extends_or_implements.some(function (c) { return !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"; }))
             return ts_bccc_2.co_error({ message: "Wrong definition of base types when declaring class " + C_name + ".", range: r });
+        var extended_classes = extends_or_implements.map(function (c) { return initial_bindings.bindings.get(c); });
         var fields = fields_from_context.map(function (f) { return f(context); });
-        fields = fields.concat(extends_or_implements.map(function (e) {
+        fields = fields.concat(extended_classes.map(function (e) {
             var base = {
-                name: "base",
-                type: { kind: "ref", C_name: e },
+                is_used_as_base: true,
+                name: e.class_kind != "interface" ? "base" : e.C_name + "_base",
+                type: { kind: "ref", C_name: e.C_name },
                 modifiers: ["public"],
                 initial_value: ts_bccc_1.apply(ts_bccc_1.inr(), {})
             };
@@ -621,29 +626,26 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
         }));
         var this_class_ref_type = { kind: "ref", C_name: C_name };
         var this_class_ref_param = { name: "this", type: this_class_ref_type };
-        var extended_classes = extends_or_implements.map(function (c) { return initial_bindings.bindings.get(c); });
         var casting_operators = extended_classes.map(function (ec) {
             var base_type = { kind: "ref", C_name: ec.C_name };
             return ({ modifiers: ["static", "public", "casting", "operator"], is_constructor: false, range: r,
                 return_t: base_type, name: ec.C_name, parameters: [{ name: "self", type: this_class_ref_type }],
                 params_base_call: [],
-                body: exports.field_get(r, context, exports.get_v(r, "self"), "base") });
+                body: exports.field_get(r, context, exports.get_v(r, "self"), ec.class_kind != "interface" ? "base" : ec.C_name + "_base") });
         });
         methods = methods.concat(casting_operators);
-        fields = fields.concat(_methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; }); })
+        fields = fields.concat(_methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; }) || C_kind == "interface"; })
             .map(function (m) {
             var inner_lambda_type = {
                 kind: "fun", in: types_1.tuple_type(m.parameters.length == 0 ? [{ kind: "unit" }] : m.parameters.map(function (p) { return p.type; })),
                 out: m.return_t,
                 range: m.range
             };
-            // let lambda_type :Type = { kind:"fun", in: tuple_type([this_class_ref_type]), 
-            //                           out:inner_lambda_type, 
-            //                           range: m.range }
             var m1 = {
                 name: m.name,
+                is_used_as_base: false,
                 type: inner_lambda_type,
-                modifiers: m.modifiers,
+                modifiers: C_kind == "interface" ? modifiers.filter(function (m) { return m == "public" || m == "private" || m == "protected"; }) : m.modifiers,
                 initial_value: ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_lambda(m.range, {
                     return_t: m.return_t,
                     parameters: m.parameters,
@@ -692,17 +694,18 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
         };
         return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type_placeholder, { is_constant: true })) })).then(function (_) {
             var concrete_extends_or_implements = extends_or_implements.map(function (c) { return get_class_kind(c, initial_bindings.bindings); });
-            var tmp = concrete_extends_or_implements.filter(function (e) { return e.kind == "left" && e.value.class_kind != "interface"; });
-            if (tmp.length > 1) {
+            var concrete_classes_to_extend = concrete_extends_or_implements.filter(function (e) { return e.kind == "left" && e.value.class_kind != "interface"; });
+            var interfaces_to_implement = concrete_extends_or_implements.filter(function (e) { return e.kind == "left" && e.value.class_kind == "interface"; }).map(function (e) { return e.value; });
+            if (concrete_classes_to_extend.length > 1) {
                 return ts_bccc_2.co_error({ message: "You can extend one concrete class at a time", range: r });
             }
             return ccc_aux_1.comm_list_coroutine(Immutable.List(methods.map(function (m) {
                 var concrete_extend = ts_bccc_1.apply(ts_bccc_1.inr(), {});
-                if (tmp.length == 1) {
-                    var params = m.params_base_call;
-                    concrete_extend = ts_bccc_1.apply(ts_bccc_1.inl(), tmp[0].value);
+                var interfaces = [];
+                if (concrete_classes_to_extend.length == 1) {
+                    concrete_extend = ts_bccc_1.apply(ts_bccc_1.inl(), concrete_classes_to_extend[0].value);
                 }
-                var res = exports.def_method(m.range, C_name, concrete_extend, m, _methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "override"; }); }))(types_1.no_constraints);
+                var res = exports.def_method(m.range, C_name, concrete_extend, interfaces_to_implement, m, _methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "override"; }); }))(types_1.no_constraints);
                 return res;
             }))).then(function (methods_t) {
                 var methods_full_t = methods_t.zipWith(function (m_t, m_d) { return ({ typ: m_t, def: m_d }); }, Immutable.Seq(methods)).toArray();
@@ -846,10 +849,10 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                     }
                     return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " does not contain field or method " + F_or_M_name });
                 };
-                if (C_def.fields.has("base"))
-                    return ccc_aux_1.co_catch(function (a, b) { return a; })(exports.field_get(r, context, exports.field_get(r, context, this_ref, "base"), F_or_M_name)(constraints))(method_try_get());
-                else
-                    return method_try_get();
+                var base_fields = C_def.fields.map(function (f, k) { return ({ name: k, f: f }); }).toArray().filter(function (f) { return f.f.is_used_as_base; });
+                //comm_list_coroutine
+                var field_to_lookup = base_fields.map(function (f) { return exports.field_get(r, context, exports.field_get(r, context, this_ref, f.name), F_or_M_name)(constraints); }).concat([method_try_get()]);
+                return ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get " + F_or_M_name + "." })(Immutable.List(field_to_lookup));
             }
         });
     }); };
@@ -867,9 +870,10 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                 var C_def = bindings.bindings.get(C_name);
                 if (C_def.kind != "obj")
                     return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
+                var x = C_def.fields.toArray().filter(function (f) { return f.is_used_as_base; });
                 if (!C_def.fields.has(F_name.att_name)) {
                     if (C_def.fields.has("base"))
-                        return (exports.field_set(r, context, exports.field_get(r, context, this_ref, "base"), F_name, new_value)(types_1.no_constraints));
+                        return exports.field_set(r, context, exports.field_get(r, context, this_ref, "base"), F_name, new_value)(types_1.no_constraints);
                     else
                         return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain " + F_name.att_name });
                 }
