@@ -110,7 +110,10 @@ import {
   mk_as,
   as_op,
   base,
+  abstract_modifier,
+  mk_abstract,
 } from './primitives';
+import { Modifier } from './types';
 
 let priority_operators_table =
   Immutable.Map<string, {priority:number, associativity:"left"|"right"}>()
@@ -139,7 +142,7 @@ let priority_operators_table =
   .set(",", {priority:0, associativity:"right"})
 
 
-export type ModifierAST = { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
+export type ModifierAST = { kind:"abstract" } | { kind:"private" } | { kind:"public" } | { kind:"static" } | { kind:"protected" } | { kind:"virtual" } | { kind:"override" }
 
 export interface DebuggerAST { kind: "debugger" }
 export interface TCDebuggerAST { kind: "typechecker_debugger" }
@@ -745,7 +748,7 @@ let constructor_declaration = () =>
   )    
   ))))))
 
-let function_declaration = () =>
+let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
   no_match.then(_ =>
   type_decl().then(return_type =>
   identifier_token.then(function_name =>
@@ -753,15 +756,23 @@ let function_declaration = () =>
   partial_match.then(_ =>
   arg_decls().then(arg_decls =>
   right_bracket.then(_ =>
-  left_curly_bracket.then(_ =>
-  function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
-  right_curly_bracket.then(rb =>
-  full_match.then(_ =>
-  co_unit(mk_function_declaration(join_source_ranges(return_type.range, rb),
-                                  return_type,
-                                  function_name.id,
-                                  Immutable.List<DeclAST>(arg_decls),
-                                  body)))))))))))))
+  parser_or<FunctionDeclarationAST>(
+    semicolon.then(semicolon =>
+    full_match.then(_ =>
+      co_unit(mk_function_declaration(join_source_ranges(return_type.range, semicolon),
+                                      return_type,
+                                      function_name.id,
+                                      Immutable.List<DeclAST>(arg_decls),
+                                      {range:semicolon, ast:{ kind: "noop" }})))),
+    left_curly_bracket.then(_ =>
+    function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
+    right_curly_bracket.then(rb =>
+    full_match.then(_ =>
+    co_unit(mk_function_declaration(join_source_ranges(return_type.range, rb),
+                                    return_type,
+                                    function_name.id,
+                                    Immutable.List<DeclAST>(arg_decls),
+                                    body))))))))))))))
 
 
 let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_or_implements:string[]) =>
@@ -794,7 +805,7 @@ let class_declaration = () =>
 
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(
-    function_declaration().then(fun_decl =>
+    function_declaration([]).then(fun_decl =>
     co_unit<ParserState,ParserError,ParserRes>({ range: fun_decl.range, ast:fun_decl })),
   parser_or<ParserRes>(class_declaration(),
   inner_statement()))
@@ -841,7 +852,8 @@ let modifier = () : Coroutine<ParserState, ParserError, { range:SourceRange, ast
   parser_or<{ range:SourceRange, ast:ModifierAST }>(protected_modifier.then(r => co_unit(mk_protected(r))),
   parser_or<{ range:SourceRange, ast:ModifierAST }>(virtual_modifier.then(r => co_unit(mk_virtual(r))),
   parser_or<{ range:SourceRange, ast:ModifierAST }>(override_modifier.then(r => co_unit(mk_override(r))),
-  static_modifier.then(r => co_unit(mk_static(r))))))))
+  parser_or<{ range:SourceRange, ast:ModifierAST }>(abstract_modifier.then(r => co_unit(mk_abstract(r))),
+  static_modifier.then(r => co_unit(mk_static(r)))))))))
 
 let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:SourceRange, ast:ModifierAST }>> =>
   parser_or<Immutable.List<{ range:SourceRange, ast:ModifierAST }>>(
@@ -850,7 +862,8 @@ let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:
   m.ast.kind == "private" && ms.some(m => !m || m.ast.kind == "public") ||
   m.ast.kind == "public" && ms.some(m => !m || m.ast.kind == "private") ||
   m.ast.kind == "virtual" && ms.some(m => !m || m.ast.kind == "override") ||
-  m.ast.kind == "override" && ms.some(m => !m || m.ast.kind == "virtual") ?
+  m.ast.kind == "override" && ms.some(m => !m || m.ast.kind == "virtual") ||
+  m.ast.kind == "abstract" && ms.some(m => !m || m.ast.kind == "virtual") ?
     co_get_state<ParserState, ParserError>().then(s =>
     co_error({ range:m.range, priority:s.branch_priority, message:"Error: incompatible modifiers." }))
   : co_unit(ms.push(m)))),
@@ -867,7 +880,7 @@ let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.
         apply(inl<FieldAST, Sum<MethodAST, ConstructorAST>>(), { decl:d, modifiers:ms })))))
     ,
       parser_or<Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
-        modifiers().then(ms => function_declaration().then(d =>
+        modifiers().then(ms => function_declaration(ms.toArray()).then(d =>
           co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
             apply(inr<FieldAST, Sum<MethodAST, ConstructorAST>>().after(inl<MethodAST, ConstructorAST>()), { decl:d, modifiers:ms }))))
       ,

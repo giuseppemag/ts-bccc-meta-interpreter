@@ -17,7 +17,7 @@ exports.type_to_string = function (t) {
             : t.kind == "ref" ? t.C_name
                 : t.kind == "tuple" ? "(" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ")"
                     : t.kind == "record" ? "(" + t.args.map(function (t, l) { return t && exports.type_to_string(t) + " " + l; }).reduce(function (a, b) { return a + "," + b; }) + ")"
-                        : t.kind == "fun" && t.in.kind == "tuple" ? "Func<" + t.in.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + "," + exports.type_to_string(t.out) + ">"
+                        : t.kind == "fun" && t.in.kind == "tuple" ? "Func<" + (t.in.args.length == 0 ? "" : t.in.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; })) + "," + exports.type_to_string(t.out) + ">"
                             : t.kind == "fun" ? "Func<" + exports.type_to_string(t.in) + "," + exports.type_to_string(t.out) + ">"
                                 : t.kind == "arr" ? exports.type_to_string(t.arg) + "[]"
                                     : "not implemented";
@@ -71,6 +71,8 @@ exports.type_equals = function (t1, t2) {
     if (t1.kind == "arr" && t2.kind == "arr")
         return exports.type_equals(t1.arg, t2.arg);
     if (t1.kind == "obj" && t2.kind == "obj")
+        return t1.C_name == t2.C_name;
+    if (t1.kind == "ref" && t2.kind == "ref")
         return t1.C_name == t2.C_name;
     return t1.kind == t2.kind;
 };

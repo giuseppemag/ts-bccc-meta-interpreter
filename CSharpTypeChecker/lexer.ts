@@ -22,7 +22,7 @@ import { mk_range, SourceRange, zero_range } from '../source_range'
 export type BinOpKind = "+"|"*"|"/"|"-"|"%"|">"|"<"|"<="|">="|"=="|"!="|"&&"|"||"|"xor"|"=>"|","|"as"
 export type UnaryOpKind = "not"
 
-export type ReservedKeyword = "base"|"for"|"while"|"if"|"then"|"else"|"private"|"public"|"static"|"protected"|"virtual"|"override"|"class"|"new"|"debugger"|"typechecker_debugger"|"return"|"?"|":"
+export type ReservedKeyword = "abstract"|"base"|"for"|"while"|"if"|"then"|"else"|"private"|"public"|"static"|"protected"|"virtual"|"override"|"class"|"new"|"debugger"|"typechecker_debugger"|"return"|"?"|":"
 export type Token = ({ kind:"string", v:string } | { kind:"int", v:number } | { kind:"double", v:number } | { kind:"float", v:number } | { kind:"bool", v:boolean }
   | { kind:ReservedKeyword }
   | { kind:"id", v:string }
@@ -84,7 +84,7 @@ export module GrammarBasics {
       || s == "for" || s == "while" || s == "if" || s == "else"
       || s == "debugger" || s == "typechecker_debugger"
       || s == "private" || s == "public" || s == "protected"
-      || s == "virtual" || s == "override" || s == "base"
+      || s == "virtual" || s == "override" || s == "base" || s == "abstract"
       || s == "static" ? ({range:r, kind:s as ReservedKeyword})
 
       : s == "other_surface" || s == "empty_surface" || s == "ellipse"

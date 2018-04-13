@@ -63,7 +63,7 @@ export declare let mk_param: (name: string, type: Type) => {
 };
 export declare let mk_lambda: (r: SourceRange, def: LambdaDefinition, closure_parameters: string[], range: SourceRange) => Stmt;
 export declare let def_fun: (r: SourceRange, def: FunDefinition, closure_parameters: string[]) => Stmt;
-export declare let def_method: (r: SourceRange, C_name: string, _extends: Sum<ObjType, Unit>, def: MethodDefinition) => Stmt;
+export declare let def_method: (r: SourceRange, C_name: string, _extends: Sum<ObjType, Unit>, def: MethodDefinition, abstract_methods: MethodDefinition[]) => Stmt;
 export declare let call_lambda: (r: SourceRange, lambda: Stmt, arg_values: Stmt[]) => Stmt;
 export declare let call_by_name: (r: SourceRange, f_n: string, args: Stmt[]) => Stmt;
 export declare let ret: (r: SourceRange, p: Stmt) => Stmt;

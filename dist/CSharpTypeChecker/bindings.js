@@ -477,10 +477,9 @@ exports.def_fun = function (r, def, closure_parameters) {
         });
     }); };
 };
-exports.def_method = function (r, C_name, _extends, def) {
+exports.def_method = function (r, C_name, _extends, def, abstract_methods) {
     var is_static = def.modifiers.some(function (m) { return m == "static"; });
     var parameters = def.parameters;
-    // console.log("params", JSON.stringify(parameters))
     var return_t = def.return_t;
     var body = def.body;
     var _done = exports.done;
@@ -490,11 +489,20 @@ exports.def_method = function (r, C_name, _extends, def) {
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(types_1.no_constraints).then(function (_) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
-                return (def.is_constructor &&
+                return ((def.is_constructor &&
                     _extends.kind == "left"
                     ? // this is a constructor with base
-                        exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call))
-                    : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" })).then(function (base_sem) {
+                        abstract_methods.length == 0 ?
+                            exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call))
+                            :
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call)), abstract_methods.map(function (a_m) {
+                                    return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
+                                        return_t: a_m.return_t,
+                                        parameters: a_m.parameters,
+                                        body: a_m.body
+                                    }, ["this"], r));
+                                }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))
+                    : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" }))).then(function (base_sem) {
                     return Co.co_set_state(initial_bindings).then(function (_) {
                         return is_static ? ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
                             : ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), r), Sem.mk_lambda_rt(Sem.mk_lambda_rt(base_sem.sem.then(function (_) { return body_t.sem; }), parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range)));
@@ -519,12 +527,13 @@ exports.call_lambda = function (r, lambda, arg_values) {
         return check_arguments.then(function (args_t) {
             return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
                 arg_values.length != lambda_t.type.in.args.length ?
-                lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" && lambda_t.type.in.args.length == 1 && lambda_t.type.in.args[0].kind == "unit" &&
-                    arg_values.length == 0 ?
+                (lambda_t.type.kind == "fun" && lambda_t.type.in.kind == "tuple" && lambda_t.type.in.args.length == 1 && lambda_t.type.in.args[0].kind == "unit" &&
+                    arg_values.length == 0) ||
+                    (lambda_t.type.kind == "fun" && lambda_t.type.out.kind == "fun" && lambda_t.type.out.in.kind == "tuple" && lambda_t.type.out.in.args.length == 1 && lambda_t.type.out.in.args[0].kind == "unit" &&
+                        arg_values.length == 0) ?
                     ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; })))) :
                     ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.type) + " with arguments " + JSON.stringify([args_t.toArray().map(function (a) { return types_1.type_to_string(a.type); })]) })
-                :
-                    ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                : ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
         });
     })); };
 };
@@ -578,56 +587,92 @@ exports.set_arr_el = function (r, a, i, e) {
 };
 exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_from_context, fields_from_context, is_internal) {
     if (is_internal === void 0) { is_internal = false; }
-    var context = { kind: "class", C_name: C_name };
-    var methods = methods_from_context.map(function (m) { return m(context); });
-    var fields = fields_from_context.map(function (f) { return f(context); });
-    fields = fields.concat(extends_or_implements.map(function (e) {
-        var base = {
-            name: "base",
-            type: { kind: "ref", C_name: e },
-            modifiers: ["public"],
-            initial_value: ts_bccc_1.apply(ts_bccc_1.inr(), {})
-        };
-        return base;
-    }));
-    var get_class_kind = function (name, bindings) {
-        if (bindings.has(name)) {
-            var elem = bindings.get(name);
-            if (elem.kind == "obj") {
-                return ts_bccc_1.apply(ts_bccc_1.inl(), elem);
-            }
-        }
-        return ts_bccc_1.apply(ts_bccc_1.inr(), {});
-    };
-    var C_type_placeholder = {
-        range: r,
-        kind: "obj",
-        is_internal: is_internal,
-        C_name: C_name,
-        class_kind: C_kind,
-        methods: multi_map_1.MultiMap(methods.map(function (m) {
-            return {
-                k: m.name,
-                v: {
-                    typing: m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ?
-                        types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type((m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), m.range), Sem.done_rt) :
-                        types_1.mk_typing(types_1.fun_type(types_1.tuple_type(m.parameters.map(function (p) { return p.type; })), m.return_t, m.range), Sem.done_rt),
-                    modifiers: Immutable.Set(m.modifiers)
-                }
-            };
-        })),
-        fields: Immutable.Map(fields.map(function (f) {
-            return [
-                f.name,
-                {
-                    type: f.type,
-                    modifiers: Immutable.Set(f.modifiers),
-                    initial_value: f.initial_value
-                }
-            ];
-        }))
-    };
     return function (_) { return ts_bccc_1.co_get_state().then(function (initial_bindings) {
+        var context = { kind: "class", C_name: C_name };
+        var _methods = methods_from_context.map(function (m) { return m(context); });
+        var methods = _methods.filter(function (m) { return !m.modifiers.some(function (m) { return m == "abstract" || m == "virtual" || m == "override"; }); });
+        if (extends_or_implements.some(function (c) { return !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"; }))
+            return ts_bccc_2.co_error({ message: "Wrong definition of base types when declaring class " + C_name + ".", range: r });
+        var fields = fields_from_context.map(function (f) { return f(context); });
+        fields = fields.concat(extends_or_implements.map(function (e) {
+            var base = {
+                name: "base",
+                type: { kind: "ref", C_name: e },
+                modifiers: ["public"],
+                initial_value: ts_bccc_1.apply(ts_bccc_1.inr(), {})
+            };
+            return base;
+        }));
+        var this_class_ref_type = { kind: "ref", C_name: C_name };
+        var this_class_ref_param = { name: "this", type: this_class_ref_type };
+        var extended_classes = extends_or_implements.map(function (c) { return initial_bindings.bindings.get(c); });
+        var casting_operators = extended_classes.map(function (ec) {
+            var base_type = { kind: "ref", C_name: ec.C_name };
+            return ({ modifiers: ["static", "public", "casting", "operator"], is_constructor: false, range: r,
+                return_t: base_type, name: ec.C_name, parameters: [{ name: "self", type: this_class_ref_type }],
+                params_base_call: [],
+                body: exports.field_get(r, context, exports.get_v(r, "self"), "base") });
+        });
+        methods = methods.concat(casting_operators);
+        fields = fields.concat(_methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; }); })
+            .map(function (m) {
+            var inner_lambda_type = {
+                kind: "fun", in: types_1.tuple_type(m.parameters.length == 0 ? [{ kind: "unit" }] : m.parameters.map(function (p) { return p.type; })),
+                out: m.return_t,
+                range: m.range
+            };
+            // let lambda_type :Type = { kind:"fun", in: tuple_type([this_class_ref_type]), 
+            //                           out:inner_lambda_type, 
+            //                           range: m.range }
+            var m1 = {
+                name: m.name,
+                type: inner_lambda_type,
+                modifiers: m.modifiers,
+                initial_value: ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_lambda(m.range, {
+                    return_t: m.return_t,
+                    parameters: m.parameters,
+                    body: m.body
+                }, ["this"], m.range))
+            };
+            return m1;
+        }));
+        var get_class_kind = function (name, bindings) {
+            if (bindings.has(name)) {
+                var elem = bindings.get(name);
+                if (elem.kind == "obj") {
+                    return ts_bccc_1.apply(ts_bccc_1.inl(), elem);
+                }
+            }
+            return ts_bccc_1.apply(ts_bccc_1.inr(), {});
+        };
+        var C_type_placeholder = {
+            range: r,
+            kind: "obj",
+            is_internal: is_internal,
+            C_name: C_name,
+            class_kind: C_kind,
+            methods: multi_map_1.MultiMap(methods.map(function (m) {
+                return {
+                    k: m.name,
+                    v: {
+                        typing: m.modifiers.filter(function (md) { return md == "static"; }).length == 0 ?
+                            types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type((m.parameters.map(function (p) { return p.type; }))), m.return_t, m.range), m.range), Sem.done_rt) :
+                            types_1.mk_typing(types_1.fun_type(types_1.tuple_type(m.parameters.map(function (p) { return p.type; })), m.return_t, m.range), Sem.done_rt),
+                        modifiers: Immutable.Set(m.modifiers)
+                    }
+                };
+            })),
+            fields: Immutable.Map(fields.map(function (f) {
+                return [
+                    f.name,
+                    {
+                        type: f.type,
+                        modifiers: Immutable.Set(f.modifiers),
+                        initial_value: f.initial_value
+                    }
+                ];
+            }))
+        };
         return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type_placeholder, { is_constant: true })) })).then(function (_) {
             var concrete_extends_or_implements = extends_or_implements.map(function (c) { return get_class_kind(c, initial_bindings.bindings); });
             var tmp = concrete_extends_or_implements.filter(function (e) { return e.kind == "left" && e.value.class_kind != "interface"; });
@@ -640,7 +685,7 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
                     var params = m.params_base_call;
                     concrete_extend = ts_bccc_1.apply(ts_bccc_1.inl(), tmp[0].value);
                 }
-                var res = exports.def_method(m.range, C_name, concrete_extend, m)(types_1.no_constraints);
+                var res = exports.def_method(m.range, C_name, concrete_extend, m, _methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "override"; }); }))(types_1.no_constraints);
                 return res;
             }))).then(function (methods_t) {
                 var methods_full_t = methods_t.zipWith(function (m_t, m_d) { return ({ typ: m_t, def: m_d }); }, Immutable.Seq(methods)).toArray();
@@ -651,8 +696,10 @@ exports.def_class = function (r, C_kind, C_name, extends_or_implements, methods_
                     is_internal: is_internal,
                     C_name: C_name,
                     methods: multi_map_1.MultiMap(methods_full_t.map(function (m) {
-                        return ({ k: m.def.name,
-                            v: { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) } });
+                        return ({
+                            k: m.def.name,
+                            v: { typing: m.typ, modifiers: Immutable.Set(m.def.modifiers) }
+                        });
                     })),
                     fields: Immutable.Map(fields.filter(function (f) { return !f.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (f) {
                         return [f.name,
@@ -782,7 +829,10 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                     }
                     return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " does not contain field or method " + F_or_M_name });
                 };
-                return ccc_aux_1.co_catch(function (a, b) { return a; })(exports.field_get(r, context, exports.field_get(r, context, this_ref, "base"), F_or_M_name)(constraints))(method_try_get());
+                if (C_def.fields.has("base"))
+                    return ccc_aux_1.co_catch(function (a, b) { return a; })(exports.field_get(r, context, exports.field_get(r, context, this_ref, "base"), F_or_M_name)(constraints))(method_try_get());
+                else
+                    return method_try_get();
             }
         });
     }); };
@@ -800,8 +850,12 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                 var C_def = bindings.bindings.get(C_name);
                 if (C_def.kind != "obj")
                     return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
-                if (!C_def.fields.has(F_name.att_name))
-                    return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain " + F_name.att_name });
+                if (!C_def.fields.has(F_name.att_name)) {
+                    if (C_def.fields.has("base"))
+                        return (exports.field_set(r, context, exports.field_get(r, context, this_ref, "base"), F_name, new_value)(types_1.no_constraints));
+                    else
+                        return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain " + F_name.att_name });
+                }
                 var F_def = C_def.fields.get(F_name.att_name);
                 if (!F_def.modifiers.has("public")) {
                     if (context.kind == "global scope")
@@ -811,8 +865,8 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                 }
                 return new_value(ts_bccc_1.apply(ts_bccc_1.inl(), F_def.type)).then(function (new_value_t) {
                     //if (!type_equals(F_def.type, new_value_t.type)) return co_error<State,Err,Typing>({ range:r, message:`Error: field ${C_name}::${F_name.att_name} cannot be assigned to value of type ${JSON.stringify(new_value_t.type)}`})
-                    return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, F_def.modifiers.has("static") ?
-                        Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem)
+                    return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, F_def.modifiers.has("static")
+                        ? Sem.static_field_set_expr_rt(r, C_name, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem)
                         : Sem.field_set_expr_rt(r, F_name.kind == "att" ? F_name : __assign({}, F_name, { index: maybe_index.sem }), new_value_t.sem, this_ref_t.sem)));
                 });
             });
@@ -848,6 +902,16 @@ exports.call_cons = function (r, context, C_name, arg_values) {
                 return exports.done;
             else {
                 var v_2 = f.initial_value.value;
+                if (f.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; })) {
+                    return function (_) {
+                        // co_stateless<State,Err,Typing>(
+                        //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>
+                        return v_2(types_1.no_constraints).then(function (v_v) {
+                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, //Sem.call_lambda_expr_rt(r, v_v.sem, [Sem.get_v_rt(r, "this")]), 
+                            Sem.get_v_rt(r, "this"))));
+                        });
+                    };
+                }
                 return function (_) { return v_2(types_1.no_constraints).then(function (v_v) {
                     return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, Sem.get_v_rt(r, "this"))));
                 }); };
@@ -886,7 +950,16 @@ exports.get_class = function (r, t) {
             return ts_bccc_2.co_unit(t_obj);
         })
         : t.kind == "obj" ? ts_bccc_2.co_unit(t)
-            : ts_bccc_2.co_unit({ C_name: types_1.type_to_string(t), class_kind: "normal", fields: Immutable.Map(), methods: multi_map_1.MultiMap([]), is_internal: true, range: source_range_1.zero_range, kind: "obj" });
+            : t.kind == "ref" ?
+                ts_bccc_1.co_get_state().then(function (bindings) {
+                    if (bindings.bindings.has(t.C_name)) {
+                        var t_in_bindings = bindings.bindings.get(t.C_name);
+                        if (t_in_bindings.kind == "obj")
+                            return ts_bccc_2.co_unit(t_in_bindings);
+                    }
+                    return ts_bccc_2.co_unit({ C_name: types_1.type_to_string(t), class_kind: "normal", fields: Immutable.Map(), methods: multi_map_1.MultiMap([]), is_internal: true, range: source_range_1.zero_range, kind: "obj" });
+                })
+                : ts_bccc_2.co_unit({ C_name: types_1.type_to_string(t), class_kind: "normal", fields: Immutable.Map(), methods: multi_map_1.MultiMap([]), is_internal: true, range: source_range_1.zero_range, kind: "obj" });
 };
 exports.coerce = function (r, e, t) {
     return function (constraints) { return e(constraints).then(function (e_v) {
@@ -899,13 +972,14 @@ exports.coerce = function (r, e, t) {
         return exports.get_class(r, e_v.type).then(function (e_c) {
             var t_name = types_1.type_to_string(t);
             var e_type_name = types_1.type_to_string(e_v.type);
-            // console.log(`Coercing ${e_type_name} -> ${JSON.stringify(t)}`)
+            console.log("Coercing " + e_type_name + " -> " + JSON.stringify(t));
             var casting_operators = e_c.methods.values().filter(function (m) {
                 return m != undefined && m.v.modifiers.some(function (mod) { return mod == "casting"; }) &&
                     m.v.modifiers.some(function (mod) { return mod == "operator"; }) &&
                     m.v.modifiers.some(function (mod) { return mod == "static"; });
             }).map(function (c_op) { return !c_op ? undefined : ({ body: c_op.v, name: c_op.k }); })
                 .toArray(); // as { body:MethodTyping, name:string}[]
+            console.log("yo dude!", JSON.stringify([e_c, casting_operators]));
             var coercions = casting_operators.map(function (c_op) {
                 if (!c_op)
                     return function (_) { return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" }); };

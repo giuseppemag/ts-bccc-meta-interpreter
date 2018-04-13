@@ -26,21 +26,31 @@ class C {
   public C(int w){
     this.w = w;
   }
+  public int Z(){
+    return 21;
+  }
 }
 class B:C {
   int y;
   public B(int y):base(y){
     this.y = y;
   }
+  public abstract int T();
+  public abstract int K();
 }
 class A : B {
   int x;
   public A(int x) : base(x * 1000){
-    this.x = this.w;
+    this.x = this.w;    
+  }
+  public override int T(){
+    return 1001;
   }
 }
 
-A a = new A(9);
+var a = new A(9);
+var b = a as B;
+
 typechecker_debugger;
 debugger;`
 

@@ -34,7 +34,7 @@ export let type_to_string = (t:Type) : string =>
   : t.kind == "ref" ? t.C_name
   : t.kind == "tuple" ? `(${t.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)})`
   : t.kind == "record" ? `(${t.args.map((t, l) => t && `${type_to_string(t)} ${l}`).reduce((a,b) => a + "," + b)})`
-  : t.kind == "fun" && t.in.kind == "tuple" ? `Func<${t.in.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)},${type_to_string(t.out)}>`
+  : t.kind == "fun" && t.in.kind == "tuple" ? `Func<${t.in.args.length == 0 ? "" : t.in.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)},${type_to_string(t.out)}>`
   : t.kind == "fun" ? `Func<${type_to_string(t.in)},${type_to_string(t.out)}>`
   : t.kind == "arr" ? `${type_to_string(t.arg)}[]`
   : "not implemented"
@@ -90,10 +90,11 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
     t1.args.every((t1_arg,i) => t1_arg != undefined && i != undefined && t2.args.has(i) && type_equals(t1_arg, t2.args.get(i)))
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
   if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
+  if (t1.kind == "ref" && t2.kind == "ref") return t1.C_name == t2.C_name
   return t1.kind == t2.kind
 }
 
-export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting"
+export type Modifier = "private" | "public" | "static" | "protected" | "virtual" | "override" | "operator" | "casting" | "abstract"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }

@@ -3,6 +3,8 @@ import { Coroutine, Option } from 'ts-bccc';
 import { SourceRange } from '../source_range';
 import { BinOpKind, Token, UnaryOpKind } from './lexer';
 export declare type ModifierAST = {
+    kind: "abstract";
+} | {
     kind: "private";
 } | {
     kind: "public";
