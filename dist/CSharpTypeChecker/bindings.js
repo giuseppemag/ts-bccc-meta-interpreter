@@ -481,7 +481,7 @@ exports.def_fun = function (r, def, closure_parameters) {
         });
     }); };
 };
-exports.def_method = function (r, C_name, _extends, _implements, def, abstract_methods) {
+exports.def_method = function (r, C_name, _extends, _implements, def, override_methods) {
     var is_static = def.modifiers.some(function (m) { return m == "static"; });
     var parameters = def.parameters;
     var return_t = def.return_t;
@@ -493,22 +493,35 @@ exports.def_method = function (r, C_name, _extends, _implements, def, abstract_m
     var interfaces_init = _implements.length > 0 ?
         _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
         : exports.done;
+    //console.log("interfaces_init", interfaces_init.length, _extends.kind)
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
         return set_bindings(types_1.no_constraints).then(function (_) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
-                return ((def.is_constructor &&
+                return ((
+                //improve...
+                def.is_constructor ?
                     _extends.kind == "left"
-                    ? // this is a constructor with base
-                        abstract_methods.length == 0 ?
-                            exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), interfaces_init)
-                            :
-                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), exports.semicolon(r, abstract_methods.map(function (a_m) {
+                        ? // this is a constructor with base\
+                            override_methods.length == 0 ?
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), interfaces_init)
+                                :
+                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
+                                        return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
+                                            return_t: a_m.return_t,
+                                            parameters: a_m.parameters,
+                                            body: a_m.body
+                                        }, ["this"], r));
+                                    }).reduce(function (p, c) { return exports.semicolon(r, p, c); })))
+                        :
+                            override_methods.length == 0 ?
+                                interfaces_init :
+                                exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
                                     return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
                                         return_t: a_m.return_t,
                                         parameters: a_m.parameters,
                                         body: a_m.body
                                     }, ["this"], r));
-                                }).reduce(function (p, c) { return exports.semicolon(r, p, c); }), interfaces_init))
+                                }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))
                     : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" }))).then(function (base_sem) {
                     return Co.co_set_state(initial_bindings).then(function (_) {
                         return is_static ? ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range)))
@@ -654,6 +667,8 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
             };
             return m1;
         }));
+        // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.name)]))
+        // console.log("methods: ", JSON.stringify([C_name, C_kind, methods.map(f => f.name)]))
         var get_class_kind = function (name, bindings) {
             if (bindings.has(name)) {
                 var elem = bindings.get(name);

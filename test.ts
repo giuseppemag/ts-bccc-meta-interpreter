@@ -22,10 +22,22 @@ export let get_stream = DebuggerStream.get_stream
 export let test_parser = () => {
     let source = `
 
-class C {
+public interface IC_A{
+  int K();
+}
+public interface IC_B{
+  int Z(int x);
+}
+class C:IC_A,IC_B {
   public int w;
   public C(int w){
     this.w = w;
+  }
+  public override int K(){
+    return 999999999999;
+  }
+  public override int Z(int z){
+    return 12222221 / z;
   }
   public virtual int Q(int x){
     return 2111112 * x;
@@ -60,6 +72,8 @@ var a = new A(9);
 var b = a as B;
 var c = b.T();
 var d = a.Q(2);
+var e = a.K();
+var f = a.Z(2);
 typechecker_debugger;
 debugger;`
 
