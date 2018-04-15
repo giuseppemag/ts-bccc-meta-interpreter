@@ -685,6 +685,7 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
                 return [
                     f.name,
                     {
+                        is_used_as_base: f.is_used_as_base,
                         type: f.type,
                         modifiers: Immutable.Set(f.modifiers),
                         initial_value: f.initial_value
@@ -723,7 +724,7 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
                     })),
                     fields: Immutable.Map(fields.filter(function (f) { return !f.modifiers.some(function (mod) { return mod == "static"; }); }).map(function (f) {
                         return [f.name,
-                            { type: f.type, initial_value: f.initial_value, modifiers: Immutable.Set(f.modifiers) }];
+                            { is_used_as_base: f.is_used_as_base, type: f.type, initial_value: f.initial_value, modifiers: Immutable.Set(f.modifiers) }];
                     }))
                 };
                 var static_fields = fields.filter(function (f) { return f.modifiers.some(function (mod) { return mod == "static"; }); });
@@ -770,7 +771,9 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
         });
     }); };
 };
-exports.field_get = function (r, context, this_ref, F_or_M_name) {
+exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
+    if (n === void 0) { n = 0; }
+    if (called_by === void 0) { called_by = ""; }
     return function (constraints) { return this_ref(types_1.no_constraints).then(function (this_ref_t) {
         return ts_bccc_1.co_get_state().then(function (bindings) {
             if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
@@ -811,10 +814,12 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
             if (C_def.fields.has(F_or_M_name)) {
                 var F_def = C_def.fields.get(F_or_M_name);
                 if (!F_def.modifiers.has("public")) {
-                    if (context.kind == "global scope")
+                    if (context.kind == "global scope") {
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + F_or_M_name + "." });
-                    else if (context.C_name != C_name)
+                    }
+                    else if (context.C_name != C_name) {
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + F_or_M_name + "." });
+                    }
                 }
                 return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(F_def.type, F_def.modifiers.has("static") ?
                     Sem.static_field_get_expr_rt(r, C_name, F_or_M_name)
@@ -825,8 +830,6 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 var method_try_get = function () {
                     if (C_def_obj_1.methods.has(F_or_M_name)) {
                         var M_def = C_def_obj_1.methods.get(F_or_M_name).first();
-                        // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
-                        // console.log("This is this", JSON.stringify(this_ref_t))
                         if (!M_def.modifiers.has("public")) {
                             if (context.kind == "global scope")
                                 return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + F_or_M_name + "." });
@@ -851,7 +854,9 @@ exports.field_get = function (r, context, this_ref, F_or_M_name) {
                 };
                 var base_fields = C_def.fields.map(function (f, k) { return ({ name: k, f: f }); }).toArray().filter(function (f) { return f.f.is_used_as_base; });
                 //comm_list_coroutine
-                var field_to_lookup = base_fields.map(function (f) { return exports.field_get(r, context, exports.field_get(r, context, this_ref, f.name), F_or_M_name)(constraints); }).concat([method_try_get()]);
+                var field_to_lookup = base_fields.map(function (f) {
+                    return exports.field_get(r, context, exports.field_get(r, context, this_ref, f.name, n + 1, C_name), F_or_M_name, n + 2, C_name)(constraints);
+                }).concat([method_try_get()]);
                 return ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get " + F_or_M_name + "." })(Immutable.List(field_to_lookup));
             }
         });
@@ -872,8 +877,11 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
                     return ts_bccc_2.co_error({ range: r, message: "Error: type " + C_name + " is not a class" });
                 var x = C_def.fields.toArray().filter(function (f) { return f.is_used_as_base; });
                 if (!C_def.fields.has(F_name.att_name)) {
-                    if (C_def.fields.has("base"))
-                        return exports.field_set(r, context, exports.field_get(r, context, this_ref, "base"), F_name, new_value)(types_1.no_constraints);
+                    var base_fields = C_def.fields.map(function (f, k) { return ({ name: k, f: f }); }).toArray().filter(function (f) { return f.f.is_used_as_base; });
+                    if (base_fields.length > 0) {
+                        var field_to_lookup = base_fields.map(function (f) { return exports.field_set(r, context, exports.field_get(r, context, this_ref, f.name), F_name, new_value)(types_1.no_constraints); });
+                        return ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get " + F_name.att_name + "." })(Immutable.List(field_to_lookup));
+                    }
                     else
                         return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " does not contain " + F_name.att_name });
                 }

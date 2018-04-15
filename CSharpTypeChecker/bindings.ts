@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range, print_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
-import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
+import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt } from "../main";
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings } from "./types";
 import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
@@ -618,10 +618,10 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
     let s = extends_or_implements.filter(c => !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj")
     if (extends_or_implements.some(c => !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"))
       return co_error({ message: `Wrong definition of base types when declaring class ${C_name}.`, range: r })
-    
     let extended_classes = extends_or_implements.map(c => initial_bindings.bindings.get(c) as ObjType)
     
     let fields = fields_from_context.map(f => f(context))
+    
     fields = fields.concat(
       extended_classes.map(e => {
         let base: FieldDefinition = {
@@ -631,6 +631,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           modifiers: ["public"] as Modifier[],
           initial_value: apply(inr<Stmt, Unit>(), {})
         }
+        
         return base
       }))
     let this_class_ref_type: Type = { kind: "ref", C_name: C_name }
@@ -672,6 +673,8 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           }
           return m1
         }))
+    
+    
 
     let get_class_kind = (name: string, bindings: Bindings): Option<ObjType> => {
       if (bindings.has(name)) {
@@ -708,6 +711,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           return [
             f.name,
             {
+              is_used_as_base:f.is_used_as_base,
               type: f.type,
               modifiers: Immutable.Set<Modifier>(f.modifiers),
               initial_value: f.initial_value
@@ -750,7 +754,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           fields: Immutable.Map<Name, FieldType>(
             fields.filter(f => !f.modifiers.some(mod => mod == "static")).map(f =>
               [f.name,
-              { type: f.type, initial_value: f.initial_value, modifiers: Immutable.Set<Modifier>(f.modifiers) }])
+              { is_used_as_base:f.is_used_as_base, type: f.type, initial_value: f.initial_value, modifiers: Immutable.Set<Modifier>(f.modifiers) }])
           )
         }
         let static_fields = fields.filter(f => f.modifiers.some(mod => mod == "static"))
@@ -799,10 +803,9 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
   })
 }
 
-export let field_get = function (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string): Stmt {
+export let field_get = function (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string, n=0, called_by=""): Stmt {
   return constraints => this_ref(no_constraints).then(this_ref_t =>
     co_get_state<State, Err>().then(bindings => {
-
       if (this_ref_t.type.kind == "string" && F_or_M_name == "Length") {
         return ensure_constraints(r, constraints)(co_unit(mk_typing(int_type, Sem.string_length_rt(r, this_ref_t.sem))))
       } else if (this_ref_t.type.kind == "arr" && F_or_M_name == "Length") {
@@ -836,27 +839,27 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
       if (!bindings.bindings.has(C_name)) return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} is undefined` })
       let C_def = bindings.bindings.get(C_name)
       if (C_def.kind != "obj") return co_error<State, Err, Typing>({ range: r, message: `Error: ${C_name} is not a class.` })
-
       if (C_def.fields.has(F_or_M_name)) {
         let F_def = C_def.fields.get(F_or_M_name)
         if (!F_def.modifiers.has("public")) {
-          if (context.kind == "global scope")
+          if (context.kind == "global scope"){
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public field ${F_or_M_name}.` })
-          else if (context.C_name != C_name)
+          }
+          else if (context.C_name != C_name){
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public field ${C_name}::${F_or_M_name}.` })
+          }
         }
         return ensure_constraints(r, constraints)(co_unit<State, Err, Typing>(mk_typing(F_def.type,
           F_def.modifiers.has("static") ?
             Sem.static_field_get_expr_rt(r, C_name, F_or_M_name)
             : Sem.field_get_expr_rt(r, F_or_M_name, this_ref_t.sem))))
+        
       }
       else {
         let C_def_obj = C_def
         let method_try_get = (): Coroutine<State, Err, Typing> => {
           if (C_def_obj.methods.has(F_or_M_name)) {
             let M_def = C_def_obj.methods.get(F_or_M_name).first()
-            // console.log("This is the method", JSON.stringify(M_def), F_or_M_name)
-            // console.log("This is this", JSON.stringify(this_ref_t))
 
             if (!M_def.modifiers.has("public")) {
               if (context.kind == "global scope")
@@ -884,7 +887,10 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
         }
         let base_fields : {name:string, f:FieldDefinition}[] = C_def.fields.map((f,k) => ({name:k, f:f})).toArray().filter((f:any) => f.f.is_used_as_base) as any
         //comm_list_coroutine
-        let field_to_lookup = base_fields.map(f => field_get(r, context, field_get(r, context, this_ref, f.name), F_or_M_name)(constraints)).concat([method_try_get()])
+        let field_to_lookup = base_fields.map(f => 
+            field_get(r, context, field_get(r, context, this_ref, f.name, n+1, C_name), F_or_M_name, n+2, C_name)(constraints)
+          ).concat([method_try_get()])
+
         return co_catch_many<State, Err, Typing>({ range: r, message: `Error: cannot get ${F_or_M_name}.` })(Immutable.List(field_to_lookup))    
       }
     }
@@ -907,11 +913,13 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
         if (C_def.kind != "obj") return co_error<State, Err, Typing>({ range: r, message: `Error: type ${C_name} is not a class` })
         let x = C_def.fields.toArray().filter(f => f.is_used_as_base)
         if (!C_def.fields.has(F_name.att_name)) {
-          if (C_def.fields.has("base"))
-            return field_set(r, context, field_get(r, context, this_ref, "base"), F_name, new_value)(no_constraints)
+          let base_fields : {name:string, f:FieldDefinition}[] = C_def.fields.map((f,k) => ({name:k, f:f})).toArray().filter((f:any) => f.f.is_used_as_base) as any
+          if (base_fields.length > 0){
+            let field_to_lookup = base_fields.map(f => field_set(r, context, field_get(r, context, this_ref, f.name), F_name, new_value)(no_constraints))
+            return co_catch_many<State, Err, Typing>({ range: r, message: `Error: cannot get ${F_name.att_name}.` })(Immutable.List(field_to_lookup))    
+          }
           else return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} does not contain ${F_name.att_name}` })
         }
-
         let F_def = C_def.fields.get(F_name.att_name)
         if (!F_def.modifiers.has("public")) {
           if (context.kind == "global scope")

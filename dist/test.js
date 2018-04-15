@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\npublic interface W {\n  int P();  \n  int Q(int i);  \n}\n\nclass C {\n  public int w;\n  public C(int w){\n    this.w = w;\n  }\n  public int Z(){\n    return 21;\n  }\n  public virtual int Q(int x){\n    return 2111112 * x;\n  }\n}\nabstract class B:C {\n  int y;\n  public B(int y):base(y){\n    this.y = y;\n  }\n  public abstract int T();\n  public abstract int K();\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = this.w;    \n  }\n  public override int T(){\n    return 999999999999;\n  }\n  public override int Q(int z){\n    return 12222221 / z;\n  }\n}\nclass Z {\n\n}\n\nZ z = new Z();\nvar a = new A(9);\nvar b = a as B;\nvar c = b.T();\nvar d = a.Q(2);\ntypechecker_debugger;\ndebugger;";
+        var source = "\n\nclass C {\n  public int w;\n  public C(int w){\n    this.w = w;\n  }\n  public virtual int Q(int x){\n    return 2111112 * x;\n  }\n}\nabstract class B:C {\n  int y;\n  public B(int y):base(y){\n    this.y = y;\n  }\n  public abstract int T();\n  public abstract int K();\n}\nclass A : B {\n  int x;\n  public A(int x) : base(x * 1000){\n    this.x = this.w;    \n  }\n  public override int T(){\n    return 999999999999;\n  }\n  public override int Q(int z){\n    return 12222221 / z;\n  }\n}\nclass Z {\n\n}\n\nZ z = new Z();\nvar a = new A(9);\nvar b = a as B;\nvar c = b.T();\nvar d = a.Q(2);\ntypechecker_debugger;\ndebugger;";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

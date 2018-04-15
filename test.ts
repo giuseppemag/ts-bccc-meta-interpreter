@@ -21,18 +21,11 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-public interface W {
-  int P();  
-  int Q(int i);  
-}
 
 class C {
   public int w;
   public C(int w){
     this.w = w;
-  }
-  public int Z(){
-    return 21;
   }
   public virtual int Q(int x){
     return 2111112 * x;
