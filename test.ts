@@ -69,7 +69,7 @@ class Z {
 
 Z z = new Z();
 var a = new A(9);
-var b = a as B;
+B b = a as B;
 var c = b.T();
 var d = a.Q(2);
 var e = a.K();
