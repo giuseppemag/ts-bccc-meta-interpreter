@@ -972,7 +972,7 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
       return co_error<State, Err, Typing>({ range: r, message: `Error: invalid constructor type ${type_to_string(lambda_t.typing.type)}` })
 
     let expected_args = lambda_t.typing.type.out.in.args
-
+    
     let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
       arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
         args.then(args_t =>

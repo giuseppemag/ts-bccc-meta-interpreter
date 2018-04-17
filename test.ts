@@ -21,61 +21,43 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-
-public interface IC_A{
-  int K();
-}
-public interface IC_B{
-  int Z(int x);
-}
-class C:IC_A,IC_B {
-  public int w;
-  public C(int w){
-    this.w = w;
+class Person {
+  private string name;
+  private string surname;
+  public Person (string name, string surname){
+    this.name=name;
+    this.surname=surname;
   }
-  public override int K(){
-    return 999999999999;
+  public string GetName(){
+    return this.name;
   }
-  public override int Z(int z){
-    return 12222221 / z;
-  }
-  public virtual int Q(int x){
-    return 2111112 * x;
-  }
-}
-abstract class B:C {
-  int y;
-  public B(int y):base(y){
-    this.y = y;
-  }
-  public abstract int T();
-  public abstract int K();
-}
-class A : B {
-  int x;
-  public A(int x) : base(x * 1000){
-    this.x = this.w;    
-  }
-  public override int T(){
-    return 999999999999;
-  }
-  public override int Q(int z){
-    return 12222221 / z;
-  }
-}
-class Z {
-
 }
 
-Z z = new Z();
-var a = new A(9);
-B b = a as B;
-var c = b.T();
-var d = a.Q(2);
-var e = a.K();
-var f = a.Z(2);
+class Student : Person {
+  private int passed_exams;
+  private int student_number;
+  public Student (string name, string surname, int student_number) : base(name, surname) {
+    this.student_number=student_number;
+    this.passed_exams=0;
+  }
+  public int GetPassedExams(){
+    return this.passed_exams;
+  }
+  public void SetPassedExams(int exams){
+    this.passed_exams=exams;
+  }
+  public int GetStudentNumber(){
+    return this.student_number;
+  }
+}
+
+Student s = new Student("Jhon", "Doe", 871029);
+s.SetPassedExams(5);
+Person p = s as Person;
+string name = p.GetName();
 typechecker_debugger;
-debugger;`
+debugger;
+`
 
 
     // let hrstart = process.hrtime()

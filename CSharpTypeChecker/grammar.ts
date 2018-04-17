@@ -743,9 +743,16 @@ let constructor_declaration = () =>
       base.then(_ =>
       left_bracket.then(_ =>
       partial_match.then(_ =>
-      actuals().then(params =>
+      actuals().then(actuals =>
       right_bracket.then(_ =>
-      constructor_body(function_name, arg_decls, params))))))),
+      {
+
+        let args =
+          actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
+          actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
+        
+        return constructor_body(function_name, arg_decls, args)
+      })))))),
     constructor_body(function_name, arg_decls, [])
   )    
   ))))))

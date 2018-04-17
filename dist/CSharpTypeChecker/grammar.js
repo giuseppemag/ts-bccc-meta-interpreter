@@ -535,9 +535,11 @@ var constructor_declaration = function () {
                                 return primitives_1.base.then(function (_) {
                                     return primitives_1.left_bracket.then(function (_) {
                                         return partial_match.then(function (_) {
-                                            return actuals().then(function (params) {
+                                            return actuals().then(function (actuals) {
                                                 return primitives_1.right_bracket.then(function (_) {
-                                                    return constructor_body(function_name, arg_decls, params);
+                                                    var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
+                                                        actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
+                                                    return constructor_body(function_name, arg_decls, args);
                                                 });
                                             });
                                         });

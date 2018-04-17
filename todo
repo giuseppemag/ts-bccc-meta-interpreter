@@ -68,6 +68,7 @@
   [ ] private vs protected
   [ ] abstract propagation
   [ ] C# 7 pattern matching via `actual_class` in (all?) base instances
+  [ ] Include inheritance/polym. examples in test
 [m] improve unit/void/[] params in lambdas or functions
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 
