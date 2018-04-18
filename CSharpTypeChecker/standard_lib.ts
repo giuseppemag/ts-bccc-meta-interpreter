@@ -146,6 +146,16 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
                   Sem.get_v_rt(minus_two_range, "a").then(a_v =>
                   Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v as number))
                   ))) }),
+      _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
+            return_t:CSharp.double_type, name:"pow", parameters:[{ name:"a", type:CSharp.double_type },
+                                                                 { name:"b", type:CSharp.double_type }],
+            params_base_call:[],
+            body:from_js(
+                  CSharp.double_type,
+                  Sem.get_v_rt(minus_two_range, "a").then(a_v =>
+                  Sem.get_v_rt(minus_two_range, "b").then(b_v =>
+                  Sem.return_rt(Sem.float_expr(Math.pow(a_v.value.v as number, b_v.value.v as number))
+                  )))) }),
       ],
     [], true)
 

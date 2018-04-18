@@ -21,42 +21,90 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class Person {
-  private string name;
-  private string surname;
-  public Person (string name, string surname){
-    this.name=name;
-    this.surname=surname;
+class Vector2 {
+  double x;
+  double y;
+  public Vector2(double x, double y){
+    this.x = x;
+    this.y = y;
   }
-  public string GetName(){
-    return this.name;
+  public Vector2 Mul(double c){
+    return new Vector2(this.x * c, this.y * c);
+  }
+  public void Sum(Vector2 v1){
+    this.x = this.x + v1.x;
+    this.y = this.y + v1.y;
+  }
+}
+public interface MovableObject {
+  void Update(double delta_time);
+}
+
+class SpaceShip : MovableObject {
+  Vector2 position;
+  Vector2 velocity;
+
+  public SpaceShip(Vector2 pos, Vector2 vel){
+    this.position = pos;
+    this.velocity = vel;
+  }
+
+  public override void Update(double dt){
+    this.position.Sum(this.velocity.Mul(dt));
   }
 }
 
-class Student : Person {
-  private int passed_exams;
-  private int student_number;
-  public Student (string name, string surname, int student_number) : base(name, surname) {
-    this.student_number=student_number;
-    this.passed_exams=0;
+class WarpEngine{
+  double current_warp_factor;
+  public WarpEngine(){
+    this.current_warp_factor = 0.0;
   }
-  public int GetPassedExams(){
-    return this.passed_exams;
+  public void SetWarpFactor(double factor){
+    this.current_warp_factor = factor;
   }
-  public void SetPassedExams(int exams){
-    this.passed_exams=exams;
-  }
-  public int GetStudentNumber(){
-    return this.student_number;
+  public double GetWarpSpeed(){
+    var warp_factor = this.current_warp_factor;
+    var speed_light = 1.0;
+    return speed_light / Math.pow(warp_factor, 10.0/3.0);
   }
 }
 
-Student s = new Student("Jhon", "Doe", 871029);
-s.SetPassedExams(5);
-Person p = s as Person;
-string name = p.GetName();
+
+
+public abstract ShipDecorator : MovableObject {
+  public MovableObject ship;
+  public ShipDecorator(MovableObject ship){
+    this.ship = ship;
+  }
+} 
+
+
+class EnterpriseNX01 : ShipDecorator {
+  private WarpEngine warp_engine;
+  public EnterpriseNX01(MovableObject ship):base(ship){
+    this.ship = ship;
+    this.warp_engine = new WarpEngine();
+  }
+  public void GoToWarp(double factor){
+    this.warp_engine.SetWarpFactor(factor);
+  }
+  public override void Update(double dt){
+    var multiplier = this.warp_engine.GetWarpSpeed();
+    this.ship.Update(dt * multiplier);
+  }
+} 
+
+void main(){
+  var p = new Vector2(0.0,0.0);
+  var v = new Vector2(10.0,10.0);
+  SpaceShip s = new SpaceShip(p, v);
+  EnterpriseNX01 nx1 = new EnterpriseNX01(s);
+  nx1.GoToWarp(3.0);
+  nx1.Update(0.16);
+  debugger;
+}
+main();
 typechecker_debugger;
-debugger;
 `
 
 
