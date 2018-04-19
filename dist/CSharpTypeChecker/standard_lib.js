@@ -126,5 +126,23 @@ var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math"
                 return Sem.return_rt(Sem.float_expr(Math.pow(a_v.value.v, b_v.value.v)));
             });
         })) }); },
+    function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
+        return_t: CSharp.double_type, name: "min", parameters: [{ name: "a", type: CSharp.double_type },
+            { name: "b", type: CSharp.double_type }],
+        params_base_call: [],
+        body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
+            return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
+                return Sem.return_rt(Sem.float_expr(Math.min(a_v.value.v, b_v.value.v)));
+            });
+        })) }); },
+    function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
+        return_t: CSharp.double_type, name: "max", parameters: [{ name: "a", type: CSharp.double_type },
+            { name: "b", type: CSharp.double_type }],
+        params_base_call: [],
+        body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
+            return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
+                return Sem.return_rt(Sem.float_expr(Math.max(a_v.value.v, b_v.value.v)));
+            });
+        })) }); },
 ], [], true);
 exports.standard_lib = function () { return CSharp.semicolon(source_range_1.minus_two_range, int, CSharp.semicolon(source_range_1.minus_two_range, exports.float, CSharp.semicolon(source_range_1.minus_two_range, exports.double, CSharp.semicolon(source_range_1.minus_two_range, string, CSharp.semicolon(source_range_1.minus_two_range, bool, CSharp.semicolon(source_range_1.minus_two_range, unit, math)))))); };

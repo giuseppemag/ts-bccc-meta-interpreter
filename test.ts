@@ -36,15 +36,15 @@ class Vector2 {
     this.y = this.y + v1.y;
   }
 }
-public interface MovableObject {
+public interface Ship {
   void Update(double delta_time);
 }
 
-class SpaceShip : MovableObject {
+class SimpleSpaceShip : Ship {
   Vector2 position;
   Vector2 velocity;
 
-  public SpaceShip(Vector2 pos, Vector2 vel){
+  public SimpleSpaceShip(Vector2 pos, Vector2 vel){
     this.position = pos;
     this.velocity = vel;
   }
@@ -56,11 +56,13 @@ class SpaceShip : MovableObject {
 
 class WarpEngine{
   double current_warp_factor;
+  double max_warp;
   public WarpEngine(){
     this.current_warp_factor = 0.0;
+    this.max_warp = 5.0;
   }
   public void SetWarpFactor(double factor){
-    this.current_warp_factor = factor;
+    this.current_warp_factor = Math.min(factor, this.max_warp);
   }
   public double GetWarpSpeed(){
     var warp_factor = this.current_warp_factor;
@@ -71,9 +73,9 @@ class WarpEngine{
 
 
 
-public abstract ShipDecorator : MovableObject {
-  public MovableObject ship;
-  public ShipDecorator(MovableObject ship){
+public abstract ShipDecorator : Ship {
+  public Ship ship;
+  public ShipDecorator(Ship ship){
     this.ship = ship;
   }
 } 
@@ -81,7 +83,7 @@ public abstract ShipDecorator : MovableObject {
 
 class EnterpriseNX01 : ShipDecorator {
   private WarpEngine warp_engine;
-  public EnterpriseNX01(MovableObject ship):base(ship){
+  public EnterpriseNX01(Ship ship):base(ship){
     this.ship = ship;
     this.warp_engine = new WarpEngine();
   }
@@ -95,12 +97,20 @@ class EnterpriseNX01 : ShipDecorator {
 } 
 
 void main(){
-  var p = new Vector2(0.0,0.0);
-  var v = new Vector2(10.0,10.0);
-  SpaceShip s = new SpaceShip(p, v);
+  var p1 = new Vector2(0.0,0.0);
+  var v1 = new Vector2(10.0,10.0);
+  Ship s = new SimpleSpaceShip(p1, v1);
   EnterpriseNX01 nx1 = new EnterpriseNX01(s);
   nx1.GoToWarp(3.0);
-  nx1.Update(0.16);
+
+  var p2 = new Vector2(0.0,100.0);
+  var v2 = new Vector2(10.0,10.0);
+  Ship tv = new SimpleSpaceShip(p2, v2);
+
+  Ship[] fleet = new Ship[]{ nx1, tv };
+  for(int i = 0; i < fleet.Length; i = i + 1 ){
+    fleet[i].Update(0.16);
+  }
   debugger;
 }
 main();
