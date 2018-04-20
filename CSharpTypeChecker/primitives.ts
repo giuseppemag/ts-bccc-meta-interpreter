@@ -86,7 +86,7 @@ export const mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actua
 export const mk_array_cons_call_and_init = (new_range:SourceRange, _type:ParserRes, actuals:ParserRes[]) : ParserRes =>
   ({ range:new_range, ast:{ kind:"array_cons_call_and_init", type:_type, actuals:actuals } })
 
-export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes) : ConstructorDeclarationAST =>
+export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes) : ConstructorDeclarationAST =>
   ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, params_base_call: params_base_call, range:range})
 
 export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>

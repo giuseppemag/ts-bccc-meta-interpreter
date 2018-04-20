@@ -146,7 +146,7 @@ export interface ConstructorDeclarationAST {
     range: SourceRange;
     name: string;
     arg_decls: Immutable.List<DeclAST>;
-    params_base_call: ParserRes[];
+    params_base_call: Option<ParserRes[]>;
     body: ParserRes;
 }
 export interface BinOpAST {

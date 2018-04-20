@@ -174,7 +174,7 @@ export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.Li
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
 export interface ClassAST { kind: "class", C_name:string, extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
-export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:ParserRes[], body:ParserRes }
+export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
@@ -721,7 +721,7 @@ let un_bracketized_statement = () =>
   full_match.then(_ =>
   co_unit(s)))))
 
-let constructor_body = (function_name:{id: string;range: SourceRange}, arg_decls:DeclAST[], params_base_call:ParserRes[]) =>
+let constructor_body = (function_name:{id: string;range: SourceRange}, arg_decls:DeclAST[], params_base_call:Option<ParserRes[]>) =>
   left_curly_bracket.then(_ =>
   function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
   right_curly_bracket.then(rb =>
@@ -751,9 +751,9 @@ let constructor_declaration = () =>
           actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
           actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
         
-        return constructor_body(function_name, arg_decls, args)
+        return constructor_body(function_name, arg_decls, apply(inl(),args))
       })))))),
-    constructor_body(function_name, arg_decls, [])
+    constructor_body(function_name, arg_decls, apply(inr(),{}))
   )    
   ))))))
 

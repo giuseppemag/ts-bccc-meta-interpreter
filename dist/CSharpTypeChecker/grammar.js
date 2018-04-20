@@ -539,13 +539,13 @@ var constructor_declaration = function () {
                                                 return primitives_1.right_bracket.then(function (_) {
                                                     var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
                                                         actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
-                                                    return constructor_body(function_name, arg_decls, args);
+                                                    return constructor_body(function_name, arg_decls, ts_bccc_1.apply(ts_bccc_1.inl(), args));
                                                 });
                                             });
                                         });
                                     });
                                 });
-                            }), constructor_body(function_name, arg_decls, []));
+                            }), constructor_body(function_name, arg_decls, ts_bccc_1.apply(ts_bccc_1.inr(), {})));
                         });
                     });
                 });

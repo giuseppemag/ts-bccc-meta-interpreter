@@ -301,7 +301,9 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         })).concat(
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
-          params_base_call: apply(inl<Stmt[], Unit>(), c.decl.params_base_call.map(e => ast_to_type_checker(e)(context))),//c.decl.params_base_call,
+          params_base_call: c.decl.params_base_call.kind == "left" 
+                            ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context))) 
+                            : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
           return_t:unit_type,
           parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(c.decl.body)(context),
