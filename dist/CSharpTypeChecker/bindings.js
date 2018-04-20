@@ -503,9 +503,9 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
                     _extends.kind == "left"
                         ? // this is a constructor with base\
                             override_methods.length == 0 ?
-                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), interfaces_init)
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)), interfaces_init)
                                 :
-                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
+                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
                                         return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
                                             return_t: a_m.return_t,
                                             parameters: a_m.parameters,
@@ -617,7 +617,7 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
                 return_t: types_1.unit_type,
                 name: C_name,
                 parameters: [],
-                params_base_call: [],
+                params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
                 body: exports.done
             };
             methods = methods.concat([def_constructor]);
@@ -643,7 +643,7 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
             var base_type = { kind: "ref", C_name: ec.C_name };
             return ({ modifiers: ["static", "public", "casting", "operator"], is_constructor: false, range: r,
                 return_t: base_type, name: ec.C_name, parameters: [{ name: "self", type: this_class_ref_type }],
-                params_base_call: [],
+                params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
                 body: exports.field_get(r, context, exports.get_v(r, "self"), ec.class_kind != "interface" ? "base" : ec.C_name + "_base") });
         });
         methods = methods.concat(casting_operators);

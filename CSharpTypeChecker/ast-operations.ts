@@ -292,7 +292,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(m.decl.return_type),
-          params_base_call: ([]as Stmt[]),
+          params_base_call: apply(inr<Stmt[], Unit>(), {}),
           parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(m.decl.body)(context),
           range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
@@ -301,7 +301,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         })).concat(
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
-          params_base_call: c.decl.params_base_call.map(e => ast_to_type_checker(e)(context)),//c.decl.params_base_call,
+          params_base_call: apply(inl<Stmt[], Unit>(), c.decl.params_base_call.map(e => ast_to_type_checker(e)(context))),//c.decl.params_base_call,
           return_t:unit_type,
           parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
           body:ast_to_type_checker(c.decl.body)(context),

@@ -8,7 +8,7 @@ var from_js = function (t, sem) { return function (_) { return ts_bccc_1.co_unit
 var to_string = function (t, op) {
     return function (_) { return ({ modifiers: ["public", "static"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.string_type, name: "ToString", parameters: [{ name: "a", type: t }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.string_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value))));
         })) }); };
@@ -16,7 +16,7 @@ var to_string = function (t, op) {
 var unary_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: t, name: name, parameters: [{ name: "a", type: t }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value))));
         })) }); };
@@ -24,7 +24,7 @@ var unary_operator = function (name, t, op) {
 var binary_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: t, name: name, parameters: [{ name: "a", type: t }, { name: "b", type: t }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) { return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value, b_v.value))));
         }); })) }); };
@@ -32,7 +32,7 @@ var binary_operator = function (name, t, op) {
 var comparison_operator = function (name, t, op) {
     return function (_) { return ({ modifiers: ["static", "public", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.bool_type, name: name, parameters: [{ name: "a", type: t }, { name: "b", type: t }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.bool_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) { return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), op(a_v.value, b_v.value))));
         }); })) }); };
@@ -40,7 +40,7 @@ var comparison_operator = function (name, t, op) {
 var casting_operator = function (name, from_t, to_t, conv) {
     return function (_) { return ({ modifiers: ["static", "public", "casting", "operator"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: to_t, name: name, parameters: [{ name: "a", type: from_t }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(to_t, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.val_expr(ts_bccc_1.apply(ts_bccc_1.inl(), conv(a_v.value))));
         })) }); };
@@ -113,14 +113,14 @@ var unit = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "unit"
 var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math", [], [
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "sqrt", parameters: [{ name: "a", type: CSharp.double_type }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.return_rt(Sem.float_expr(Math.sqrt(a_v.value.v)));
         })) }); },
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "pow", parameters: [{ name: "a", type: CSharp.double_type },
             { name: "b", type: CSharp.double_type }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
                 return Sem.return_rt(Sem.float_expr(Math.pow(a_v.value.v, b_v.value.v)));
@@ -129,7 +129,7 @@ var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math"
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "min", parameters: [{ name: "a", type: CSharp.double_type },
             { name: "b", type: CSharp.double_type }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
                 return Sem.return_rt(Sem.float_expr(Math.min(a_v.value.v, b_v.value.v)));
@@ -138,7 +138,7 @@ var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math"
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "max", parameters: [{ name: "a", type: CSharp.double_type },
             { name: "b", type: CSharp.double_type }],
-        params_base_call: [],
+        params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
         body: from_js(CSharp.double_type, Sem.get_v_rt(source_range_1.minus_two_range, "a").then(function (a_v) {
             return Sem.get_v_rt(source_range_1.minus_two_range, "b").then(function (b_v) {
                 return Sem.return_rt(Sem.float_expr(Math.max(a_v.value.v, b_v.value.v)));

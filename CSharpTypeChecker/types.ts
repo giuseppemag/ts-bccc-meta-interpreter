@@ -98,7 +98,7 @@ export type Modifier = "private" | "public" | "static" | "protected" | "virtual"
 export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
-export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Stmt[]  }
+export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Option<Stmt[]>  }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt>, is_used_as_base:boolean }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
 

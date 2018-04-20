@@ -153,7 +153,7 @@ export interface FunDefinition extends LambdaDefinition {
 export interface MethodDefinition extends FunDefinition {
     modifiers: Array<Modifier>;
     is_constructor: boolean;
-    params_base_call: Stmt[];
+    params_base_call: Option<Stmt[]>;
 }
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;

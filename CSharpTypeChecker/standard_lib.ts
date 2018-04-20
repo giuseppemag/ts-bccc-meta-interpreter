@@ -13,7 +13,7 @@ let from_js  = (t:CSharp.Type, sem:Sem.StmtRt) : CSharp.Stmt => _ => co_unit(CSh
 let to_string  = (t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["public", "static"], is_constructor:false, range:minus_two_range,
   return_t:CSharp.string_type, name:"ToString", parameters:[{ name:"a", type:t }],
-  params_base_call:[],
+  params_base_call:apply(inr(),{}),
   body:from_js(
         CSharp.string_type,
         Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -23,7 +23,7 @@ let to_string  = (t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
 let unary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:minus_two_range,
   return_t:t, name:name, parameters:[{ name:"a", type:t }],
-  params_base_call:[],
+  params_base_call:apply(inr(),{}),
   body:from_js(
         t,
         Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -33,7 +33,7 @@ let unary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val) => Sem.Val) =
 let binary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:minus_two_range,
   return_t:t, name:name, parameters:[{ name:"a", type:t }, { name:"b", type:t }],
-  params_base_call:[],
+  params_base_call:apply(inr(),{}),
   body:from_js(
         t,
         Sem.get_v_rt(minus_two_range, "a").then(a_v => Sem.get_v_rt(minus_two_range, "b").then(b_v =>
@@ -43,7 +43,7 @@ let binary_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.Val)
 let comparison_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["static", "public", "operator"], is_constructor:false, range:minus_two_range,
   return_t:CSharp.bool_type, name:name, parameters:[{ name:"a", type:t }, { name:"b", type:t }],
-  params_base_call:[],
+  params_base_call:apply(inr(),{}),
   body:from_js(
         CSharp.bool_type,
         Sem.get_v_rt(minus_two_range, "a").then(a_v => Sem.get_v_rt(minus_two_range, "b").then(b_v =>
@@ -53,7 +53,7 @@ let comparison_operator = (name:string, t:CSharp.Type, op:(a_v:Sem.Val, b_v:Sem.
 let casting_operator = (name:string, from_t:CSharp.Type, to_t:CSharp.Type, conv:(a_v:Sem.Val) => Sem.Val) =>
   (_:CallingContext) : CSharp.MethodDefinition => ({ modifiers:["static", "public", "casting", "operator"], is_constructor:false, range:minus_two_range,
   return_t:to_t, name:name, parameters:[{ name:"a", type:from_t }],
-  params_base_call:[],
+  params_base_call:apply(inr(),{}),
   body:from_js(
         to_t,
         Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -140,7 +140,7 @@ let unit = CSharp.def_class(minus_two_range, [], "normal", "unit", [],[
 let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"sqrt", parameters:[{ name:"a", type:CSharp.double_type }],
-            params_base_call:[],
+            params_base_call:apply(inr(),{}),
             body:from_js(
                   CSharp.double_type,
                   Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -149,7 +149,7 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"pow", parameters:[{ name:"a", type:CSharp.double_type },
                                                                  { name:"b", type:CSharp.double_type }],
-            params_base_call:[],
+            params_base_call:apply(inr(),{}),
             body:from_js(
                   CSharp.double_type,
                   Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -159,7 +159,7 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
             return_t:CSharp.double_type, name:"min", parameters:[{ name:"a", type:CSharp.double_type },
                                                                  { name:"b", type:CSharp.double_type }],
-            params_base_call:[],
+            params_base_call:apply(inr(),{}),
             body:from_js(
                   CSharp.double_type,
                   Sem.get_v_rt(minus_two_range, "a").then(a_v =>
@@ -169,7 +169,7 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
       _ => ({ modifiers:["static", "public"], is_constructor:false, range:minus_two_range,
                   return_t:CSharp.double_type, name:"max", parameters:[{ name:"a", type:CSharp.double_type },
                                                                        { name:"b", type:CSharp.double_type }],
-                  params_base_call:[],
+                  params_base_call:apply(inr(),{}),
                   body:from_js(
                         CSharp.double_type,
                         Sem.get_v_rt(minus_two_range, "a").then(a_v =>

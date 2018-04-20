@@ -493,12 +493,12 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
 
             override_methods.length == 0 ?
               semicolon(r, 
-                        field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call, true)), 
+                        field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)), 
                         interfaces_init)
               :
               semicolon(
                 r,
-                field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call, true)),
+                field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)),
                 semicolon(r, 
                           interfaces_init,
                           override_methods.map(a_m =>
@@ -626,7 +626,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
         return_t:unit_type, 
         name:C_name, 
         parameters:[],
-        params_base_call:[],
+        params_base_call:apply(inr(), {}),
         body: done 
       }
       methods = methods.concat([def_constructor])
@@ -658,7 +658,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
       let base_type: Type = { kind: "ref", C_name: ec.C_name }
       return  ({ modifiers:["static", "public", "casting", "operator"], is_constructor:false, range:r,
       return_t:base_type, name:ec.C_name, parameters:[{ name:"self", type:this_class_ref_type }],
-      params_base_call:[],
+      params_base_call:apply(inr(), {}),
       body:field_get(r, context, get_v(r, "self"), ec.class_kind != "interface" ? "base" : `${ec.C_name}_base`) })
     })
     methods = methods.concat(casting_operators)
