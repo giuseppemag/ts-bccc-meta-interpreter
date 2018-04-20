@@ -302,7 +302,38 @@ export interface RecordTypeDeclAST {
     kind: "record type decl";
     args: Array<DeclAST>;
 }
-export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST | TernaryIfAST | TernaryThenElseAST;
+export interface FileSystemAST {
+    kind: 'filesystem';
+    nodes: Immutable.List<ParserRes>;
+}
+export interface DirectoryAST {
+    kind: 'filesystem.directory';
+    path: ParserRes;
+    nodes: Immutable.List<ParserRes>;
+}
+export interface FileAST {
+    kind: 'filesystem.file';
+    path: ParserRes;
+    attributes: Immutable.List<ParserRes>;
+}
+export interface KeyValuePairAST {
+    kind: 'filesystem.keyvalue';
+    key: ParserRes;
+    value: ParserRes;
+}
+export interface FSAndProgramAST {
+    kind: 'filesystem+program';
+    filesystem: ParserRes;
+    program: ParserRes;
+}
+export declare const mk_filesystem_ast: (nodes: ParserRes[]) => AST;
+export declare const mk_key_value_ast: (key: ParserRes, value: ParserRes) => AST;
+export declare const mk_file_ast: (path: ParserRes, contents: ParserRes[]) => AST;
+export declare const mk_filesys_and_program_ast: (fs: ParserRes, prg: ParserRes) => AST;
+export declare const key_value: Coroutine<ParserState, ParserError, ParserRes>;
+export declare const file: Coroutine<ParserState, ParserError, ParserRes>;
+export declare const filesystem_prs: Coroutine<ParserState, ParserError, ParserRes>;
+export declare type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST | BinOpAST | UnaryOpAST | FunctionDeclarationAST | FunctionCallAST | ClassAST | ConstructorCallAST | ArrayConstructorCallAST | DebuggerAST | TCDebuggerAST | NoopAST | RenderSurfaceAST | ArrayTypeDeclAST | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST | TernaryIfAST | TernaryThenElseAST | FileSystemAST | FileAST | KeyValuePairAST | FSAndProgramAST;
 export interface ParserRes {
     range: SourceRange;
     ast: AST;
@@ -326,4 +357,5 @@ export declare let par: Coroutine<ParserState, ParserError, {
     range: SourceRange;
 }>;
 export declare let expr: () => Coroutine<ParserState, ParserError, ParserRes>;
+export declare let program: Parser;
 export declare let program_prs: () => Parser;

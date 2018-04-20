@@ -2,7 +2,7 @@ import { Sum } from 'ts-bccc';
 import { SourceRange } from '../source_range';
 export declare type BinOpKind = "+" | "*" | "/" | "-" | "%" | ">" | "<" | "<=" | ">=" | "==" | "!=" | "&&" | "||" | "xor" | "=>" | "," | "as";
 export declare type UnaryOpKind = "not";
-export declare type ReservedKeyword = "interface" | "abstract" | "base" | "for" | "while" | "if" | "then" | "else" | "private" | "public" | "static" | "protected" | "virtual" | "override" | "class" | "new" | "debugger" | "typechecker_debugger" | "return" | "?" | ":";
+export declare type ReservedKeyword = "interface" | "abstract" | "base" | "for" | "while" | "if" | "then" | "else" | "private" | "public" | "static" | "protected" | "virtual" | "override" | "class" | "new" | "debugger" | "typechecker_debugger" | "return" | "?" | ":" | "filesystem" | "fsfile";
 export declare type Token = ({
     kind: "string";
     v: string;

@@ -58,6 +58,10 @@ import {
   xor,
   tuple_value,
   coerce,
+  mk_fs_key_value,
+  mk_filesystem_and_program,
+  mk_filesystem,
+  mk_fs_file,
 } from './bindings'
 import {
   float_type,
@@ -356,9 +360,15 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
     mk_sprite(n.range, ast_to_type_checker(n.ast.sprite)(context), ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.rotation)(context))
   : n.ast.kind == "other surface" ?
     mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context), ast_to_type_checker(n.ast.rotation)(context))
-
+  : n.ast.kind == "filesystem+program" ?
+    mk_filesystem_and_program(n.range, ast_to_type_checker(n.ast.filesystem)(context), ast_to_type_checker(n.ast.program)(context))
+  : n.ast.kind == "filesystem" ?
+    mk_filesystem(n.range, n.ast.nodes.toArray().map(n => ast_to_type_checker(n)(context)))
+  : n.ast.kind == "filesystem.file" ?
+    mk_fs_file(n.range, ast_to_type_checker(n.ast.path)(context), n.ast.attributes.toArray().map(n => ast_to_type_checker(n)(context)))
+  : n.ast.kind == "filesystem.keyvalue" ?
+    mk_fs_key_value(n.range, ast_to_type_checker(n.ast.key)(context), ast_to_type_checker(n.ast.value)(context))
   : (() => {
     //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`);
     throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
   })()
-

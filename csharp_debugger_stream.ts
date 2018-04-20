@@ -45,7 +45,7 @@ export let get_stream = (source:string) : DebuggerStream => {
       let range = res.value.range
       return { kind:"error", show:() => ({ kind:"message", message:msg, range:range }) }
     }
-
+    
     let ast = res.value.fst
 
     // console.log("AST:", JSON.stringify(ast))

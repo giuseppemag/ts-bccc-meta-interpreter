@@ -157,6 +157,8 @@ export declare const line_keyword: Coroutine<ParserState, ParserError, SourceRan
 export declare const polygon_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const text_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const other_surface_keyword: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const filesystem_keyword: Coroutine<ParserState, ParserError, SourceRange>;
+export declare const file_keyword: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const left_bracket: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const right_bracket: Coroutine<ParserState, ParserError, SourceRange>;
 export declare const left_square_bracket: Coroutine<ParserState, ParserError, SourceRange>;

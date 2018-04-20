@@ -38,6 +38,40 @@ var priority_operators_table = Immutable.Map()
     .set("?", { priority: 2, associativity: "left" })
     .set("=>", { priority: 1, associativity: "right" })
     .set(",", { priority: 0, associativity: "right" });
+exports.mk_filesystem_ast = function (nodes) { return ({ kind: 'filesystem', nodes: Immutable.List(nodes) }); };
+exports.mk_key_value_ast = function (key, value) { return ({ kind: 'filesystem.keyvalue', key: key, value: value }); };
+exports.mk_file_ast = function (path, contents) { return ({ kind: 'filesystem.file', path: path, attributes: Immutable.List(contents) }); };
+exports.mk_filesys_and_program_ast = function (fs, prg) { return ({ kind: 'filesystem+program', filesystem: fs, program: prg }); };
+exports.key_value = primitives_1.string.then(function (key) {
+    return primitives_1.colon_keyword.then(function (_) {
+        return primitives_1.string.then(function (value) {
+            return ts_bccc_1.co_unit({
+                range: source_range_1.join_source_ranges(key.range, value.range),
+                ast: exports.mk_key_value_ast(key, value)
+            });
+        });
+    });
+});
+exports.file = primitives_1.file_keyword.then(function (id) {
+    return primitives_1.string.then(function (path) {
+        return primitives_1.left_curly_bracket.then(function (_) {
+            return ccc_aux_1.co_repeat(exports.key_value).then(function (kvs) {
+                return primitives_1.right_curly_bracket.then(function (rb) {
+                    return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(id, rb), ast: exports.mk_file_ast(path, kvs) });
+                });
+            });
+        });
+    });
+});
+exports.filesystem_prs = primitives_1.filesystem_keyword.then(function (k) {
+    return primitives_1.left_curly_bracket.then(function (_) {
+        return ccc_aux_1.co_repeat(exports.file).then(function (children) {
+            return primitives_1.right_curly_bracket.then(function (rb) {
+                return ts_bccc_1.co_unit({ range: source_range_1.join_source_ranges(k, rb), ast: exports.mk_filesystem_ast(children) });
+            });
+        });
+    });
+});
 exports.mk_parser_state = function (tokens) { return ({ tokens: tokens, branch_priority: 0 }); };
 var no_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 0 })); });
 var partial_match = ts_bccc_1.co_get_state().then(function (s) { return ts_bccc_1.co_set_state(__assign({}, s, { branch_priority: 50 })); });
@@ -715,8 +749,16 @@ var class_statements = function () {
         });
     }));
 };
+exports.program = outer_statements(ccc_aux_1.co_lookup(primitives_1.eof).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (s) {
+    return primitives_1.eof.then(function (_) { return ts_bccc_1.co_unit(s); });
+});
 exports.program_prs = function () {
-    return outer_statements(ccc_aux_1.co_lookup(primitives_1.eof).then(function (_) { return ts_bccc_1.co_unit({}); })).then(function (s) {
-        return primitives_1.eof.then(function (_) { return ts_bccc_1.co_unit(s); });
-    });
+    return primitives_1.parser_or(exports.filesystem_prs.then(function (fs) {
+        return exports.program.then(function (prg) {
+            return ts_bccc_1.co_unit({
+                range: source_range_1.join_source_ranges(fs.range, prg.range),
+                ast: exports.mk_filesys_and_program_ast(fs, prg)
+            });
+        });
+    }), exports.program);
 };

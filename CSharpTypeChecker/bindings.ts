@@ -96,6 +96,35 @@ export let set_v = function (r: SourceRange, v: Name, e: Stmt): Stmt {
     ))
 }
 
+export const mk_fs_key_value = (r: SourceRange, k: Stmt, v: Stmt) : Stmt => {
+  return _ => 
+    k(apply(inl(), string_type)).then(k_t =>
+    v(apply(inl(), string_type)).then(v_t =>
+    co_unit(mk_typing(tuple_type([string_type, string_type]), Sem.tuple_expr_rt([k_t.sem, v_t.sem])))))
+}
+
+export const mk_fs_file = (r: SourceRange, path: Stmt, attr: Array<Stmt>): Stmt => {
+  return _ =>
+    path(no_constraints).then(p_t =>
+    comm_list_coroutine(Immutable.List(attr.map(a => a(no_constraints)))).then(a_t =>
+    co_unit(mk_typing(unit_type, Sem.set_file_from_block(r, p_t.sem, Immutable.List(a_t.toArray().map(a => a.sem)))) 
+    )))
+}
+
+export const mk_filesystem = (r: SourceRange, nodes: Array<Stmt>): Stmt => {
+  return _ =>
+  comm_list_coroutine(Immutable.List(nodes.map(n => n(no_constraints)))).then(n_t =>
+    co_unit(mk_typing(unit_type, Sem.init_fs(Immutable.List(n_t.toArray().map(n => n.sem)))))
+  )
+}
+
+export const mk_filesystem_and_program = (r: SourceRange, fs: Stmt, prg: Stmt): Stmt => {
+  return _ =>
+    fs(no_constraints).then(fs_t =>
+    prg(no_constraints).then(prg_t =>
+      co_unit(mk_typing(unit_type, Sem.fs_and_prg(fs_t.sem, prg_t.sem))))
+    )
+}
 
 let coerce_to_constraint = (r: SourceRange, p: Stmt, p_t: Type): Stmt =>
   constraints => coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" ? p_t : constraints.value)(constraints)

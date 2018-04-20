@@ -10,6 +10,10 @@ export declare let decl_v: (r: SourceRange, v: string, t: Type, is_constant?: bo
 export declare let decl_and_init_v: (r: SourceRange, v: string, t: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_const: (r: SourceRange, c: string, t: Type, e: Stmt) => Stmt;
 export declare let set_v: (r: SourceRange, v: string, e: Stmt) => Stmt;
+export declare const mk_fs_key_value: (r: SourceRange, k: Stmt, v: Stmt) => Stmt;
+export declare const mk_fs_file: (r: SourceRange, path: Stmt, attr: Stmt[]) => Stmt;
+export declare const mk_filesystem: (r: SourceRange, nodes: Stmt[]) => Stmt;
+export declare const mk_filesystem_and_program: (r: SourceRange, fs: Stmt, prg: Stmt) => Stmt;
 export declare let bool: (r: SourceRange, b: boolean) => Stmt;
 export declare let str: (r: SourceRange, s: string) => Stmt;
 export declare let int: (r: SourceRange, i: number) => Stmt;
@@ -71,7 +75,7 @@ export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "interface" | "abstract" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "normal" | "interface" | "abstract", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string, n?: number, called_by?: string) => Stmt;
 export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: {
     att_name: string;
