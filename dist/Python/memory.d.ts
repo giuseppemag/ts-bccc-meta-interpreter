@@ -2,6 +2,7 @@ import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
+import { FileSystem } from "./filesystem";
 export declare let runtime_error: (r: SourceRange, e: string) => ExprRt<Sum<Val, Val>>;
 export declare type Bool = boolean;
 export interface Lambda {
@@ -186,6 +187,7 @@ export interface MemRt {
     functions: Immutable.Map<ValueName, Lambda>;
     classes: Immutable.Map<ValueName, Interface>;
     stack: Immutable.Map<number, Scopes>;
+    fs: FileSystem;
 }
 export declare let load_rt: Fun<Prod<string, MemRt>, Sum<Unit, Sum<Val, Val>>>;
 export declare let store_rt: Fun<Prod<Prod<string, Val>, MemRt>, MemRt>;

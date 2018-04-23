@@ -107,6 +107,40 @@ exports.set_v = function (r, v, e) {
         });
     }); };
 };
+exports.mk_fs_key_value = function (r, k, v) {
+    return function (_) {
+        return k(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.string_type)).then(function (k_t) {
+            return v(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.string_type)).then(function (v_t) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.tuple_type([types_1.string_type, types_1.string_type]), Sem.tuple_expr_rt([k_t.sem, v_t.sem])));
+            });
+        });
+    };
+};
+exports.mk_fs_file = function (r, path, attr) {
+    return function (_) {
+        return path(types_1.no_constraints).then(function (p_t) {
+            return ccc_aux_1.comm_list_coroutine(Immutable.List(attr.map(function (a) { return a(types_1.no_constraints); }))).then(function (a_t) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_file_from_block(r, p_t.sem, Immutable.List(a_t.toArray().map(function (a) { return a.sem; })))));
+            });
+        });
+    };
+};
+exports.mk_filesystem = function (r, nodes) {
+    return function (_) {
+        return ccc_aux_1.comm_list_coroutine(Immutable.List(nodes.map(function (n) { return n(types_1.no_constraints); }))).then(function (n_t) {
+            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.init_fs(Immutable.List(n_t.toArray().map(function (n) { return n.sem; })))));
+        });
+    };
+};
+exports.mk_filesystem_and_program = function (r, fs, prg) {
+    return function (_) {
+        return fs(types_1.no_constraints).then(function (fs_t) {
+            return prg(types_1.no_constraints).then(function (prg_t) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.fs_and_prg(fs_t.sem, prg_t.sem)));
+            });
+        });
+    };
+};
 var coerce_to_constraint = function (r, p, p_t) {
     return function (constraints) { return exports.coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? p_t : constraints.value)(constraints); };
 };

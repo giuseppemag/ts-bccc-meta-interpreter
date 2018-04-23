@@ -2,7 +2,7 @@ import * as Immutable from 'immutable';
 import { apply, co_error, co_get_state, co_set_state, co_unit, Coroutine, inl, inr, Option, Prod, Sum, Unit } from 'ts-bccc';
 import * as CCC from 'ts-bccc';
 
-import { co_catch, co_lookup, co_stateless } from '../ccc_aux';
+import { co_catch, co_lookup, co_stateless, co_repeat } from '../ccc_aux';
 import { join_source_ranges, mk_range, SourceRange, zero_range } from '../source_range';
 import { BinOpKind, Token, UnaryOpKind } from './lexer';
 import {
@@ -114,6 +114,9 @@ import {
   mk_abstract,
   mk_interface,
   interface_modifier,
+  string,
+  filesystem_keyword,
+  file_keyword
 } from './primitives';
 import { Modifier } from './types';
 
@@ -207,6 +210,44 @@ export interface ArrayTypeDeclAST { kind:"array decl", t:ParserRes }
 export interface TupleTypeDeclAST { kind:"tuple type decl", args:Array<ParserRes> }
 export interface RecordTypeDeclAST { kind:"record type decl", args:Array<DeclAST> }
 
+export interface FileSystemAST { kind: 'filesystem', nodes: Immutable.List<ParserRes> }
+export interface DirectoryAST { kind: 'filesystem.directory', path: ParserRes, nodes: Immutable.List<ParserRes> }
+export interface FileAST { kind: 'filesystem.file', path: ParserRes, attributes: Immutable.List<ParserRes> }
+export interface KeyValuePairAST { kind: 'filesystem.keyvalue', key: ParserRes, value: ParserRes }
+export interface FSAndProgramAST { kind: 'filesystem+program', filesystem: ParserRes, program: ParserRes }
+
+export const mk_filesystem_ast = (nodes: ParserRes[]): AST => ({ kind: 'filesystem', nodes: Immutable.List(nodes) })
+export const mk_key_value_ast = (key: ParserRes, value: ParserRes): AST => ({ kind: 'filesystem.keyvalue', key: key, value: value })
+export const mk_file_ast = (path: ParserRes, contents: ParserRes[]): AST => ({ kind: 'filesystem.file', path: path, attributes: Immutable.List(contents) })
+export const mk_filesys_and_program_ast = (fs: ParserRes, prg: ParserRes): AST => ({ kind: 'filesystem+program', filesystem: fs, program: prg })
+
+export const key_value: Coroutine<ParserState, ParserError, ParserRes> =
+  string.then(key => 
+  colon_keyword.then(_ =>
+  string.then(value =>
+    co_unit<ParserState, ParserError, ParserRes>({
+      range: join_source_ranges(key.range, value.range),
+      ast: mk_key_value_ast(key, value)
+    })
+  )))
+
+export const file: Coroutine<ParserState, ParserError, ParserRes> = 
+  file_keyword.then(id =>
+  string.then(path =>
+  left_curly_bracket.then(_ =>
+  co_repeat(key_value).then(kvs => 
+  right_curly_bracket.then(rb =>
+    co_unit<ParserState, ParserError, ParserRes>({ range: join_source_ranges(id, rb), ast: mk_file_ast(path, kvs) })
+  )))))
+  
+export const filesystem_prs: Coroutine<ParserState, ParserError, ParserRes> =
+  filesystem_keyword.then(k => 
+  left_curly_bracket.then(_ =>
+  co_repeat(file).then(children => 
+  right_curly_bracket.then(rb =>
+    co_unit<ParserState, ParserError, ParserRes>({ range: join_source_ranges(k, rb), ast: mk_filesystem_ast(children) })
+  ))))
+
 export type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST | IdAST | FieldRefAST
                 | GenericTypeDeclAST | TupleTypeDeclAST | RecordTypeDeclAST
                 | AssignAST | DeclAST | DeclAndInitAST | IfAST | ForAST | WhileAST | SemicolonAST | ReturnAST | ArgsAST
@@ -215,6 +256,10 @@ export type AST = UnitAST | StringAST | IntAST | FloatAST | DoubleAST | BoolAST 
                 | DebuggerAST | TCDebuggerAST | NoopAST
                 | RenderSurfaceAST | ArrayTypeDeclAST
                 | ModifierAST | GetArrayValueAtAST | BracketAST | ArrayConstructorCallAndInitAST | TernaryIfAST | TernaryThenElseAST
+                | FileSystemAST
+                | FileAST
+                | KeyValuePairAST
+                | FSAndProgramAST
 
 export interface ParserRes { range:SourceRange, ast:AST }
 export interface ParserError { priority:number, message:string, range:SourceRange }
@@ -955,6 +1000,17 @@ let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.
         snd:Immutable.List<ConstructorAST>() }
       })))
 
-export let program_prs : () => Parser = () =>
+export let program : Parser =
   outer_statements(co_lookup(eof).then(_ => co_unit({}))).then(s =>
   eof.then(_ => co_unit(s)))
+
+export let program_prs : () => Parser = () =>
+  parser_or<ParserRes>(
+    filesystem_prs.then(fs => 
+    program.then(prg => 
+    co_unit({ 
+      range: join_source_ranges(fs.range, prg.range), 
+      ast: mk_filesys_and_program_ast(fs, prg) 
+    }))),
+    program
+  )

@@ -8,3 +8,4 @@ __export(require("./basic_statements"));
 __export(require("./classes"));
 __export(require("./expressions"));
 __export(require("./functions"));
+__export(require("./filesystem"));

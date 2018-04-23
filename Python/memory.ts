@@ -5,6 +5,7 @@ import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-
 import * as Co from "ts-bccc"
 import { SourceRange, mk_range } from "../source_range"
 import { comm_list_coroutine } from "../ccc_aux";
+import { FileSystem } from "./filesystem";
 
 export let runtime_error = function(r:SourceRange, e:string) : ExprRt<Sum<Val,Val>> { return co_error<MemRt, ErrVal, Sum<Val,Val>>({ message:e, range:r }) }
 export type Bool = boolean
@@ -42,6 +43,7 @@ export interface Interface {  base:Sum<Interface, Unit>,
                               static_fields:Immutable.Map<ValueName, Val>,
                               is_internal:boolean,
                               range:SourceRange }
+
 export let empty_scope_val = Immutable.Map<ValueName, Val>()
 export let empty_scopes_val = Immutable.Map<NestingLevel, Scope>().set(0,empty_scope_val)
 export let mk_unit_val : Val = ({ v:apply(unit(),{}), k:"u" })
@@ -107,7 +109,7 @@ let update_variable = (name:ValueName, value:Val, scopes: Scopes, assign_if_not_
   return { kind: "left", value: {} }
 }
 
-export interface MemRt { highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
+export interface MemRt { highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes>, fs: FileSystem  }
 let highlight : Fun<Prod<SourceRange, MemRt>, MemRt> = fun(x => ({...x.snd, highlighting:x.fst }))
 export let load_rt: Fun<Prod<string, MemRt>, Sum<Unit,Sum<Val,Val>>> = fun(x =>
   {
@@ -209,7 +211,8 @@ export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0),
                                      heap:empty_scope_val,
                                      functions:Immutable.Map<ValueName,Lambda>(),
                                      classes:Immutable.Map<ValueName, Interface>(),
-                                     stack:Immutable.Map<number, Scopes>() }
+                                     stack:Immutable.Map<number, Scopes>(),
+                                     fs: Immutable.Map() }
 
 export let set_highlighting_rt = function(r:SourceRange) : StmtRt {
   return mk_coroutine(constant<MemRt, SourceRange>(r).times(id<MemRt>()).then(highlight).then(constant<MemRt,Sum<Val,Val>>(apply(inl(),mk_unit_val)).times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))

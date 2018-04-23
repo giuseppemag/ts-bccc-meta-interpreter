@@ -59,7 +59,7 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
 
 
 run_checks([
-  { name:"operators",
+   { name:"operators",
     source:`var a = 2 + 5;
     var b = 5 * 1.5f;
     var c = 2.5 + (5 * 1.5f);
@@ -938,6 +938,102 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     debugger;`,
   checks:[
     { name:"res is 0.04108807551707464", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("res").v, 0.04108807551707464) }
+  ]},
+
+  {
+    name:"Filesystem: Special syntax",
+    source:
+    `filesystem {
+      fsfile "/hello_world" {
+        "content": "hello world!"
+      }
+
+      fsfile "/a" {
+        "content": "1"
+      }
+      fsfile "/a" {
+        "content": "2"
+      }
+    }`
+    ,
+  checks:[
+    { name:"A fsfile should be assigned.", step:2, expected_kind:"memory", check:(s:MemRt) => s.fs.has("/hello_world") },
+    { name:"A fsfile should have the correct contents.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.fs.get("/hello_world").content, "hello world!") },
+    { name:"A fsfile will be overwritten if specified twice.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.fs.get("/a").content, "2") },
+  ]},
+  {
+    name:"Filesystem: Standard Library",
+    source:
+    `
+    Path.WriteAllText("/b", "2");
+    var exists_a = Path.Exists("/a");
+    var exists_b = Path.Exists("/b");
+    var b = Path.ReadAllText("/b");
+    Path.Copy("/b", "/c");
+    Path.Create("/d");
+
+    Path.Create("/e");
+    Path.Delete("/e");
+
+    Path.WriteAllText("/f", "0");
+    Path.Move("/f", "/g");
+    `
+    ,
+  checks:[
+    { 
+      name:"WriteAllText writes file into fs", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => s.fs.get("/b").content == "2"
+    },
+    { 
+      name:"Exists returns false if file does not exist", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) =>
+        assert_equal(s.globals.get(0).get("exists_a").v, false)
+    },
+    { 
+      name:"Exists returns true if file does exist", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) =>
+        assert_equal(s.globals.get(0).get("exists_b").v, true)
+    },
+    { 
+      name:"ReadAllText reads file from fs", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => s.globals.get(0).get("b").v == "2"
+    },
+    { 
+      name:"Copy copies file", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => s.fs.get("/c").content == "2"
+    },
+    { 
+      name:"Create creates empty file", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => s.fs.has("/d") && s.fs.get("/d").content == ""
+    },
+    { 
+      name:"Delete deletes file", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => 
+        !  s.fs.has("/e") 
+    },
+    { 
+      name:"Move moves file", 
+      step:2, 
+      expected_kind:"memory", 
+      check:(s:MemRt) => 
+        !  s.fs.has("/f") 
+        && s.fs.has("/g")
+        && s.fs.get("/g").content == "0"
+    },
   ]},
 
 ])

@@ -440,6 +440,9 @@ export const polygon_keyword = symbol("polygon", "polygon")
 export const text_keyword = symbol("text", "text")
 export const other_surface_keyword = symbol("other_surface", "other_surface")
 
+export const filesystem_keyword = symbol("filesystem", "filesystem")
+export const file_keyword = symbol("fsfile", "fsfile")
+
 export const left_bracket = symbol("(", "(")
 export const right_bracket = symbol(")", ")")
 
