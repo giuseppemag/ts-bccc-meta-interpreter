@@ -25,6 +25,9 @@ export let test_parser = () => {
       public int Run(){
         return 10000000000;
       }
+      public int Run(double x){
+        return 1111;
+      }
       public int Run(int x){
         return 90000000000 * x;
       }
@@ -34,9 +37,7 @@ export let test_parser = () => {
       }
     }
     A a = new A();
-    int res1 = a.Run(5);
-    int res2 = a.Run();
-    string res3 = a.Run(1);
+    int res1 = a.Run(8.0);
     debugger;
 
 `

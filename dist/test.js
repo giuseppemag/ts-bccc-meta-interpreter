@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    class A {\n      public int Run(){\n        return 10000000000;\n      }\n      public int Run(int x){\n        return 90000000000 * x;\n      }\n\n      public string Run(int x){\n        return \"9000\";\n      }\n    }\n    A a = new A();\n    int res1 = a.Run(5);\n    int res2 = a.Run();\n    string res3 = a.Run(1);\n    debugger;\n\n";
+        var source = "\n    class A {\n      public int Run(){\n        return 10000000000;\n      }\n      public int Run(double x){\n        return 1111;\n      }\n      public int Run(int x){\n        return 90000000000 * x;\n      }\n\n      public string Run(int x){\n        return \"9000\";\n      }\n    }\n    A a = new A();\n    int res1 = a.Run(8.0);\n    debugger;\n\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

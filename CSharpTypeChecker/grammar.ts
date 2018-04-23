@@ -819,19 +819,21 @@ let class_declaration = () =>
 
 let interface_declaration = () =>
   no_match.then(_ =>
-  class_modifiers().then(c_ms =>
+  class_modifiers().then(_ms =>
   partial_match.then(_ =>
   identifier_token.then(class_name =>
   {
-    if(c_ms.count() == 0) return co_get_state<ParserState, ParserError>().then(s =>
-                                  co_error<ParserState, ParserError, ParserRes>({ range:class_name.range, priority:s.branch_priority, message:`Error: missing modifiers to ${class_name.id}.` }))
-    let range = c_ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
+    let range = 
+      _ms.count() == 0 ? class_name.range :
+      _ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
+    let _ms_new = _ms.toArray().some(m => m.ast.kind == "public") || _ms.count() == 0 ? 
+                  _ms.toArray().map(m => m && m.ast) : _ms.toArray().map(m => m && m.ast).concat([{kind:"public"}])
     return parser_or<ParserRes>(
         colon_keyword.then(_ =>
         identifiers().then(extends_or_implements =>
-        class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+        class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(_ms_new))
         )),
-        class_body(class_name, range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+        class_body(class_name, range, [], Immutable.List<ModifierAST>(_ms_new))
       )}))))
 
 let outer_statement : () => Parser = () =>

@@ -863,7 +863,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                         if (constraints.value.kind != "fun_with_input_as_stmts")
                             return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected fun_with_input_as_stmts." });
                         var refined_constraints_1 = constraints.value;
-                        var compute_method_1 = function (m, c) {
+                        var compute_method_1 = function (m, c, check_equality) {
                             if (m.typing.type.kind != "fun")
                                 return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected method." });
                             if (m.typing.type.in.kind != "tuple")
@@ -881,7 +881,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                             }
                             var check_arguments = expected_args.length != c.in.length ? ts_bccc_2.co_error({ range: r, message: "Method args length do not match." })
                                 : c.in.reduce(function (args, arg, arg_i) {
-                                    return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
+                                    return arg(check_equality ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
                                         return args.then(function (args_t) {
                                             return ts_bccc_2.co_unit(args_t.push(arg_t));
                                         });
@@ -919,6 +919,18 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                             };
                             return check_arguments.then(function (args) {
                                 var fun = types_1.fun_type(types_1.tuple_type(args.toArray().map(function (a) { return a.type; })), refined_constraints_1.out, refined_constraints_1.range);
+                                // if (check_equality) {
+                                //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type : 
+                                //     m.typing.type.kind != "fun" ? m.typing.type : 
+                                //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type : 
+                                //       m.typing.type.kind != "fun" ? m.typing.type : 
+                                //       m.typing.type.out)}`)
+                                // }
+                                if (check_equality && !types_1.type_equals(fun, is_static ? m.typing.type :
+                                    m.typing.type.kind != "fun" ? m.typing.type :
+                                        m.typing.type.out)) {
+                                    return ts_bccc_2.co_error({ range: r, message: "Unexpected method" });
+                                }
                                 return exports.coerce(r, function (_) { return f(); }, fun)(types_1.no_constraints);
                             });
                         };
@@ -933,8 +945,14 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                                 return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" });
                             if (m.typing.type.kind != "fun")
                                 return ts_bccc_2.co_error({ range: r, message: "Unexpected method" });
-                            return compute_method_1(m, refined_constraints_1);
-                        }).toList());
+                            return compute_method_1(m, refined_constraints_1, true);
+                        }).concat((ms.map(function (m, i) {
+                            if (!m)
+                                return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" });
+                            if (m.typing.type.kind != "fun")
+                                return ts_bccc_2.co_error({ range: r, message: "Unexpected method" });
+                            return compute_method_1(m, refined_constraints_1, false);
+                        }))).toList());
                         return c;
                     }
                     return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " does not contain field or method " + F_or_M_name });

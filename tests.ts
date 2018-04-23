@@ -860,7 +860,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         this.y = this.y + v1.y;
       }
     }
-    public interface Ship {
+    interface Ship {
       void Update(double delta_time);
     }
     
@@ -897,7 +897,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     
     
     
-    public abstract ShipDecorator : Ship {
+    abstract ShipDecorator : Ship {
       public Ship ship;
       public ShipDecorator(Ship ship){
         this.ship = ship;

@@ -613,19 +613,18 @@ var class_declaration = function () {
 };
 var interface_declaration = function () {
     return no_match.then(function (_) {
-        return class_modifiers().then(function (c_ms) {
+        return class_modifiers().then(function (_ms) {
             return partial_match.then(function (_) {
                 return primitives_1.identifier_token.then(function (class_name) {
-                    if (c_ms.count() == 0)
-                        return ts_bccc_1.co_get_state().then(function (s) {
-                            return ts_bccc_1.co_error({ range: class_name.range, priority: s.branch_priority, message: "Error: missing modifiers to " + class_name.id + "." });
-                        });
-                    var range = c_ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
+                    var range = _ms.count() == 0 ? class_name.range :
+                        _ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
+                    var _ms_new = _ms.toArray().some(function (m) { return m.ast.kind == "public"; }) || _ms.count() == 0 ?
+                        _ms.toArray().map(function (m) { return m && m.ast; }) : _ms.toArray().map(function (m) { return m && m.ast; }).concat([{ kind: "public" }]);
                     return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
                         return identifiers().then(function (extends_or_implements) {
-                            return class_body(class_name, range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
+                            return class_body(class_name, range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(_ms_new));
                         });
-                    }), class_body(class_name, range, [], Immutable.List(c_ms.toArray().map(function (m) { return m.ast; }))));
+                    }), class_body(class_name, range, [], Immutable.List(_ms_new)));
                 });
             });
         });
