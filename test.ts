@@ -21,100 +21,24 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class Vector2 {
-  double x;
-  double y;
-  public Vector2(double x, double y){
-    this.x = x;
-    this.y = y;
-  }
-  public Vector2 Mul(double c){
-    return new Vector2(this.x * c, this.y * c);
-  }
-  public void Sum(Vector2 v1){
-    this.x = this.x + v1.x;
-    this.y = this.y + v1.y;
-  }
-}
-public interface Ship {
-  void Update(double delta_time);
-}
+    class A {
+      public int Run(){
+        return 10000000000;
+      }
+      public int Run(int x){
+        return 90000000000 * x;
+      }
 
-class SimpleSpaceShip : Ship {
-  Vector2 position;
-  Vector2 velocity;
+      public string Run(int x){
+        return "9000";
+      }
+    }
+    A a = new A();
+    int res1 = a.Run(5);
+    int res2 = a.Run();
+    string res3 = a.Run(1);
+    debugger;
 
-  public SimpleSpaceShip(Vector2 pos, Vector2 vel){
-    this.position = pos;
-    this.velocity = vel;
-  }
-
-  public override void Update(double dt){
-    this.position.Sum(this.velocity.Mul(dt));
-  }
-}
-
-class WarpEngine{
-  double current_warp_factor;
-  double max_warp;
-  public WarpEngine(){
-    this.current_warp_factor = 0.0;
-    this.max_warp = 5.0;
-  }
-  public void SetWarpFactor(double factor){
-    this.current_warp_factor = Math.min(factor, this.max_warp);
-  }
-  public double GetWarpSpeed(){
-    var warp_factor = this.current_warp_factor;
-    var speed_light = 1.0;
-    return speed_light / Math.pow(warp_factor, 10.0/3.0);
-  }
-}
-
-
-
-public abstract ShipDecorator : Ship {
-  public Ship ship;
-  public ShipDecorator(Ship ship){
-    this.ship = ship;
-  }
-} 
-
-
-class EnterpriseNX01 : ShipDecorator {
-  private WarpEngine warp_engine;
-  public EnterpriseNX01(Ship ship):base(ship){
-    this.ship = ship;
-    this.warp_engine = new WarpEngine();
-  }
-  public void GoToWarp(double factor){
-    this.warp_engine.SetWarpFactor(factor);
-  }
-  public override void Update(double dt){
-    var multiplier = this.warp_engine.GetWarpSpeed();
-    this.ship.Update(dt * multiplier);
-  }
-} 
-
-void main(){
-  var p1 = new Vector2(0.0,0.0);
-  var v1 = new Vector2(10.0,10.0);
-  Ship s = new SimpleSpaceShip(p1, v1);
-  EnterpriseNX01 nx1 = new EnterpriseNX01(s);
-  nx1.GoToWarp(3.0);
-
-  var p2 = new Vector2(0.0,100.0);
-  var v2 = new Vector2(10.0,10.0);
-  Ship tv = new SimpleSpaceShip(p2, v2);
-
-  Ship[] fleet = new Ship[]{ nx1, tv };
-  for(int i = 0; i < fleet.Length; i = i + 1 ){
-    fleet[i].Update(0.16);
-  }
-  debugger;
-}
-main();
-typechecker_debugger;
 `
 
 

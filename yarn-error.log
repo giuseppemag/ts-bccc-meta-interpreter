@@ -1,5 +1,5 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js main
+  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js test
 
 PATH: 
   C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\dotnet\;C:\Program Files\Novell\iPrint;C:\Users\Dr Abbadi\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Users\Dr Abbadi\AppData\Roaming\npm;C:\Users\Dr Abbadi\AppData\Local\Yarn\bin;C:\Users\Dr Abbadi\AppData\Local\Programs\MiKTeX 2.9\miktex\bin\x64\;C:\Python27;C:\Users\Dr Abbadi\Documents\Git\emsdk
@@ -16,7 +16,7 @@ Platform:
 npm manifest: 
   {
     "name": "ts-bccc-meta-compiler",
-    "version": "1.0.79",
+    "version": "1.0.84",
     "description": "A meta-compiler based on the ts-bccc package.",
     "typings": "dist/main.d.ts",
     "typescript": {
@@ -2871,7 +2871,7 @@ Trace:
   Error: Command failed.
   Exit code: 1
   Command: C:\Windows\system32\cmd.exe
-  Arguments: /d /s /c node dist/test.js
+  Arguments: /d /s /c node dist/tests.js
   Directory: C:\Users\Dr Abbadi\Documents\Git\ts-bccc-meta-interpreter
   Output:
   

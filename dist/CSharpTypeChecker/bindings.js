@@ -22,6 +22,8 @@ var multi_map_1 = require("../multi_map");
 var ensure_constraints = function (r, constraints) { return function (res) {
     if (constraints.kind == "right")
         return res;
+    if (constraints.value.kind == "fun_with_input_as_stmts")
+        return res;
     return exports.coerce(r, function (_) { return res; }, constraints.value)(types_1.no_constraints);
 }; };
 var initial_value = function (type) {
@@ -43,7 +45,10 @@ exports.get_v = function (r, v) {
     var g1 = g.then((ts_bccc_1.snd()).map_plus((ts_bccc_1.swap_prod().then(exports.wrap_co_res))));
     var h = ts_bccc_1.apply(ts_bccc_1.curry(g1), v);
     var i = ts_bccc_2.mk_coroutine(h);
-    return function (constraints) { return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" ? i : exports.coerce(r, function (_) { return i; }, constraints.value)(types_1.no_constraints); };
+    return function (constraints) {
+        return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
+            exports.coerce(r, function (_) { return i; }, constraints.value)(types_1.no_constraints);
+    };
 };
 exports.decl_forced_v = function (r, v, t, is_constant) {
     var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
@@ -103,7 +108,7 @@ exports.set_v = function (r, v, e) {
     }); };
 };
 var coerce_to_constraint = function (r, p, p_t) {
-    return function (constraints) { return exports.coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" ? p_t : constraints.value)(constraints); };
+    return function (constraints) { return exports.coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? p_t : constraints.value)(constraints); };
 };
 exports.bool = function (r, b) {
     return coerce_to_constraint(r, function (_) { return ts_bccc_2.co_unit(types_1.mk_typing(types_1.bool_type, Sem.bool_expr(b))); }, types_1.bool_type);
@@ -125,7 +130,7 @@ exports.tuple_value = function (r, args) {
         var original_constraints = constraints;
         if (constraints.kind == "left" && constraints.value.kind == "record")
             constraints = ts_bccc_1.apply(ts_bccc_1.inl(), types_1.tuple_type(constraints.value.args.toArray()));
-        if (constraints.kind == "left" && constraints.value.kind != "tuple")
+        if (constraints.kind == "left" && constraints.value.kind != "tuple" && constraints.value.kind != "fun_with_input_as_stmts")
             return ts_bccc_2.co_error({ range: r, message: "Error: expected type " + types_1.type_to_string(constraints.value) + " when typechecking tuple." });
         var check_args = ccc_aux_1.comm_list_coroutine(Immutable.List(args.map(function (a, a_i) {
             return a(constraints.kind == "left" && constraints.value.kind == "tuple" ? ts_bccc_1.apply(ts_bccc_1.inl(), constraints.value.args[a_i])
@@ -135,6 +140,8 @@ exports.tuple_value = function (r, args) {
             return ts_bccc_2.co_unit(types_1.mk_typing(types_1.tuple_type(arg_ts.toArray().map(function (a_t) { return a_t.type; })), Sem.tuple_expr_rt(arg_ts.toArray().map(function (a_t) { return a_t.sem; }))));
         });
         if (original_constraints.kind == "right")
+            return res;
+        if (original_constraints.value.kind == "fun_with_input_as_stmts")
             return res;
         return exports.coerce(r, function (_) { return res; }, original_constraints.value)(types_1.no_constraints);
     };
@@ -351,6 +358,8 @@ exports.arrow = function (r, parameters, closure, body) {
     return function (constraints) {
         if (constraints.kind == "right")
             return ts_bccc_2.co_error({ range: r, message: "Error: empty context when defining anonymous function (=>)." });
+        if (constraints.value.kind == "fun_with_input_as_stmts")
+            return ts_bccc_2.co_error({ range: r, message: "Error" });
         var expected_type = constraints.value;
         if (expected_type.kind != "fun")
             return ts_bccc_2.co_error({ range: r, message: "Error: expected " + types_1.type_to_string(expected_type) + ", found function." });
@@ -459,8 +468,8 @@ exports.mk_lambda = function (r, def, closure_parameters, range) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
                 var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
                 var _fun_type = types_1.fun_type(m_params, body_t.type, r);
-                if (constraints.kind == "left" && !types_1.type_equals(_fun_type, constraints.value))
-                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + types_1.type_to_string(constraints.value) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
+                if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
+                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
                 return Co.co_set_state(initial_bindings).then(function (_) {
                     return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range)));
                 });
@@ -533,7 +542,9 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
     }); };
 };
 exports.call_lambda = function (r, lambda, arg_values) {
-    return function (constraints) { return ensure_constraints(r, constraints)(lambda(types_1.no_constraints).then(function (lambda_t) {
+    return function (constraints) { return ensure_constraints(r, constraints)(//check_arguments(constraints).then(_args => 
+    lambda(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.fun_stmts_type(arg_values, constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts" ? constraints.value : types_1.var_type, r))).then(function (lambda_t) {
+        // console.log("lambda: ", JSON.stringify(lambda_t))
         if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
             return ts_bccc_2.co_error({ range: r, message: "Error: invalid lambda type " + JSON.stringify(lambda_t.type) });
         var expected_args = lambda_t.type.in.args;
@@ -566,16 +577,16 @@ exports.ret = function (r, p) {
     }); };
 };
 exports.new_array = function (r, type, len) {
-    return function (constraints) { return constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value) ?
-        ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + types_1.type_to_string(constraints.value) })
+    return function (constraints) { return constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(types_1.arr_type(type), constraints.value)) ?
+        ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) })
         : len(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.int_type)).then(function (len_t) {
             return ts_bccc_2.co_unit(types_1.mk_typing(types_1.arr_type(type), Sem.new_arr_expr_rt(r, len_t.sem)));
         }); };
 };
 exports.new_array_and_init = function (r, type, args) {
     return function (constraints) {
-        if (constraints.kind == "left" && !types_1.type_equals(types_1.arr_type(type), constraints.value))
-            return ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + types_1.type_to_string(constraints.value) });
+        if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(types_1.arr_type(type), constraints.value)))
+            return ts_bccc_2.co_error({ range: r, message: "Error: array type " + types_1.type_to_string(type) + " does not match context " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) });
         var xs = Immutable.List(args.map(function (a) { return a(ts_bccc_1.apply(ts_bccc_1.inl(), type)); }));
         return ccc_aux_1.comm_list_coroutine(xs).then(function (xs_t) {
             var arg_types = xs_t.toArray().map(function (x_t) { return x_t.type; });
@@ -844,26 +855,87 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                 var C_def_obj_1 = C_def;
                 var method_try_get = function () {
                     if (C_def_obj_1.methods.has(F_or_M_name)) {
-                        var M_def = C_def_obj_1.methods.get(F_or_M_name).first();
-                        if (!M_def.modifiers.has("public")) {
-                            if (context.kind == "global scope")
-                                return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + F_or_M_name + "." });
-                            else if (context.C_name != C_name)
-                                return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + C_name + "::" + F_or_M_name + "." });
-                        }
-                        if (M_def.typing.type.kind != "fun")
-                            return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + F_or_M_name + " is not a lambda." });
-                        if (M_def.modifiers.has("static")) {
-                            if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
-                                return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type, Sem.static_method_get_expr_rt(r, C_name, F_or_M_name)));
+                        // console.log("found: ", JSON.stringify(constraints))
+                        // console.log("methods: ", JSON.stringify(C_def_obj.methods.get(F_or_M_name)))
+                        var ms = C_def_obj_1.methods.get(F_or_M_name);
+                        if (constraints.kind == "right")
+                            return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected constraints inside a method." });
+                        if (constraints.value.kind != "fun_with_input_as_stmts")
+                            return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected fun_with_input_as_stmts." });
+                        var refined_constraints_1 = constraints.value;
+                        var compute_method_1 = function (m, c) {
+                            if (m.typing.type.kind != "fun")
+                                return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected method." });
+                            if (m.typing.type.in.kind != "tuple")
+                                return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected args of kind tuple." });
+                            var expected_args = [];
+                            if (!m.modifiers.has("static")) {
+                                if (m.typing.type.out.kind != "fun")
+                                    return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected method." });
+                                if (m.typing.type.out.in.kind != "tuple")
+                                    return ts_bccc_2.co_error({ range: r, message: "Internal error. Expected args of kind tuple." });
+                                expected_args = m.typing.type.out.in.args;
                             }
                             else {
-                                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([]), M_def.typing.type, r), Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(r, Sem.static_method_get_expr_rt(r, C_name, F_or_M_name), [this_ref_t.sem]), [], [], r)));
+                                expected_args = m.typing.type.in.args;
                             }
+                            var check_arguments = expected_args.length != c.in.length ? ts_bccc_2.co_error({ range: r, message: "Method args length do not match." })
+                                : c.in.reduce(function (args, arg, arg_i) {
+                                    return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
+                                        return args.then(function (args_t) {
+                                            return ts_bccc_2.co_unit(args_t.push(arg_t));
+                                        });
+                                    });
+                                }, ts_bccc_2.co_unit(Immutable.List()));
+                            var is_static = false;
+                            var f = function () {
+                                var M_def = m;
+                                if (!M_def.modifiers.has("public")) {
+                                    if (context.kind == "global scope")
+                                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + F_or_M_name + "." });
+                                    else if (context.C_name != C_name)
+                                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + C_name + "::" + F_or_M_name + "." });
+                                }
+                                if (M_def.typing.type.kind != "fun")
+                                    return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + F_or_M_name + " is not a lambda." });
+                                if (M_def.modifiers.has("static")) {
+                                    is_static = true;
+                                    if (this_ref_t.type.kind == "ref" || this_ref_t.type.kind == "obj") {
+                                        return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type, m.typing.sem
+                                        //Sem.static_method_get_expr_rt(r, C_name, F_or_M_name)
+                                        ));
+                                    }
+                                    else {
+                                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([]), M_def.typing.type, r), Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(r, m.typing.sem, 
+                                        //Sem.static_method_get_expr_rt(r, C_name, F_or_M_name), 
+                                        [this_ref_t.sem]), [], [], r)));
+                                    }
+                                }
+                                else {
+                                    return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type.out, Sem.call_lambda_expr_rt(r, m.typing.sem, 
+                                    //Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem), 
+                                    [this_ref_t.sem])));
+                                }
+                            };
+                            return check_arguments.then(function (args) {
+                                var fun = types_1.fun_type(types_1.tuple_type(args.toArray().map(function (a) { return a.type; })), refined_constraints_1.out, refined_constraints_1.range);
+                                return exports.coerce(r, function (_) { return f(); }, fun)(types_1.no_constraints);
+                            });
+                        };
+                        if (ms.count() == 1) {
+                            var m = ms.first();
+                            if (m.typing.type.kind != "fun")
+                                return ts_bccc_2.co_error({ range: r, message: "Unexpected method" });
+                            return compute_method_1(m, refined_constraints_1);
                         }
-                        else {
-                            return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type.out, Sem.call_lambda_expr_rt(r, Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem), [this_ref_t.sem])));
-                        }
+                        var c = ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get method " + F_or_M_name + "." })(ms.map(function (m, i) {
+                            if (!m)
+                                return ts_bccc_2.co_error({ range: r, message: "Unexpected coercion error" });
+                            if (m.typing.type.kind != "fun")
+                                return ts_bccc_2.co_error({ range: r, message: "Unexpected method" });
+                            return compute_method_1(m, refined_constraints_1);
+                        }).toList());
+                        return c;
                     }
                     return ts_bccc_2.co_error({ range: r, message: "Error: " + C_name + " does not contain field or method " + F_or_M_name });
                 };
@@ -951,7 +1023,7 @@ exports.call_cons = function (r, context, C_name, arg_values, is_internal) {
                         // co_stateless<State,Err,Typing>(
                         //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>
                         return v_2(types_1.no_constraints).then(function (v_v) {
-                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, //Sem.call_lambda_expr_rt(r, v_v.sem, [Sem.get_v_rt(r, "this")]), 
+                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, //Sem.call_lambda_expr_rt(r, v_v.sem, [Sem.get_v_rt(r, "this")]),
                             Sem.get_v_rt(r, "this"))));
                         });
                     };

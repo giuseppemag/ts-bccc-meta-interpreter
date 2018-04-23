@@ -323,4 +323,20 @@ run_checks([
             { name: "y3 is 10", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y3").v, 10); } },
         ]
     },
+    {
+        name: "Simple method overloading",
+        source: "class A {\n      public int Run(){\n        return 10000000000;\n      }\n      public int Run(int x){\n        return 90000000000 * x;\n      }\n      public string Run(int x){\n        return \"9000\";\n      }\n    }\n    A a = new A();\n    int res1 = a.Run(5);\n    int res2 = a.Run();\n    string res3 = a.Run(1);\n    debugger;",
+        checks: [
+            { name: "res1 is 450000000000", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res1").v, 450000000000); } },
+            { name: "res2 is 10000000000", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res2").v, 10000000000); } },
+            { name: "res3 is 9000", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res3").v, "9000"); } },
+        ]
+    },
+    {
+        name: "Star trek",
+        source: "class Vector2 {\n      public double x;\n      double y;\n      public Vector2(double x, double y){\n        this.x = x;\n        this.y = y;\n      }\n      public Vector2 Mul(double c){\n        return new Vector2(this.x * c, this.y * c);\n      }\n      public void Sum(Vector2 v1){\n        this.x = this.x + v1.x;\n        this.y = this.y + v1.y;\n      }\n    }\n    public interface Ship {\n      void Update(double delta_time);\n    }\n    \n    class SimpleSpaceShip : Ship {\n      public Vector2 position;\n      Vector2 velocity;\n    \n      public SimpleSpaceShip(Vector2 pos, Vector2 vel){\n        this.position = pos;\n        this.velocity = vel;\n      }\n    \n      public override void Update(double dt){\n        this.position.Sum(this.velocity.Mul(dt));\n      }\n    }\n    \n    class WarpEngine{\n      double current_warp_factor;\n      double max_warp;\n      public WarpEngine(){\n        this.current_warp_factor = 0.0;\n        this.max_warp = 5.0;\n      }\n      public void SetWarpFactor(double factor){\n        this.current_warp_factor = Math.min(factor, this.max_warp);\n      }\n      public double GetWarpSpeed(){\n        var warp_factor = this.current_warp_factor;\n        var speed_light = 1.0;\n        return speed_light / Math.pow(warp_factor, 10.0/3.0);\n      }\n    }\n    \n    \n    \n    public abstract ShipDecorator : Ship {\n      public Ship ship;\n      public ShipDecorator(Ship ship){\n        this.ship = ship;\n      }\n    } \n    \n    \n    class EnterpriseNX01 : ShipDecorator {\n      private WarpEngine warp_engine;\n      public EnterpriseNX01(Ship ship):base(ship){\n        this.ship = ship;\n        this.warp_engine = new WarpEngine();\n      }\n      public void GoToWarp(double factor){\n        this.warp_engine.SetWarpFactor(factor);\n      }\n      public override void Update(double dt){\n        var multiplier = this.warp_engine.GetWarpSpeed();\n        this.ship.Update(dt * multiplier);\n      }\n    } \n    \n    var p1 = new Vector2(0.0,0.0);\n    var v1 = new Vector2(10.0,10.0);\n    SimpleSpaceShip s = new SimpleSpaceShip(p1, v1);\n    EnterpriseNX01 nx1 = new EnterpriseNX01(s);\n    nx1.GoToWarp(3.0);\n  \n    var p2 = new Vector2(0.0,100.0);\n    var v2 = new Vector2(10.0,10.0);\n    Ship tv = new SimpleSpaceShip(p2, v2);\n  \n    Ship[] fleet = new Ship[]{ nx1, tv };\n    for(int i = 0; i < fleet.Length; i = i + 1 ){\n      fleet[i].Update(0.16);\n    }\n    double res = s.position.x;\n    debugger;",
+        checks: [
+            { name: "res is 0.04108807551707464", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res").v, 0.04108807551707464); } }
+        ]
+    },
 ]);

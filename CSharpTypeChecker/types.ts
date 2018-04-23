@@ -60,6 +60,10 @@ export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
 export let double_type : Type = { kind:"double" }
 export let fun_type : (i:Type,o:Type,range:SourceRange) => Type = (i,o,range) => ({ kind:"fun", in:i, out:o, range:range })
+export let fun_stmts_type : (i:Stmt[],o:Type,range:SourceRange) => FunWithStmts = 
+  (i,o,range) => ({ kind:"fun_with_input_as_stmts", in:i, out:o, range:range })
+
+
 export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
 export let record_type : (args:Immutable.Map<Name, Type>) => Type = (args) => ({ kind:"record", args:args })
@@ -91,6 +95,8 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
   if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
   if (t1.kind == "ref" && t2.kind == "ref") return t1.C_name == t2.C_name
+  if (t1.kind != t2.kind && 
+      (t1.kind == "var" || t2.kind == "var")) return true
   return t1.kind == t2.kind
 }
 
@@ -101,7 +107,7 @@ export interface FunDefinition extends LambdaDefinition { name:string, range:Sou
 export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Option<Stmt[]>  }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt>, is_used_as_base:boolean }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
-
-export type TypeConstraints = Option<Type>
+export type FunWithStmts = {kind:"fun_with_input_as_stmts", in: Stmt[],out:Type, range: SourceRange}
+export type TypeConstraints = Option<Type | FunWithStmts>
 export let no_constraints:TypeConstraints = inr<Type,Unit>().f({})
 export type Stmt = (constraints:TypeConstraints) => Coroutine<State, Err, Typing>

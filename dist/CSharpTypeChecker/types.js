@@ -42,6 +42,7 @@ exports.bool_type = { kind: "bool" };
 exports.float_type = { kind: "float" };
 exports.double_type = { kind: "double" };
 exports.fun_type = function (i, o, range) { return ({ kind: "fun", in: i, out: o, range: range }); };
+exports.fun_stmts_type = function (i, o, range) { return ({ kind: "fun_with_input_as_stmts", in: i, out: o, range: range }); };
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 exports.record_type = function (args) { return ({ kind: "record", args: args }); };
@@ -74,6 +75,9 @@ exports.type_equals = function (t1, t2) {
         return t1.C_name == t2.C_name;
     if (t1.kind == "ref" && t2.kind == "ref")
         return t1.C_name == t2.C_name;
+    if (t1.kind != t2.kind &&
+        (t1.kind == "var" || t2.kind == "var"))
+        return true;
     return t1.kind == t2.kind;
 };
 exports.no_constraints = ts_bccc_1.inr().f({});

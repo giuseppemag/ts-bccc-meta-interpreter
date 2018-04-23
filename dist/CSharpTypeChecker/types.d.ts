@@ -111,6 +111,7 @@ export declare let bool_type: Type;
 export declare let float_type: Type;
 export declare let double_type: Type;
 export declare let fun_type: (i: Type, o: Type, range: SourceRange) => Type;
+export declare let fun_stmts_type: (i: Stmt[], o: Type, range: SourceRange) => FunWithStmts;
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
 export declare let record_type: (args: Immutable.Map<Name, Type>) => Type;
@@ -166,6 +167,12 @@ export declare type CallingContext = {
     kind: "class";
     C_name: string;
 };
-export declare type TypeConstraints = Option<Type>;
+export declare type FunWithStmts = {
+    kind: "fun_with_input_as_stmts";
+    in: Stmt[];
+    out: Type;
+    range: SourceRange;
+};
+export declare type TypeConstraints = Option<Type | FunWithStmts>;
 export declare let no_constraints: TypeConstraints;
 export declare type Stmt = (constraints: TypeConstraints) => Coroutine<State, Err, Typing>;
