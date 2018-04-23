@@ -12,7 +12,7 @@ export declare let set_file: (r: SourceRange, path: ExprRt<Sum<Val, Val>>, conte
 export declare let set_file_from_block: (r: SourceRange, path: ExprRt<Sum<Val, Val>>, attr: Immutable.List<ExprRt<Sum<Val, Val>>>) => ExprRt<Sum<Val, Val>>;
 export declare let get_file: (r: SourceRange, path: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let exists: (path: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let copy_file: (r: SourceRange, path_from: ExprRt<Sum<Val, Val>>, path_to: ExprRt<Sum<Val, Val>>, overwrite: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
+export declare let copy_file: (r: SourceRange, path_from: ExprRt<Sum<Val, Val>>, path_to: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let move_file: (r: SourceRange, path_from: ExprRt<Sum<Val, Val>>, path_to: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare const init_fs: (files: Immutable.List<ExprRt<Sum<Val, Val>>>) => ExprRt<Sum<Val, Val>>;
 export declare let delete_file: (r: SourceRange, path: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;

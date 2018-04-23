@@ -207,7 +207,7 @@ let file_copy = (_:CallingContext) : CSharp.MethodDefinition => ({
   parameters:[
     { name:"path_to",   type: string_type },
     { name:"path_from", type: string_type },
-    { name:"overwrite", type: bool_type   }
+    //{ name:"overwrite", type: bool_type   }
   ],
   params_base_call:[],
   body: from_js(string_type, 
@@ -215,8 +215,7 @@ let file_copy = (_:CallingContext) : CSharp.MethodDefinition => ({
     Sem.copy_file(
       minus_two_range, 
       Sem.get_v_rt(minus_two_range, "path_to"), 
-      Sem.get_v_rt(minus_two_range, "path_from"), 
-      Sem.get_v_rt(minus_two_range, "overwrite"))))
+      Sem.get_v_rt(minus_two_range, "path_from"))))
 })
 
 let file_create = (_:CallingContext) : CSharp.MethodDefinition => ({
@@ -289,5 +288,6 @@ export let standard_lib = () =>
   CSharp.semicolon(minus_two_range, double,
   CSharp.semicolon(minus_two_range, string,
   CSharp.semicolon(minus_two_range, bool,
-  CSharp.semicolon(minus_two_range, unit, math))))))
+  CSharp.semicolon(minus_two_range, unit, 
+  CSharp.semicolon(minus_two_range, math, path)))))))
 

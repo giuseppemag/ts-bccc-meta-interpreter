@@ -45,7 +45,9 @@ exports.set_file = function (r, path, content) {
 };
 exports.set_file_from_block = function (r, path, attr) {
     return exports.attr_map(attr).then(function (attr_v) {
-        return exports.set_file(r, path, ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.mk_string_val(attr_v.get("content", "")))));
+        return attr_v.has("content")
+            ? exports.set_file(r, path, ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.mk_string_val(attr_v.get("content")))))
+            : ts_bccc_1.co_error({ range: r, message: "Every file must specify a property 'content'" });
     });
 };
 exports.get_file = function (r, path) {
@@ -64,19 +66,15 @@ exports.exists = function (path) {
         });
     });
 };
-exports.copy_file = function (r, path_from, path_to, overwrite) {
-    return path_from.then(function (pf_v) { return path_to.then(function (pt_v) { return overwrite.then(function (o_v) {
-        return o_v.value.v === false && pf_v.value.v === pt_v.value.v
-            ? main_1.runtime_error(r, "The value of path_from and path_to cannot be the same if overwrite is false.") :
-            exports.get_file(r, ts_bccc_1.co_unit(pf_v)).then(function (f_v) {
-                return exports.set_file(r, ts_bccc_1.co_unit(pt_v), ts_bccc_1.co_unit(f_v));
-            });
-    }); }); });
+exports.copy_file = function (r, path_from, path_to) {
+    return path_from.then(function (pf_v) { return path_to.then(function (pt_v) {
+        return exports.get_file(r, ts_bccc_1.co_unit(pf_v)).then(function (f_v) {
+            return exports.set_file(r, ts_bccc_1.co_unit(pt_v), ts_bccc_1.co_unit(f_v));
+        });
+    }); });
 };
 exports.move_file = function (r, path_from, path_to) {
-    return exports.copy_file(r, path_from, path_to, ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.mk_bool_val(false)))).then(function (_) {
-        return exports.delete_file(r, path_from);
-    });
+    return exports.copy_file(r, path_from, path_to).then(function (_) { return exports.delete_file(r, path_from); });
 };
 exports.init_fs = function (files) {
     return ccc_aux_1.comm_list_coroutine(files).then(function (_) {

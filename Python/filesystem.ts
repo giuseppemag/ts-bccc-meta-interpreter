@@ -37,7 +37,9 @@ export let set_file = (r: SourceRange, path: ExprRt<Sum<Val,Val>>, content: Expr
 
 export let set_file_from_block = (r: SourceRange, path: ExprRt<Sum<Val,Val>>, attr: Immutable.List<ExprRt<Sum<Val,Val>>>): ExprRt<Sum<Val,Val>> =>
   attr_map(attr).then(attr_v =>
-  set_file(r, path, co_unit(apply(inl(), mk_string_val(attr_v.get("content", ""))))))
+    attr_v.has("content") 
+      ? set_file(r, path, co_unit(apply(inl(), mk_string_val(attr_v.get("content")))))
+      : co_error<MemRt, ErrVal, Sum<Val,Val>>({ range: r, message: "Every file must specify a property 'content'" }))
 
 export let get_file = (r: SourceRange, path: ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val,Val>> =>
   get_fs.then(fs =>
@@ -54,16 +56,13 @@ export let exists = (path: ExprRt<Sum<Val, Val>>): ExprRt<Sum<Val, Val>> =>
   get_fs.then(fs =>
   co_unit(apply(inl(), mk_bool_val(fs.has(p_v.value.v as string))))))
 
-export let copy_file = (r: SourceRange, path_from: ExprRt<Sum<Val,Val>>, path_to: ExprRt<Sum<Val,Val>>, overwrite: ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> =>
-  path_from.then(pf_v => path_to.then(pt_v => overwrite.then(o_v =>
-    o_v.value.v === false && pf_v.value.v === pt_v.value.v
-      ? runtime_error(r, "The value of path_from and path_to cannot be the same if overwrite is false.") : 
+export let copy_file = (r: SourceRange, path_from: ExprRt<Sum<Val,Val>>, path_to: ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> =>
+  path_from.then(pf_v => path_to.then(pt_v => 
     get_file(r, co_unit(pf_v)).then(f_v =>
-    set_file(r, co_unit(pt_v), co_unit(f_v))))))
+    set_file(r, co_unit(pt_v), co_unit(f_v)))))
 
 export let move_file = (r: SourceRange, path_from: ExprRt<Sum<Val,Val>>, path_to: ExprRt<Sum<Val,Val>>): ExprRt<Sum<Val, Val>> =>
-  copy_file(r, path_from, path_to, co_unit(apply(inl(), mk_bool_val(false)))).then(_ =>
-  delete_file(r, path_from))
+  copy_file(r, path_from, path_to).then(_ => delete_file(r, path_from))
 
 export const init_fs = (files: Immutable.List<ExprRt<Sum<Val, Val>>>): ExprRt<Sum<Val,Val>> =>
   comm_list_coroutine(files).then(_ =>

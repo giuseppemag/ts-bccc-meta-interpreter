@@ -162,10 +162,9 @@ var file_copy = function (_) { return ({
     parameters: [
         { name: "path_to", type: csharp_1.string_type },
         { name: "path_from", type: csharp_1.string_type },
-        { name: "overwrite", type: csharp_1.bool_type }
     ],
     params_base_call: [],
-    body: from_js(csharp_1.string_type, Sem.return_rt(Sem.copy_file(source_range_1.minus_two_range, Sem.get_v_rt(source_range_1.minus_two_range, "path_to"), Sem.get_v_rt(source_range_1.minus_two_range, "path_from"), Sem.get_v_rt(source_range_1.minus_two_range, "overwrite"))))
+    body: from_js(csharp_1.string_type, Sem.return_rt(Sem.copy_file(source_range_1.minus_two_range, Sem.get_v_rt(source_range_1.minus_two_range, "path_to"), Sem.get_v_rt(source_range_1.minus_two_range, "path_from"))))
 }); };
 var file_create = function (_) { return ({
     modifiers: ["static", "public"],
@@ -214,5 +213,5 @@ exports.path = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "P
     file_write_all_text,
 ], []);
 exports.standard_lib = function () {
-    return CSharp.semicolon(source_range_1.minus_two_range, int, CSharp.semicolon(source_range_1.minus_two_range, exports.float, CSharp.semicolon(source_range_1.minus_two_range, exports.double, CSharp.semicolon(source_range_1.minus_two_range, string, CSharp.semicolon(source_range_1.minus_two_range, bool, CSharp.semicolon(source_range_1.minus_two_range, unit, math))))));
+    return CSharp.semicolon(source_range_1.minus_two_range, int, CSharp.semicolon(source_range_1.minus_two_range, exports.float, CSharp.semicolon(source_range_1.minus_two_range, exports.double, CSharp.semicolon(source_range_1.minus_two_range, string, CSharp.semicolon(source_range_1.minus_two_range, bool, CSharp.semicolon(source_range_1.minus_two_range, unit, CSharp.semicolon(source_range_1.minus_two_range, math, exports.path)))))));
 };
