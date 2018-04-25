@@ -41,8 +41,8 @@
 
 [g] Move ccc_aux to CCC repo
 
-[m] on kick-out do not show exam result 
-[m] add C# to playground
+
+[m] save code also on wrong attempt (BA)
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
 [m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
