@@ -999,7 +999,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                 var base_fields = C_def.fields.map(function (f, k) { return ({ name: k, f: f }); }).toArray().filter(function (f) { return f.f.is_used_as_base; });
                 //comm_list_coroutine
                 var field_to_lookup = base_fields.map(function (f) {
-                    return exports.field_get(r, { kind: "class", C_name: C_name, looking_up_base: true }, exports.field_get(r, context, this_ref, f.name, n + 1, C_name), F_or_M_name, n + 2, C_name)(constraints);
+                    return exports.field_get(r, context.kind == "global scope" ? { kind: "class", C_name: C_name, looking_up_base: true } : __assign({}, context, { looking_up_base: true }), exports.field_get(r, context, this_ref, f.name, n + 1, C_name), F_or_M_name, n + 2, C_name)(constraints);
                 }).concat([method_try_get()]);
                 return ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get " + F_or_M_name + "." })(Immutable.List(field_to_lookup));
             }

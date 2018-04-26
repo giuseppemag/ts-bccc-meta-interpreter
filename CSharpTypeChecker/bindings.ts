@@ -1053,7 +1053,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
         let base_fields : {name:string, f:FieldDefinition}[] = C_def.fields.map((f,k) => ({name:k, f:f})).toArray().filter((f:any) => f.f.is_used_as_base) as any
         //comm_list_coroutine
         let field_to_lookup = base_fields.map(f =>
-            field_get(r, {kind:"class", C_name: C_name, looking_up_base : true }, field_get(r, context, this_ref, f.name, n+1, C_name), F_or_M_name, n+2, C_name)(constraints)
+            field_get(r, context.kind == "global scope" ? {kind:"class", C_name: C_name, looking_up_base : true } :  {...context, looking_up_base : true}, field_get(r, context, this_ref, f.name, n+1, C_name), F_or_M_name, n+2, C_name)(constraints)
           ).concat([method_try_get()])
 
         return co_catch_many<State, Err, Typing>({ range: r, message: `Error: cannot get ${F_or_M_name}.` })(Immutable.List(field_to_lookup))

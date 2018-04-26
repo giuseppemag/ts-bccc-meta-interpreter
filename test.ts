@@ -21,21 +21,31 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class A {
-  protected int a;
-  public A(){
-    this.a = 100;
-  } 
-  protected int GetA(){
-    return this.a;
+  class A {
+    double a;
+    public A(int a, int x){
+      this.a = a;
+      this.b = 10;
+    }
+    protected int b;
+    public virtual double GetA(){
+      return this.a;
+    }
   }
-}
-class B : A {
-}
-B b = new B();
-int _a1 = b.GetA();
-int _a2 = b.a;
-debugger;
+  
+  class AAA : A {
+    int aaa;
+    public AAA (int aaa) : base(aaa, 5){
+      this.aaa = aaa;
+    }
+    public override double GetA(){
+      return this.aaa;
+    }
+  }
+  
+  AAA aaa = new AAA(555);
+  double _aaa = aaa.GetA();
+  int x = aaa.b;
 `
 
 
