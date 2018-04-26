@@ -166,6 +166,7 @@ export declare type CallingContext = {
 } | {
     kind: "class";
     C_name: string;
+    looking_up_base: boolean;
 };
 export declare type FunWithStmts = {
     kind: "fun_with_input_as_stmts";

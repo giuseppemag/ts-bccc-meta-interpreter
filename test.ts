@@ -21,25 +21,21 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    class A {
-      public int Run(){
-        return 10000000000;
-      }
-      public int Run(double x){
-        return 1111;
-      }
-      public int Run(int x){
-        return 90000000000 * x;
-      }
-
-      public string Run(int x){
-        return "9000";
-      }
-    }
-    A a = new A();
-    int res1 = a.Run(8.0);
-    debugger;
-
+class A {
+  protected int a;
+  public A(){
+    this.a = 100;
+  } 
+  protected int GetA(){
+    return this.a;
+  }
+}
+class B : A {
+}
+B b = new B();
+int _a1 = b.GetA();
+int _a2 = b.a;
+debugger;
 `
 
 

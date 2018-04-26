@@ -1,16 +1,3 @@
-[g] Access modifiers: incompatibility errors do not bubble up correctly
-
-[g] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
-  [ ] binary operator overloading
-  [ ] unary operator overloading
-  [ ] add unary - to standard library
-
-[g] Generics
-  [ ] Add generic classes as T => { ... }
-    [ ] Cache instances as invisible defs
-  [ ] Array<T> in standard library
-  [ ] Tuple in standard library
-[g] closure of functions: free_variables vs decl/decl_and_init (`bound` should become the state)
 
 [g] HTML renderers for server simulator
 
@@ -42,16 +29,17 @@
 [g] Move ccc_aux to CCC repo
 
 
-[m] save code also on wrong attempt (BA)
-[m] inheritance
-  [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
-[m] "il programma è finito, ma il debugger resta bloccato sull'ultimo breakpoint"
-
-
-[m] inheritance
-  [ ] private vs protected
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
+[m] save code also on wrong attempt (BA)
+[m] Generics
+  [ ] Add generic classes as T => { ... }
+    [ ] Cache instances as invisible defs
+  [ ] Array<T> in standard library
+  [ ] Tuple in standard library
 [m] add `null`
+[m] add multiple highlightings (along the stack) for function calls
+[m] multithreading: thread_debugger;
+
 [m] ++ operator
   [ ] i++
   [ ] ++i
@@ -59,15 +47,24 @@
   (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => y => x * y)));
   var h = v.Item3.Item2(3);
   var y = h(2);
-[m] add multiple highlightings (along the stack) for function calls
+[m] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
+  [ ] binary operator overloading
+  [ ] unary operator overloading
+  [ ] add unary - to standard library
+
+[ ] Next level
+  [ ] Integration in VSCode
+  [ ] e-commerce spec
+  [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
+
+
+[m] inheritance
+  [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
 [m] double check tokens
   [ ] quotes, special characters, "\n"
-[m] multithreading: thread_debugger;
 [m] (System.Diagnostics.GC) Garbage collection (and `heap_alloc` fills in the gaps)
 [m] Exam mode in desktop application
   [ ] login
 [m] var a = 1 + + 1; does not print a proper error
-
-
-[ ] Cleanup/whishlist
-  [ ] Integration in VSCode
+[g] Access modifiers: incompatibility errors do not bubble up correctly
+[g] closure of functions: free_variables vs decl/decl_and_init (`bound` should become the state)

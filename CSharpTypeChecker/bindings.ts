@@ -513,7 +513,7 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
   let return_t = def.return_t
   let body = def.body
   let _done: Stmt = done
-  let context: CallingContext = { kind: "class", C_name: C_name }
+  let context: CallingContext = { kind: "class", C_name: C_name, looking_up_base: false }
   let set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: ref_type(C_name) }]))
     .reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc), done)
 
@@ -663,7 +663,7 @@ export let set_arr_el = function (r: SourceRange, a: Stmt, i: Stmt, e: Stmt): St
 
 export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "normal" | "abstract" | "interface", C_name: string, extends_or_implements: string[], methods_from_context: Array<(_: CallingContext) => MethodDefinition>, fields_from_context: Array<(_: CallingContext) => FieldDefinition>, is_internal = false): Stmt {
   return _ => co_get_state<State, Err>().then(initial_bindings => {
-    let context: CallingContext = { kind: "class", C_name: C_name }
+    let context: CallingContext = { kind: "class", C_name: C_name, looking_up_base: false }
     let _methods = methods_from_context.map(m => m(context))
     let methods = C_kind == "interface" ? [] : _methods.filter(m => !m.modifiers.some(m => m == "abstract" || m == "virtual" || m == "override"))
     if(!methods.some(m => m.is_constructor)){
@@ -909,7 +909,9 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public field ${F_or_M_name}.` })
           }
           else if (context.C_name != C_name){
-            return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public field ${C_name}::${F_or_M_name}.` })
+            if (context.looking_up_base && !F_def.modifiers.has("protected")){
+              return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public field ${C_name}::${F_or_M_name}.` })
+            }
           }
         }
         return ensure_constraints(r, constraints)(co_unit<State, Err, Typing>(mk_typing(F_def.type,
@@ -968,8 +970,11 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                     if (!M_def.modifiers.has("public")) {
                       if (context.kind == "global scope")
                         return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public method ${F_or_M_name}.` })
-                      else if (context.C_name != C_name)
-                        return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public method ${C_name}::${F_or_M_name}.` })
+                      else if (context.C_name != C_name){
+                        if (context.looking_up_base && !M_def.modifiers.has("protected")){
+                          return co_error<State, Err, Typing>({ range: r, message: `Error: cannot get non-public method ${C_name}::${F_or_M_name}.` })
+                        }
+                      }
                     }
                     if (M_def.typing.type.kind != "fun") return co_error<State, Err, Typing>({ range: r, message: `Error: method ${C_name}::${F_or_M_name} is not a lambda.` })
                     if (M_def.modifiers.has("static")) {
@@ -1048,7 +1053,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
         let base_fields : {name:string, f:FieldDefinition}[] = C_def.fields.map((f,k) => ({name:k, f:f})).toArray().filter((f:any) => f.f.is_used_as_base) as any
         //comm_list_coroutine
         let field_to_lookup = base_fields.map(f =>
-            field_get(r, context, field_get(r, context, this_ref, f.name, n+1, C_name), F_or_M_name, n+2, C_name)(constraints)
+            field_get(r, {kind:"class", C_name: C_name, looking_up_base : true }, field_get(r, context, this_ref, f.name, n+1, C_name), F_or_M_name, n+2, C_name)(constraints)
           ).concat([method_try_get()])
 
         return co_catch_many<State, Err, Typing>({ range: r, message: `Error: cannot get ${F_or_M_name}.` })(Immutable.List(field_to_lookup))

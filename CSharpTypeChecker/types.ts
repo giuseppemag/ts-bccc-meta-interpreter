@@ -106,7 +106,7 @@ export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, 
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
 export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Option<Stmt[]>  }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt>, is_used_as_base:boolean }
-export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string }
+export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string, looking_up_base:boolean }
 export type FunWithStmts = {kind:"fun_with_input_as_stmts", in: Stmt[],out:Type, range: SourceRange}
 export type TypeConstraints = Option<Type | FunWithStmts>
 export let no_constraints:TypeConstraints = inr<Type,Unit>().f({})

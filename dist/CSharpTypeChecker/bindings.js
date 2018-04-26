@@ -530,7 +530,7 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
     var return_t = def.return_t;
     var body = def.body;
     var _done = exports.done;
-    var context = { kind: "class", C_name: C_name };
+    var context = { kind: "class", C_name: C_name, looking_up_base: false };
     var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: types_1.ref_type(C_name) }]))
         .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
     var interfaces_init = _implements.length > 0 ?
@@ -653,7 +653,7 @@ exports.set_arr_el = function (r, a, i, e) {
 exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implements, methods_from_context, fields_from_context, is_internal) {
     if (is_internal === void 0) { is_internal = false; }
     return function (_) { return ts_bccc_1.co_get_state().then(function (initial_bindings) {
-        var context = { kind: "class", C_name: C_name };
+        var context = { kind: "class", C_name: C_name, looking_up_base: false };
         var _methods = methods_from_context.map(function (m) { return m(context); });
         var methods = C_kind == "interface" ? [] : _methods.filter(function (m) { return !m.modifiers.some(function (m) { return m == "abstract" || m == "virtual" || m == "override"; }); });
         if (!methods.some(function (m) { return m.is_constructor; })) {
@@ -878,7 +878,9 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + F_or_M_name + "." });
                     }
                     else if (context.C_name != C_name) {
-                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + F_or_M_name + "." });
+                        if (context.looking_up_base && !F_def.modifiers.has("protected")) {
+                            return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public field " + C_name + "::" + F_or_M_name + "." });
+                        }
                     }
                 }
                 return ensure_constraints(r, constraints)(ts_bccc_2.co_unit(types_1.mk_typing(F_def.type, F_def.modifiers.has("static") ?
@@ -927,8 +929,11 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                                 if (!M_def.modifiers.has("public")) {
                                     if (context.kind == "global scope")
                                         return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + F_or_M_name + "." });
-                                    else if (context.C_name != C_name)
-                                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + C_name + "::" + F_or_M_name + "." });
+                                    else if (context.C_name != C_name) {
+                                        if (context.looking_up_base && !M_def.modifiers.has("protected")) {
+                                            return ts_bccc_2.co_error({ range: r, message: "Error: cannot get non-public method " + C_name + "::" + F_or_M_name + "." });
+                                        }
+                                    }
                                 }
                                 if (M_def.typing.type.kind != "fun")
                                     return ts_bccc_2.co_error({ range: r, message: "Error: method " + C_name + "::" + F_or_M_name + " is not a lambda." });
@@ -994,7 +999,7 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                 var base_fields = C_def.fields.map(function (f, k) { return ({ name: k, f: f }); }).toArray().filter(function (f) { return f.f.is_used_as_base; });
                 //comm_list_coroutine
                 var field_to_lookup = base_fields.map(function (f) {
-                    return exports.field_get(r, context, exports.field_get(r, context, this_ref, f.name, n + 1, C_name), F_or_M_name, n + 2, C_name)(constraints);
+                    return exports.field_get(r, { kind: "class", C_name: C_name, looking_up_base: true }, exports.field_get(r, context, this_ref, f.name, n + 1, C_name), F_or_M_name, n + 2, C_name)(constraints);
                 }).concat([method_try_get()]);
                 return ccc_aux_1.co_catch_many({ range: r, message: "Error: cannot get " + F_or_M_name + "." })(Immutable.List(field_to_lookup));
             }
