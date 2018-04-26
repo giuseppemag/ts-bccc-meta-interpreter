@@ -28,6 +28,9 @@ export let test_parser = () => {
       this.b = 10;
     }
     protected int b;
+    protected int GetB(){
+      return this.b;
+    }
     public virtual double GetA(){
       return this.a;
     }
@@ -46,6 +49,8 @@ export let test_parser = () => {
   AAA aaa = new AAA(555);
   double _aaa = aaa.GetA();
   int x = aaa.b;
+  int y = aaa.GetB();
+  debugger;
 `
 
 

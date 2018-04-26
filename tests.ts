@@ -844,6 +844,42 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     { name:"res3 is 9000", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("res3").v, "9000") },
   ]},
   {
+    name:"Fields/methods overloading",
+    source:`  class A {
+      double a;
+      public A(int a, int x){
+        this.a = a;
+        this.b = 10;
+      }
+      protected int b;
+      protected int GetB(){
+        return this.b;
+      }
+      public virtual double GetA(){
+        return this.a;
+      }
+    }
+    
+    class AAA : A {
+      int aaa;
+      public AAA (int aaa) : base(aaa, 5){
+        this.aaa = aaa;
+      }
+      public override double GetA(){
+        return this.aaa;
+      }
+    }
+    
+    AAA aaa = new AAA(555);
+    double _aaa = aaa.GetA();
+    int x = aaa.b;
+    int y = aaa.GetB();
+    debugger;`,
+  checks:[
+    { name:"x is 10", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 10) },
+    { name:"y is 10", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("y").v, 10) },
+  ]},
+  {
     name:"Star trek",
     source:`class Vector2 {
       public double x;
