@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n  class A {\n    double a;\n    public A(int a, int x){\n      this.a = a;\n      this.b = 10;\n    }\n    protected int b;\n    protected int GetB(){\n      return this.b;\n    }\n    public virtual double GetA(){\n      return this.a;\n    }\n  }\n  \n  class AAA : A {\n    int aaa;\n    public AAA (int aaa) : base(aaa, 5){\n      this.aaa = aaa;\n    }\n    public override double GetA(){\n      return this.aaa;\n    }\n  }\n  \n  AAA aaa = new AAA(555);\n  double _aaa = aaa.GetA();\n  int x = aaa.b;\n  int y = aaa.GetB();\n  debugger;\n";
+        var source = "\nclass C<a> {\n  int x;\n  public C(int x) { this.x = x; }\n}\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

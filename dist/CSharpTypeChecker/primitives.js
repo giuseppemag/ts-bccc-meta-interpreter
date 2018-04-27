@@ -96,9 +96,10 @@ exports.mk_constructor_declaration = function (range, function_name, arg_decls, 
 exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body) {
     return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range, params_base_call: [] });
 };
-exports.mk_class_declaration = function (C_name, extends_or_implements, fields, methods, constructors, modifiers, range) {
+exports.mk_class_declaration = function (C_name, generic_parameters, extends_or_implements, fields, methods, constructors, modifiers, range) {
     return ({ range: range,
         ast: { kind: "class", C_name: C_name,
+            generic_parameters: generic_parameters,
             extends_or_implements: extends_or_implements,
             modifiers: modifiers,
             fields: fields, methods: methods, constructors: constructors } });

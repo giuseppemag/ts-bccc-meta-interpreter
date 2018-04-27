@@ -135,6 +135,10 @@ export interface ConstructorAST {
 export interface ClassAST {
     kind: "class";
     C_name: string;
+    generic_parameters: {
+        name: ParserRes;
+        variant: "co" | "contra" | "inv";
+    }[];
     extends_or_implements: string[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;

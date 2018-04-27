@@ -48,12 +48,12 @@ exports.co_lookup = function (p) {
 exports.co_not = function (e) { return function (p) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
         var res = p.run.f(s);
-        if (res.kind == "left") { // error case
+        if (res.kind == "left") {
             var f = ts_bccc_1.inr().then(ts_bccc_1.inr());
             var res1 = { fst: {}, snd: s };
             return f.f(res1);
         }
-        if (res.value.kind == "left") { // continuation case
+        if (res.value.kind == "left") {
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
             var k1 = exports.co_not(e)(k);
@@ -66,12 +66,12 @@ exports.co_not = function (e) { return function (p) {
 exports.co_catch = function (merge_errors) { return function (p) { return function (on_err) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
         var res = p.run.f(s);
-        if (res.kind == "left") { // error case
+        if (res.kind == "left") {
             var e1_1 = res.value;
             var k = exports.co_map_error(function (e2) { return merge_errors(e1_1, e2); })(on_err);
             return k.run.f(s);
         }
-        if (res.value.kind == "left") { // continuation case
+        if (res.value.kind == "left") {
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
             var k1 = exports.co_catch(merge_errors)(k)(ts_bccc_1.co_set_state(s).then(function (_) { return on_err; }));
@@ -87,11 +87,11 @@ exports.co_catch_many = function (empty_error) { return function (p) {
 exports.co_map_error = function (f) { return function (p) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.fun(function (s) {
         var res = p.run.f(s);
-        if (res.kind == "left") { // error case
+        if (res.kind == "left") {
             var g = ts_bccc_1.apply(ts_bccc_1.inl(), f(res.value));
             return g;
         }
-        if (res.value.kind == "left") { // continuation case
+        if (res.value.kind == "left") {
             var k = res.value.value.fst;
             var s1 = res.value.value.snd;
             var k1 = exports.co_map_error(f)(k);

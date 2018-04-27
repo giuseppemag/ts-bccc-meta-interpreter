@@ -75,7 +75,7 @@ export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "abstract" | "interface" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "interface" | "abstract" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string, n?: number, called_by?: string) => Stmt;
 export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: {
     att_name: string;
