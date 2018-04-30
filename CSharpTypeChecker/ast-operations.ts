@@ -327,19 +327,23 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
     def_generic_class(n.range, n.ast.C_name, n.ast.generic_parameters.map(p => ({ name:p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?", variance:p.variant })),
     (generic_arguments:Immutable.Map<string, Type>) : Stmt => {
+      // todo: should be a co_error
       if (n.ast.kind != "class") throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
+      // todo: return co_error if generic_arguments do not cover all names
       return def_class(n.range,
         n.ast.modifiers.toArray().map(m => m.kind),
         (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
         n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
-        n.ast.C_name,
+        n.ast.C_name, // todo: replace (name becomes C_name<arg1,arg2,...>)
         n.ast.extends_or_implements,
         n.ast.methods.toArray().map(m => (context:CallingContext) => ({
             name:m.decl.name,
-            return_t:ast_to_csharp_type(m.decl.return_type),
+            return_t:ast_to_csharp_type(m.decl.return_type), // todo: replace
             params_base_call: apply(inr<Stmt[], Unit>(), {}),
+             // todo: replace types
             parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-            body:ast_to_type_checker(m.decl.body)(context),
+             // todo: replace types in declarations
+             body:ast_to_type_checker(m.decl.body)(context),
             range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
             modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
             is_constructor:false
@@ -350,7 +354,9 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
                               ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
                               : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
             return_t:unit_type,
+            // todo: replace types
             parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
+            // todo: replace types in declarations
             body:ast_to_type_checker(c.decl.body)(context),
             range:c.decl.body.range,
             modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
@@ -358,7 +364,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           }))),
         n.ast.fields.toArray().map(f => (context:CallingContext) => ({
           name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
-          type:ast_to_csharp_type(f.decl.l),
+          type:ast_to_csharp_type(f.decl.l), // TODO: replace generic param for arg!
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
