@@ -27,7 +27,8 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | ObjType
                  | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
                  | { kind:"record", args:Immutable.Map<Name, Type> }
-                 | { kind:"generic type decl", f:Type, args:Array<Type> }
+                 | { kind:"generic type decl", instantiate:(_:Immutable.Map<Name, Type>) => Stmt, params:Array<GenericParameter>, C_name:string }
+export type GenericParameter = { name:string, variance:"co" | "contra" | "inv" }
 export let type_to_string = (t:Type) : string =>
   t.kind == "unit" ? "void"
   : t.kind == "int" || t.kind == "double" || t.kind == "float" || t.kind == "string" || t.kind == "var" || t.kind == "bool" ? t.kind
@@ -60,7 +61,7 @@ export let bool_type : Type = { kind:"bool" }
 export let float_type : Type = { kind:"float" }
 export let double_type : Type = { kind:"double" }
 export let fun_type : (i:Type,o:Type,range:SourceRange) => Type = (i,o,range) => ({ kind:"fun", in:i, out:o, range:range })
-export let fun_stmts_type : (i:Stmt[],o:Type,range:SourceRange) => FunWithStmts = 
+export let fun_stmts_type : (i:Stmt[],o:Type,range:SourceRange) => FunWithStmts =
   (i,o,range) => ({ kind:"fun_with_input_as_stmts", in:i, out:o, range:range })
 
 
@@ -68,7 +69,7 @@ export let arr_type : (el:Type) => Type = (arg) => ({ kind:"arr", arg:arg })
 export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", args:args })
 export let record_type : (args:Immutable.Map<Name, Type>) => Type = (args) => ({ kind:"record", args:args })
 export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_name:C_name })
-export let generic_type_decl = (f:Type, args:Array<Type>) : Type => ({ kind:"generic type decl", f:f, args:args })
+export let generic_type_decl = (instantiate:(_:Immutable.Map<Name, Type>) => Stmt, params:Array<GenericParameter>, C_name:string) : Type => ({ kind:"generic type decl", instantiate:instantiate, params:params, C_name:C_name })
 export type TypeInformation = Type & { is_constant:boolean }
 export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }
@@ -95,7 +96,7 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
   if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
   if (t1.kind == "ref" && t2.kind == "ref") return t1.C_name == t2.C_name
-  if (t1.kind != t2.kind && 
+  if (t1.kind != t2.kind &&
       (t1.kind == "var" || t2.kind == "var")) return true
   return t1.kind == t2.kind
 }

@@ -1,8 +1,9 @@
 [m] Generics
   [x] Parser
-  [ ] TypeChecker declaration
+  [x] TypeChecker declaration
   [ ] TypeChecker instantiation
-    [ ] Decl (recursive)
+    [ ] C_name
+    [ ] Declarations
     [ ] Function/Method declaration
   [ ] Generic method
     [ ] Parser
@@ -34,6 +35,7 @@
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
+  [ ] Separate parser from type checker
 
 [g] Move ccc_aux to CCC repo
 
@@ -64,6 +66,7 @@
   [ ] Fancy features: LINQ, generators, properties, generic constraints, covariance and contravariance
   [ ] Generic tuple in standard library
   [ ] Proper lex/yacc
+  [ ] data science/better dashboard with predictions and risk detection
 
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized

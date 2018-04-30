@@ -87,8 +87,13 @@ export declare type Type = {
     args: Immutable.Map<Name, Type>;
 } | {
     kind: "generic type decl";
-    f: Type;
-    args: Array<Type>;
+    instantiate: (_: Immutable.Map<Name, Type>) => Stmt;
+    params: Array<GenericParameter>;
+    C_name: string;
+};
+export declare type GenericParameter = {
+    name: string;
+    variance: "co" | "contra" | "inv";
 };
 export declare let type_to_string: (t: Type) => string;
 export declare let render_grid_type: Type;
@@ -116,7 +121,7 @@ export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
 export declare let record_type: (args: Immutable.Map<Name, Type>) => Type;
 export declare let ref_type: (C_name: string) => Type;
-export declare let generic_type_decl: (f: Type, args: Type[]) => Type;
+export declare let generic_type_decl: (instantiate: (_: Immutable.Map<string, Type>) => Stmt, params: GenericParameter[], C_name: string) => Type;
 export declare type TypeInformation = Type & {
     is_constant: boolean;
 };

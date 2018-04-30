@@ -1,7 +1,8 @@
+import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import * as CCC from "ts-bccc";
 import { SourceRange } from "../source_range";
-import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, ObjType } from "./types";
+import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, ObjType, GenericParameter } from "./types";
 export declare let wrap_co_res: Fun<Prod<Typing, State>, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>;
 export declare let wrap_co: Fun<Prod<Typing, State>, Sum<Err, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>>;
 export declare let get_v: (r: SourceRange, v: string) => Stmt;
@@ -75,7 +76,8 @@ export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "interface" | "abstract" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "abstract" | "interface" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_generic_class: (r: SourceRange, C_name: string, generic_parameters: GenericParameter[], instantiate: (_: Immutable.Map<string, Type>) => Stmt) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string, n?: number, called_by?: string) => Stmt;
 export declare let field_set: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_name: {
     att_name: string;

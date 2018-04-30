@@ -12,6 +12,7 @@ import {
   decl_and_init_v,
   decl_v,
   def_class,
+  def_generic_class,
   def_fun,
   div,
   done,
@@ -286,11 +287,11 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         // free_variables(n.ast.body,
         //   Immutable.Set<string>(n.ast.arg_decls.toArray().map(d => d.r.ast.kind == "id" ? d.r.ast.value : ""))).toArray()
         )
-  : n.ast.kind == "class" ?
-    def_class(n.range, 
+  : n.ast.kind == "class" && n.ast.generic_parameters.length == 0 ?
+    def_class(n.range,
       n.ast.modifiers.toArray().map(m => m.kind),
       (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
-       n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
+      n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
       n.ast.C_name,
       n.ast.extends_or_implements,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
@@ -305,8 +306,8 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         })).concat(
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
-          params_base_call: c.decl.params_base_call.kind == "left" 
-                            ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context))) 
+          params_base_call: c.decl.params_base_call.kind == "left"
+                            ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
                             : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
           return_t:unit_type,
           parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
@@ -323,6 +324,46 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
       }))
     )
+  : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
+    def_generic_class(n.range, n.ast.C_name, n.ast.generic_parameters.map(p => ({ name:p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?", variance:p.variant })),
+    (generic_arguments:Immutable.Map<string, Type>) : Stmt => {
+      if (n.ast.kind != "class") throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
+      return def_class(n.range,
+        n.ast.modifiers.toArray().map(m => m.kind),
+        (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
+        n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
+        n.ast.C_name,
+        n.ast.extends_or_implements,
+        n.ast.methods.toArray().map(m => (context:CallingContext) => ({
+            name:m.decl.name,
+            return_t:ast_to_csharp_type(m.decl.return_type),
+            params_base_call: apply(inr<Stmt[], Unit>(), {}),
+            parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
+            body:ast_to_type_checker(m.decl.body)(context),
+            range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+            modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+            is_constructor:false
+          })).concat(
+          n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
+            name:c.decl.name,
+            params_base_call: c.decl.params_base_call.kind == "left"
+                              ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
+                              : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
+            return_t:unit_type,
+            parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
+            body:ast_to_type_checker(c.decl.body)(context),
+            range:c.decl.body.range,
+            modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
+            is_constructor:true
+          }))),
+        n.ast.fields.toArray().map(f => (context:CallingContext) => ({
+          name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
+          type:ast_to_csharp_type(f.decl.l),
+          is_used_as_base:false,
+          modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
+          initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
+        }))
+      ) })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?
     decl_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(n.ast.l))
