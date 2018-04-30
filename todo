@@ -39,7 +39,9 @@
 
 [g] Move ccc_aux to CCC repo
 
-
+[m] stop
+  [ ] Python
+  [ ] C#
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] save code also on wrong attempt (BA)
 [m] add `null`
@@ -59,14 +61,14 @@
   [ ] add unary - to standard library
 
 [ ] Next level
-  [ ] Integration in VSCode
+  [ ] data science/better dashboard with predictions and risk detection
   [ ] e-commerce spec
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
+  [ ] Integration in VSCode
   [ ] Exceptions
   [ ] Fancy features: LINQ, generators, properties, generic constraints, covariance and contravariance
   [ ] Generic tuple in standard library
   [ ] Proper lex/yacc
-  [ ] data science/better dashboard with predictions and risk detection
 
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
