@@ -360,7 +360,7 @@ var type_decl = function (check_array_decl) {
             return partial_match.then(function (_) {
                 return type_args().then(function (args) {
                     return primitives_1.gt_op.then(function (end_range) {
-                        return ts_bccc_1.co_unit(primitives_1.mk_generic_type_decl(source_range_1.join_source_ranges(i.range, end_range), i, args));
+                        return ts_bccc_1.co_unit(primitives_1.mk_generic_type_inst(source_range_1.join_source_ranges(i.range, end_range), i, args));
                     });
                 });
             });

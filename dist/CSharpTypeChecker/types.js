@@ -46,6 +46,7 @@ exports.fun_stmts_type = function (i, o, range) { return ({ kind: "fun_with_inpu
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 exports.record_type = function (args) { return ({ kind: "record", args: args }); };
+exports.generic_type_instance = function (C_name, args) { return ({ kind: "generic type instance", C_name: C_name, args: args }); };
 exports.ref_type = function (C_name) { return ({ kind: "ref", C_name: C_name }); };
 exports.generic_type_decl = function (instantiate, params, C_name) { return ({ kind: "generic type decl", instantiate: instantiate, params: params, C_name: C_name }); };
 exports.mk_typing = function (t, s, is_constant) { return ({ type: __assign({}, t, { is_constant: is_constant == undefined ? false : is_constant }), sem: s }); };

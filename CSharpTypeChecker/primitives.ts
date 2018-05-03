@@ -8,8 +8,8 @@ import * as Immutable from 'immutable'
 export let parser_or = <a>(p:Coroutine<ParserState,ParserError,a>, q:Coroutine<ParserState,ParserError,a>) : Coroutine<ParserState,ParserError,a> =>
   co_catch<ParserState,ParserError,a>(merge_errors)(p)(q)
 
-export const mk_generic_type_decl = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : ParserRes =>
-  ({ range:r, ast:{ kind:"generic type decl", f:f, args:args } })
+export const mk_generic_type_inst = (r:SourceRange, f:ParserRes, args:Array<ParserRes>) : ParserRes =>
+  ({ range:r, ast:{ kind:"generic type inst", f:f, args:args } })
 
 export const mk_get_array_value_at = (r:SourceRange, a:ParserRes, actual:ParserRes) : ParserRes =>
   ({ range:r, ast:{ kind:"get_array_value_at", array:a, index:actual } })

@@ -48,7 +48,7 @@ import {
   mk_field_ref,
   mk_for,
   mk_function_declaration,
-  mk_generic_type_decl,
+  mk_generic_type_inst,
   mk_geq,
   mk_get_array_value_at,
   mk_gt,
@@ -203,7 +203,7 @@ export interface Text { kind:"text", t:ParserRes, x:ParserRes, y:ParserRes, size
 export interface OtherSurface { kind: "other surface", s:ParserRes, dx:ParserRes, dy:ParserRes, sx:ParserRes, sy:ParserRes, rotation:ParserRes }
 export type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface
 
-export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
+export interface GenericTypeDeclAST { kind:"generic type inst", f:ParserRes, args:Array<ParserRes> }
 
 export interface ArrayTypeDeclAST { kind:"array decl", t:ParserRes }
 
@@ -628,7 +628,7 @@ let type_decl = (check_array_decl=true) : Coroutine<ParserState,ParserError,Pars
           partial_match.then(_ =>
           type_args().then(args =>
           gt_op.then(end_range =>
-          co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
+          co_unit(mk_generic_type_inst(join_source_ranges(i.range, end_range), i, args))
         )))),
       check_array_decl ?
         parser_or<ParserRes>(

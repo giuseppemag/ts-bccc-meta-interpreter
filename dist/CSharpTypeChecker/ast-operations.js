@@ -24,16 +24,18 @@ var ast_to_csharp_type = function (s) {
                                                                 : s.ast.value == "var" ? types_1.var_type
                                                                     : types_1.ref_type(s.ast.value) :
         s.ast.kind == "array decl" ? types_1.arr_type(ast_to_csharp_type(s.ast.t))
-            : s.ast.kind == "generic type decl" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
+            : s.ast.kind == "generic type inst" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
                 types_1.fun_type(types_1.tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(function (a) { return ast_to_csharp_type(a); })), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
-                : s.ast.kind == "tuple type decl" ?
-                    types_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
-                    : s.ast.kind == "record type decl" ?
-                        types_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
-                        : (function () {
-                            //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`);
-                            throw new Error("Unsupported ast type: " + source_range_1.print_range(s.range));
-                        })();
+                : s.ast.kind == "generic type inst" && s.ast.f.ast.kind == "id" ?
+                    types_1.generic_type_instance(s.ast.f.ast.value, s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
+                    : s.ast.kind == "tuple type decl" ?
+                        types_1.tuple_type(s.ast.args.map(function (a) { return ast_to_csharp_type(a); }))
+                        : s.ast.kind == "record type decl" ?
+                            types_1.record_type(Immutable.Map(s.ast.args.map(function (a) { return [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)]; })))
+                            : (function () {
+                                //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`);
+                                throw new Error("Unsupported ast type: " + source_range_1.print_range(s.range));
+                            })();
 };
 exports.global_calling_context = ({ kind: "global scope" });
 var union_many = function (a) {

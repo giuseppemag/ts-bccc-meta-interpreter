@@ -86,6 +86,10 @@ export declare type Type = {
     kind: "record";
     args: Immutable.Map<Name, Type>;
 } | {
+    kind: "generic type instance";
+    C_name: string;
+    args: Array<Type>;
+} | {
     kind: "generic type decl";
     instantiate: (_: Immutable.Map<Name, Type>) => Stmt;
     params: Array<GenericParameter>;
@@ -120,6 +124,7 @@ export declare let fun_stmts_type: (i: Stmt[], o: Type, range: SourceRange) => F
 export declare let arr_type: (el: Type) => Type;
 export declare let tuple_type: (args: Array<Type>) => Type;
 export declare let record_type: (args: Immutable.Map<Name, Type>) => Type;
+export declare let generic_type_instance: (C_name: string, args: Type[]) => Type;
 export declare let ref_type: (C_name: string) => Type;
 export declare let generic_type_decl: (instantiate: (_: Immutable.Map<string, Type>) => Stmt, params: GenericParameter[], C_name: string) => Type;
 export declare type TypeInformation = Type & {

@@ -4,7 +4,7 @@ import { SourceRange } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import * as Immutable from 'immutable';
 export declare let parser_or: <a>(p: Coroutine<ParserState, ParserError, a>, q: Coroutine<ParserState, ParserError, a>) => Coroutine<ParserState, ParserError, a>;
-export declare const mk_generic_type_decl: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
+export declare const mk_generic_type_inst: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
 export declare const mk_get_array_value_at: (r: SourceRange, a: ParserRes, actual: ParserRes) => ParserRes;
 export declare const mk_ternary_if: (r: SourceRange, condition: ParserRes, then_else: ParserRes) => ParserRes;
 export declare const mk_ternary_then_else: (r: SourceRange, _then: ParserRes, _else: ParserRes) => ParserRes;

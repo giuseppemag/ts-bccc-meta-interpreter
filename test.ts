@@ -25,6 +25,9 @@ class C<a> {
   int x;
   public C(int x) { this.x = x; }
 }
+
+C<int> x;
+typechecker_debugger;
 `
 
 

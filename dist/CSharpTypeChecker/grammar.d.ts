@@ -290,7 +290,7 @@ export interface OtherSurface {
 }
 export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface;
 export interface GenericTypeDeclAST {
-    kind: "generic type decl";
+    kind: "generic type inst";
     f: ParserRes;
     args: Array<ParserRes>;
 }
