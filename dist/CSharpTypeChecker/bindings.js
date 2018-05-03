@@ -61,10 +61,15 @@ exports.decl_forced_v = function (r, v, t, is_constant) {
     };
 };
 exports.decl_v = function (r, v, t, is_constant) {
-    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
-    var g = ts_bccc_1.curry(f);
-    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return function (_) {
+        if (t.kind == "generic type instance") {
+            console.log("Declaring generic type instance", types_1.type_to_string(t));
+            // recursively ensure it exists, then rebind t
+            t = types_1.ref_type(types_1.type_to_string(t));
+        }
+        var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
+        var g = ts_bccc_1.curry(f);
+        var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
         return ts_bccc_1.co_get_state().then(function (s) {
             return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });

@@ -60,13 +60,21 @@ export let decl_forced_v = function (r: SourceRange, v: Name, t: Type, is_consta
     )
 }
 export let decl_v = function (r: SourceRange, v: Name, t: Type, is_constant?: boolean): Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
-  let g = curry(f)
-  let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
-  return _ =>
-    co_get_state<State, Err>().then(s =>
+  return _ => {
+    if (t.kind == "generic type instance") {
+      console.log("Declaring generic type instance", type_to_string(t))
+      // recursively ensure it exists, then rebind t
+      t = ref_type(type_to_string(t))
+    }
+
+    let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
+    let g = curry(f)
+    let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
+
+    return co_get_state<State, Err>().then(s =>
       !s.bindings.has(v) ? mk_coroutine<State, Err, Typing>(apply(g, args))
         : co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` }))
+      }
 }
 export let decl_and_init_v = function (r: SourceRange, v: Name, t: Type, e: Stmt, is_constant?: boolean): Stmt {
   return _ => e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>

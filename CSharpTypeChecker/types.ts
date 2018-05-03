@@ -39,6 +39,7 @@ export let type_to_string = (t:Type) : string =>
   : t.kind == "fun" && t.in.kind == "tuple" ? `Func<${t.in.args.length == 0 ? "" : t.in.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)},${type_to_string(t.out)}>`
   : t.kind == "fun" ? `Func<${type_to_string(t.in)},${type_to_string(t.out)}>`
   : t.kind == "arr" ? `${type_to_string(t.arg)}[]`
+  : t.kind == "generic type instance" ?`${t.C_name}<${t.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)}>`
   : "not implemented"
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
