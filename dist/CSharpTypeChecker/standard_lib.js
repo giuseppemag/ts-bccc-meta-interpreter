@@ -238,7 +238,7 @@ exports.path = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "P
     file_move,
     file_read_all_text,
     file_write_all_text,
-], []);
+], [], true);
 exports.standard_lib = function () {
     return CSharp.semicolon(source_range_1.minus_two_range, int, CSharp.semicolon(source_range_1.minus_two_range, exports.float, CSharp.semicolon(source_range_1.minus_two_range, exports.double, CSharp.semicolon(source_range_1.minus_two_range, string, CSharp.semicolon(source_range_1.minus_two_range, bool, CSharp.semicolon(source_range_1.minus_two_range, unit, CSharp.semicolon(source_range_1.minus_two_range, math, exports.path)))))));
 };
