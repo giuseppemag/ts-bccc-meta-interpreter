@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "immutable": "^3.8.2",
+    "jison": "^0.4.18",
     "ts-bccc": "^1.0.10"
   }
 }
