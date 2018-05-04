@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range, print_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
-import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt } from "../main";
+import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt, MemRt, ErrVal } from "../main";
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings, var_type, fun_stmts_type, FunWithStmts } from "./types";
 import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
@@ -69,7 +69,7 @@ export let decl_v = function (r: SourceRange, v: Name, t: Type, is_constant?: bo
         : co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` }))
 }
 export let decl_and_init_v = function (r: SourceRange, v: Name, t: Type, e: Stmt, is_constant?: boolean): Stmt {
-  return _ => e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
+  return c => e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State, Err>().then(s => {
       if (s.bindings.has(v)) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
       let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
@@ -90,7 +90,7 @@ export let decl_const = function (r: SourceRange, c: Name, t: Type, e: Stmt): St
 }
 
 export let set_v = function (r: SourceRange, v: Name, e: Stmt): Stmt {
-  return _ => get_v(r, v)(no_constraints).then(v_val =>
+  return c => get_v(r, v)(no_constraints).then(v_val =>
     e(apply(inl(), v_val.type)).then(e_val => {
       if (!v_val.type.is_constant) {
         return co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
@@ -460,12 +460,28 @@ export let for_loop = function (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: St
           )))))
 }
 
+
 export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
   return constraints => p(constraints).then(p_t =>
     q(constraints).then(q_t =>
       co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
-        let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
-        return res.kind == "left" ? q_t.sem : f
+        return co_get_state<MemRt, ErrVal>().then(s =>
+        {
+          let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ => 
+                    {
+                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
+                      return res.kind == "left" ? q_t.sem : f
+                    } )
+          if(s.steps_counter > 1000) {
+            if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+              return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+            else 
+              return f(0)
+          }
+          
+          return f(s.steps_counter + 1) 
+          
+        })
       }))
       )))
 }
@@ -930,7 +946,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
             let ms = C_def_obj.methods.get(F_or_M_name)
 
 
-
+            
             if(constraints.kind == "right") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected constraints inside a method.` })
             if(constraints.value.kind != "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected fun_with_input_as_stmts.` })
             

@@ -1,4 +1,4 @@
-import { co_run, co_unit, Coroutine, Fun, fun, Prod, Sum } from 'ts-bccc';
+import { co_run, co_unit, Coroutine, Fun, fun, Prod, Sum, inr, apply } from 'ts-bccc';
 import * as CCC from 'ts-bccc';
 import * as Co from 'ts-bccc';
 
@@ -28,7 +28,7 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
 
     console.log(`\x1b[32m test "${test.name} started`)
 
-    let stream = get_stream(test.source)
+    let stream = get_stream(test.source, apply(inr(),{}))
     let steps = DebuggerStream.run_stream_to_end(stream).toArray()
 
     if(test.checks.length == 0){

@@ -1,5 +1,5 @@
 import * as Immutable from "immutable"
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, Option } from "ts-bccc"
 import * as CCC from "ts-bccc"
 import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
@@ -30,7 +30,7 @@ export let run_stream_to_end = (s:DebuggerStream) : Immutable.List<DebuggerStrea
   return run_stream_to_end(s).reverse().toList()
 }
 
-export let get_stream = (source:string) : DebuggerStream => {
+export let get_stream = (source:string, custom_alert:Option<(_:string) => boolean>) : DebuggerStream => {
   try{
     let parse_result = CSharp.GrammarBasics.tokenize(source)
     if (parse_result.kind == "left") {
@@ -84,7 +84,7 @@ export let get_stream = (source:string) : DebuggerStream => {
         if (k.value.kind == "left") {
           return typechecker_stream(k.value.value)
         }
-        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt)), {})
+        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : (s:string) => true))), {})
         let first_stream = runtime_stream(initial_runtime_state)
         // if (first_stream.kind == "step") {
         //   first_stream = first_stream.next()

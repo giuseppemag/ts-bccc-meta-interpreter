@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var ts_bccc_1 = require("ts-bccc");
 var DebuggerStream = require("./csharp_debugger_stream");
 var CSharp = require("./CSharpTypeChecker/csharp");
 var csharp_debugger_stream_1 = require("./csharp_debugger_stream");
@@ -13,7 +14,7 @@ var run_checks = function (tests, only_test) {
         if (only_test && test.name != only_test)
             return;
         console.log("\u001B[32m test \"" + test.name + " started");
-        var stream = csharp_debugger_stream_1.get_stream(test.source);
+        var stream = csharp_debugger_stream_1.get_stream(test.source, ts_bccc_1.apply(ts_bccc_1.inr(), {}));
         var steps = DebuggerStream.run_stream_to_end(stream).toArray();
         if (test.checks.length == 0) {
             if (steps[0].kind == "message") {

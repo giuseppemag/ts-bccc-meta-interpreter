@@ -1,4 +1,4 @@
-import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
+import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair, co_get_state, co_set_state } from "ts-bccc"
 import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
 import * as Co from "ts-bccc"
 import { StmtRt, MemRt, ErrVal, ExprRt, set_highlighting_rt, Bool, Val, runtime_error, mk_unit_val, push_inner_scope_rt, empty_scope_val, pop_inner_scope_rt } from "./memory"
@@ -18,10 +18,24 @@ export let if_then_else_rt = function(r:SourceRange, c:ExprRt<Sum<Val,Val>>, f:S
                 push_new_context.then(_ => g.then(res => pop_current_context.then(_ => co_unit(res)))))
 }
 
+
 export let while_do_rt = function(r:SourceRange, c: ExprRt<Sum<Val,Val>>, k: StmtRt): StmtRt {
   return c.then(c_val => c_val.value.k != "b" ? runtime_error(r, `Error: conditional expression ${c_val} is not a boolean.`)
                          : c_val.value.v ?
-                push_new_context.then(_ => k.then(k_res => pop_current_context.then(_ => while_do_rt(r,c,k)))) :
+                push_new_context.then(_ => 
+                  co_get_state<MemRt, ErrVal>().then(s =>
+                    {
+                      let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ => 
+                                k.then(k_res => pop_current_context.then(_ => while_do_rt(r,c,k))))
+                      if(s.steps_counter > 1000) {
+                        if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+                          return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+                        else 
+                          return f(0)
+                      }
+                      return f(s.steps_counter + 1)
+                    })
+                ) :
                 done_rt)
 }
 

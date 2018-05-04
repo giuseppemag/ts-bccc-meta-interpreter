@@ -309,7 +309,7 @@ export const path = CSharp.def_class(minus_two_range, [], "normal", "Path", [], 
   file_move,
   file_read_all_text,
   file_write_all_text,
-], []);
+], [], true);
 
 export let standard_lib = () => 
   CSharp.semicolon(minus_two_range, int,

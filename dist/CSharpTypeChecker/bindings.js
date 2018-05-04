@@ -72,7 +72,7 @@ exports.decl_v = function (r, v, t, is_constant) {
     };
 };
 exports.decl_and_init_v = function (r, v, t, e, is_constant) {
-    return function (_) { return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
+    return function (c) { return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
         return ts_bccc_1.co_get_state().then(function (s) {
             if (s.bindings.has(v))
                 return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
@@ -96,7 +96,7 @@ exports.decl_const = function (r, c, t, e) {
     }); };
 };
 exports.set_v = function (r, v, e) {
-    return function (_) { return exports.get_v(r, v)(types_1.no_constraints).then(function (v_val) {
+    return function (c) { return exports.get_v(r, v)(types_1.no_constraints).then(function (v_val) {
         return e(ts_bccc_1.apply(ts_bccc_1.inl(), v_val.type)).then(function (e_val) {
             if (!v_val.type.is_constant) {
                 return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_v_expr_rt(v, e_val.sem)));
@@ -481,8 +481,19 @@ exports.semicolon = function (r, p, q) {
     return function (constraints) { return p(constraints).then(function (p_t) {
         return q(constraints).then(function (q_t) {
             return ts_bccc_2.co_unit(types_1.mk_typing(q_t.type, p_t.sem.then(function (res) {
-                var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
-                return res.kind == "left" ? q_t.sem : f;
+                return ts_bccc_1.co_get_state().then(function (s) {
+                    var f = function (counter) { return ts_bccc_1.co_set_state(__assign({}, s, { steps_counter: counter })).then(function (_) {
+                        var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
+                        return res.kind == "left" ? q_t.sem : f;
+                    }); };
+                    if (s.steps_counter > 1000) {
+                        if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+                            return ts_bccc_2.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
+                        else
+                            return f(0);
+                    }
+                    return f(s.steps_counter + 1);
+                });
             })));
         });
     }); };

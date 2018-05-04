@@ -164,13 +164,15 @@ exports.pop_scope_rt = ts_bccc_1.fun(function (x) {
         ts_bccc_1.apply(ts_bccc_1.inr(), (__assign({}, x, { stack: x.stack.remove(x.stack.count() - 1) })))
         : ts_bccc_1.apply(ts_bccc_1.inl(), {});
 });
-exports.empty_memory_rt = { highlighting: source_range_1.mk_range(0, 0, 0, 0),
+exports.empty_memory_rt = function (c_a) { return ({ highlighting: source_range_1.mk_range(0, 0, 0, 0),
     globals: exports.empty_scopes_val,
     heap: exports.empty_scope_val,
     functions: Immutable.Map(),
     classes: Immutable.Map(),
     stack: Immutable.Map(),
-    fs: Immutable.Map() };
+    fs: Immutable.Map(),
+    custom_alert: c_a,
+    steps_counter: 0 }); };
 exports.set_highlighting_rt = function (r) {
     return ts_bccc_2.mk_coroutine(ts_bccc_1.constant(r).times(ts_bccc_1.id()).then(highlight).then(ts_bccc_1.constant(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_unit_val)).times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
 };
