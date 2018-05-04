@@ -65,7 +65,7 @@ export let test_parser = () => {
     // let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
     // log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
 
-    let stream = get_stream(source)
+    let stream = get_stream(source,  CCC.apply(CCC.inr(), {}))
     while (stream.kind == "step") {
       let show = stream.show()
 

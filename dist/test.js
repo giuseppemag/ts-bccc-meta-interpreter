@@ -29,7 +29,7 @@ var ImpLanguageWithSuspend;
         // let hrdiff = process.hrtime(hrstart)
         // let time_in_ns = hrdiff[0] * 1e9 + hrdiff[1]
         // log(`Timer: ${time_in_ns / 1000000}ms\n Compiler error: `, JSON.stringify(compiler_res.value))
-        var stream = ImpLanguageWithSuspend.get_stream(source);
+        var stream = ImpLanguageWithSuspend.get_stream(source, CCC.apply(CCC.inr(), {}));
         while (stream.kind == "step") {
             var show_1 = stream.show();
             //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
