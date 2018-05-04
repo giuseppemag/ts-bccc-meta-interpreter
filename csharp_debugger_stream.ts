@@ -45,12 +45,12 @@ export let get_stream = (source:string, custom_alert:Option<(_:string) => boolea
       let range = res.value.range
       return { kind:"error", show:() => ({ kind:"message", message:msg, range:range }) }
     }
-    
+
     let ast = res.value.fst
 
     // console.log("AST:", JSON.stringify(ast))
 
-    let p = (CSharp.semicolon(zero_range, standard_lib(), ast_to_type_checker(ast)(global_calling_context)))(CSharp.no_constraints)
+    let p = (CSharp.semicolon(zero_range, standard_lib(), ast_to_type_checker(Immutable.Map())(ast)(global_calling_context)))(CSharp.no_constraints)
 
     let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
       kind:"step",

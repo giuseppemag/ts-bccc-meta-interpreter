@@ -98,7 +98,7 @@ import { ParserRes } from './grammar'
 import { inr, apply, inl, Unit, co_error } from 'ts-bccc';
 import { mk_constructor_call, mk_semicolon, mk_assign, mk_field_ref } from './primitives';
 
-let ast_to_csharp_type = (s:ParserRes) : Type =>
+let ast_to_csharp_type = (substitutions:Immutable.Map<string,Type>) => (s:ParserRes) : Type =>
   s.ast.kind == "id" ?
     s.ast.value == "int" ? int_type
     : s.ast.value == "float" ? float_type
@@ -115,16 +115,17 @@ let ast_to_csharp_type = (s:ParserRes) : Type =>
     : s.ast.value == "ellipse" ? ellipse_type
     : s.ast.value == "rectangle" ? rectangle_type
     : s.ast.value == "var" ? var_type
-    : ref_type(s.ast.value) :
-  s.ast.kind == "array decl" ? arr_type(ast_to_csharp_type(s.ast.t))
+    : substitutions.has(s.ast.value) ? substitutions.get(s.ast.value) : ref_type(s.ast.value)
+  :
+  s.ast.kind == "array decl" ? arr_type(ast_to_csharp_type(substitutions)(s.ast.t))
   : s.ast.kind == "generic type inst" && s.ast.f.ast.kind == "id" && s.ast.f.ast.value == "Func" && s.ast.args.length >= 1 ?
-    fun_type(tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(a))), ast_to_csharp_type(s.ast.args[s.ast.args.length - 1]), s.range)
+    fun_type(tuple_type(Immutable.Seq(s.ast.args).take(s.ast.args.length - 1).toArray().map(a => ast_to_csharp_type(substitutions)(a))), ast_to_csharp_type(substitutions)(s.ast.args[s.ast.args.length - 1]), s.range)
   : s.ast.kind == "generic type inst" && s.ast.f.ast.kind == "id" ?
-    generic_type_instance(s.ast.f.ast.value, s.ast.args.map(a => ast_to_csharp_type(a)))
+    generic_type_instance(s.ast.f.ast.value, s.ast.args.map(a => ast_to_csharp_type(substitutions)(a)))
   : s.ast.kind == "tuple type decl" ?
-    tuple_type(s.ast.args.map(a => ast_to_csharp_type(a)))
+    tuple_type(s.ast.args.map(a => ast_to_csharp_type(substitutions)(a)))
   : s.ast.kind == "record type decl" ?
-    record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(a.l)])))
+    record_type(Immutable.Map<string,Type>(s.ast.args.map(a => [a.r.ast.kind == "id" ? a.r.ast.value : "", ast_to_csharp_type(substitutions)(a.l)])))
   : (() => {
     //console.log(`Error: unsupported ast type: ${JSON.stringify(s)}`);
     throw new Error(`Unsupported ast type: ${print_range(s.range)}`)
@@ -208,38 +209,38 @@ export let extract_tuple_args = (n:ParserRes) : Array<ParserRes> =>
   : n.ast.kind == "bracket" ? extract_tuple_args(n.ast.e)
   : [n]}
 
-export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n => context =>
+export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (n:ParserRes) => (context:CallingContext) : Stmt =>
   n.ast.kind == "int" ? int(n.range, n.ast.value)
   : n.ast.kind == "double" ? double(n.range, n.ast.value)
   : n.ast.kind == "float" ? float(n.range, n.ast.value)
   : n.ast.kind == "string" ? str(n.range, n.ast.value)
-  : n.ast.kind == "bracket" ? ast_to_type_checker(n.ast.e)(context)
+  : n.ast.kind == "bracket" ? ast_to_type_checker(substitutions)(n.ast.e)(context)
   : n.ast.kind == "bool" ? bool(n.range, n.ast.value)
   : n.ast.kind == "noop" ? done
-  : n.ast.kind == ";" ? semicolon(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "for" ? for_loop(n.range, ast_to_type_checker(n.ast.i)(context), ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.b)(context))
-  : n.ast.kind == "while" ? while_do(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.b)(context))
-  : n.ast.kind == "if" ? if_then_else(n.range, ast_to_type_checker(n.ast.c)(context), ast_to_type_checker(n.ast.t)(context),
-                            n.ast.e.kind == "right" ? done : ast_to_type_checker(n.ast.e.value)(context))
-  : n.ast.kind == "as" ? coerce(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_csharp_type(n.ast.r))
-  : n.ast.kind == "+" ? plus(n.range, ast_to_type_checker(n.ast.l)(context),
-                                             ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "-" ? minus(n.range, ast_to_type_checker(n.ast.l)(context),
-                                              ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "*" ? times(n.range, ast_to_type_checker(n.ast.l)(context),
-                                              ast_to_type_checker(n.ast.r)(context), n.range)
-  : n.ast.kind == "/" ? div(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "%" ? mod(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "<" ? lt(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == ">" ? gt(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "<=" ? leq(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == ">=" ? geq(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "==" ? eq(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "!=" ? neq(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "xor" ? xor(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "not" ? not(n.range, ast_to_type_checker(n.ast.e)(context))
-  : n.ast.kind == "&&" ? and(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "||" ? or(n.range, ast_to_type_checker(n.ast.l)(context), ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == ";" ? semicolon(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "for" ? for_loop(n.range, ast_to_type_checker(substitutions)(n.ast.i)(context), ast_to_type_checker(substitutions)(n.ast.c)(context), ast_to_type_checker(substitutions)(n.ast.s)(context), ast_to_type_checker(substitutions)(n.ast.b)(context))
+  : n.ast.kind == "while" ? while_do(n.range, ast_to_type_checker(substitutions)(n.ast.c)(context), ast_to_type_checker(substitutions)(n.ast.b)(context))
+  : n.ast.kind == "if" ? if_then_else(n.range, ast_to_type_checker(substitutions)(n.ast.c)(context), ast_to_type_checker(substitutions)(n.ast.t)(context),
+                            n.ast.e.kind == "right" ? done : ast_to_type_checker(substitutions)(n.ast.e.value)(context))
+  : n.ast.kind == "as" ? coerce(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_csharp_type(substitutions)(n.ast.r))
+  : n.ast.kind == "+" ? plus(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context),
+                                             ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "-" ? minus(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context),
+                                              ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "*" ? times(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context),
+                                              ast_to_type_checker(substitutions)(n.ast.r)(context), n.range)
+  : n.ast.kind == "/" ? div(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "%" ? mod(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "<" ? lt(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == ">" ? gt(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "<=" ? leq(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == ">=" ? geq(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "==" ? eq(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "!=" ? neq(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "xor" ? xor(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "not" ? not(n.range, ast_to_type_checker(substitutions)(n.ast.e)(context))
+  : n.ast.kind == "&&" ? and(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "||" ? or(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
   : n.ast.kind == "=>" ? arrow(n.range,
       extract_tuple_args(n.ast.l).map(a => {
         if (a.ast.kind != "id") {
@@ -255,40 +256,40 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
         }
         return a.ast.value
-      }))).toArray(), ast_to_type_checker(n.ast.r)(context))
-  : n.ast.kind == "," ? tuple_value(n.range, ([n.ast.l].concat(extract_tuple_args(n.ast.r))).map(a => ast_to_type_checker(a)(context)))
+      }))).toArray(), ast_to_type_checker(substitutions)(n.ast.r)(context))
+  : n.ast.kind == "," ? tuple_value(n.range, ([n.ast.l].concat(extract_tuple_args(n.ast.r))).map(a => ast_to_type_checker(substitutions)(a)(context)))
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
-  : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(n.ast.value)(context))
-  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(n.ast.l)(context), n.ast.r.ast.value)
+  : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(substitutions)(n.ast.value)(context))
+  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(substitutions)(n.ast.l)(context), n.ast.r.ast.value)
   : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ?
-    if_then_else(n.range, ast_to_type_checker(n.ast.condition)(context), ast_to_type_checker(n.ast.then_else.ast._then)(context), ast_to_type_checker(n.ast.then_else.ast._else)(context))
+    if_then_else(n.range, ast_to_type_checker(substitutions)(n.ast.condition)(context), ast_to_type_checker(substitutions)(n.ast.then_else.ast._then)(context), ast_to_type_checker(substitutions)(n.ast.then_else.ast._else)(context))
 
 
   : n.ast.kind == "=" && n.ast.l.ast.kind == "get_array_value_at" ?
     set_arr_el(n.range,
-                      ast_to_type_checker(n.ast.l.ast.array)(context),
-                      ast_to_type_checker(n.ast.l.ast.index)(context),
-                      ast_to_type_checker(n.ast.r)(context))
+                      ast_to_type_checker(substitutions)(n.ast.l.ast.array)(context),
+                      ast_to_type_checker(substitutions)(n.ast.l.ast.index)(context),
+                      ast_to_type_checker(substitutions)(n.ast.r)(context))
 
 
-  : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(n.ast.r)(context))
+  : n.ast.kind == "=" && n.ast.l.ast.kind == "id" ? set_v(n.range, n.ast.l.ast.value, ast_to_type_checker(substitutions)(n.ast.r)(context))
   : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ?
-    field_set(n.range, context, ast_to_type_checker(n.ast.l.ast.l)(context), {att_name:n.ast.l.ast.r.ast.value, kind:"att"}, ast_to_type_checker(n.ast.r)(context))
+    field_set(n.range, context, ast_to_type_checker(substitutions)(n.ast.l.ast.l)(context), {att_name:n.ast.l.ast.r.ast.value, kind:"att"}, ast_to_type_checker(substitutions)(n.ast.r)(context))
 
 
 
   : n.ast.kind == "cons_call" ?
-    call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : `${n.ast.name}<${n.ast.type_args.map(a => type_to_string(ast_to_csharp_type(a))).reduce((a,b) => a + "," + b)}>`, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+    call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : `${n.ast.name}<${n.ast.type_args.map(a => type_to_string(ast_to_csharp_type(substitutions)(a))).reduce((a,b) => a + "," + b)}>`, n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)))
   : n.ast.kind == "func_call" ?
-    call_lambda(n.range, ast_to_type_checker(n.ast.name)(context), n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+    call_lambda(n.range, ast_to_type_checker(substitutions)(n.ast.name)(context), n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)))
 
 
   : n.ast.kind == "func_decl" ?
     def_fun(n.range,
       { name:n.ast.name,
-        return_t:ast_to_csharp_type(n.ast.return_type),
-        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.ast.kind == "id" ? d.r.ast.value : "", type:ast_to_csharp_type(d.l)})),
-        body:ast_to_type_checker(n.ast.body)(context),
+        return_t:ast_to_csharp_type(substitutions)(n.ast.return_type),
+        parameters:n.ast.arg_decls.toArray().map(d => ({name:d.r.ast.kind == "id" ? d.r.ast.value : "", type:ast_to_csharp_type(substitutions)(d.l)})),
+        body:ast_to_type_checker(substitutions)(n.ast.body)(context),
         range:n.range },
         []
         // free_variables(n.ast.body,
@@ -303,10 +304,10 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       n.ast.extends_or_implements,
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
-          return_t:ast_to_csharp_type(m.decl.return_type),
+          return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
           params_base_call: apply(inr<Stmt[], Unit>(), {}),
-          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-          body:ast_to_type_checker(m.decl.body)(context),
+          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+          body:ast_to_type_checker(substitutions)(m.decl.body)(context),
           range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
           modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:false
@@ -314,21 +315,21 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
           name:c.decl.name,
           params_base_call: c.decl.params_base_call.kind == "left"
-                            ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
+                            ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(substitutions)(e)(context)))
                             : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
           return_t:unit_type,
-          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-          body:ast_to_type_checker(c.decl.body)(context),
+          parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+          body:ast_to_type_checker(substitutions)(c.decl.body)(context),
           range:c.decl.body.range,
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:true
         }))),
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
-        type:ast_to_csharp_type(f.decl.l),
+        type:ast_to_csharp_type(substitutions)(f.decl.l),
         is_used_as_base:false,
         modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
-        initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
+        initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
       }))
     )
   : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
@@ -340,7 +341,9 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
       let generic_params = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
       let C_name = n.ast.C_name
       let C_name_inst = `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
-      console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+      // console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+
+      let substitutions = generic_arguments
 
       return def_class(n.range,
         n.ast.modifiers.toArray().map(m => m.kind),
@@ -348,13 +351,11 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
         n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
         C_name_inst, n.ast.extends_or_implements,
         n.ast.methods.toArray().map(m => (context:CallingContext) => ({
-            name:m.decl.name, // from
-            return_t:ast_to_csharp_type(m.decl.return_type), // todo: replace
+            name:m.decl.name,
+            return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
             params_base_call: apply(inr<Stmt[], Unit>(), {}),
-             // todo: replace types
-            parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-             // todo: replace types in declarations
-             body:ast_to_type_checker(m.decl.body)(context),
+            parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+            body:ast_to_type_checker(substitutions)(m.decl.body)(context),
             range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
             modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
             is_constructor:false
@@ -362,72 +363,70 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
             name:C_name_inst,
             params_base_call: c.decl.params_base_call.kind == "left"
-                              ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
-                              : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
+                              ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(substitutions)(e)(context)))
+                              : apply(inr<Stmt[], Unit>(), {}),
             return_t:unit_type,
-            // todo: replace types
-            parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(a.l) })),
-            // todo: replace types in declarations
-            body:ast_to_type_checker(c.decl.body)(context),
+            parameters:c.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+            body:ast_to_type_checker(substitutions)(c.decl.body)(context),
             range:c.decl.body.range,
             modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
             is_constructor:true
           }))),
         n.ast.fields.toArray().map(f => (context:CallingContext) => ({
           name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
-          type:ast_to_csharp_type(f.decl.l), // TODO: replace generic param for arg!
+          type:ast_to_csharp_type(substitutions)(f.decl.l),
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
-          initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
+          initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
         })), true
       ) })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?
-    decl_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(n.ast.l))
+    decl_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(substitutions)(n.ast.l))
   : n.ast.kind == "decl and init" && n.ast.r.ast.kind == "id" ?
-    decl_and_init_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(n.ast.l), ast_to_type_checker(n.ast.v)(context))
+    decl_and_init_v(n.range, n.ast.r.ast.value, ast_to_csharp_type(substitutions)(n.ast.l), ast_to_type_checker(substitutions)(n.ast.v)(context))
   : n.ast.kind == "debugger" ?
     breakpoint(n.range)(done)
   : n.ast.kind == "typechecker_debugger" ?
     typechecker_breakpoint(n.range)(done)
 
   : n.ast.kind == "array_cons_call" ?
-    new_array(n.range, ast_to_csharp_type(n.ast.type), ast_to_type_checker(n.ast.actual)(context))
+    new_array(n.range, ast_to_csharp_type(substitutions)(n.ast.type), ast_to_type_checker(substitutions)(n.ast.actual)(context))
   : n.ast.kind == "array_cons_call_and_init" ?
-    new_array_and_init(n.range, ast_to_csharp_type(n.ast.type), n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+    new_array_and_init(n.range, ast_to_csharp_type(substitutions)(n.ast.type), n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)))
   : n.ast.kind == "get_array_value_at" ?
-    get_arr_el(n.range, ast_to_type_checker(n.ast.array)(context), ast_to_type_checker(n.ast.index)(context))
+    get_arr_el(n.range, ast_to_type_checker(substitutions)(n.ast.array)(context), ast_to_type_checker(substitutions)(n.ast.index)(context))
 
 
 
   : n.ast.kind == "empty surface" ?
-    mk_empty_surface(n.range, ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context))
+    mk_empty_surface(n.range, ast_to_type_checker(substitutions)(n.ast.w)(context), ast_to_type_checker(substitutions)(n.ast.h)(context), ast_to_type_checker(substitutions)(n.ast.color)(context))
   : n.ast.kind == "circle" ?
-    mk_circle(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.r)(context), ast_to_type_checker(n.ast.color)(context))
+    mk_circle(n.range, ast_to_type_checker(substitutions)(n.ast.cx)(context), ast_to_type_checker(substitutions)(n.ast.cy)(context), ast_to_type_checker(substitutions)(n.ast.r)(context), ast_to_type_checker(substitutions)(n.ast.color)(context))
   : n.ast.kind == "square" ?
-    mk_square(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_square(n.range, ast_to_type_checker(substitutions)(n.ast.cx)(context), ast_to_type_checker(substitutions)(n.ast.cy)(context), ast_to_type_checker(substitutions)(n.ast.s)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "ellipse" ?
-    mk_ellipse(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_ellipse(n.range, ast_to_type_checker(substitutions)(n.ast.cx)(context), ast_to_type_checker(substitutions)(n.ast.cy)(context), ast_to_type_checker(substitutions)(n.ast.w)(context), ast_to_type_checker(substitutions)(n.ast.h)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "rectangle" ?
-    mk_rectangle(n.range, ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_rectangle(n.range, ast_to_type_checker(substitutions)(n.ast.cx)(context), ast_to_type_checker(substitutions)(n.ast.cy)(context), ast_to_type_checker(substitutions)(n.ast.w)(context), ast_to_type_checker(substitutions)(n.ast.h)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "line" ?
-    mk_line(n.range, ast_to_type_checker(n.ast.x1)(context), ast_to_type_checker(n.ast.y1)(context), ast_to_type_checker(n.ast.x2)(context), ast_to_type_checker(n.ast.y2)(context), ast_to_type_checker(n.ast.width)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_line(n.range, ast_to_type_checker(substitutions)(n.ast.x1)(context), ast_to_type_checker(substitutions)(n.ast.y1)(context), ast_to_type_checker(substitutions)(n.ast.x2)(context), ast_to_type_checker(substitutions)(n.ast.y2)(context), ast_to_type_checker(substitutions)(n.ast.width)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "polygon" ?
-    mk_polygon(n.range, ast_to_type_checker(n.ast.points)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_polygon(n.range, ast_to_type_checker(substitutions)(n.ast.points)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "text" ?
-    mk_text(n.range, ast_to_type_checker(n.ast.t)(context), ast_to_type_checker(n.ast.x)(context), ast_to_type_checker(n.ast.y)(context), ast_to_type_checker(n.ast.size)(context), ast_to_type_checker(n.ast.color)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_text(n.range, ast_to_type_checker(substitutions)(n.ast.t)(context), ast_to_type_checker(substitutions)(n.ast.x)(context), ast_to_type_checker(substitutions)(n.ast.y)(context), ast_to_type_checker(substitutions)(n.ast.size)(context), ast_to_type_checker(substitutions)(n.ast.color)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "sprite" ?
-    mk_sprite(n.range, ast_to_type_checker(n.ast.sprite)(context), ast_to_type_checker(n.ast.cx)(context), ast_to_type_checker(n.ast.cy)(context), ast_to_type_checker(n.ast.w)(context), ast_to_type_checker(n.ast.h)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_sprite(n.range, ast_to_type_checker(substitutions)(n.ast.sprite)(context), ast_to_type_checker(substitutions)(n.ast.cx)(context), ast_to_type_checker(substitutions)(n.ast.cy)(context), ast_to_type_checker(substitutions)(n.ast.w)(context), ast_to_type_checker(substitutions)(n.ast.h)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "other surface" ?
-    mk_other_surface(n.range, ast_to_type_checker(n.ast.s)(context), ast_to_type_checker(n.ast.dx)(context), ast_to_type_checker(n.ast.dy)(context), ast_to_type_checker(n.ast.sx)(context), ast_to_type_checker(n.ast.sy)(context), ast_to_type_checker(n.ast.rotation)(context))
+    mk_other_surface(n.range, ast_to_type_checker(substitutions)(n.ast.s)(context), ast_to_type_checker(substitutions)(n.ast.dx)(context), ast_to_type_checker(substitutions)(n.ast.dy)(context), ast_to_type_checker(substitutions)(n.ast.sx)(context), ast_to_type_checker(substitutions)(n.ast.sy)(context), ast_to_type_checker(substitutions)(n.ast.rotation)(context))
   : n.ast.kind == "filesystem+program" ?
-    mk_filesystem_and_program(n.range, ast_to_type_checker(n.ast.filesystem)(context), ast_to_type_checker(n.ast.program)(context))
+    mk_filesystem_and_program(n.range, ast_to_type_checker(substitutions)(n.ast.filesystem)(context), ast_to_type_checker(substitutions)(n.ast.program)(context))
   : n.ast.kind == "filesystem" ?
-    mk_filesystem(n.range, n.ast.nodes.toArray().map(n => ast_to_type_checker(n)(context)))
+    mk_filesystem(n.range, n.ast.nodes.toArray().map(n => ast_to_type_checker(substitutions)(n)(context)))
   : n.ast.kind == "filesystem.file" ?
-    mk_fs_file(n.range, ast_to_type_checker(n.ast.path)(context), n.ast.attributes.toArray().map(n => ast_to_type_checker(n)(context)))
+    mk_fs_file(n.range, ast_to_type_checker(substitutions)(n.ast.path)(context), n.ast.attributes.toArray().map(n => ast_to_type_checker(substitutions)(n)(context)))
   : n.ast.kind == "filesystem.keyvalue" ?
-    mk_fs_key_value(n.range, ast_to_type_checker(n.ast.key)(context), ast_to_type_checker(n.ast.value)(context))
+    mk_fs_key_value(n.range, ast_to_type_checker(substitutions)(n.ast.key)(context), ast_to_type_checker(substitutions)(n.ast.value)(context))
   : (() => {
     //console.log(`Error: unsupported ast node: ${JSON.stringify(print_range(n.range))}`);
     throw new Error(`Unsupported ast node: ${print_range(n.range)}`)

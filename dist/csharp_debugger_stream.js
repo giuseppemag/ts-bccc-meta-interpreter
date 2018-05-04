@@ -32,7 +32,7 @@ exports.get_stream = function (source, custom_alert) {
         }
         var ast_1 = res.value.fst;
         // console.log("AST:", JSON.stringify(ast))
-        var p = (CSharp.semicolon(source_range_1.zero_range, standard_lib_1.standard_lib(), ast_operations_1.ast_to_type_checker(ast_1)(ast_operations_1.global_calling_context)))(CSharp.no_constraints);
+        var p = (CSharp.semicolon(source_range_1.zero_range, standard_lib_1.standard_lib(), ast_operations_1.ast_to_type_checker(Immutable.Map())(ast_1)(ast_operations_1.global_calling_context)))(CSharp.no_constraints);
         var runtime_stream_1 = function (state) { return ({
             kind: "step",
             next: function () {

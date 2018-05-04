@@ -22,13 +22,17 @@ export let get_stream = DebuggerStream.get_stream
 export let test_parser = () => {
     let source = `
 class C<a> {
-  int x;
-  public C(int x) { this.x = x; }
-  public int get_x() { return this.x; }
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
 }
 
 C<int> c_int = new C<int>(10);
-var x = c_int.get_x();
+var x_int = c_int.get_x();
+
+C<bool> c_bool = new C<bool>(true);
+var x_bool = c_bool.get_x();
+typechecker_debugger;
 `
 
 

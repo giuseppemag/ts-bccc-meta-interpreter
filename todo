@@ -1,17 +1,17 @@
 [g] Generics
   [x] Parser
-    [ ] Generic constructor call
     [ ] Generic method call
-  [x] TypeChecker declaration
-  [ ] TypeChecker instantiation
-    [ ] Declarations
-    [ ] Function/Method declaration
   [ ] Generic method
     [ ] Parser
     [ ] Instantiation
   [ ] Covariance and contravariance of Func
   [ ] `instantiate` should also handle tuple, record, func, and array
-  [ ] `decl_forced`, `decl`, `decl_and_init`, function arguments, constructor arguments, ...
+  [ ] instantiate on:
+    [ ] `decl_forced`
+    [ ] `decl`
+    [ ] `decl_and_init`
+    [ ] constructor type (`new C<int>(...)` instantiates C<int>)
+    [ ] generic method call
 
 [g] HTML renderers for server simulator
 
