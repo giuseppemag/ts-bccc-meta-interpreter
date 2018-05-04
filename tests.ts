@@ -977,6 +977,27 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
   ]},
 
   {
+    name:"Classes: storage of partially applied this in method lambda's",
+    source:
+    `class C {
+      int x;
+      public C(int x) { this.x = x; }
+      public int m(int y) { return this.x + y; }
+    }
+
+    var c1 = new C(1);
+    var c2 = new C(2);
+    var m1 = c1.m;
+    var m2 = c2.m;
+    var r1 = m1(10);
+    var r2 = m2(10);
+    `
+    ,
+  checks:[
+    { name:"r1 is 11.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("r1").v, 11) },
+    { name:"r2 is 12.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("r2").v, 12) }
+  ]},
+  {
     name:"Filesystem: Special syntax",
     source:
     `filesystem {
@@ -1073,5 +1094,4 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
   ]},
 
 ])
-
 

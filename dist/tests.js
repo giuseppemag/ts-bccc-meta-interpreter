@@ -349,6 +349,14 @@ run_checks([
         ]
     },
     {
+        name: "Classes: storage of partially applied this in method lambda's",
+        source: "class C {\n      int x;\n      public C(int x) { this.x = x; }\n      public int m(int y) { return this.x + y; }\n    }\n\n    var c1 = new C(1);\n    var c2 = new C(2);\n    var m1 = c1.m;\n    var m2 = c2.m;\n    var r1 = m1(10);\n    var r2 = m2(10);\n    ",
+        checks: [
+            { name: "r1 is 11.", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("r1").v, 11); } },
+            { name: "r2 is 12.", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("r2").v, 12); } }
+        ]
+    },
+    {
         name: "Filesystem: Special syntax",
         source: "filesystem {\n      fsfile \"/hello_world\" {\n        \"content\": \"hello world!\"\n      }\n\n      fsfile \"/a\" {\n        \"content\": \"1\"\n      }\n      fsfile \"/a\" {\n        \"content\": \"2\"\n      }\n    }",
         checks: [
