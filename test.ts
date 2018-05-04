@@ -21,36 +21,13 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-  class A {
-    double a;
-    public A(int a, int x){
-      this.a = a;
-      this.b = 10;
-    }
-    protected int b;
-    protected int GetB(){
-      return this.b;
-    }
-    public virtual double GetA(){
-      return this.a;
-    }
-  }
-  
-  class AAA : A {
-    int aaa;
-    public AAA (int aaa) : base(aaa, 5){
-      this.aaa = aaa;
-    }
-    public override double GetA(){
-      return this.aaa;
-    }
-  }
-  
-  AAA aaa = new AAA(555);
-  double _aaa = aaa.GetA();
-  int x = aaa.b;
-  int y = aaa.GetB();
-  debugger;
+class C<a> {
+  int x;
+  public C(int x) { this.x = x; }
+}
+
+C<int> x;
+typechecker_debugger;
 `
 
 
@@ -70,13 +47,13 @@ export let test_parser = () => {
       let show = stream.show()
 
       //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
-      log("Step:", show.kind == "bindings" ? show.state : 
+      log("Step:", show.kind == "bindings" ? show.state :
                    show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
                    show)
       stream = stream.next()
     }
     let show = stream.show()
-    log("Step:", show.kind == "bindings" ? show.state : 
+    log("Step:", show.kind == "bindings" ? show.state :
                  show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
                  show)
 

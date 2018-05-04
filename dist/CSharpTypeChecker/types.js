@@ -20,7 +20,8 @@ exports.type_to_string = function (t) {
                         : t.kind == "fun" && t.in.kind == "tuple" ? "Func<" + (t.in.args.length == 0 ? "" : t.in.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; })) + "," + exports.type_to_string(t.out) + ">"
                             : t.kind == "fun" ? "Func<" + exports.type_to_string(t.in) + "," + exports.type_to_string(t.out) + ">"
                                 : t.kind == "arr" ? exports.type_to_string(t.arg) + "[]"
-                                    : "not implemented";
+                                    : t.kind == "generic type instance" ? t.C_name + "<" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ">"
+                                        : "not implemented";
 };
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
@@ -46,8 +47,9 @@ exports.fun_stmts_type = function (i, o, range) { return ({ kind: "fun_with_inpu
 exports.arr_type = function (arg) { return ({ kind: "arr", arg: arg }); };
 exports.tuple_type = function (args) { return ({ kind: "tuple", args: args }); };
 exports.record_type = function (args) { return ({ kind: "record", args: args }); };
+exports.generic_type_instance = function (C_name, args) { return ({ kind: "generic type instance", C_name: C_name, args: args }); };
 exports.ref_type = function (C_name) { return ({ kind: "ref", C_name: C_name }); };
-exports.generic_type_decl = function (f, args) { return ({ kind: "generic type decl", f: f, args: args }); };
+exports.generic_type_decl = function (instantiate, params, C_name) { return ({ kind: "generic type decl", instantiate: instantiate, params: params, C_name: C_name }); };
 exports.mk_typing = function (t, s, is_constant) { return ({ type: __assign({}, t, { is_constant: is_constant == undefined ? false : is_constant }), sem: s }); };
 exports.mk_typing_cat = ts_bccc_1.fun2(exports.mk_typing);
 exports.mk_typing_cat_full = ts_bccc_1.fun2(function (t, s) { return exports.mk_typing(t, s, t.is_constant); });

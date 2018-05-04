@@ -360,7 +360,7 @@ var type_decl = function (check_array_decl) {
             return partial_match.then(function (_) {
                 return type_args().then(function (args) {
                     return primitives_1.gt_op.then(function (end_range) {
-                        return ts_bccc_1.co_unit(primitives_1.mk_generic_type_decl(source_range_1.join_source_ranges(i.range, end_range), i, args));
+                        return ts_bccc_1.co_unit(primitives_1.mk_generic_type_inst(source_range_1.join_source_ranges(i.range, end_range), i, args));
                     });
                 });
             });
@@ -616,12 +616,12 @@ var function_declaration = function (modifiers) {
         });
     });
 };
-var class_body = function (class_name, initial_range, extends_or_implements, modifiers) {
+var class_body = function (class_name, initial_range, generic_parameters, extends_or_implements, modifiers) {
     return primitives_1.left_curly_bracket.then(function (_) {
         return class_statements().then(function (declarations) {
             return primitives_1.right_curly_bracket.then(function (closing_curly_range) {
                 return full_match.then(function (_) {
-                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, extends_or_implements, declarations.fst, declarations.snd.fst, declarations.snd.snd, modifiers, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
+                    return ts_bccc_1.co_unit(primitives_1.mk_class_declaration(class_name.id, generic_parameters, extends_or_implements, declarations.fst, declarations.snd.fst, declarations.snd.snd, modifiers, source_range_1.join_source_ranges(initial_range, closing_curly_range)));
                 });
             });
         });
@@ -633,12 +633,22 @@ var class_declaration = function () {
             return primitives_1.class_keyword.then(function (initial_range) {
                 return partial_match.then(function (_) {
                     return primitives_1.identifier_token.then(function (class_name) {
-                        var range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
-                        return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                            return identifiers().then(function (extends_or_implements) {
-                                return class_body(class_name, range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
+                        return primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
+                            return partial_match.then(function (_) {
+                                return type_args().then(function (args) {
+                                    return primitives_1.gt_op.then(function (end_range) {
+                                        return ts_bccc_1.co_unit(args);
+                                    });
+                                });
                             });
-                        }), class_body(class_name, range, [], Immutable.List(c_ms.toArray().map(function (m) { return m.ast; }))));
+                        }), ts_bccc_1.co_unit(Array())).then(function (type_params) {
+                            var range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
+                            return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
+                                return identifiers().then(function (extends_or_implements) {
+                                    return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
+                                });
+                            }), class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), [], Immutable.List(c_ms.toArray().map(function (m) { return m.ast; }))));
+                        });
                     });
                 });
             });
@@ -650,15 +660,25 @@ var interface_declaration = function () {
         return class_modifiers().then(function (_ms) {
             return partial_match.then(function (_) {
                 return primitives_1.identifier_token.then(function (class_name) {
-                    var range = _ms.count() == 0 ? class_name.range :
-                        _ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
-                    var _ms_new = _ms.toArray().some(function (m) { return m.ast.kind == "public"; }) || _ms.count() == 0 ?
-                        _ms.toArray().map(function (m) { return m && m.ast; }) : _ms.toArray().map(function (m) { return m && m.ast; }).concat([{ kind: "public" }]);
-                    return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                        return identifiers().then(function (extends_or_implements) {
-                            return class_body(class_name, range, extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(_ms_new));
+                    return primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
+                        return partial_match.then(function (_) {
+                            return type_args().then(function (args) {
+                                return primitives_1.gt_op.then(function (end_range) {
+                                    return ts_bccc_1.co_unit(args);
+                                });
+                            });
                         });
-                    }), class_body(class_name, range, [], Immutable.List(_ms_new)));
+                    }), ts_bccc_1.co_unit(Array())).then(function (type_params) {
+                        var range = _ms.count() == 0 ? class_name.range :
+                            _ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
+                        var _ms_new = _ms.toArray().some(function (m) { return m.ast.kind == "public"; }) || _ms.count() == 0 ?
+                            _ms.toArray().map(function (m) { return m && m.ast; }) : _ms.toArray().map(function (m) { return m && m.ast; }).concat([{ kind: "public" }]);
+                        return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
+                            return identifiers().then(function (extends_or_implements) {
+                                return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(_ms_new));
+                            });
+                        }), class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), [], Immutable.List(_ms_new)));
+                    });
                 });
             });
         });

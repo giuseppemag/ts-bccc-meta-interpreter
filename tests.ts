@@ -26,7 +26,7 @@ let run_checks = (tests:Array<Test>, only_test?:string) => {
   tests.forEach(test => {
     if (only_test && test.name != only_test) return
 
-    console.log(`\x1b[32m test "${test.name} started`)
+    console.log(`\x1b[32m test "${test.name}" started`)
 
     let stream = get_stream(test.source, apply(inr(),{}))
     let steps = DebuggerStream.run_stream_to_end(stream).toArray()
@@ -859,7 +859,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         return this.a;
       }
     }
-    
+
     class AAA : A {
       int aaa;
       public AAA (int aaa) : base(aaa, 5){
@@ -869,7 +869,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         return this.aaa;
       }
     }
-    
+
     AAA aaa = new AAA(555);
     double _aaa = aaa.GetA();
     int x = aaa.b;
@@ -899,21 +899,21 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     interface Ship {
       void Update(double delta_time);
     }
-    
+
     class SimpleSpaceShip : Ship {
       public Vector2 position;
       Vector2 velocity;
-    
+
       public SimpleSpaceShip(Vector2 pos, Vector2 vel){
         this.position = pos;
         this.velocity = vel;
       }
-    
+
       public override void Update(double dt){
         this.position.Sum(this.velocity.Mul(dt));
       }
     }
-    
+
     class WarpEngine{
       double current_warp_factor;
       double max_warp;
@@ -930,17 +930,17 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         return speed_light / Math.pow(warp_factor, 10.0/3.0);
       }
     }
-    
-    
-    
+
+
+
     abstract ShipDecorator : Ship {
       public Ship ship;
       public ShipDecorator(Ship ship){
         this.ship = ship;
       }
-    } 
-    
-    
+    }
+
+
     class EnterpriseNX01 : ShipDecorator {
       private WarpEngine warp_engine;
       public EnterpriseNX01(Ship ship):base(ship){
@@ -954,18 +954,18 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         var multiplier = this.warp_engine.GetWarpSpeed();
         this.ship.Update(dt * multiplier);
       }
-    } 
-    
+    }
+
     var p1 = new Vector2(0.0,0.0);
     var v1 = new Vector2(10.0,10.0);
     SimpleSpaceShip s = new SimpleSpaceShip(p1, v1);
     EnterpriseNX01 nx1 = new EnterpriseNX01(s);
     nx1.GoToWarp(3.0);
-  
+
     var p2 = new Vector2(0.0,100.0);
     var v2 = new Vector2(10.0,10.0);
     Ship tv = new SimpleSpaceShip(p2, v2);
-  
+
     Ship[] fleet = new Ship[]{ nx1, tv };
     for(int i = 0; i < fleet.Length; i = i + 1 ){
       fleet[i].Update(0.16);
@@ -1016,57 +1016,57 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     `
     ,
   checks:[
-    { 
-      name:"WriteAllText writes file into fs", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"WriteAllText writes file into fs",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) => s.fs.get("/b").content == "2"
     },
-    { 
-      name:"Exists returns false if file does not exist", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"Exists returns false if file does not exist",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) =>
         assert_equal(s.globals.get(0).get("exists_a").v, false)
     },
-    { 
-      name:"Exists returns true if file does exist", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"Exists returns true if file does exist",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) =>
         assert_equal(s.globals.get(0).get("exists_b").v, true)
     },
-    { 
-      name:"ReadAllText reads file from fs", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"ReadAllText reads file from fs",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) => s.globals.get(0).get("b").v == "2"
     },
-    { 
-      name:"Copy copies file", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"Copy copies file",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) => s.fs.get("/c").content == "2"
     },
-    { 
-      name:"Create creates empty file", 
-      step:2, 
-      expected_kind:"memory", 
+    {
+      name:"Create creates empty file",
+      step:2,
+      expected_kind:"memory",
       check:(s:MemRt) => s.fs.has("/d") && s.fs.get("/d").content == ""
     },
-    { 
-      name:"Delete deletes file", 
-      step:2, 
-      expected_kind:"memory", 
-      check:(s:MemRt) => 
-        !  s.fs.has("/e") 
+    {
+      name:"Delete deletes file",
+      step:2,
+      expected_kind:"memory",
+      check:(s:MemRt) =>
+        !  s.fs.has("/e")
     },
-    { 
-      name:"Move moves file", 
-      step:2, 
-      expected_kind:"memory", 
-      check:(s:MemRt) => 
-        !  s.fs.has("/f") 
+    {
+      name:"Move moves file",
+      step:2,
+      expected_kind:"memory",
+      check:(s:MemRt) =>
+        !  s.fs.has("/f")
         && s.fs.has("/g")
         && s.fs.get("/g").content == "0"
     },

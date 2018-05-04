@@ -135,6 +135,10 @@ export interface ConstructorAST {
 export interface ClassAST {
     kind: "class";
     C_name: string;
+    generic_parameters: {
+        name: ParserRes;
+        variant: "co" | "contra" | "inv";
+    }[];
     extends_or_implements: string[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
@@ -286,7 +290,7 @@ export interface OtherSurface {
 }
 export declare type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface;
 export interface GenericTypeDeclAST {
-    kind: "generic type decl";
+    kind: "generic type inst";
     f: ParserRes;
     args: Array<ParserRes>;
 }

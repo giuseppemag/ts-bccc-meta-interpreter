@@ -48,7 +48,7 @@ import {
   mk_field_ref,
   mk_for,
   mk_function_declaration,
-  mk_generic_type_decl,
+  mk_generic_type_inst,
   mk_geq,
   mk_get_array_value_at,
   mk_gt,
@@ -176,7 +176,7 @@ export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.L
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
-export interface ClassAST { kind: "class", C_name:string, extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
+export interface ClassAST { kind: "class", C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
 export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
@@ -203,7 +203,7 @@ export interface Text { kind:"text", t:ParserRes, x:ParserRes, y:ParserRes, size
 export interface OtherSurface { kind: "other surface", s:ParserRes, dx:ParserRes, dy:ParserRes, sx:ParserRes, sy:ParserRes, rotation:ParserRes }
 export type RenderSurfaceAST = EmptySurface | Circle | Square | Ellipse | Rectangle | Line | Polygon | Text | Sprite | OtherSurface
 
-export interface GenericTypeDeclAST { kind:"generic type decl", f:ParserRes, args:Array<ParserRes> }
+export interface GenericTypeDeclAST { kind:"generic type inst", f:ParserRes, args:Array<ParserRes> }
 
 export interface ArrayTypeDeclAST { kind:"array decl", t:ParserRes }
 
@@ -222,7 +222,7 @@ export const mk_file_ast = (path: ParserRes, contents: ParserRes[]): AST => ({ k
 export const mk_filesys_and_program_ast = (fs: ParserRes, prg: ParserRes): AST => ({ kind: 'filesystem+program', filesystem: fs, program: prg })
 
 export const key_value: Coroutine<ParserState, ParserError, ParserRes> =
-  string.then(key => 
+  string.then(key =>
   colon_keyword.then(_ =>
   string.then(value =>
     co_unit<ParserState, ParserError, ParserRes>({
@@ -231,19 +231,19 @@ export const key_value: Coroutine<ParserState, ParserError, ParserRes> =
     })
   )))
 
-export const file: Coroutine<ParserState, ParserError, ParserRes> = 
+export const file: Coroutine<ParserState, ParserError, ParserRes> =
   file_keyword.then(id =>
   string.then(path =>
   left_curly_bracket.then(_ =>
-  co_repeat(key_value).then(kvs => 
+  co_repeat(key_value).then(kvs =>
   right_curly_bracket.then(rb =>
     co_unit<ParserState, ParserError, ParserRes>({ range: join_source_ranges(id, rb), ast: mk_file_ast(path, kvs) })
   )))))
-  
+
 export const filesystem_prs: Coroutine<ParserState, ParserError, ParserRes> =
-  filesystem_keyword.then(k => 
+  filesystem_keyword.then(k =>
   left_curly_bracket.then(_ =>
-  co_repeat(file).then(children => 
+  co_repeat(file).then(children =>
   right_curly_bracket.then(rb =>
     co_unit<ParserState, ParserError, ParserRes>({ range: join_source_ranges(k, rb), ast: mk_filesystem_ast(children) })
   ))))
@@ -628,7 +628,7 @@ let type_decl = (check_array_decl=true) : Coroutine<ParserState,ParserError,Pars
           partial_match.then(_ =>
           type_args().then(args =>
           gt_op.then(end_range =>
-          co_unit(mk_generic_type_decl(join_source_ranges(i.range, end_range), i, args))
+          co_unit(mk_generic_type_inst(join_source_ranges(i.range, end_range), i, args))
         )))),
       check_array_decl ?
         parser_or<ParserRes>(
@@ -795,11 +795,11 @@ let constructor_declaration = () =>
         let args =
           actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
           actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
-        
+
         return constructor_body(function_name, arg_decls, apply(inl(),args))
       })))))),
     constructor_body(function_name, arg_decls, apply(inr(),{}))
-  )    
+  )
   ))))))
 
 let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
@@ -829,7 +829,7 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
                                     body))))))))))))))
 
 
-let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, extends_or_implements:string[], modifiers:Immutable.List<ModifierAST>) =>
+let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:string[], modifiers:Immutable.List<ModifierAST>) =>
   left_curly_bracket.then(_ =>
   class_statements().then(declarations =>
   right_curly_bracket.then(closing_curly_range =>
@@ -837,13 +837,14 @@ let class_body = (class_name:{id: string;range: SourceRange}, initial_range:Sour
   co_unit(
     mk_class_declaration(
       class_name.id,
+      generic_parameters,
       extends_or_implements,
       declarations.fst,
       declarations.snd.fst,
       declarations.snd.snd,
       modifiers,
       join_source_ranges(initial_range, closing_curly_range))
-  )))))    
+  )))))
 
 let class_declaration = () =>
   no_match.then(_ =>
@@ -851,15 +852,23 @@ let class_declaration = () =>
   class_keyword.then(initial_range =>
   partial_match.then(_ =>
   identifier_token.then(class_name =>
+  parser_or<Array<ParserRes>>(
+    lt_op.then(_ =>
+      partial_match.then(_ =>
+      type_args().then(args =>
+      gt_op.then(end_range =>
+      co_unit(args)
+    )))),co_unit(Array<ParserRes>())).then(type_params =>
+
   {
     let range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
     return parser_or<ParserRes>(
     colon_keyword.then(_ =>
     identifiers().then(extends_or_implements =>
-    class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+    class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
     )),
-    class_body(class_name, range, [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
-  )})))))
+    class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+  )}))))))
 
 
 let interface_declaration = () =>
@@ -867,19 +876,26 @@ let interface_declaration = () =>
   class_modifiers().then(_ms =>
   partial_match.then(_ =>
   identifier_token.then(class_name =>
+  parser_or<Array<ParserRes>>(
+    lt_op.then(_ =>
+      partial_match.then(_ =>
+      type_args().then(args =>
+      gt_op.then(end_range =>
+      co_unit(args)
+    )))),co_unit(Array<ParserRes>())).then(type_params =>
   {
-    let range = 
+    let range =
       _ms.count() == 0 ? class_name.range :
       _ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
-    let _ms_new = _ms.toArray().some(m => m.ast.kind == "public") || _ms.count() == 0 ? 
+    let _ms_new = _ms.toArray().some(m => m.ast.kind == "public") || _ms.count() == 0 ?
                   _ms.toArray().map(m => m && m.ast) : _ms.toArray().map(m => m && m.ast).concat([{kind:"public"}])
     return parser_or<ParserRes>(
         colon_keyword.then(_ =>
         identifiers().then(extends_or_implements =>
-        class_body(class_name, range, extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(_ms_new))
+        class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(_ms_new))
         )),
-        class_body(class_name, range, [], Immutable.List<ModifierAST>(_ms_new))
-      )}))))
+        class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), [], Immutable.List<ModifierAST>(_ms_new))
+      )})))))
 
 let outer_statement : () => Parser = () =>
   parser_or<ParserRes>(
@@ -1006,11 +1022,11 @@ export let program : Parser =
 
 export let program_prs : () => Parser = () =>
   parser_or<ParserRes>(
-    filesystem_prs.then(fs => 
-    program.then(prg => 
-    co_unit({ 
-      range: join_source_ranges(fs.range, prg.range), 
-      ast: mk_filesys_and_program_ast(fs, prg) 
+    filesystem_prs.then(fs =>
+    program.then(prg =>
+    co_unit({
+      range: join_source_ranges(fs.range, prg.range),
+      ast: mk_filesys_and_program_ast(fs, prg)
     }))),
     program
   )

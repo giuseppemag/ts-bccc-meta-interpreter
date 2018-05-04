@@ -4,7 +4,7 @@ import { SourceRange } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import * as Immutable from 'immutable';
 export declare let parser_or: <a>(p: Coroutine<ParserState, ParserError, a>, q: Coroutine<ParserState, ParserError, a>) => Coroutine<ParserState, ParserError, a>;
-export declare const mk_generic_type_decl: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
+export declare const mk_generic_type_inst: (r: SourceRange, f: ParserRes, args: ParserRes[]) => ParserRes;
 export declare const mk_get_array_value_at: (r: SourceRange, a: ParserRes, actual: ParserRes) => ParserRes;
 export declare const mk_ternary_if: (r: SourceRange, condition: ParserRes, then_else: ParserRes) => ParserRes;
 export declare const mk_ternary_then_else: (r: SourceRange, _then: ParserRes, _else: ParserRes) => ParserRes;
@@ -63,7 +63,10 @@ export declare const mk_constructor_declaration: (range: SourceRange, function_n
     value: ParserRes[];
 }, body: ParserRes) => ConstructorDeclarationAST;
 export declare const mk_function_declaration: (range: SourceRange, return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => FunctionDeclarationAST;
-export declare const mk_class_declaration: (C_name: string, extends_or_implements: string[], fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, modifiers: Immutable.List<ModifierAST>, range: SourceRange) => ParserRes;
+export declare const mk_class_declaration: (C_name: string, generic_parameters: {
+    name: ParserRes;
+    variant: "co" | "contra" | "inv";
+}[], extends_or_implements: string[], fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, modifiers: Immutable.List<ModifierAST>, range: SourceRange) => ParserRes;
 export declare const mk_private: (sr: SourceRange) => {
     range: SourceRange;
     ast: ModifierAST;

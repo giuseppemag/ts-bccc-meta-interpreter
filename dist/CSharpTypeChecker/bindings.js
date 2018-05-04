@@ -61,10 +61,15 @@ exports.decl_forced_v = function (r, v, t, is_constant) {
     };
 };
 exports.decl_v = function (r, v, t, is_constant) {
-    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
-    var g = ts_bccc_1.curry(f);
-    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
     return function (_) {
+        if (t.kind == "generic type instance") {
+            console.log("Declaring generic type instance", types_1.type_to_string(t));
+            // recursively ensure it exists, then rebind t
+            t = types_1.ref_type(types_1.type_to_string(t));
+        }
+        var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
+        var g = ts_bccc_1.curry(f);
+        var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
         return ts_bccc_1.co_get_state().then(function (s) {
             return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
@@ -587,7 +592,7 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
     }); };
 };
 exports.call_lambda = function (r, lambda, arg_values) {
-    return function (constraints) { return ensure_constraints(r, constraints)(//check_arguments(constraints).then(_args => 
+    return function (constraints) { return ensure_constraints(r, constraints)(//check_arguments(constraints).then(_args =>
     lambda(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.fun_stmts_type(arg_values, constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts" ? constraints.value : types_1.var_type, r))).then(function (lambda_t) {
         // console.log("lambda: ", JSON.stringify(lambda_t))
         if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
@@ -842,6 +847,14 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
         });
     }); };
 };
+exports.def_generic_class = function (r, C_name, generic_parameters, instantiate) {
+    return function (_) { return ts_bccc_1.co_get_state().then(function (initial_bindings) {
+        var new_bindings = initial_bindings.bindings.set(C_name, __assign({}, types_1.generic_type_decl(instantiate, generic_parameters, C_name), { is_constant: true }));
+        return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: new_bindings })).then(function (_) {
+            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.done_rt));
+        });
+    }); };
+};
 exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
     if (n === void 0) { n = 0; }
     if (called_by === void 0) { called_by = ""; }
@@ -957,23 +970,23 @@ exports.field_get = function (r, context, this_ref, F_or_M_name, n, called_by) {
                                     }
                                     else {
                                         return ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([]), M_def.typing.type, r), Sem.mk_lambda_rt(Sem.call_lambda_expr_rt(r, m.typing.sem, 
-                                        //Sem.static_method_get_expr_rt(r, C_name, F_or_M_name), 
+                                        //Sem.static_method_get_expr_rt(r, C_name, F_or_M_name),
                                         [this_ref_t.sem]), [], [], r)));
                                     }
                                 }
                                 else {
                                     return ts_bccc_2.co_unit(types_1.mk_typing(M_def.typing.type.out, Sem.call_lambda_expr_rt(r, m.typing.sem, 
-                                    //Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem), 
+                                    //Sem.method_get_expr_rt(r, F_or_M_name, this_ref_t.sem),
                                     [this_ref_t.sem])));
                                 }
                             };
                             return check_arguments.then(function (args) {
                                 var fun = types_1.fun_type(types_1.tuple_type(args.toArray().map(function (a) { return a.type; })), refined_constraints_1.out, refined_constraints_1.range);
                                 // if (check_equality) {
-                                //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type : 
-                                //     m.typing.type.kind != "fun" ? m.typing.type : 
-                                //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type : 
-                                //       m.typing.type.kind != "fun" ? m.typing.type : 
+                                //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type :
+                                //     m.typing.type.kind != "fun" ? m.typing.type :
+                                //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type :
+                                //       m.typing.type.kind != "fun" ? m.typing.type :
                                 //       m.typing.type.out)}`)
                                 // }
                                 if (check_equality && !types_1.type_equals(fun, is_static ? m.typing.type :

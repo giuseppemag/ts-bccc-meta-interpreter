@@ -1,3 +1,15 @@
+[m] Generics
+  [x] Parser
+  [x] TypeChecker declaration
+  [ ] TypeChecker instantiation
+    [ ] C_name
+    [ ] Declarations
+    [ ] Function/Method declaration
+  [ ] Generic method
+    [ ] Parser
+    [ ] Instantiation
+  [ ] Covariance and contravariance of Func
+  [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator
 
@@ -18,24 +30,20 @@
   [ ] files
   [ ] inheritance
   [ ] generics
-  [ ] exceptions
-  [ ] fancy features (yield return, LINQ)
   [ ] html rendering
 
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
   [ ] `Python` semantics should be properly called `C#` semantics
+  [ ] Separate parser from type checker
 
 [g] Move ccc_aux to CCC repo
 
-
+[m] stop
+  [ ] Python
+  [ ] C#
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] save code also on wrong attempt (BA)
-[m] Generics
-  [ ] Add generic classes as T => { ... }
-    [ ] Cache instances as invisible defs
-  [ ] Array<T> in standard library
-  [ ] Tuple in standard library
 [m] add `null`
 [m] add multiple highlightings (along the stack) for function calls
 [m] multithreading: thread_debugger;
@@ -53,10 +61,14 @@
   [ ] add unary - to standard library
 
 [ ] Next level
-  [ ] Integration in VSCode
+  [ ] data science/better dashboard with predictions and risk detection
   [ ] e-commerce spec
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
-
+  [ ] Integration in VSCode
+  [ ] Exceptions
+  [ ] Fancy features: LINQ, generators, properties, generic constraints, covariance and contravariance
+  [ ] Generic tuple in standard library
+  [ ] Proper lex/yacc
 
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
