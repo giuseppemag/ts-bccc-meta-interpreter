@@ -187,6 +187,8 @@ export interface MemRt {
     functions: Immutable.Map<ValueName, Lambda>;
     classes: Immutable.Map<ValueName, Interface>;
     stack: Immutable.Map<number, Scopes>;
+    steps_counter: number;
+    custom_alert: (s: string) => boolean;
     fs: FileSystem;
 }
 export declare let load_rt: Fun<Prod<string, MemRt>, Sum<Unit, Sum<Val, Val>>>;
@@ -206,7 +208,7 @@ export declare let pop_scope_rt: Fun<MemRt, Sum<Unit, MemRt>>;
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {
 }
 export declare type StmtRt = ExprRt<Sum<Val, Val>>;
-export declare let empty_memory_rt: MemRt;
+export declare let empty_memory_rt: (c_a: (_: string) => boolean) => MemRt;
 export declare let set_highlighting_rt: (r: SourceRange) => ExprRt<Sum<Val, Val>>;
 export declare let set_v_expr_rt: (v: string, e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
 export declare let set_v_rt: (v: string, vals: Sum<Val, Val>) => ExprRt<Sum<Val, Val>>;

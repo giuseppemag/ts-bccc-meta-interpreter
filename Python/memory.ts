@@ -109,7 +109,15 @@ let update_variable = (name:ValueName, value:Val, scopes: Scopes, assign_if_not_
   return { kind: "left", value: {} }
 }
 
-export interface MemRt { highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes>, fs: FileSystem  }
+export interface MemRt { highlighting:SourceRange, 
+                         globals:Scopes, 
+                         heap:Scope, 
+                         functions:Immutable.Map<ValueName,Lambda>, 
+                         classes:Immutable.Map<ValueName, Interface>, 
+                         stack:Immutable.Map<number, Scopes>, 
+                         steps_counter:number,
+                         custom_alert:(s:string) => boolean,
+                         fs: FileSystem  }
 let highlight : Fun<Prod<SourceRange, MemRt>, MemRt> = fun(x => ({...x.snd, highlighting:x.fst }))
 export let load_rt: Fun<Prod<string, MemRt>, Sum<Unit,Sum<Val,Val>>> = fun(x =>
   {
@@ -206,13 +214,15 @@ export let pop_scope_rt: Fun<MemRt, Sum<Unit,MemRt>> = fun(x =>
 export interface ExprRt<A> extends Coroutine<MemRt, ErrVal, A> {}
 export type StmtRt = ExprRt<Sum<Val,Val>>
 
-export let empty_memory_rt:MemRt = { highlighting:mk_range(0,0,0,0),
+export let empty_memory_rt = (c_a:(_:string) => boolean) : MemRt => ({ highlighting:mk_range(0,0,0,0),
                                      globals:empty_scopes_val,
                                      heap:empty_scope_val,
                                      functions:Immutable.Map<ValueName,Lambda>(),
                                      classes:Immutable.Map<ValueName, Interface>(),
                                      stack:Immutable.Map<number, Scopes>(),
-                                     fs: Immutable.Map() }
+                                     fs: Immutable.Map(),
+                                     custom_alert: c_a,
+                                     steps_counter:0 })
 
 export let set_highlighting_rt = function(r:SourceRange) : StmtRt {
   return mk_coroutine(constant<MemRt, SourceRange>(r).times(id<MemRt>()).then(highlight).then(constant<MemRt,Sum<Val,Val>>(apply(inl(),mk_unit_val)).times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Sum<Val,Val>>().then(Co.result<MemRt, ErrVal, Sum<Val,Val>>().then(Co.no_error<MemRt, ErrVal, Sum<Val,Val>>()))))

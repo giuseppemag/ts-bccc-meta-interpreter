@@ -16,7 +16,7 @@ exports.run_stream_to_end = function (s) {
     };
     return run_stream_to_end(s).reverse().toList();
 };
-exports.get_stream = function (source) {
+exports.get_stream = function (source, custom_alert) {
     try {
         var parse_result = CSharp.GrammarBasics.tokenize(source);
         if (parse_result.kind == "left") {
@@ -64,7 +64,7 @@ exports.get_stream = function (source) {
                 if (k.value.kind == "left") {
                     return typechecker_stream_1(k.value.value);
                 }
-                var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt)), {});
+                var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : function (s) { return true; }))), {});
                 var first_stream = runtime_stream_1(initial_runtime_state);
                 // if (first_stream.kind == "step") {
                 //   first_stream = first_stream.next()

@@ -6,7 +6,7 @@ import * as Co from "ts-bccc"
 import { SourceRange, mk_range, zero_range, print_range } from "../source_range"
 import * as Sem from "../Python/python"
 import { comm_list_coroutine, co_stateless, co_catch, co_catch_many } from "../ccc_aux";
-import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt } from "../main";
+import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt, MemRt, ErrVal } from "../main";
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings, var_type, fun_stmts_type, FunWithStmts, generic_type_decl, GenericParameter } from "./types";
 import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
@@ -89,7 +89,6 @@ export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<St
 
   return co_unit<State,Err,Typing>(mk_typing(t, Sem.done_rt))
 }
-
 export let decl_v = function (r: SourceRange, v: Name, t0: Type, is_constant?: boolean): Stmt {
   return _ => {
     return instantiate_generics(r, t0).then(t_t => {
@@ -130,7 +129,7 @@ export let decl_const = function (r: SourceRange, c: Name, t: Type, e: Stmt): St
 }
 
 export let set_v = function (r: SourceRange, v: Name, e: Stmt): Stmt {
-  return _ => get_v(r, v)(no_constraints).then(v_val =>
+  return c => get_v(r, v)(no_constraints).then(v_val =>
     e(apply(inl(), v_val.type)).then(e_val => {
       if (!v_val.type.is_constant) {
         return co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(v, e_val.sem)))
@@ -500,12 +499,28 @@ export let for_loop = function (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: St
           )))))
 }
 
+
 export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
   return constraints => p(constraints).then(p_t =>
     q(constraints).then(q_t =>
       co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
-        let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
-        return res.kind == "left" ? q_t.sem : f
+        return co_get_state<MemRt, ErrVal>().then(s =>
+        {
+          let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ =>
+                    {
+                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
+                      return res.kind == "left" ? q_t.sem : f
+                    } )
+          if(s.steps_counter > 1000) {
+            if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+              return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+            else
+              return f(0)
+          }
+
+          return f(s.steps_counter + 1)
+
+        })
       }))
       )))
 }
@@ -980,14 +995,8 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
 
 
 
-            if(constraints.kind == "right") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected constraints inside a method.` })
-            if(constraints.value.kind != "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected fun_with_input_as_stmts.` })
 
-            let refined_constraints = constraints.value
-
-
-
-            let compute_method = (m:MethodTyping, c:FunWithStmts, check_equality?:boolean) : Coroutine<State, Err, Typing> =>
+            let compute_method = (m:MethodTyping, _c:Option<FunWithStmts>, check_equality?:boolean) : Coroutine<State, Err, Typing> =>
               {
                 if(m.typing.type.kind != "fun") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected method.` })
                 if(m.typing.type.in.kind != "tuple") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected args of kind tuple.` })
@@ -1002,14 +1011,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                   expected_args = m.typing.type.in.args
                 }
 
-                let check_arguments =
-                  expected_args.length != c.in.length ? co_error<State, Err, Immutable.List<Typing>>({ range: r, message: `Method args length do not match.` })
-                  : c.in.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
-                      arg(check_equality ? no_constraints : apply(inl(), expected_args[arg_i])).then(arg_t =>
-                        args.then(args_t =>
-                          co_unit(args_t.push(arg_t))
-                        )),
-                      co_unit(Immutable.List<Typing>()))
+
 
 
                 let is_static = false
@@ -1048,33 +1050,63 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                                                 [this_ref_t.sem])))
                     }
                   }
-                  return check_arguments.then(args =>
-                          {
-                            let fun = fun_type(tuple_type(args.toArray().map(a => a.type)), refined_constraints.out, refined_constraints.range)
-                            // if (check_equality) {
-                            //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type :
-                            //     m.typing.type.kind != "fun" ? m.typing.type :
-                            //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type :
-                            //       m.typing.type.kind != "fun" ? m.typing.type :
-                            //       m.typing.type.out)}`)
-                            // }
-                            if (check_equality && !type_equals(fun, is_static ? m.typing.type :
-                                                                    m.typing.type.kind != "fun" ? m.typing.type :
-                                                                    m.typing.type.out)) {
-                              return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                            }
-                            return coerce(r, _ => f(), fun)(no_constraints)
-                          })
+                  if(_c.kind == "left"){
+                    let c = _c.value
+                    let check_arguments =
+                      expected_args.length != c.in.length ? co_error<State, Err, Immutable.List<Typing>>({ range: r, message: `Method args length do not match.` })
+                      : c.in.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+                          arg(check_equality ? no_constraints : apply(inl(), expected_args[arg_i])).then(arg_t =>
+                            args.then(args_t =>
+                              co_unit(args_t.push(arg_t))
+                            )),
+                          co_unit(Immutable.List<Typing>()))
+                    return check_arguments.then(args =>
+                      {
+                        let fun = fun_type(tuple_type(args.toArray().map(a => a.type)), c.out, c.range)
+                        // if (check_equality) {
+                        //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type :
+                        //     m.typing.type.kind != "fun" ? m.typing.type :
+                        //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type :
+                        //       m.typing.type.kind != "fun" ? m.typing.type :
+                        //       m.typing.type.out)}`)
+                        // }
+                        if (check_equality && !type_equals(fun, is_static ? m.typing.type :
+                                                                m.typing.type.kind != "fun" ? m.typing.type :
+                                                                m.typing.type.out)) {
+                          return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
+                        }
+                        return coerce(r, _ => f(), fun)(no_constraints)
+                      })
+                  }
+                  else{
+
+                    return f()
+                  }
+
               }
 
+
+
             if(ms.count() == 1){
+
               let m = ms.first()
               if(m.typing.type.kind != "fun")
                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
 
+              if(constraints.kind != "right" && constraints.value.kind == "fun_with_input_as_stmts"){
+                let refined_constraints = constraints.value
 
-              return compute_method(m, refined_constraints)
+                return compute_method(m, apply(inl(),refined_constraints))
+              }
+              else{
+                return compute_method(m, apply(inr(),{}))
+
+              }
             }
+            if(constraints.kind == "right") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected constraints inside a method.` })
+            if(constraints.value.kind != "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected fun_with_input_as_stmts.` })
+            let refined_constraints = constraints.value
+
             let c = co_catch_many<State, Err, Typing>
                           ({ range: r, message: `Error: cannot get method ${F_or_M_name}.` })
                           (ms.map((m, i) => {
@@ -1082,7 +1114,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                             return co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })
                           if(m.typing.type.kind != "fun")
                             return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                          return compute_method(m, refined_constraints, true)
+                          return compute_method(m, apply(inl(),refined_constraints), true)
                       }).concat(
                           (ms.map((m, i) =>
                             {
@@ -1090,7 +1122,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })
                               if(m.typing.type.kind != "fun")
                                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                              return compute_method(m, refined_constraints, false)
+                              return compute_method(m, apply(inl(),refined_constraints), true)
                             }
                           ))).toList())
             return c
