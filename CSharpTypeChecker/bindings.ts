@@ -963,15 +963,9 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
             let ms = C_def_obj.methods.get(F_or_M_name)
 
 
-            
-            if(constraints.kind == "right") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected constraints inside a method.` })
-            if(constraints.value.kind != "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected fun_with_input_as_stmts.` })
-
-            let refined_constraints = constraints.value
 
 
-
-            let compute_method = (m:MethodTyping, c:FunWithStmts, check_equality?:boolean) : Coroutine<State, Err, Typing> =>
+            let compute_method = (m:MethodTyping, _c:Option<FunWithStmts>, check_equality?:boolean) : Coroutine<State, Err, Typing> =>
               {
                 if(m.typing.type.kind != "fun") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected method.` })
                 if(m.typing.type.in.kind != "tuple") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected args of kind tuple.` })
@@ -986,14 +980,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                   expected_args = m.typing.type.in.args
                 }
 
-                let check_arguments =
-                  expected_args.length != c.in.length ? co_error<State, Err, Immutable.List<Typing>>({ range: r, message: `Method args length do not match.` })
-                  : c.in.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
-                      arg(check_equality ? no_constraints : apply(inl(), expected_args[arg_i])).then(arg_t =>
-                        args.then(args_t =>
-                          co_unit(args_t.push(arg_t))
-                        )),
-                      co_unit(Immutable.List<Typing>()))
+                
 
 
                 let is_static = false
@@ -1032,33 +1019,63 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                                                 [this_ref_t.sem])))
                     }
                   }
-                  return check_arguments.then(args =>
-                          {
-                            let fun = fun_type(tuple_type(args.toArray().map(a => a.type)), refined_constraints.out, refined_constraints.range)
-                            // if (check_equality) {
-                            //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type :
-                            //     m.typing.type.kind != "fun" ? m.typing.type :
-                            //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type :
-                            //       m.typing.type.kind != "fun" ? m.typing.type :
-                            //       m.typing.type.out)}`)
-                            // }
-                            if (check_equality && !type_equals(fun, is_static ? m.typing.type :
-                                                                    m.typing.type.kind != "fun" ? m.typing.type :
-                                                                    m.typing.type.out)) {
-                              return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                            }
-                            return coerce(r, _ => f(), fun)(no_constraints)
-                          })
+                  if(_c.kind == "left"){
+                    let c = _c.value
+                    let check_arguments =
+                      expected_args.length != c.in.length ? co_error<State, Err, Immutable.List<Typing>>({ range: r, message: `Method args length do not match.` })
+                      : c.in.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
+                          arg(check_equality ? no_constraints : apply(inl(), expected_args[arg_i])).then(arg_t =>
+                            args.then(args_t =>
+                              co_unit(args_t.push(arg_t))
+                            )),
+                          co_unit(Immutable.List<Typing>()))
+                    return check_arguments.then(args =>
+                      {
+                        let fun = fun_type(tuple_type(args.toArray().map(a => a.type)), c.out, c.range)
+                        // if (check_equality) {
+                        //   console.log(`Equality check: ${type_to_string(fun)} == ${type_to_string(is_static ? m.typing.type :
+                        //     m.typing.type.kind != "fun" ? m.typing.type :
+                        //     m.typing.type.out)} ? ${type_equals(fun, is_static ? m.typing.type :
+                        //       m.typing.type.kind != "fun" ? m.typing.type :
+                        //       m.typing.type.out)}`)
+                        // }
+                        if (check_equality && !type_equals(fun, is_static ? m.typing.type :
+                                                                m.typing.type.kind != "fun" ? m.typing.type :
+                                                                m.typing.type.out)) {
+                          return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
+                        }
+                        return coerce(r, _ => f(), fun)(no_constraints)
+                      })
+                  }
+                  else{
+                    
+                    return f()
+                  }
+                  
               }
 
+              
+
             if(ms.count() == 1){
+              
               let m = ms.first()
               if(m.typing.type.kind != "fun")
                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
 
-
-              return compute_method(m, refined_constraints)
+              if(constraints.kind != "right" && constraints.value.kind == "fun_with_input_as_stmts"){
+                let refined_constraints = constraints.value
+                
+                return compute_method(m, apply(inl(),refined_constraints))
+              }
+              else{
+                return compute_method(m, apply(inr(),{}))
+                
+              }
             }
+            if(constraints.kind == "right") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected constraints inside a method.` })            
+            if(constraints.value.kind != "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: `Internal error. Expected fun_with_input_as_stmts.` })
+            let refined_constraints = constraints.value
+            
             let c = co_catch_many<State, Err, Typing>
                           ({ range: r, message: `Error: cannot get method ${F_or_M_name}.` })
                           (ms.map((m, i) => {
@@ -1066,7 +1083,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                             return co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })
                           if(m.typing.type.kind != "fun")
                             return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                          return compute_method(m, refined_constraints, true)
+                          return compute_method(m, apply(inl(),refined_constraints), true)
                       }).concat(
                           (ms.map((m, i) =>
                             {
@@ -1074,7 +1091,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })
                               if(m.typing.type.kind != "fun")
                                 return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
-                              return compute_method(m, refined_constraints, false)
+                              return compute_method(m, apply(inl(),refined_constraints), true)
                             }
                           ))).toList())
             return c
