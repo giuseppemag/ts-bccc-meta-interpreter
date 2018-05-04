@@ -89,9 +89,13 @@ import {
   sprite_type,
   square_type,
   Stmt,
+  type_to_string,
+  State,
+  Err,
+  Typing,
 } from './types'
 import { ParserRes } from './grammar'
-import { inr, apply, inl, Unit } from 'ts-bccc';
+import { inr, apply, inl, Unit, co_error } from 'ts-bccc';
 import { mk_constructor_call, mk_semicolon, mk_assign, mk_field_ref } from './primitives';
 
 let ast_to_csharp_type = (s:ParserRes) : Type =>
@@ -274,7 +278,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
 
 
   : n.ast.kind == "cons_call" ?
-    call_cons(n.range, context, n.ast.name, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
+    call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : `${n.ast.name}<${n.ast.type_args.map(a => type_to_string(ast_to_csharp_type(a))).reduce((a,b) => a + "," + b)}>`, n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
   : n.ast.kind == "func_call" ?
     call_lambda(n.range, ast_to_type_checker(n.ast.name)(context), n.ast.actuals.map(a => ast_to_type_checker(a)(context)))
 
@@ -330,17 +334,21 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
   : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
     def_generic_class(n.range, n.ast.C_name, n.ast.generic_parameters.map(p => ({ name:p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?", variance:p.variant })),
     (generic_arguments:Immutable.Map<string, Type>) : Stmt => {
-      // todo: should be a co_error
-      if (n.ast.kind != "class") throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
       // todo: return co_error if generic_arguments do not cover all names
+      if (n.ast.kind != "class")
+        return _ => co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${n.ast} as it is not a class` })
+      let generic_params = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
+      let C_name = n.ast.C_name
+      let C_name_inst = `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
+      console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+
       return def_class(n.range,
         n.ast.modifiers.toArray().map(m => m.kind),
         (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
         n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
-        n.ast.C_name, // todo: replace (name becomes C_name<arg1,arg2,...>)
-        n.ast.extends_or_implements,
+        C_name_inst, n.ast.extends_or_implements,
         n.ast.methods.toArray().map(m => (context:CallingContext) => ({
-            name:m.decl.name,
+            name:m.decl.name, // from
             return_t:ast_to_csharp_type(m.decl.return_type), // todo: replace
             params_base_call: apply(inr<Stmt[], Unit>(), {}),
              // todo: replace types
@@ -352,7 +360,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
             is_constructor:false
           })).concat(
           n.ast.constructors.toArray().map(c => (context:CallingContext) => ({
-            name:c.decl.name,
+            name:C_name_inst,
             params_base_call: c.decl.params_base_call.kind == "left"
                               ? apply(inl<Stmt[], Unit>(), c.decl.params_base_call.value.map(e => ast_to_type_checker(e)(context)))
                               : apply(inr<Stmt[], Unit>(), {}),//c.decl.params_base_call,
@@ -371,8 +379,7 @@ export let ast_to_type_checker : (_:ParserRes) => (_:CallingContext) => Stmt = n
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(f.decl.v)(context))
-        })),
-        true
+        })), true
       ) })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?

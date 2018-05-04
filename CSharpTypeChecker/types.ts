@@ -40,7 +40,7 @@ export let type_to_string = (t:Type) : string =>
   : t.kind == "fun" ? `Func<${type_to_string(t.in)},${type_to_string(t.out)}>`
   : t.kind == "arr" ? `${type_to_string(t.arg)}[]`
   : t.kind == "generic type instance" ?`${t.C_name}<${t.args.map(t => t && type_to_string(t)).reduce((a,b) => a + "," + b)}>`
-  : "not implemented"
+  : console.log(`Error: type_to_string(${JSON.stringify(t)}) is not implemented`) ||  "not implemented"
 export let render_grid_type : Type = { kind:"render-grid" }
 export let render_grid_pixel_type : Type = { kind:"render-grid-pixel" }
 
@@ -99,6 +99,8 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
   if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
   if (t1.kind == "ref" && t2.kind == "ref") return t1.C_name == t2.C_name
+  if (t1.kind == "generic type instance" && t2.kind == "generic type instance") return t1.args.length == t2.args.length &&
+    t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i]))
   if (t1.kind != t2.kind &&
       (t1.kind == "var" || t2.kind == "var")) return true
   return t1.kind == t2.kind

@@ -81,8 +81,8 @@ exports.mk_call = function (f_name, actuals, range) {
     return ({ range: range,
         ast: { kind: "func_call", name: f_name, actuals: actuals } });
 };
-exports.mk_constructor_call = function (new_range, C_name, actuals) {
-    return ({ range: new_range, ast: { kind: "cons_call", name: C_name, actuals: actuals } });
+exports.mk_constructor_call = function (new_range, C_name, type_params, actuals) {
+    return ({ range: new_range, ast: { kind: "cons_call", name: C_name, type_args: type_params, actuals: actuals } });
 };
 exports.mk_array_cons_call = function (new_range, _type, actual) {
     return ({ range: new_range, ast: { kind: "array_cons_call", type: _type, actual: actual } });

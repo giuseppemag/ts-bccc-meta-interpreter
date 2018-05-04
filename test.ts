@@ -24,10 +24,11 @@ export let test_parser = () => {
 class C<a> {
   int x;
   public C(int x) { this.x = x; }
+  public int get_x() { return this.x; }
 }
 
-C<int> x;
-typechecker_debugger;
+C<int> c_int = new C<int>(10);
+var x = c_int.get_x();
 `
 
 

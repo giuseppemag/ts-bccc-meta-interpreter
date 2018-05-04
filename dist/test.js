@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C<a> {\n  int x;\n  public C(int x) { this.x = x; }\n}\n\nC<int> x;\ntypechecker_debugger;\n";
+        var source = "\nclass C<a> {\n  int x;\n  public C(int x) { this.x = x; }\n  public int get_x() { return this.x; }\n}\n\nC<int> c_int = new C<int>(10);\nvar x = c_int.get_x();\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

@@ -179,6 +179,7 @@ export interface FunctionCallAST {
 export interface ConstructorCallAST {
     kind: "cons_call";
     name: string;
+    type_args: Array<ParserRes>;
     actuals: Array<ParserRes>;
 }
 export interface ArrayConstructorCallAST {

@@ -182,122 +182,122 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
     [], true)
 
 let file_read_all_text = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: string_type, 
-  name: "ReadAllText", 
+  return_t: string_type,
+  name: "ReadAllText",
   parameters:[{ name:"path", type: string_type }],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type,  
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.get_file(
-      minus_two_range, 
+      minus_two_range,
       Sem.get_v_rt(minus_two_range, "path"))))
 })
 
 let file_write_all_text = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: unit_type, 
-  name: "WriteAllText", 
+  return_t: unit_type,
+  name: "WriteAllText",
   parameters:[
     { name:"path", type: string_type },
     { name:"contents", type: string_type }
   ],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.set_file(
-      minus_two_range, 
-      Sem.get_v_rt(minus_two_range, "path"), 
+      minus_two_range,
+      Sem.get_v_rt(minus_two_range, "path"),
       Sem.get_v_rt(minus_two_range, "contents"))))
 })
 
 let file_exists = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: bool_type, 
-  name: "Exists", 
+  return_t: bool_type,
+  name: "Exists",
   parameters:[{ name:"path", type: string_type }],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.exists(Sem.get_v_rt(minus_two_range, "path"))))
 })
 
 let file_copy = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: bool_type, 
-  name: "Copy", 
+  return_t: bool_type,
+  name: "Copy",
   parameters:[
     { name:"path_to",   type: string_type },
     { name:"path_from", type: string_type },
   ],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.copy_file(
-      minus_two_range, 
-      Sem.get_v_rt(minus_two_range, "path_to"), 
+      minus_two_range,
+      Sem.get_v_rt(minus_two_range, "path_to"),
       Sem.get_v_rt(minus_two_range, "path_from"))))
 })
 
 let file_create = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: bool_type, 
-  name: "Create", 
+  return_t: bool_type,
+  name: "Create",
   parameters:[
     { name:"path",   type: string_type }
   ],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.set_file(
-      minus_two_range, 
-      Sem.get_v_rt(minus_two_range, "path"), 
+      minus_two_range,
+      Sem.get_v_rt(minus_two_range, "path"),
       co_unit(apply(inl(), mk_string_val(""))))))
 })
 
 let file_delete = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: bool_type, 
-  name: "Delete", 
+  return_t: bool_type,
+  name: "Delete",
   parameters:[
     { name:"path",   type: string_type }
   ],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.delete_file(
-      minus_two_range, 
+      minus_two_range,
       Sem.get_v_rt(minus_two_range, "path"))))
 })
 
 let file_move = (_:CallingContext) : CSharp.MethodDefinition => ({
-  modifiers:["static", "public"], 
-  is_constructor:false, 
+  modifiers:["static", "public"],
+  is_constructor:false,
   range:minus_two_range,
-  return_t: unit_type, 
-  name: "Move", 
+  return_t: unit_type,
+  name: "Move",
   parameters:[
     { name:"path_to",   type: string_type },
     { name:"path_from", type: string_type }
   ],
   params_base_call:apply(inr(),{}),
-  body: from_js(string_type, 
+  body: from_js(string_type,
     Sem.return_rt(
     Sem.move_file(
-      minus_two_range, 
-      Sem.get_v_rt(minus_two_range, "path_to"), 
+      minus_two_range,
+      Sem.get_v_rt(minus_two_range, "path_to"),
       Sem.get_v_rt(minus_two_range, "path_from"))))
 })
 
@@ -309,14 +309,14 @@ export const path = CSharp.def_class(minus_two_range, [], "normal", "Path", [], 
   file_move,
   file_read_all_text,
   file_write_all_text,
-], []);
+], [], true);
 
-export let standard_lib = () => 
+export let standard_lib = () =>
   CSharp.semicolon(minus_two_range, int,
   CSharp.semicolon(minus_two_range, float,
   CSharp.semicolon(minus_two_range, double,
   CSharp.semicolon(minus_two_range, string,
   CSharp.semicolon(minus_two_range, bool,
-  CSharp.semicolon(minus_two_range, unit, 
+  CSharp.semicolon(minus_two_range, unit,
   CSharp.semicolon(minus_two_range, math, path)))))))
 

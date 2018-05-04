@@ -52,7 +52,7 @@ export declare const mk_xor: (l: ParserRes, r: ParserRes) => ParserRes;
 export declare const mk_unary_op: (k: "not") => (e: ParserRes) => ParserRes;
 export declare const mk_not: (e: ParserRes) => ParserRes;
 export declare const mk_call: (f_name: ParserRes, actuals: ParserRes[], range: SourceRange) => ParserRes;
-export declare const mk_constructor_call: (new_range: SourceRange, C_name: string, actuals: ParserRes[]) => ParserRes;
+export declare const mk_constructor_call: (new_range: SourceRange, C_name: string, type_params: ParserRes[], actuals: ParserRes[]) => ParserRes;
 export declare const mk_array_cons_call: (new_range: SourceRange, _type: ParserRes, actual: ParserRes) => ParserRes;
 export declare const mk_array_cons_call_and_init: (new_range: SourceRange, _type: ParserRes, actuals: ParserRes[]) => ParserRes;
 export declare const mk_constructor_declaration: (range: SourceRange, function_name: string, arg_decls: Immutable.List<DeclAST>, params_base_call: {

@@ -21,7 +21,7 @@ exports.type_to_string = function (t) {
                             : t.kind == "fun" ? "Func<" + exports.type_to_string(t.in) + "," + exports.type_to_string(t.out) + ">"
                                 : t.kind == "arr" ? exports.type_to_string(t.arg) + "[]"
                                     : t.kind == "generic type instance" ? t.C_name + "<" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ">"
-                                        : "not implemented";
+                                        : console.log("Error: type_to_string(" + JSON.stringify(t) + ") is not implemented") || "not implemented";
 };
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
@@ -77,6 +77,9 @@ exports.type_equals = function (t1, t2) {
         return t1.C_name == t2.C_name;
     if (t1.kind == "ref" && t2.kind == "ref")
         return t1.C_name == t2.C_name;
+    if (t1.kind == "generic type instance" && t2.kind == "generic type instance")
+        return t1.args.length == t2.args.length &&
+            t1.args.every(function (t1_arg, i) { return exports.type_equals(t1_arg, t2.args[i]); });
     if (t1.kind != t2.kind &&
         (t1.kind == "var" || t2.kind == "var"))
         return true;

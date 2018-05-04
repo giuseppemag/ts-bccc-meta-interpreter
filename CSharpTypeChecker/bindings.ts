@@ -59,32 +59,64 @@ export let decl_forced_v = function (r: SourceRange, v: Name, t: Type, is_consta
       mk_coroutine<State, Err, Typing>(apply(g, args))
     )
 }
-export let decl_v = function (r: SourceRange, v: Name, t: Type, is_constant?: boolean): Stmt {
-  return _ => {
-    if (t.kind == "generic type instance") {
-      console.log("Declaring generic type instance", type_to_string(t))
-      // recursively ensure it exists, then rebind t
-      t = ref_type(type_to_string(t))
-    }
 
-    let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
-    let g = curry(f)
-    let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
-
-    return co_get_state<State, Err>().then(s =>
-      !s.bindings.has(v) ? mk_coroutine<State, Err, Typing>(apply(g, args))
-        : co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` }))
+export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<State, Err, Typing> {
+  if (t.kind == "generic type instance") {
+    let C_name = t.C_name
+    let args = comm_list_coroutine(Immutable.List(t.args.map(a => instantiate_generics(r, a))))
+    return args.then(args_i_l => {
+      let args_i = args_i_l.toArray()
+      let t1_name = type_to_string({...t, args:args_i.map(a_i => a_i.type)})
+      let t1 = ref_type(t1_name)
+      return co_get_state<State,Err>().then(s => {
+      if (s.bindings.has(t1_name)) {
+        // t1 has already been instantiated once: nothing to do here
+        return co_unit(mk_typing(t1, Sem.done_rt))
+      } else if (s.bindings.has(C_name)) {
+        let t_template = s.bindings.get(C_name)
+        if (t_template.kind == "generic type decl" && t_template.params.length == args_i.length) {
+          // t exists but is not instantiated
+          let instantiate_t1 = t_template.instantiate(Immutable.Map<string,Type>(t_template.params.map((p,i) => [p.name, args_i[i].type])))
+          let args_i_sem = args_i.reduce<Sem.StmtRt>((sem, a_i) => a_i ? sem.then(_ => a_i.sem) : sem, Sem.done_rt)
+          return instantiate_t1(no_constraints).then(t1_t =>
+              co_unit(mk_typing(t1, args_i_sem.then(_ => t1_t.sem))))
+        }
       }
+      return co_error<State, Err, Typing>({ range: r, message: `Error: cannot instantiate ${type_to_string(t)}` })
+    })
+    })
+  }
+
+  return co_unit<State,Err,Typing>(mk_typing(t, Sem.done_rt))
 }
-export let decl_and_init_v = function (r: SourceRange, v: Name, t: Type, e: Stmt, is_constant?: boolean): Stmt {
-  return _ => e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
+
+export let decl_v = function (r: SourceRange, v: Name, t0: Type, is_constant?: boolean): Stmt {
+  return _ => {
+    return instantiate_generics(r, t0).then(t_t => {
+      let t = t_t.type
+      return co_get_state<State, Err>().then(s => {
+      let f = store.then(constant<State, Typing>(mk_typing(unit_type, t_t.sem.then(_ => Sem.decl_v_rt(v, apply(inl(), initial_value(t)))))).times(id())).then(wrap_co)
+      let g = curry(f)
+      let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
+      return !s.bindings.has(v) ? mk_coroutine<State, Err, Typing>(apply(g, args))
+        : co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
+      })
+    })
+    }
+}
+export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stmt, is_constant?: boolean): Stmt {
+  return _ => {
+    return instantiate_generics(r, t0).then(t_t => {
+    let t = t_t.type
+    return e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State, Err>().then(s => {
       if (s.bindings.has(v)) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
-      let f = store.then(constant<State, Typing>(mk_typing(unit_type, e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value))))).times(id())).then(wrap_co)
+      let f = store.then(constant<State, Typing>(mk_typing(unit_type, t_t.sem.then(_ => e_val.sem.then(e_val => Sem.decl_v_rt(v, apply(inl(), e_val.value)))))).times(id())).then(wrap_co)
       let g = curry(f)
       let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...e_val.type, is_constant: is_constant != undefined ? is_constant : false })), {})
       return mk_coroutine<State, Err, Typing>(apply(g, args))
-    }))
+    }))})
+  }
 }
 export let decl_const = function (r: SourceRange, c: Name, t: Type, e: Stmt): Stmt {
   let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)

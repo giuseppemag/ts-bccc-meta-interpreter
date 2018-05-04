@@ -60,33 +60,66 @@ exports.decl_forced_v = function (r, v, t, is_constant) {
         });
     };
 };
-exports.decl_v = function (r, v, t, is_constant) {
+exports.instantiate_generics = function (r, t) {
+    if (t.kind == "generic type instance") {
+        var C_name_1 = t.C_name;
+        var args = ccc_aux_1.comm_list_coroutine(Immutable.List(t.args.map(function (a) { return exports.instantiate_generics(r, a); })));
+        return args.then(function (args_i_l) {
+            var args_i = args_i_l.toArray();
+            var t1_name = types_1.type_to_string(__assign({}, t, { args: args_i.map(function (a_i) { return a_i.type; }) }));
+            var t1 = types_1.ref_type(t1_name);
+            return ts_bccc_1.co_get_state().then(function (s) {
+                if (s.bindings.has(t1_name)) {
+                    // t1 has already been instantiated once: nothing to do here
+                    return ts_bccc_2.co_unit(types_1.mk_typing(t1, Sem.done_rt));
+                }
+                else if (s.bindings.has(C_name_1)) {
+                    var t_template = s.bindings.get(C_name_1);
+                    if (t_template.kind == "generic type decl" && t_template.params.length == args_i.length) {
+                        // t exists but is not instantiated
+                        var instantiate_t1 = t_template.instantiate(Immutable.Map(t_template.params.map(function (p, i) { return [p.name, args_i[i].type]; })));
+                        var args_i_sem_1 = args_i.reduce(function (sem, a_i) { return a_i ? sem.then(function (_) { return a_i.sem; }) : sem; }, Sem.done_rt);
+                        return instantiate_t1(types_1.no_constraints).then(function (t1_t) {
+                            return ts_bccc_2.co_unit(types_1.mk_typing(t1, args_i_sem_1.then(function (_) { return t1_t.sem; })));
+                        });
+                    }
+                }
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot instantiate " + types_1.type_to_string(t) });
+            });
+        });
+    }
+    return ts_bccc_2.co_unit(types_1.mk_typing(t, Sem.done_rt));
+};
+exports.decl_v = function (r, v, t0, is_constant) {
     return function (_) {
-        if (t.kind == "generic type instance") {
-            console.log("Declaring generic type instance", types_1.type_to_string(t));
-            // recursively ensure it exists, then rebind t
-            t = types_1.ref_type(types_1.type_to_string(t));
-        }
-        var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
-        var g = ts_bccc_1.curry(f);
-        var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-        return ts_bccc_1.co_get_state().then(function (s) {
-            return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
-                : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
+        return exports.instantiate_generics(r, t0).then(function (t_t) {
+            var t = t_t.type;
+            return ts_bccc_1.co_get_state().then(function (s) {
+                var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, t_t.sem.then(function (_) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))); }))).times(ts_bccc_1.id())).then(exports.wrap_co);
+                var g = ts_bccc_1.curry(f);
+                var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+                return !s.bindings.has(v) ? ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args))
+                    : ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
+            });
         });
     };
 };
-exports.decl_and_init_v = function (r, v, t, e, is_constant) {
-    return function (_) { return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
-        return ts_bccc_1.co_get_state().then(function (s) {
-            if (s.bindings.has(v))
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
-            var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }))).times(ts_bccc_1.id())).then(exports.wrap_co);
-            var g = ts_bccc_1.curry(f);
-            var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, e_val.type, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+exports.decl_and_init_v = function (r, v, t0, e, is_constant) {
+    return function (_) {
+        return exports.instantiate_generics(r, t0).then(function (t_t) {
+            var t = t_t.type;
+            return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
+                return ts_bccc_1.co_get_state().then(function (s) {
+                    if (s.bindings.has(v))
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot redeclare variable " + v });
+                    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, t_t.sem.then(function (_) { return e_val.sem.then(function (e_val) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), e_val.value)); }); }))).times(ts_bccc_1.id())).then(exports.wrap_co);
+                    var g = ts_bccc_1.curry(f);
+                    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, e_val.type, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+                    return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+                });
+            });
         });
-    }); };
+    };
 };
 exports.decl_const = function (r, c, t, e) {
     var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(c, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(exports.wrap_co);

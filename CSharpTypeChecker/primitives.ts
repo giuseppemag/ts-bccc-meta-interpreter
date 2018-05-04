@@ -77,8 +77,8 @@ export const mk_call = (f_name:ParserRes, actuals:Array<ParserRes>, range:Source
   ({  range: range,
       ast: {kind:"func_call", name:f_name, actuals:actuals} })
 
-export const mk_constructor_call = (new_range:SourceRange, C_name:string, actuals:Array<ParserRes>) : ParserRes =>
-  ({ range:new_range, ast:{ kind:"cons_call", name:C_name, actuals:actuals } })
+export const mk_constructor_call = (new_range:SourceRange, C_name:string, type_params:Array<ParserRes>, actuals:Array<ParserRes>) : ParserRes =>
+  ({ range:new_range, ast:{ kind:"cons_call", name:C_name, type_args:type_params, actuals:actuals } })
 
 export const mk_array_cons_call = (new_range:SourceRange, _type:ParserRes, actual:ParserRes) : ParserRes =>
   ({ range:new_range, ast:{ kind:"array_cons_call", type:_type, actual:actual } })

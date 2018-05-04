@@ -183,7 +183,7 @@ export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
 export interface FunctionDeclarationAST { kind:"func_decl", params_base_call:ParserRes[], range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
-export interface ConstructorCallAST { kind:"cons_call", name:string, actuals:Array<ParserRes> }
+export interface ConstructorCallAST { kind:"cons_call", name:string, type_args:Array<ParserRes>, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
 export interface ArrayConstructorCallAndInitAST { kind:"array_cons_call_and_init", type:ParserRes, actuals:ParserRes[] }
 
@@ -523,6 +523,13 @@ try_par?:boolean): Coroutine<ParserState, ParserError, SymTable> => {
 let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range =>
     identifier_token.then(class_name =>
+    parser_or<Array<ParserRes>>(
+      lt_op.then(_ =>
+        partial_match.then(_ =>
+        type_args().then(args =>
+        gt_op.then(end_range =>
+        co_unit(args)
+      )))),co_unit(Array<ParserRes>())).then(type_params =>
     left_bracket.then(_ =>
     actuals().then((actuals:Array<ParserRes>) =>
     right_bracket.then(rb =>
@@ -531,8 +538,8 @@ let cons_call = () : Coroutine<ParserState, ParserError, ParserRes> =>
       let args =
         actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
         actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals
-      return co_unit(mk_constructor_call(join_source_ranges(new_range, rb), class_name.id, args))}
-    )))))
+      return co_unit(mk_constructor_call(join_source_ranges(new_range, rb), class_name.id, type_params, args))}
+    ))))))
 
 let array_new = () : Coroutine<ParserState, ParserError, ParserRes> =>
     new_keyword.then(new_range  =>

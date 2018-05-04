@@ -252,12 +252,22 @@ var expr_AUX = function (table, try_par) {
 var cons_call = function () {
     return primitives_1.new_keyword.then(function (new_range) {
         return primitives_1.identifier_token.then(function (class_name) {
-            return primitives_1.left_bracket.then(function (_) {
-                return actuals().then(function (actuals) {
-                    return primitives_1.right_bracket.then(function (rb) {
-                        var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
-                            actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
-                        return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(source_range_1.join_source_ranges(new_range, rb), class_name.id, args));
+            return primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
+                return partial_match.then(function (_) {
+                    return type_args().then(function (args) {
+                        return primitives_1.gt_op.then(function (end_range) {
+                            return ts_bccc_1.co_unit(args);
+                        });
+                    });
+                });
+            }), ts_bccc_1.co_unit(Array())).then(function (type_params) {
+                return primitives_1.left_bracket.then(function (_) {
+                    return actuals().then(function (actuals) {
+                        return primitives_1.right_bracket.then(function (rb) {
+                            var args = actuals.length == 1 && actuals[0].ast.kind == "unit" ? [] :
+                                actuals.length == 1 && actuals[0].ast.kind == "," ? comma_to_array(actuals[0]) : actuals;
+                            return ts_bccc_1.co_unit(primitives_1.mk_constructor_call(source_range_1.join_source_ranges(new_range, rb), class_name.id, type_params, args));
+                        });
                     });
                 });
             });
