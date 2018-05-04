@@ -61,6 +61,7 @@ export let decl_forced_v = function (r: SourceRange, v: Name, t: Type, is_consta
 }
 
 export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<State, Err, Typing> {
+  // console.log("instantiating generics over", type_to_string(t), JSON.stringify(t))
   if (t.kind == "generic type instance") {
     let C_name = t.C_name
     let args = comm_list_coroutine(Immutable.List(t.args.map(a => instantiate_generics(r, a))))
@@ -85,6 +86,39 @@ export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<St
       return co_error<State, Err, Typing>({ range: r, message: `Error: cannot instantiate ${type_to_string(t)}` })
     })
     })
+  } else if (t.kind == "tuple") {
+    let args = comm_list_coroutine(Immutable.List(t.args.map(a => instantiate_generics(r, a))))
+    return args.then(args_i_l => {
+      let args_i = args_i_l.toArray()
+      let args_i_sem = args_i.reduce<Sem.StmtRt>((sem, a_i) => a_i ? sem.then(_ => a_i.sem) : sem, Sem.done_rt)
+      let t1 = {...t, args:args_i.map(a_i => a_i.type)}
+      return co_unit(mk_typing(t1, args_i_sem))
+    })
+  } else if (t.kind == "record") {
+    let args = comm_list_coroutine(t.args.map((a,a_name) =>
+    a == undefined || a_name == undefined ?
+    co_error<State, Err, { t:Typing, n:string }>({ range: r, message: `Error: cannot instantiate ${type_to_string(t)}` })
+    : instantiate_generics(r, a).then(a => co_unit<State, Err, { t:Typing, n:string }>({ t:a, n:a_name }))).toList())
+    return args.then(args_i_l => {
+      let args_i = args_i_l.toArray()
+      let args_i_sem = args_i.reduce<Sem.StmtRt>((sem, a_i) => a_i ? sem.then(_ => a_i.t.sem) : sem, Sem.done_rt)
+      let t1 = {...t, args:Immutable.Map<string,Type>(args_i.map(a_i => [a_i.n, a_i.t.type]))}
+      return co_unit(mk_typing(t1, args_i_sem))
+    })
+  } else if (t.kind == "fun") {
+    let args = comm_list_coroutine(Immutable.List([instantiate_generics(r, t.in), instantiate_generics(r, t.out)]))
+    return args.then(args_i_l => {
+      let args_i = args_i_l.toArray()
+      let args_i_sem = args_i.reduce<Sem.StmtRt>((sem, a_i) => a_i ? sem.then(_ => a_i.sem) : sem, Sem.done_rt)
+      let t1 = {...t, in:args_i[0].type, out:args_i[1].type}
+      return co_unit(mk_typing(t1, args_i_sem))
+    })
+  } else if (t.kind == "arr") {
+    let arg = instantiate_generics(r, t.arg)
+    return arg.then(arg_i => {
+      let t1 = {...t, arg:arg_i.type}
+      return co_unit(mk_typing(t1, arg_i.sem))
+    })
   }
 
   return co_unit<State,Err,Typing>(mk_typing(t, Sem.done_rt))
@@ -104,9 +138,10 @@ export let decl_v = function (r: SourceRange, v: Name, t0: Type, is_constant?: b
     }
 }
 export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stmt, is_constant?: boolean): Stmt {
-  return _ => {
+  return c => {
     return instantiate_generics(r, t0).then(t_t => {
     let t = t_t.type
+    // console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}`)
     return e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State, Err>().then(s => {
       if (s.bindings.has(v)) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
@@ -191,7 +226,6 @@ export let double = (r: SourceRange, i: number): Stmt =>
 export let tuple_value = function (r: SourceRange, args: Array<Stmt>): Stmt {
   return constraints => {
     let original_constraints = constraints
-
 
     if (constraints.kind == "left" && constraints.value.kind == "record")
       constraints = apply(inl(), tuple_type(constraints.value.args.toArray()))

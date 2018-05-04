@@ -1,17 +1,16 @@
 [g] Generics
-  [x] Parser
-    [ ] Generic method call
-  [ ] Generic method
-    [ ] Parser
-    [ ] Instantiation
-  [ ] Covariance and contravariance of Func
-  [ ] `instantiate` should also handle tuple, record, func, and array
   [ ] instantiate on:
     [ ] `decl_forced`
     [ ] `decl`
     [ ] `decl_and_init`
     [ ] constructor type (`new C<int>(...)` instantiates C<int>)
     [ ] generic method call
+  [x] Parser
+    [ ] Generic method call
+  [ ] Generic method
+    [ ] Parser
+    [ ] Instantiation
+  [ ] Covariance and contravariance of Func
 
 [g] HTML renderers for server simulator
 
@@ -32,6 +31,9 @@
   [ ] files
   [ ] inheritance
   [ ] generics
+    [ ] basic test
+    [ ] tuple, record, func, and array
+    [ ] instantiation without declaration (`var x = (new C<int>(...)).m(...)`)
   [ ] html rendering
 
 [g] Restructure project

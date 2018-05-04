@@ -80,11 +80,11 @@ export declare type Type = {
     kind: "arr";
     arg: Type;
 } | {
-    kind: "tuple";
-    args: Array<Type>;
-} | {
     kind: "record";
     args: Immutable.Map<Name, Type>;
+} | {
+    kind: "tuple";
+    args: Array<Type>;
 } | {
     kind: "generic type instance";
     C_name: string;

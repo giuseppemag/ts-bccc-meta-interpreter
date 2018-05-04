@@ -25,8 +25,9 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type, range: SourceRange }
                  | ObjType
-                 | { kind:"ref", C_name:string } | { kind:"arr", arg:Type } | { kind:"tuple", args:Array<Type> }
+                 | { kind:"ref", C_name:string } | { kind:"arr", arg:Type }
                  | { kind:"record", args:Immutable.Map<Name, Type> }
+                 | { kind:"tuple", args:Array<Type> }
                  | { kind:"generic type instance", C_name:string, args:Array<Type> }
                  | { kind:"generic type decl", instantiate:(_:Immutable.Map<Name, Type>) => Stmt, params:Array<GenericParameter>, C_name:string }
 export type GenericParameter = { name:string, variance:"co" | "contra" | "inv" }

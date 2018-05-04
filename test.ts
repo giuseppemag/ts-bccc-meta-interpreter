@@ -21,19 +21,43 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C<a> {
-  a x;
-  public C(a x) { this.x = x; }
-  public a get_x() { return this.x; }
-}
-
-C<int> c_int = new C<int>(10);
-var x_int = c_int.get_x();
-
-C<bool> c_bool = new C<bool>(true);
-var x_bool = c_bool.get_x();
-typechecker_debugger;
 `
+
+// test 1
+// class C<a> {
+//   a x;
+//   public C(a x) { this.x = x; }
+//   public a get_x() { return this.x; }
+// }
+
+// C<int> c_int = new C<int>(10);
+// var x_int = c_int.get_x();
+
+// C<bool> c_bool = new C<bool>(true);
+// var x_bool = c_bool.get_x();
+// typechecker_debugger;
+
+
+// test 2
+// class C<a> {
+//   a x;
+//   public C(a x) { this.x = x; }
+//   public a get_x() { return this.x; }
+// }
+
+// (C<int>, C<bool>) c_s = ((new C<int>(10)), (new C<bool>(true)));
+// typechecker_debugger;
+
+// test 3
+// class C<a> {
+//   a x;
+//   public C(a x) { this.x = x; }
+//   public a get_x() { return this.x; }
+// }
+
+// (C<int> Int, C<bool> Bool) c_s = ((new C<int>(10)), (new C<bool>(true)));
+// var x = c_s.Int.get_x();
+// typechecker_debugger;
 
 
     // let hrstart = process.hrtime()

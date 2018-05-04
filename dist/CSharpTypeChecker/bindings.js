@@ -61,6 +61,7 @@ exports.decl_forced_v = function (r, v, t, is_constant) {
     };
 };
 exports.instantiate_generics = function (r, t) {
+    // console.log("instantiating generics over", type_to_string(t), JSON.stringify(t))
     if (t.kind == "generic type instance") {
         var C_name_1 = t.C_name;
         var args = ccc_aux_1.comm_list_coroutine(Immutable.List(t.args.map(function (a) { return exports.instantiate_generics(r, a); })));
@@ -88,6 +89,44 @@ exports.instantiate_generics = function (r, t) {
             });
         });
     }
+    else if (t.kind == "tuple") {
+        var args = ccc_aux_1.comm_list_coroutine(Immutable.List(t.args.map(function (a) { return exports.instantiate_generics(r, a); })));
+        return args.then(function (args_i_l) {
+            var args_i = args_i_l.toArray();
+            var args_i_sem = args_i.reduce(function (sem, a_i) { return a_i ? sem.then(function (_) { return a_i.sem; }) : sem; }, Sem.done_rt);
+            var t1 = __assign({}, t, { args: args_i.map(function (a_i) { return a_i.type; }) });
+            return ts_bccc_2.co_unit(types_1.mk_typing(t1, args_i_sem));
+        });
+    }
+    else if (t.kind == "record") {
+        var args = ccc_aux_1.comm_list_coroutine(t.args.map(function (a, a_name) {
+            return a == undefined || a_name == undefined ?
+                ts_bccc_2.co_error({ range: r, message: "Error: cannot instantiate " + types_1.type_to_string(t) })
+                : exports.instantiate_generics(r, a).then(function (a) { return ts_bccc_2.co_unit({ t: a, n: a_name }); });
+        }).toList());
+        return args.then(function (args_i_l) {
+            var args_i = args_i_l.toArray();
+            var args_i_sem = args_i.reduce(function (sem, a_i) { return a_i ? sem.then(function (_) { return a_i.t.sem; }) : sem; }, Sem.done_rt);
+            var t1 = __assign({}, t, { args: Immutable.Map(args_i.map(function (a_i) { return [a_i.n, a_i.t.type]; })) });
+            return ts_bccc_2.co_unit(types_1.mk_typing(t1, args_i_sem));
+        });
+    }
+    else if (t.kind == "fun") {
+        var args = ccc_aux_1.comm_list_coroutine(Immutable.List([exports.instantiate_generics(r, t.in), exports.instantiate_generics(r, t.out)]));
+        return args.then(function (args_i_l) {
+            var args_i = args_i_l.toArray();
+            var args_i_sem = args_i.reduce(function (sem, a_i) { return a_i ? sem.then(function (_) { return a_i.sem; }) : sem; }, Sem.done_rt);
+            var t1 = __assign({}, t, { in: args_i[0].type, out: args_i[1].type });
+            return ts_bccc_2.co_unit(types_1.mk_typing(t1, args_i_sem));
+        });
+    }
+    else if (t.kind == "arr") {
+        var arg = exports.instantiate_generics(r, t.arg);
+        return arg.then(function (arg_i) {
+            var t1 = __assign({}, t, { arg: arg_i.type });
+            return ts_bccc_2.co_unit(types_1.mk_typing(t1, arg_i.sem));
+        });
+    }
     return ts_bccc_2.co_unit(types_1.mk_typing(t, Sem.done_rt));
 };
 exports.decl_v = function (r, v, t0, is_constant) {
@@ -105,9 +144,10 @@ exports.decl_v = function (r, v, t0, is_constant) {
     };
 };
 exports.decl_and_init_v = function (r, v, t0, e, is_constant) {
-    return function (_) {
+    return function (c) {
         return exports.instantiate_generics(r, t0).then(function (t_t) {
             var t = t_t.type;
+            // console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}`)
             return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
                 return ts_bccc_1.co_get_state().then(function (s) {
                     if (s.bindings.has(v))
