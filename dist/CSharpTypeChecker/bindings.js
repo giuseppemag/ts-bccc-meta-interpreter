@@ -623,7 +623,7 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
     var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: types_1.ref_type(C_name) }]))
         .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
     var interfaces_init = _implements.length > 0 ?
-        _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
+        _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
         : exports.done;
     //console.log("interfaces_init", interfaces_init.length, _extends.kind)
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
@@ -635,9 +635,9 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
                     _extends.kind == "left"
                         ? // this is a constructor with base\
                             override_methods.length == 0 ?
-                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)), interfaces_init)
+                                exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), interfaces_init)
                                 :
-                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
+                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
                                         return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
                                             return_t: a_m.return_t,
                                             parameters: a_m.parameters,
@@ -1154,70 +1154,73 @@ exports.field_set = function (r, context, this_ref, F_name, new_value) {
         });
     }); };
 };
-exports.call_cons = function (r, context, C_name, arg_values, is_internal) {
+exports.call_cons = function (r, context, C_name, arg_values, C_name_generic, type_args, is_internal) {
     if (is_internal === void 0) { is_internal = false; }
-    return function (constraints) { return ts_bccc_1.co_get_state().then(function (bindings) {
-        if (!bindings.bindings.has(C_name))
-            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined." });
-        var C_def = bindings.bindings.get(C_name);
-        if (C_def.kind != "obj")
-            return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class." });
-        if (C_def.class_kind != "normal" && !is_internal)
-            return ts_bccc_2.co_error({ range: r, message: "Error: cannot instantiate " + C_name + " as it is not a concrete class." });
-        if (!C_def.methods.has(C_name)) {
-            return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " has no constructors." });
-        }
-        var lambda_t = C_def.methods.get(C_name).first();
-        if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-            lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple")
-            return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + types_1.type_to_string(lambda_t.typing.type) });
-        var expected_args = lambda_t.typing.type.out.in.args;
-        var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
-            return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
-                return args.then(function (args_t) {
-                    return ts_bccc_2.co_unit(args_t.push(arg_t));
-                });
-            });
-        }, ts_bccc_2.co_unit(Immutable.List()));
-        var init_fields = C_def.fields.filter(function (f) { return !!f && !f.modifiers.has("static"); }).map(function (f, f_name) {
-            if (f_name == undefined || f == undefined || f.initial_value.kind == "right")
-                return exports.done;
-            else {
-                var v_2 = f.initial_value.value;
-                if (f.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; })) {
-                    return function (_) {
-                        // co_stateless<State,Err,Typing>(
-                        //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>
-                        return v_2(types_1.no_constraints).then(function (v_v) {
-                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, //Sem.call_lambda_expr_rt(r, v_v.sem, [Sem.get_v_rt(r, "this")]),
-                            Sem.get_v_rt(r, "this"))));
-                        });
-                    };
-                }
-                return function (_) { return v_2(types_1.no_constraints).then(function (v_v) {
-                    return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, Sem.get_v_rt(r, "this"))));
-                }); };
+    return function (constraints) { return exports.instantiate_generics(r, { kind: "generic type instance", C_name: C_name_generic, args: type_args }).then(function (inst_t) {
+        var t = inst_t.type;
+        return ts_bccc_1.co_get_state().then(function (bindings) {
+            if (!bindings.bindings.has(C_name))
+                return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " is undefined." });
+            var C_def = bindings.bindings.get(C_name);
+            if (C_def.kind != "obj")
+                return ts_bccc_2.co_error({ range: r, message: "Error: type  " + C_name + " is not a class." });
+            if (C_def.class_kind != "normal" && !is_internal)
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot instantiate " + C_name + " as it is not a concrete class." });
+            if (!C_def.methods.has(C_name)) {
+                return ts_bccc_2.co_error({ range: r, message: "Error: class " + C_name + " has no constructors." });
             }
-        }).toArray().reduce(function (a, b) { return exports.semicolon(r, a, b); }, exports.done);
-        if (!lambda_t.modifiers.has("public")) {
-            if (context.kind == "global scope")
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
-            else if (context.C_name != C_name)
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
-        }
-        return ensure_constraints(r, constraints)(lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
-            check_arguments.then(function (args_t) {
-                return init_fields(types_1.no_constraints).then(function (init_fields_t) {
-                    return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-                        (lambda_t.typing.type.out.kind == "fun" &&
-                            lambda_t.typing.type.out.in.kind == "tuple" &&
-                            arg_values.length != lambda_t.typing.type.out.in.args.length) ?
-                        ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t.toArray().map(function (t) { return types_1.type_to_string(t.type); })) })
-                        :
-                            ts_bccc_2.co_unit(types_1.mk_typing(types_1.ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }), init_fields_t.sem)));
+            var lambda_t = C_def.methods.get(C_name).first();
+            if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+                lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple")
+                return ts_bccc_2.co_error({ range: r, message: "Error: invalid constructor type " + types_1.type_to_string(lambda_t.typing.type) });
+            var expected_args = lambda_t.typing.type.out.in.args;
+            var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
+                return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
+                    return args.then(function (args_t) {
+                        return ts_bccc_2.co_unit(args_t.push(arg_t));
+                    });
                 });
-            })
-            : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + types_1.type_to_string(lambda_t.typing.type) }));
+            }, ts_bccc_2.co_unit(Immutable.List()));
+            var init_fields = C_def.fields.filter(function (f) { return !!f && !f.modifiers.has("static"); }).map(function (f, f_name) {
+                if (f_name == undefined || f == undefined || f.initial_value.kind == "right")
+                    return exports.done;
+                else {
+                    var v_2 = f.initial_value.value;
+                    if (f.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; })) {
+                        return function (_) {
+                            // co_stateless<State,Err,Typing>(
+                            //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>
+                            return v_2(types_1.no_constraints).then(function (v_v) {
+                                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, //Sem.call_lambda_expr_rt(r, v_v.sem, [Sem.get_v_rt(r, "this")]),
+                                Sem.get_v_rt(r, "this"))));
+                            });
+                        };
+                    }
+                    return function (_) { return v_2(types_1.no_constraints).then(function (v_v) {
+                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.field_set_expr_rt(r, { att_name: f_name, kind: "att" }, v_v.sem, Sem.get_v_rt(r, "this"))));
+                    }); };
+                }
+            }).toArray().reduce(function (a, b) { return exports.semicolon(r, a, b); }, exports.done);
+            if (!lambda_t.modifiers.has("public")) {
+                if (context.kind == "global scope")
+                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
+                else if (context.C_name != C_name)
+                    return ts_bccc_2.co_error({ range: r, message: "Error: cannot call non-public constructor " + C_name + "." });
+            }
+            return ensure_constraints(r, constraints)(lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
+                check_arguments.then(function (args_t) {
+                    return init_fields(types_1.no_constraints).then(function (init_fields_t) {
+                        return lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+                            (lambda_t.typing.type.out.kind == "fun" &&
+                                lambda_t.typing.type.out.in.kind == "tuple" &&
+                                arg_values.length != lambda_t.typing.type.out.in.args.length) ?
+                            ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t.toArray().map(function (t) { return types_1.type_to_string(t.type); })) })
+                            :
+                                ts_bccc_2.co_unit(types_1.mk_typing(types_1.ref_type(C_name), inst_t.sem.then(function (_) { return Sem.call_cons_rt(r, C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }), init_fields_t.sem); })));
+                    });
+                })
+                : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + types_1.type_to_string(lambda_t.typing.type) }));
+        });
     }); };
 };
 exports.get_class = function (r, t) {

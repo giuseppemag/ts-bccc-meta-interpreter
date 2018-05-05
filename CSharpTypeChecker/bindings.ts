@@ -608,7 +608,7 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
 
   let interfaces_init =
     _implements.length > 0 ?
-    _implements.map(i => field_set(r, context, get_v(r, "this"), { kind: "att", att_name: `${i.C_name}_base` }, call_cons(r, context, i.C_name, [], true))).reduce((p,c) => semicolon(r, p,c))
+    _implements.map(i => field_set(r, context, get_v(r, "this"), { kind: "att", att_name: `${i.C_name}_base` }, call_cons(r, context, i.C_name, [], i.C_name, [], true))).reduce((p,c) => semicolon(r, p,c))
     : done
   //console.log("interfaces_init", interfaces_init.length, _extends.kind)
   return _ => Co.co_get_state<State, Err>().then(initial_bindings =>
@@ -622,12 +622,12 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
 
             override_methods.length == 0 ?
               semicolon(r,
-                        field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)),
+                        field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
                         interfaces_init)
               :
               semicolon(
                 r,
-                field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], true)),
+                field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
                 semicolon(r,
                           interfaces_init,
                           override_methods.map(a_m =>
@@ -1219,8 +1219,10 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
 }
 
 
-export let call_cons = function (r: SourceRange, context: CallingContext, C_name: string, arg_values: Array<Stmt>, is_internal:boolean = false): Stmt {
-  return constraints => co_get_state<State, Err>().then(bindings => {
+export let call_cons = function (r: SourceRange, context: CallingContext, C_name: string, arg_values: Array<Stmt>, C_name_generic: string, type_args:Array<Type>, is_internal:boolean = false): Stmt {
+  return constraints => instantiate_generics(r, { kind:"generic type instance", C_name:C_name_generic, args:type_args }).then(inst_t => {
+    let t = inst_t.type
+    return co_get_state<State, Err>().then(bindings => {
     if (!bindings.bindings.has(C_name)) return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} is undefined.` })
     let C_def = bindings.bindings.get(C_name)
     if (C_def.kind != "obj") return co_error<State, Err, Typing>({ range: r, message: `Error: type  ${C_name} is not a class.` })
@@ -1278,9 +1280,10 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
               arg_values.length != lambda_t.typing.type.out.in.args.length) ?
             co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}` })
             :
-            co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem)))
+            co_unit(mk_typing(ref_type(C_name), inst_t.sem.then(_ => Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem))))
         ))
       : co_error<State, Err, Typing>({ range: r, message: `Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}` }))
+  })
   })
 }
 

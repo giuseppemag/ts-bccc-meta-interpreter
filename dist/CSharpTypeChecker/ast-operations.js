@@ -92,11 +92,12 @@ var free_variables = function (n, bound) {
                                                                             : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set([n.ast.value]) : Immutable.Set())
                                                                                 : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" || n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ? Immutable.Set()
                                                                                     : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); })))
-                                                                                        : n.ast.kind == "debugger" || n.ast.kind == "typechecker_debugger" ? Immutable.Set()
-                                                                                            : (function () {
-                                                                                                console.log("Error (FV): unsupported ast node: " + JSON.stringify(n));
-                                                                                                throw new Error("(FV) Unsupported ast node: " + source_range_1.print_range(n.range));
-                                                                                            })();
+                                                                                        : n.ast.kind == "cons_call" ? union_many(n.ast.actuals.map(function (a) { return free_variables(a, bound); }))
+                                                                                            : n.ast.kind == "debugger" || n.ast.kind == "typechecker_debugger" ? Immutable.Set()
+                                                                                                : (function () {
+                                                                                                    console.log("Error (FV): unsupported ast node: " + JSON.stringify(n));
+                                                                                                    throw new Error("(FV) Unsupported ast node: " + source_range_1.print_range(n.range));
+                                                                                                })();
 };
 exports.extract_tuple_args = function (n) {
     return n.ast.kind == "," ? [n.ast.l].concat(exports.extract_tuple_args(n.ast.r)) : n.ast.kind == "bracket" ? exports.extract_tuple_args(n.ast.e)
@@ -157,7 +158,7 @@ exports.ast_to_type_checker = function (substitutions) { return function (n) { r
                                                                                                                                                 : n.ast.kind == "=" && n.ast.l.ast.kind == "." && n.ast.l.ast.r.ast.kind == "id" ?
                                                                                                                                                     bindings_1.field_set(n.range, context, exports.ast_to_type_checker(substitutions)(n.ast.l.ast.l)(context), { att_name: n.ast.l.ast.r.ast.value, kind: "att" }, exports.ast_to_type_checker(substitutions)(n.ast.r)(context))
                                                                                                                                                     : n.ast.kind == "cons_call" ?
-                                                                                                                                                        bindings_1.call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : n.ast.name + "<" + n.ast.type_args.map(function (a) { return types_1.type_to_string(ast_to_csharp_type(substitutions)(a)); }).reduce(function (a, b) { return a + "," + b; }) + ">", n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(substitutions)(a)(context); }))
+                                                                                                                                                        bindings_1.call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : n.ast.name + "<" + n.ast.type_args.map(function (a) { return types_1.type_to_string(ast_to_csharp_type(substitutions)(a)); }).reduce(function (a, b) { return a + "," + b; }) + ">", n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(substitutions)(a)(context); }), n.ast.name, n.ast.type_args.map(function (a) { return ast_to_csharp_type(substitutions)(a); }))
                                                                                                                                                         : n.ast.kind == "func_call" ?
                                                                                                                                                             bindings_1.call_lambda(n.range, exports.ast_to_type_checker(substitutions)(n.ast.name)(context), n.ast.actuals.map(function (a) { return exports.ast_to_type_checker(substitutions)(a)(context); }))
                                                                                                                                                             : n.ast.kind == "func_decl" ?

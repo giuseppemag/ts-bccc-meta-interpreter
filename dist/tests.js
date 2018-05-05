@@ -429,4 +429,52 @@ run_checks([
             },
         ]
     },
-]);
+    {
+        name: "Generics: basics",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    C<int> c_int = new C<int>(10);\n    var x_int = c_int.get_x();\n\n    C<bool> c_bool = new C<bool>(true);\n    var x_bool = c_bool.get_x();\n    typechecker_debugger;\n        ",
+        checks: [
+            { name: "x_int is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_int").kind, "int"); } },
+            { name: "x_bool is bool.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_bool").kind, "bool"); } },
+            { name: "x_int is 10.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_int").v, 10); } },
+            { name: "x_bool is true.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_bool").v, true); } }
+        ]
+    },
+    {
+        name: "Generics: instantiation from constructor",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    var x = (new C<int>(10)).get_x();\n    typechecker_debugger;\n    ",
+        checks: [
+            { name: "x is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x").kind, "int"); } },
+            { name: "x is 10.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, 10); } },
+        ]
+    },
+    {
+        name: "Generics: tuples",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    (C<int>, C<bool>) c_s = ((new C<int>(10)), (new C<bool>(true)));\n    var x_int = c_s.Item1.get_x();\n    var x_bool = c_s.Item2.get_x();\n    typechecker_debugger;\n    ",
+        checks: [
+            { name: "x_int is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_int").kind, "int"); } },
+            { name: "x_bool is bool.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_bool").kind, "bool"); } },
+            { name: "x_int is 10.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_int").v, 10); } },
+            { name: "x_bool is true.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_bool").v, true); } }
+        ]
+    },
+    {
+        name: "Generics: records",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    (C<int> Int, C<bool> Bool) c_s = ((new C<int>(10)), (new C<bool>(true)));\n    var x_int = c_s.Int.get_x();\n    var x_bool = c_s.Bool.get_x();\n    typechecker_debugger;\n    ",
+        checks: [
+            { name: "x_int is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_int").kind, "int"); } },
+            { name: "x_bool is bool.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x_bool").kind, "bool"); } },
+            { name: "x_int is 10.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_int").v, 10); } },
+            { name: "x_bool is true.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x_bool").v, true); } }
+        ]
+    },
+    {
+        name: "Generics: lambdas",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    Func<int, C<int>> mk_c = i => (new C<int>(i));\n    var c1 = mk_c(1);\n    var c2 = mk_c(2);\n    var x1 = c1.get_x();\n    var x2 = c2.get_x();\n    typechecker_debugger;\n        ",
+        checks: [
+            { name: "c1 is C<int>.", step: 1, expected_kind: "bindings", check: function (s) { return s.get("c1").kind == "ref" && assert_equal(s.get("c1").C_name, "C<int>"); } },
+            { name: "x1 is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x1").kind, "int"); } },
+            { name: "x1 is 1.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x1").v, 1); } },
+            { name: "x2 is 2.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x2").v, 2); } },
+        ]
+    },
+], "Generics: instantiation from constructor");

@@ -3,14 +3,19 @@
     [ ] `decl_forced`
     [ ] `decl`
     [ ] `decl_and_init`
-    [ ] constructor type (`new C<int>(...)` instantiates C<int>)
+    [ ] `decl_const`
+    [ ] function parameter
+    [ ] function return type
     [ ] generic method call
   [x] Parser
     [ ] Generic method call
   [ ] Generic method
     [ ] Parser
     [ ] Instantiation
+  [ ] Generic constraints
+    [ ] Validate definition with constraints (or `Unit`) if no constraints given
   [ ] Covariance and contravariance of Func
+  [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator
 
@@ -29,10 +34,8 @@
       [ ] anonymous functions given to wrong contexts
   [ ] rendering
   [ ] files
-  [ ] inheritance
   [ ] generics
-    [ ] basic test
-    [ ] tuple, record, func, and array
+    [ ] array
     [ ] instantiation without declaration (`var x = (new C<int>(...)).m(...)`)
   [ ] html rendering
 
@@ -48,6 +51,11 @@
   [ ] Python
   [ ] C#
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
+[m] `Func<int, C<int>> mk_c = i => new C<int>(i);` does not compile
+[m] Arrays of generics do not parse correctly
+[m] Add tests
+  [ ] generics and inheritance
+  [ ] generics and interfaces
 [m] save code also on wrong attempt (BA)
 [m] add `null`
 [m] add multiple highlightings (along the stack) for function calls
@@ -71,10 +79,9 @@
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
   [ ] Integration in VSCode
   [ ] Exceptions
-  [ ] Fancy features: LINQ, generators, properties, generic constraints, covariance and contravariance
-  [ ] Generic tuple in standard library
+  [ ] Fancy features: LINQ, generators, properties, generic constraints
   [ ] Proper lex/yacc
-  [ ] Covariance and contravariance
+  [ ] Generic tuple in standard library
 
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
@@ -86,3 +93,4 @@
 [m] var a = 1 + + 1; does not print a proper error
 [g] Access modifiers: incompatibility errors do not bubble up correctly
 [g] closure of functions: free_variables vs decl/decl_and_init (`bound` should become the state)
+[m] Casting operator for primitives `(int)5.5`

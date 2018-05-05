@@ -88,6 +88,6 @@ export declare let field_set: (r: SourceRange, context: CallingContext, this_ref
     kind: "att_arr";
     index: Stmt;
 }, new_value: Stmt) => Stmt;
-export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[], is_internal?: boolean) => Stmt;
+export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[], C_name_generic: string, type_args: Type[], is_internal?: boolean) => Stmt;
 export declare let get_class: (r: SourceRange, t: Type) => CCC.Coroutine<State, Err, ObjType>;
 export declare let coerce: (r: SourceRange, e: Stmt, t: Type) => Stmt;

@@ -194,6 +194,7 @@ let free_variables = (n:ParserRes, bound:Immutable.Set<ValueName>) : Immutable.S
   : n.ast.kind == "id" ? (!bound.has(n.ast.value) ? Immutable.Set<ValueName>([n.ast.value]) : Immutable.Set<ValueName>())
   : n.ast.kind == "int" || n.ast.kind == "double" || n.ast.kind == "float" ||n.ast.kind == "string" || n.ast.kind == "bool" || n.ast.kind == "get_array_value_at" || n.ast.kind == "array_cons_call_and_init" ?  Immutable.Set<ValueName>()
   : n.ast.kind == "func_call" ? free_variables(n.ast.name, bound).union(union_many(n.ast.actuals.map(a => free_variables(a, bound))))
+  : n.ast.kind == "cons_call" ? union_many(n.ast.actuals.map(a => free_variables(a, bound)))
 
   : n.ast.kind == "debugger" || n.ast.kind == "typechecker_debugger" ? Immutable.Set<string>()
 
@@ -279,7 +280,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
 
 
   : n.ast.kind == "cons_call" ?
-    call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : `${n.ast.name}<${n.ast.type_args.map(a => type_to_string(ast_to_csharp_type(substitutions)(a))).reduce((a,b) => a + "," + b)}>`, n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)))
+    call_cons(n.range, context, n.ast.type_args.length == 0 ? n.ast.name : `${n.ast.name}<${n.ast.type_args.map(a => type_to_string(ast_to_csharp_type(substitutions)(a))).reduce((a,b) => a + "," + b)}>`, n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)), n.ast.name, n.ast.type_args.map(a => ast_to_csharp_type(substitutions)(a)))
   : n.ast.kind == "func_call" ?
     call_lambda(n.range, ast_to_type_checker(substitutions)(n.ast.name)(context), n.ast.actuals.map(a => ast_to_type_checker(substitutions)(a)(context)))
 

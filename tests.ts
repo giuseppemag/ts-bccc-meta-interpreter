@@ -975,7 +975,6 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
   checks:[
     { name:"res is 0.04108807551707464", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("res").v, 0.04108807551707464) }
   ]},
-
   {
     name:"Classes: storage of partially applied this in method lambda's",
     source:
@@ -997,6 +996,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     { name:"r1 is 11.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("r1").v, 11) },
     { name:"r2 is 12.", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("r2").v, 12) }
   ]},
+
   {
     name:"Filesystem: Special syntax",
     source:
@@ -1093,5 +1093,111 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     },
   ]},
 
-])
+  {
+    name:"Generics: basics",
+    source:`
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
 
+    C<int> c_int = new C<int>(10);
+    var x_int = c_int.get_x();
+
+    C<bool> c_bool = new C<bool>(true);
+    var x_bool = c_bool.get_x();
+    typechecker_debugger;
+        `
+    ,
+  checks:[
+    { name:"x_int is int.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_int").kind, "int") },
+    { name:"x_bool is bool.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_bool").kind, "bool") },
+    { name:"x_int is 10.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_int").v, 10) },
+    { name:"x_bool is true.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_bool").v, true) }
+  ]},
+  {
+    name:"Generics: instantiation from constructor",
+    source:`
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
+
+    var x = (new C<int>(10)).get_x();
+    typechecker_debugger;
+    `
+    ,
+  checks:[
+    { name:"x is int.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x").kind, "int") },
+    { name:"x is 10.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 10) },
+  ]},
+  {
+    name:"Generics: tuples",
+    source:`
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
+
+    (C<int>, C<bool>) c_s = ((new C<int>(10)), (new C<bool>(true)));
+    var x_int = c_s.Item1.get_x();
+    var x_bool = c_s.Item2.get_x();
+    typechecker_debugger;
+    `
+    ,
+  checks:[
+    { name:"x_int is int.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_int").kind, "int") },
+    { name:"x_bool is bool.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_bool").kind, "bool") },
+    { name:"x_int is 10.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_int").v, 10) },
+    { name:"x_bool is true.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_bool").v, true) }
+  ]},
+  {
+    name:"Generics: records",
+    source:`
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
+
+    (C<int> Int, C<bool> Bool) c_s = ((new C<int>(10)), (new C<bool>(true)));
+    var x_int = c_s.Int.get_x();
+    var x_bool = c_s.Bool.get_x();
+    typechecker_debugger;
+    `
+    ,
+  checks:[
+    { name:"x_int is int.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_int").kind, "int") },
+    { name:"x_bool is bool.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x_bool").kind, "bool") },
+    { name:"x_int is 10.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_int").v, 10) },
+    { name:"x_bool is true.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x_bool").v, true) }
+  ]},
+
+  {
+    name:"Generics: lambdas",
+    source:`
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
+
+    Func<int, C<int>> mk_c = i => (new C<int>(i));
+    var c1 = mk_c(1);
+    var c2 = mk_c(2);
+    var x1 = c1.get_x();
+    var x2 = c2.get_x();
+    typechecker_debugger;
+        `
+    ,
+  checks:[
+    { name:"c1 is C<int>.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => s.get("c1").kind == "ref" && assert_equal((s.get("c1") as any).C_name, "C<int>") },
+    { name:"x1 is int.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal(s.get("x1").kind, "int") },
+    { name:"x1 is 1.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x1").v, 1) },
+    { name:"x2 is 2.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x2").v, 2) },
+  ]},
+
+], "Generics: instantiation from constructor")
