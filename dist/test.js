@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass B { }\nclass C : B { }\nclass D : C { }\n\nFunc<C,C> f = c => c;\nFunc<D,B> mid = f;\n\nvar x = mid(new D());\ntypechecker_debugger;\n";
+        var source = "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    var x = (new C<C<int>>(new C<int>(1))).get_x().get_x();\n    typechecker_debugger;\n";
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {
@@ -42,6 +42,8 @@ var ImpLanguageWithSuspend;
         log("Step:", show.kind == "bindings" ? show.state :
             show.kind == "memory" ? __assign({}, show.memory, { classes: show.memory.classes.filter(function (c) { return c != undefined && !c.is_internal; }).toMap() }) :
                 show);
+        // if (show.kind == "memory")
+        //   console.log(show.memory.classes.map((c, C_name) => c != undefined && C_name != undefined ? [C_name, c.is_internal] : []))
         return output;
     };
 })(ImpLanguageWithSuspend = exports.ImpLanguageWithSuspend || (exports.ImpLanguageWithSuspend = {}));

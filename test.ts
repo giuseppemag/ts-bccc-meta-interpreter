@@ -21,19 +21,15 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class B { }
-class C : B { }
-class D : C { }
+    class C<a> {
+      a x;
+      public C(a x) { this.x = x; }
+      public a get_x() { return this.x; }
+    }
 
-Func<C,C> f = c => c;
-Func<D,B> mid = f;
-
-var x = mid(new D());
-typechecker_debugger;
+    var x = (new C<C<int>>(new C<int>(1))).get_x().get_x();
+    typechecker_debugger;
 `
-
-
-
 
     // let hrstart = process.hrtime()
 
@@ -51,15 +47,20 @@ typechecker_debugger;
       let show = stream.show()
 
       //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
+
+
       log("Step:", show.kind == "bindings" ? show.state :
-                   show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
-                   show)
+      show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
+      show)
       stream = stream.next()
     }
     let show = stream.show()
     log("Step:", show.kind == "bindings" ? show.state :
-                 show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
-                 show)
+    show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
+    show)
+
+    // if (show.kind == "memory")
+    //   console.log(show.memory.classes.map((c, C_name) => c != undefined && C_name != undefined ? [C_name, c.is_internal] : []))
 
     return output
   }

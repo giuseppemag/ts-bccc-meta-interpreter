@@ -968,11 +968,22 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
   })
 }
 
-export let def_generic_class = function (r: SourceRange, C_name: string, generic_parameters:Array<GenericParameter>, instantiate:(_:Immutable.Map<Name, Type>) => Stmt): Stmt {
+export let generic_instance_name = (C_name:string, generic_parameters:Array<GenericParameter>, generic_arguments:Immutable.Map<string,Type>) : string =>
+  generic_parameters.length == 0 ? C_name : `${C_name}<${generic_parameters.map(p => type_to_string(generic_arguments.get(p.name))).reduce((a,b) => a + "," + b)}>`
+
+export let def_generic_class = function (r: SourceRange, C_name: string, generic_parameters:Array<GenericParameter>, instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt): Stmt {
   return _ => co_get_state<State, Err>().then(initial_bindings => {
+    let C_name_inst_basic = generic_instance_name(C_name, generic_parameters, Immutable.Map<Name, Type>(generic_parameters.map(p => [p.name, ref_type(p.name)])))
     let new_bindings = initial_bindings.bindings.set(C_name, {...generic_type_decl(instantiate, generic_parameters, C_name), is_constant:true })
     return co_set_state<State, Err>({ ...initial_bindings, bindings:new_bindings }).then(_ =>
-    co_unit<State, Err, Typing>(mk_typing(unit_type, Sem.done_rt)))
+      co_stateless<State, Err, [Type,Sem.StmtRt]>(
+      co_set_state<State, Err>({ ...initial_bindings, bindings:generic_parameters.reduce((b,p) => b.set(p.name, {...unit_type, is_constant:true }), new_bindings) }).then(_ =>
+      instantiate(Immutable.Map<Name,Type>(generic_parameters.map(p => [p.name, ref_type(p.name)])), true)(no_constraints).then(t_sem =>
+      co_get_state<State, Err>().then(temp_bindings =>
+      co_unit<State, Err, [Type,Sem.StmtRt]>([temp_bindings.bindings.get(C_name_inst_basic), t_sem.sem]))))).then(t =>
+      co_get_state<State, Err>().then(final_bindings =>
+      co_set_state<State, Err>({ ...final_bindings, bindings:final_bindings.bindings.set(C_name_inst_basic, ({...t[0], is_constant:true})) }).then(_ =>
+      co_unit<State, Err, Typing>(mk_typing(unit_type, t[1]))))))
   })
 }
 

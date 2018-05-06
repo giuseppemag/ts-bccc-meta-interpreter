@@ -335,7 +335,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
     )
   : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
     def_generic_class(n.range, n.ast.C_name, n.ast.generic_parameters.map(p => ({ name:p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?", variance:p.variant })),
-    (generic_arguments:Immutable.Map<string, Type>) : Stmt => {
+    (generic_arguments:Immutable.Map<string, Type>, is_visible?:boolean) : Stmt => {
       // todo: return co_error if generic_arguments do not cover all names
       if (n.ast.kind != "class")
         return _ => co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${n.ast} as it is not a class` })
@@ -379,7 +379,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
-        })), true
+        })), !is_visible
       ) })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?

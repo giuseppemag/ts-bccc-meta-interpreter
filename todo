@@ -9,7 +9,8 @@
     [ ] Parser
     [ ] Instantiation
   [ ] Generic constraints
-    [ ] Validate definition with constraints (or `Unit`) if no constraints given
+    [ ] Parser
+    [ ] Validation
   [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator

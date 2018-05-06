@@ -29,7 +29,7 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"record", args:Immutable.Map<Name, Type> }
                  | { kind:"tuple", args:Array<Type> }
                  | { kind:"generic type instance", C_name:string, args:Array<Type> }
-                 | { kind:"generic type decl", instantiate:(_:Immutable.Map<Name, Type>) => Stmt, params:Array<GenericParameter>, C_name:string }
+                 | { kind:"generic type decl", instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt, params:Array<GenericParameter>, C_name:string }
 export type GenericParameter = { name:string, variance:"co" | "contra" | "inv" }
 export let type_to_string = (t:Type) : string =>
   t.kind == "unit" ? "void"
@@ -73,7 +73,7 @@ export let tuple_type : (args:Array<Type>) => Type = (args) => ({ kind:"tuple", 
 export let record_type : (args:Immutable.Map<Name, Type>) => Type = (args) => ({ kind:"record", args:args })
 export let generic_type_instance = (C_name:string, args:Array<Type>) : Type => ({ kind:"generic type instance", C_name:C_name, args:args })
 export let ref_type : (C_name:string) => Type = (C_name) => ({ kind:"ref", C_name:C_name })
-export let generic_type_decl = (instantiate:(_:Immutable.Map<Name, Type>) => Stmt, params:Array<GenericParameter>, C_name:string) : Type => ({ kind:"generic type decl", instantiate:instantiate, params:params, C_name:C_name })
+export let generic_type_decl = (instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt, params:Array<GenericParameter>, C_name:string) : Type => ({ kind:"generic type decl", instantiate:instantiate, params:params, C_name:C_name })
 export type TypeInformation = Type & { is_constant:boolean }
 export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 export interface State { highlighting:SourceRange, bindings:Bindings }

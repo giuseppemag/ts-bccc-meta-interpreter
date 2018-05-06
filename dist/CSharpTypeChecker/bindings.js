@@ -932,11 +932,27 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
         });
     }); };
 };
+exports.generic_instance_name = function (C_name, generic_parameters, generic_arguments) {
+    return generic_parameters.length == 0 ? C_name : C_name + "<" + generic_parameters.map(function (p) { return types_1.type_to_string(generic_arguments.get(p.name)); }).reduce(function (a, b) { return a + "," + b; }) + ">";
+};
 exports.def_generic_class = function (r, C_name, generic_parameters, instantiate) {
     return function (_) { return ts_bccc_1.co_get_state().then(function (initial_bindings) {
+        var C_name_inst_basic = exports.generic_instance_name(C_name, generic_parameters, Immutable.Map(generic_parameters.map(function (p) { return [p.name, types_1.ref_type(p.name)]; })));
         var new_bindings = initial_bindings.bindings.set(C_name, __assign({}, types_1.generic_type_decl(instantiate, generic_parameters, C_name), { is_constant: true }));
         return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: new_bindings })).then(function (_) {
-            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.done_rt));
+            return ccc_aux_1.co_stateless(ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: generic_parameters.reduce(function (b, p) { return b.set(p.name, __assign({}, types_1.unit_type, { is_constant: true })); }, new_bindings) })).then(function (_) {
+                return instantiate(Immutable.Map(generic_parameters.map(function (p) { return [p.name, types_1.ref_type(p.name)]; })), true)(types_1.no_constraints).then(function (t_sem) {
+                    return ts_bccc_1.co_get_state().then(function (temp_bindings) {
+                        return ts_bccc_2.co_unit([temp_bindings.bindings.get(C_name_inst_basic), t_sem.sem]);
+                    });
+                });
+            })).then(function (t) {
+                return ts_bccc_1.co_get_state().then(function (final_bindings) {
+                    return ts_bccc_1.co_set_state(__assign({}, final_bindings, { bindings: final_bindings.bindings.set(C_name_inst_basic, (__assign({}, t[0], { is_constant: true }))) })).then(function (_) {
+                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, t[1]));
+                    });
+                });
+            });
         });
     }); };
 };
