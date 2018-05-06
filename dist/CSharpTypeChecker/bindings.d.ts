@@ -6,11 +6,11 @@ import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefin
 export declare let wrap_co_res: Fun<Prod<Typing, State>, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>;
 export declare let wrap_co: Fun<Prod<Typing, State>, Sum<Err, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>>;
 export declare let get_v: (r: SourceRange, v: string) => Stmt;
-export declare let decl_forced_v: (r: SourceRange, v: string, t: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let instantiate_generics: (r: SourceRange, t: Type) => CCC.Coroutine<State, Err, Typing>;
+export declare let decl_forced_v: (r: SourceRange, v: string, t0: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_v: (r: SourceRange, v: string, t0: Type, is_constant?: boolean | undefined) => Stmt;
 export declare let decl_and_init_v: (r: SourceRange, v: string, t0: Type, e: Stmt, is_constant?: boolean | undefined) => Stmt;
-export declare let decl_const: (r: SourceRange, c: string, t: Type, e: Stmt) => Stmt;
+export declare let decl_const: (r: SourceRange, c: string, t0: Type, e: Stmt) => Stmt;
 export declare let set_v: (r: SourceRange, v: string, e: Stmt) => Stmt;
 export declare const mk_fs_key_value: (r: SourceRange, k: Stmt, v: Stmt) => Stmt;
 export declare const mk_fs_file: (r: SourceRange, path: Stmt, attr: Stmt[]) => Stmt;

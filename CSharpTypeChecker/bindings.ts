@@ -50,16 +50,6 @@ export let get_v = function (r: SourceRange, v: Name): Stmt {
              coerce(r, _ => i, constraints.value)(no_constraints)
     }
 }
-export let decl_forced_v = function (r: SourceRange, v: Name, t: Type, is_constant?: boolean): Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(v, apply(inl(), initial_value(t))))).times(id())).then(wrap_co)
-  let g = curry(f)
-  let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
-  return _ =>
-    co_get_state<State, Err>().then(s =>
-      mk_coroutine<State, Err, Typing>(apply(g, args))
-    )
-}
-
 export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<State, Err, Typing> {
   // console.log("instantiating generics over", type_to_string(t), JSON.stringify(t))
   if (t.kind == "generic type instance") {
@@ -123,6 +113,20 @@ export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<St
 
   return co_unit<State,Err,Typing>(mk_typing(t, Sem.done_rt))
 }
+export let decl_forced_v = function (r: SourceRange, v: Name, t0: Type, is_constant?: boolean): Stmt {
+  return _ => {
+  return instantiate_generics(r, t0).then(t_t => {
+  let t = t_t.type
+  let f = store.then(constant<State, Typing>(mk_typing(unit_type, t_t.sem.then(_ => Sem.decl_v_rt(v, apply(inl(), initial_value(t)))))).times(id())).then(wrap_co)
+  let g = curry(f)
+  let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...t, is_constant: is_constant != undefined ? is_constant : false })), {})
+  return co_get_state<State, Err>().then(s =>
+      mk_coroutine<State, Err, Typing>(apply(g, args))
+    )
+  })
+  }
+}
+
 export let decl_v = function (r: SourceRange, v: Name, t0: Type, is_constant?: boolean): Stmt {
   return _ => {
     return instantiate_generics(r, t0).then(t_t => {
@@ -152,15 +156,20 @@ export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stm
     }))})
   }
 }
-export let decl_const = function (r: SourceRange, c: Name, t: Type, e: Stmt): Stmt {
-  let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
-  let g = curry(f)
-  let args = apply(constant<Unit, Name>(c).times(constant<Unit, TypeInformation>({ ...t, is_constant: true })), {})
-  return _ => mk_coroutine<State, Err, Typing>(apply(g, args)).then(_ =>
-    get_v(r, c)(no_constraints).then(c_val =>
-      e(apply(inl(), c_val.type)).then(e_val =>
-        co_unit(mk_typing(unit_type, Sem.set_v_expr_rt(c, e_val.sem)))
-      )))
+export let decl_const = function (r: SourceRange, c: Name, t0: Type, e: Stmt): Stmt {
+  return _ => {
+    return instantiate_generics(r, t0).then(t_t => {
+    let t = t_t.type
+    let f = store.then(constant<State, Typing>(mk_typing(unit_type, Sem.decl_v_rt(c, apply(inl(), Sem.mk_unit_val)))).times(id())).then(wrap_co)
+    let g = curry(f)
+    let args = apply(constant<Unit, Name>(c).times(constant<Unit, TypeInformation>({ ...t, is_constant: true })), {})
+    return mk_coroutine<State, Err, Typing>(apply(g, args)).then(_ =>
+      get_v(r, c)(no_constraints).then(c_val =>
+        e(apply(inl(), c_val.type)).then(e_val =>
+          co_unit(mk_typing(unit_type, t_t.sem.then(_ => Sem.set_v_expr_rt(c, e_val.sem))))
+        )))
+    })
+  }
 }
 
 export let set_v = function (r: SourceRange, v: Name, e: Stmt): Stmt {

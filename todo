@@ -1,9 +1,5 @@
 [g] Generics
   [ ] instantiate on:
-    [ ] `decl_forced`
-    [ ] `decl`
-    [ ] `decl_and_init`
-    [ ] `decl_const`
     [ ] function parameter
     [ ] function return type
     [ ] generic method call
@@ -32,12 +28,9 @@
       [ ] anonymous functions
       [ ] arrays
       [ ] anonymous functions given to wrong contexts
-  [ ] rendering
-  [ ] files
   [ ] generics
     [ ] array
     [ ] instantiation without declaration (`var x = (new C<int>(...)).m(...)`)
-  [ ] html rendering
 
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files

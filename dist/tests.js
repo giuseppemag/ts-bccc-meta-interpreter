@@ -477,4 +477,12 @@ run_checks([
             { name: "x2 is 2.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x2").v, 2); } },
         ]
     },
-], "Generics: instantiation from constructor");
+    {
+        name: "Generics: nesting",
+        source: "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    var x = (new C<C<int>>(new C<int>(1))).get_x().get_x();\n    typechecker_debugger;\n            ",
+        checks: [
+            { name: "x is int.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x").kind, "int"); } },
+            { name: "x is 1.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, 1); } },
+        ]
+    },
+]);

@@ -50,16 +50,6 @@ exports.get_v = function (r, v) {
             exports.coerce(r, function (_) { return i; }, constraints.value)(types_1.no_constraints);
     };
 };
-exports.decl_forced_v = function (r, v, t, is_constant) {
-    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))))).times(ts_bccc_1.id())).then(exports.wrap_co);
-    var g = ts_bccc_1.curry(f);
-    var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
-    return function (_) {
-        return ts_bccc_1.co_get_state().then(function (s) {
-            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
-        });
-    };
-};
 exports.instantiate_generics = function (r, t) {
     // console.log("instantiating generics over", type_to_string(t), JSON.stringify(t))
     if (t.kind == "generic type instance") {
@@ -129,6 +119,19 @@ exports.instantiate_generics = function (r, t) {
     }
     return ts_bccc_2.co_unit(types_1.mk_typing(t, Sem.done_rt));
 };
+exports.decl_forced_v = function (r, v, t0, is_constant) {
+    return function (_) {
+        return exports.instantiate_generics(r, t0).then(function (t_t) {
+            var t = t_t.type;
+            var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, t_t.sem.then(function (_) { return Sem.decl_v_rt(v, ts_bccc_1.apply(ts_bccc_1.inl(), initial_value(t))); }))).times(ts_bccc_1.id())).then(exports.wrap_co);
+            var g = ts_bccc_1.curry(f);
+            var args = ts_bccc_1.apply(ts_bccc_1.constant(v).times(ts_bccc_1.constant(__assign({}, t, { is_constant: is_constant != undefined ? is_constant : false }))), {});
+            return ts_bccc_1.co_get_state().then(function (s) {
+                return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args));
+            });
+        });
+    };
+};
 exports.decl_v = function (r, v, t0, is_constant) {
     return function (_) {
         return exports.instantiate_generics(r, t0).then(function (t_t) {
@@ -161,17 +164,22 @@ exports.decl_and_init_v = function (r, v, t0, e, is_constant) {
         });
     };
 };
-exports.decl_const = function (r, c, t, e) {
-    var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(c, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(exports.wrap_co);
-    var g = ts_bccc_1.curry(f);
-    var args = ts_bccc_1.apply(ts_bccc_1.constant(c).times(ts_bccc_1.constant(__assign({}, t, { is_constant: true }))), {});
-    return function (_) { return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)).then(function (_) {
-        return exports.get_v(r, c)(types_1.no_constraints).then(function (c_val) {
-            return e(ts_bccc_1.apply(ts_bccc_1.inl(), c_val.type)).then(function (e_val) {
-                return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, Sem.set_v_expr_rt(c, e_val.sem)));
+exports.decl_const = function (r, c, t0, e) {
+    return function (_) {
+        return exports.instantiate_generics(r, t0).then(function (t_t) {
+            var t = t_t.type;
+            var f = types_1.store.then(ts_bccc_1.constant(types_1.mk_typing(types_1.unit_type, Sem.decl_v_rt(c, ts_bccc_1.apply(ts_bccc_1.inl(), Sem.mk_unit_val)))).times(ts_bccc_1.id())).then(exports.wrap_co);
+            var g = ts_bccc_1.curry(f);
+            var args = ts_bccc_1.apply(ts_bccc_1.constant(c).times(ts_bccc_1.constant(__assign({}, t, { is_constant: true }))), {});
+            return ts_bccc_2.mk_coroutine(ts_bccc_1.apply(g, args)).then(function (_) {
+                return exports.get_v(r, c)(types_1.no_constraints).then(function (c_val) {
+                    return e(ts_bccc_1.apply(ts_bccc_1.inl(), c_val.type)).then(function (e_val) {
+                        return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, t_t.sem.then(function (_) { return Sem.set_v_expr_rt(c, e_val.sem); })));
+                    });
+                });
             });
         });
-    }); };
+    };
 };
 exports.set_v = function (r, v, e) {
     return function (c) { return exports.get_v(r, v)(types_1.no_constraints).then(function (v_val) {

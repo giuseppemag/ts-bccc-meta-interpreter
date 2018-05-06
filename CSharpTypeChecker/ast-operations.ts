@@ -341,7 +341,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
         return _ => co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${n.ast} as it is not a class` })
       let generic_params = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
       let C_name = n.ast.C_name
-      let C_name_inst = `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
+      let C_name_inst = generic_params.length == 0 ? C_name : `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
       // console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
 
       let substitutions = generic_arguments
