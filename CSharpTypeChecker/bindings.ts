@@ -46,7 +46,7 @@ export let get_v = function (r: SourceRange, v: Name): Stmt {
   let i = mk_coroutine<State, Err, Typing>(h)
   return constraints =>
     {
-      return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
+      return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
              coerce(r, _ => i, constraints.value)(no_constraints)
     }
 }
@@ -454,11 +454,13 @@ export let arrow = function (r: SourceRange, parameters: Array<Parameter>, closu
     if (constraints.value.kind == "fun_with_input_as_stmts") return co_error<State, Err, Typing>({ range: r, message: "Error" })
     let expected_type = constraints.value
     if (expected_type.kind != "fun") return co_error<State, Err, Typing>({ range: r, message: `Error: expected ${type_to_string(expected_type)}, found function.` })
+
     let input = expected_type.in.kind == "tuple" ? expected_type.in.args : [expected_type.in]
     let output = expected_type.out
     let parameter_declarations = parameters.map((p, p_i) => ({ ...p, type: input[p_i] })).map(p => decl_v(r, p.name, p.type, true)).reduce((p, q) => semicolon(r, p, q), done)
     return co_stateless<State, Err, Typing>(parameter_declarations(no_constraints).then(decls =>
       body(apply(inl<Type, Unit>(), output)).then(b_t =>
+        // console.log(`=> ${type_to_string(b_t.type)}`) ||
         co_unit(mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(p => p.name), closure, r)))
       )))
   }
@@ -675,11 +677,12 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
 }
 
 export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Array<Stmt>): Stmt {
-
   return constraints => ensure_constraints(r, constraints)(//check_arguments(constraints).then(_args =>
     lambda(apply(inl(), fun_stmts_type(arg_values, constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts" ? constraints.value : var_type, r))).then(lambda_t => {
 
-    // console.log("lambda: ", JSON.stringify(lambda_t))
+    // if (constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts")
+    //   console.log("lambda constraints: ", type_to_string(constraints.value))
+    // console.log("lambda: ", type_to_string(lambda_t.type))
 
     if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
       return co_error<State, Err, Typing>({ range: r, message: `Error: invalid lambda type ${JSON.stringify(lambda_t.type)}` })
@@ -688,6 +691,7 @@ export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Arr
 
     let check_arguments = arg_values.reduce<Coroutine<State, Err, Immutable.List<Typing>>>((args, arg, arg_i) =>
       arg(apply(inl(), expected_args[arg_i])).then(arg_t =>
+        // console.log(`Lambda arg: ${type_to_string(expected_args[arg_i])}, ${type_to_string(arg_t.type)}`) ||
         args.then(args_t =>
           co_unit(args_t.push(arg_t))
         )),
@@ -1319,6 +1323,8 @@ export let get_class = (r: SourceRange, t: Type): Coroutine<State, Err, ObjType>
 export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
   constraints => e(constraints).then(e_v => {
     if (type_equals(t, e_v.type)) return co_unit(e_v)
+
+    // console.log(`Coercing from ${type_to_string(e_v.type)} to ${type_to_string(t)}`)
     if (e_v.type.kind == "tuple" && t.kind == "record") {
       let record_labels = t.args.keySeq().toArray()
       return co_unit(
@@ -1326,10 +1332,16 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
       )
     }
 
+    if (e_v.type.kind == "fun" && t.kind == "fun") {
+      // console.log(`Coercing ${type_to_string(e_v.type)} --> ${type_to_string(t)}`)
+      let x = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5)
+      let body = call_lambda(r, e, [get_v(r,x)])
+      return arrow(r, [{ name:x, type:t.in }], [], body)(apply(inl(), t))
+    }
+
     return get_class(r, e_v.type).then(e_c => {
       let t_name = type_to_string(t)
       let e_type_name = type_to_string(e_v.type)
-
 
       let casting_operators = e_c.methods.values().filter(m =>
         m != undefined && m.v.modifiers.some(mod => mod == "casting") &&

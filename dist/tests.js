@@ -485,4 +485,12 @@ run_checks([
             { name: "x is 1.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, 1); } },
         ]
     },
+    {
+        name: "Generics: covariance and contravariance of Func",
+        source: "\nclass B { }\nclass C : B { }\nclass D : C { }\n\nFunc<C,C> f = c => c;\nFunc<D,B> mid = f;\n\nvar x = mid(new D());\ntypechecker_debugger;\n",
+        checks: [
+            { name: "x is B.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("x").C_name, "B"); } },
+            { name: "x is ref_2.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, "ref_2"); } },
+        ]
+    },
 ]);

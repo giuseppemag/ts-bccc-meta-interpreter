@@ -21,23 +21,15 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class Counter {
-  private int cnt = -5;
-  public Counter() {
-    debugger;
-    this.cnt = 0;
-    debugger;
-  }
-  public void tick() {
-    this.cnt = this.cnt + 1;
-    debugger;
-  }
-}
-Counter c = new Counter ();
+class B { }
+class C : B { }
+class D : C { }
+
+Func<C,C> f = c => c;
+Func<D,B> mid = f;
+
+var x = mid(new D());
 typechecker_debugger;
-c.tick ();
-c.tick ();
-debugger;
 `
 
 

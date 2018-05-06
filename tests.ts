@@ -1218,4 +1218,24 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     { name:"x is 1.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 1) },
   ]},
 
+  {
+    name:"Generics: covariance and contravariance of Func",
+    source:`
+class B { }
+class C : B { }
+class D : C { }
+
+Func<C,C> f = c => c;
+Func<D,B> mid = f;
+
+var x = mid(new D());
+typechecker_debugger;
+`
+    ,
+  checks:[
+    { name:"x is B.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal((s.get("x") as any).C_name, "B") },
+    { name:"x is ref_2.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, "ref_2") },
+  ]},
 ])
+
+

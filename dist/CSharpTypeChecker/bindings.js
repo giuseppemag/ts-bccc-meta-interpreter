@@ -46,7 +46,7 @@ exports.get_v = function (r, v) {
     var h = ts_bccc_1.apply(ts_bccc_1.curry(g1), v);
     var i = ts_bccc_2.mk_coroutine(h);
     return function (constraints) {
-        return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
+        return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
             exports.coerce(r, function (_) { return i; }, constraints.value)(types_1.no_constraints);
     };
 };
@@ -488,6 +488,7 @@ exports.arrow = function (r, parameters, closure, body) {
         var parameter_declarations = parameters.map(function (p, p_i) { return (__assign({}, p, { type: input[p_i] })); }).map(function (p) { return exports.decl_v(r, p.name, p.type, true); }).reduce(function (p, q) { return exports.semicolon(r, p, q); }, exports.done);
         return ccc_aux_1.co_stateless(parameter_declarations(types_1.no_constraints).then(function (decls) {
             return body(ts_bccc_1.apply(ts_bccc_1.inl(), output)).then(function (b_t) {
+                // console.log(`=> ${type_to_string(b_t.type)}`) ||
                 return ts_bccc_2.co_unit(types_1.mk_typing(expected_type, Sem.mk_lambda_rt(b_t.sem, parameters.map(function (p) { return p.name; }), closure, r)));
             });
         }));
@@ -675,12 +676,15 @@ exports.def_method = function (r, C_name, _extends, _implements, def, override_m
 exports.call_lambda = function (r, lambda, arg_values) {
     return function (constraints) { return ensure_constraints(r, constraints)(//check_arguments(constraints).then(_args =>
     lambda(ts_bccc_1.apply(ts_bccc_1.inl(), types_1.fun_stmts_type(arg_values, constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts" ? constraints.value : types_1.var_type, r))).then(function (lambda_t) {
-        // console.log("lambda: ", JSON.stringify(lambda_t))
+        // if (constraints.kind == "left" && constraints.value.kind != "fun_with_input_as_stmts")
+        //   console.log("lambda constraints: ", type_to_string(constraints.value))
+        // console.log("lambda: ", type_to_string(lambda_t.type))
         if (lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple")
             return ts_bccc_2.co_error({ range: r, message: "Error: invalid lambda type " + JSON.stringify(lambda_t.type) });
         var expected_args = lambda_t.type.in.args;
         var check_arguments = arg_values.reduce(function (args, arg, arg_i) {
             return arg(ts_bccc_1.apply(ts_bccc_1.inl(), expected_args[arg_i])).then(function (arg_t) {
+                // console.log(`Lambda arg: ${type_to_string(expected_args[arg_i])}, ${type_to_string(arg_t.type)}`) ||
                 return args.then(function (args_t) {
                     return ts_bccc_2.co_unit(args_t.push(arg_t));
                 });
@@ -1258,9 +1262,16 @@ exports.coerce = function (r, e, t) {
     return function (constraints) { return e(constraints).then(function (e_v) {
         if (types_1.type_equals(t, e_v.type))
             return ts_bccc_2.co_unit(e_v);
+        // console.log(`Coercing from ${type_to_string(e_v.type)} to ${type_to_string(t)}`)
         if (e_v.type.kind == "tuple" && t.kind == "record") {
             var record_labels_1 = t.args.keySeq().toArray();
             return ts_bccc_2.co_unit(types_1.mk_typing(t, e_v.sem.then(function (e_v_rt) { return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_v_rt.value, record_labels_1))); })));
+        }
+        if (e_v.type.kind == "fun" && t.kind == "fun") {
+            // console.log(`Coercing ${type_to_string(e_v.type)} --> ${type_to_string(t)}`)
+            var x = Math.random().toString(36).replace(/[^a-z]+/g, '').substr(0, 5);
+            var body = exports.call_lambda(r, e, [exports.get_v(r, x)]);
+            return exports.arrow(r, [{ name: x, type: t.in }], [], body)(ts_bccc_1.apply(ts_bccc_1.inl(), t));
         }
         return exports.get_class(r, e_v.type).then(function (e_c) {
             var t_name = types_1.type_to_string(t);

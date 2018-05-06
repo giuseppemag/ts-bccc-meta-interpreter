@@ -10,7 +10,6 @@
     [ ] Instantiation
   [ ] Generic constraints
     [ ] Validate definition with constraints (or `Unit`) if no constraints given
-  [ ] Covariance and contravariance of Func
   [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator
