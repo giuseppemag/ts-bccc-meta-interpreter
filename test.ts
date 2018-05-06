@@ -21,15 +21,48 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    class C<a> {
-      a x;
-      public C(a x) { this.x = x; }
-      public a get_x() { return this.x; }
-    }
+interface I
+{
+  void M(int x, string y);
+}
 
-    var x = (new C<C<int>>(new C<int>(1))).get_x().get_x();
-    typechecker_debugger;
+class C<a> where a : I {
+  public void N(a x, a y) {
+    x.M(10, "dieci");
+    y.M(11, "undici");
+  }
+}
 `
+
+// test 2
+// interface I
+// {
+//   bool M(int x, string y);
+// }
+
+// class C<a> : I where a : I {
+//   public bool M(int x, string y)
+//   {
+//     return x > y.Length;
+//   }
+
+//   public bool N(a x, a y) {
+//     return x.M(10, "dieci") && y.M(11, "undici");
+//   }
+// }
+
+// test 3
+// interface I<a>
+// {
+//   bool cmp(a other);
+// }
+
+// class C<a> where a : I<a> {
+//   public bool N(a x, a y) {
+//     return x.cmp(y);
+//   }
+// }
+
 
     // let hrstart = process.hrtime()
 

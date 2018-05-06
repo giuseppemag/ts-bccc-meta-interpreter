@@ -3,14 +3,15 @@
     [ ] function parameter
     [ ] function return type
     [ ] generic method call
-  [x] Parser
-    [ ] Generic method call
   [ ] Generic method
     [ ] Parser
     [ ] Instantiation
+    [ ] Call
   [ ] Generic constraints
     [ ] Parser
     [ ] Validation
+  [ ] Generic interfaces
+    [ ] Generic constraints over generic interfaces
   [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator
