@@ -588,6 +588,25 @@ exports.semicolon = function (r, p, q) {
 exports.mk_param = function (name, type) {
     return { name: name, type: type };
 };
+exports.mk_abstract_lambda = function (r, def, closure_parameters, range) {
+    var parameters = def.parameters;
+    var return_t = def.return_t;
+    var body = def.body;
+    var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
+        return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
+    }, exports.done));
+    return function (constraints) { return Co.co_get_state().then(function (initial_bindings) {
+        return set_bindings(types_1.no_constraints).then(function (_) {
+            var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
+            var _fun_type = types_1.fun_type(m_params, return_t, r);
+            if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
+                return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
+            return Co.co_set_state(initial_bindings).then(function (_) {
+                return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, Sem.done_rt));
+            });
+        });
+    }); };
+};
 exports.mk_lambda = function (r, def, closure_parameters, range) {
     var parameters = def.parameters;
     var return_t = def.return_t;
@@ -643,11 +662,16 @@ exports.def_method = function (r, original_methods, C_kind, C_name, _extends, _i
                     out: m.return_t,
                     range: m.range
                 };
-                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, exports.mk_lambda(m.range, {
+                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, C_kind == "interface" ? exports.mk_abstract_lambda(m.range, {
                     return_t: m.return_t,
                     parameters: m.parameters,
                     body: m.body
-                }, ["this"], m.range));
+                }, ["this"], m.range)
+                    : exports.mk_lambda(m.range, {
+                        return_t: m.return_t,
+                        parameters: m.parameters,
+                        body: m.body
+                    }, ["this"], m.range));
             }).reduce(function (p, c) { return exports.semicolon(r, p, c); }));
     //console.log("interfaces_init", interfaces_init.length, _extends.kind)
     return function (_) { return Co.co_get_state().then(function (initial_bindings) {
@@ -832,7 +856,7 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
             };
             return m1;
         }));
-        // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.name)]))
+        // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.type)]))
         // console.log("methods: ", JSON.stringify([C_name, C_kind, methods.map(f => f.name)]))
         var get_class_kind = function (name, bindings) {
             if (bindings.has(name)) {
@@ -1234,7 +1258,7 @@ exports.call_cons = function (r, context, C_name, arg_values, C_name_generic, ty
                 else {
                     var v_2 = f.initial_value.value;
                     if (f.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; })) {
-                        console.log("virtual...");
+                        //console.log("virtual...")
                         return function (_) {
                             // co_stateless<State,Err,Typing>(
                             //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>

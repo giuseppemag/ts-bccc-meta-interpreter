@@ -573,6 +573,26 @@ export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
 export let mk_param = function (name: Name, type: Type) {
   return { name: name, type: type }
 }
+export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
+  let parameters = def.parameters
+  let return_t = def.return_t
+  let body = def.body
+  let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
+    closure_parameters.reduce<Stmt>((acc, cp) =>
+      semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
+    return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
+
+    set_bindings(no_constraints).then(_ =>
+        {
+          let m_params:Type = parameters.length == 0 ? tuple_type([{kind:"unit"}]) : tuple_type((parameters.map(p => p.type)))
+          let _fun_type = fun_type(m_params, return_t, r)
+          if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !type_equals(_fun_type, constraints.value)))
+            return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
+          return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
+                    co_unit(mk_typing(_fun_type, Sem.done_rt)))
+        }
+      ))
+}
 export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
   let parameters = def.parameters
   let return_t = def.return_t
@@ -640,7 +660,15 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
                   
                 return field_set(r, context, get_v(r, "this"),
                         { kind: "att", att_name: m.name },
-                        mk_lambda(m.range,
+                        C_kind == "interface" ? mk_abstract_lambda(m.range,
+                          {
+                            return_t: m.return_t,
+                            parameters: m.parameters,
+                            body: m.body
+                          },
+                          ["this"],
+                          m.range)
+                        : mk_lambda(m.range,
                         {
                           return_t: m.return_t,
                           parameters: m.parameters,
@@ -865,7 +893,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           }
           return m1
         }))
-    // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.name)]))
+    // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.type)]))
     // console.log("methods: ", JSON.stringify([C_name, C_kind, methods.map(f => f.name)]))
 
 
@@ -1303,7 +1331,7 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
       else {
         let v = f.initial_value.value
         if (f.modifiers.some(m => m == "abstract" || m == "virtual")) {
-          console.log("virtual...")
+          //console.log("virtual...")
           return (_: TypeConstraints) =>
             // co_stateless<State,Err,Typing>(
             //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>

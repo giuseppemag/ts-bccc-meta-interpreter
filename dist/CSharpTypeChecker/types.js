@@ -20,8 +20,18 @@ exports.type_to_string = function (t) {
                         : t.kind == "fun" && t.in.kind == "tuple" ? "Func<" + (t.in.args.length == 0 ? "" : t.in.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; })) + "," + exports.type_to_string(t.out) + ">"
                             : t.kind == "fun" ? "Func<" + exports.type_to_string(t.in) + "," + exports.type_to_string(t.out) + ">"
                                 : t.kind == "arr" ? exports.type_to_string(t.arg) + "[]"
-                                    : t.kind == "generic type instance" ? t.args.length == 0 ? t.C_name : t.C_name + "<" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ">"
-                                        : console.log("Error: type_to_string(" + JSON.stringify(t) + ") is not implemented") || "not implemented";
+                                    : t.kind == "render surface" ? "surface"
+                                        : t.kind == "circle" ? "circle"
+                                            : t.kind == "ellipse" ? "ellipse"
+                                                : t.kind == "square" ? "square"
+                                                    : t.kind == "sprite" ? "sprite"
+                                                        : t.kind == "line" ? "line"
+                                                            : t.kind == "other surface" ? "other_surface"
+                                                                : t.kind == "polygon" ? "polygon"
+                                                                    : t.kind == "rectangle" ? "rectangle"
+                                                                        : t.kind == "text" ? "text"
+                                                                            : t.kind == "generic type instance" ? t.args.length == 0 ? t.C_name : t.C_name + "<" + t.args.map(function (t) { return t && exports.type_to_string(t); }).reduce(function (a, b) { return a + "," + b; }) + ">"
+                                                                                : console.log("Error: type_to_string(" + JSON.stringify(t) + ") is not implemented") || "not implemented";
 };
 exports.render_grid_type = { kind: "render-grid" };
 exports.render_grid_pixel_type = { kind: "render-grid-pixel" };
