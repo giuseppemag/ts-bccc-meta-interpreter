@@ -20,7 +20,31 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    class C<a> {\n      a x;\n      public C(a x) { this.x = x; }\n      public a get_x() { return this.x; }\n    }\n\n    var x = (new C<C<int>>(new C<int>(1))).get_x().get_x();\n    typechecker_debugger;\n";
+        var source = "\ninterface I\n{\n  void M(int x, string y);\n}\n\nclass C<a> where a : I {\n  public void N(a x, a y) {\n    x.M(10, \"dieci\");\n    y.M(11, \"undici\");\n  }\n}\n";
+        // test 2
+        // interface I
+        // {
+        //   bool M(int x, string y);
+        // }
+        // class C<a> : I where a : I {
+        //   public bool M(int x, string y)
+        //   {
+        //     return x > y.Length;
+        //   }
+        //   public bool N(a x, a y) {
+        //     return x.M(10, "dieci") && y.M(11, "undici");
+        //   }
+        // }
+        // test 3
+        // interface I<a>
+        // {
+        //   bool cmp(a other);
+        // }
+        // class C<a> where a : I<a> {
+        //   public bool N(a x, a y) {
+        //     return x.cmp(y);
+        //   }
+        // }
         // let hrstart = process.hrtime()
         var output = "";
         var log = function (s, x) {

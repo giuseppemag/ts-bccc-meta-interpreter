@@ -57,7 +57,6 @@ var bin_op = function (op) { return function (a, b) {
     return a.then(function (a_v) {
         return b.then(function (b_v) {
             if (a_v.value.k === "f" || b_v.value.k === "f") {
-                console.log("entering");
                 var a_f = a_v.value.v;
                 var b_f = b_v.value.v;
                 switch (op) {
