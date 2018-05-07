@@ -62,7 +62,6 @@ const bin_op = (op: "+" | "-" | "*" | "/") => (a: Sem.StmtRt, b: Sem.StmtRt): Se
   a.then(a_v =>
   b.then(b_v =>{
     if (a_v.value.k === "f" || b_v.value.k === "f") {
-      console.log("entering")
       let a_f = a_v.value.v as number
       let b_f = b_v.value.v as number
       switch (op) {
