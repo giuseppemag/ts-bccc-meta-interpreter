@@ -42,8 +42,8 @@
 
 
 [m] stop
-  [ ] Python
-  [ ] C#
+  [X] Python
+  [X] C#
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] `Func<int, C<int>> mk_c = i => new C<int>(i);` does not compile
 [m] Arrays of generics do not parse correctly

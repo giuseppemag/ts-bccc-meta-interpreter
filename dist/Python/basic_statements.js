@@ -30,7 +30,7 @@ exports.while_do_rt = function (r, c, k) {
                     var f = function (counter) { return ts_bccc_1.co_set_state(__assign({}, s, { steps_counter: counter })).then(function (_) {
                         return k.then(function (k_res) { return pop_current_context.then(function (_) { return exports.while_do_rt(r, c, k); }); });
                     }); };
-                    if (s.steps_counter > 1000) {
+                    if (s.steps_counter > 300) {
                         if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
                             return ts_bccc_2.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
                         else

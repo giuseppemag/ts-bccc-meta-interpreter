@@ -27,7 +27,7 @@ export let while_do_rt = function(r:SourceRange, c: ExprRt<Sum<Val,Val>>, k: Stm
                     {
                       let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ => 
                                 k.then(k_res => pop_current_context.then(_ => while_do_rt(r,c,k))))
-                      if(s.steps_counter > 1000) {
+                      if(s.steps_counter > 300) {
                         if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
                           return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
                         else 

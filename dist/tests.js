@@ -334,6 +334,20 @@ run_checks([
         ]
     },
     {
+        name: "Simple virtual methods",
+        source: "class A{\n      double a;\n      public  A(int a){\n        this.a = a;\n      }\n      public virtual double GetA(){\n        return this.a;\n      }\n    }\n    \n    A a = new A(1);\n    double res1 = a.GetA();\n    debugger;",
+        checks: [
+            { name: "res1 is 1", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res1").v, 1); } },
+        ]
+    },
+    {
+        name: "Long executions (infinite loop)",
+        source: "int x = 1;\n    while(x < 200){\n     x = x + 1;\n    }\n    \n    debugger;",
+        checks: [
+            { name: "x is 200", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, 200); } },
+        ]
+    },
+    {
         name: "Fields/methods overloading",
         source: "  class A {\n      double a;\n      public A(int a, int x){\n        this.a = a;\n        this.b = 10;\n      }\n      protected int b;\n      protected int GetB(){\n        return this.b;\n      }\n      public virtual double GetA(){\n        return this.a;\n      }\n    }\n\n    class AAA : A {\n      int aaa;\n      public AAA (int aaa) : base(aaa, 5){\n        this.aaa = aaa;\n      }\n      public override double GetA(){\n        return this.aaa;\n      }\n    }\n\n    AAA aaa = new AAA(555);\n    double _aaa = aaa.GetA();\n    int x = aaa.b;\n    int y = aaa.GetB();\n    debugger;",
         checks: [

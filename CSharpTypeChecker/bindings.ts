@@ -556,7 +556,7 @@ export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
                       let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
                       return res.kind == "left" ? q_t.sem : f
                     } )
-          if(s.steps_counter > 1000) {
+          if(s.steps_counter > 300) {
             if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
               return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
             else
@@ -580,7 +580,7 @@ export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
     closure_parameters.reduce<Stmt>((acc, cp) =>
       semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
-  return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
+    return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
 
     set_bindings(no_constraints).then(_ =>
       body(apply(inl(), return_t)).then(body_t =>
@@ -607,7 +607,7 @@ export let def_fun = function (r: SourceRange, def: FunDefinition, closure_param
 }
 
 
-export let def_method = function (r: SourceRange, C_name: string, _extends: Option<ObjType>, _implements:ObjType[], def: MethodDefinition, override_methods: MethodDefinition[]): Stmt {
+export let def_method = function (r: SourceRange, original_methods:MethodDefinition[], C_kind:"normal" | "abstract" | "interface", C_name: string, _extends: Option<ObjType>, _implements:ObjType[], def: MethodDefinition, override_methods: MethodDefinition[]): Stmt {
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
   let return_t = def.return_t
@@ -621,50 +621,77 @@ export let def_method = function (r: SourceRange, C_name: string, _extends: Opti
     _implements.length > 0 ?
     _implements.map(i => field_set(r, context, get_v(r, "this"), { kind: "att", att_name: `${i.C_name}_base` }, call_cons(r, context, i.C_name, [], i.C_name, [], true))).reduce((p,c) => semicolon(r, p,c))
     : done
+
+  let virtual_fields =
+    original_methods.filter(m => m.modifiers.some(m => m == "abstract" || m == "virtual") || C_kind == "interface")
+
+
+  interfaces_init = 
+    virtual_fields.length == 0 ? interfaces_init :
+    semicolon(r, 
+              interfaces_init, 
+              virtual_fields.map(m =>
+                {
+                  let inner_lambda_type: Type = {
+                    kind: "fun", in: tuple_type(m.parameters.length == 0 ? [{ kind: "unit" }] : m.parameters.map(p => p.type)),
+                    out: m.return_t,
+                    range: m.range
+                  }
+                  
+                return field_set(r, context, get_v(r, "this"),
+                        { kind: "att", att_name: m.name },
+                        mk_lambda(m.range,
+                        {
+                          return_t: m.return_t,
+                          parameters: m.parameters,
+                          body: m.body
+                        },
+                        ["this"],
+                        m.range)
+                      )
+                    }
+              ).reduce((p, c) => semicolon(r, p, c)))
   //console.log("interfaces_init", interfaces_init.length, _extends.kind)
   return _ => Co.co_get_state<State, Err>().then(initial_bindings =>
     set_bindings(no_constraints).then(_ =>
       body(apply(inl(), return_t)).then(body_t =>
-        ((
-          //improve...
+        ((//improve...
           def.is_constructor ?
-          _extends.kind == "left"
-            ? // this is a constructor with base\
-
-            override_methods.length == 0 ?
-              semicolon(r,
-                        field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
-                        interfaces_init)
+          (_extends.kind == "left" ? // this is a constructor with base\
+            (override_methods.length == 0 ?
+                  semicolon(r,
+                            field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
+                            interfaces_init)
+                  :
+                  semicolon(
+                    r,
+                    field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
+                    semicolon(r,
+                              interfaces_init,
+                              override_methods.map(a_m =>
+                                field_set(r, context, get_v(r, "this"),
+                                  { kind: "att", att_name: a_m.name },
+                                  mk_lambda(r, {
+                                    return_t: a_m.return_t,
+                                    parameters: a_m.parameters,
+                                    body: a_m.body
+                                  }, ["this"], r))
+                              ).reduce((p, c) => semicolon(r, p, c)))
+              ))
               :
-              semicolon(
-                r,
-                field_set(r, context, get_v(r, "this"), { kind: "att", att_name: "base" }, call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)),
-                semicolon(r,
-                          interfaces_init,
-                          override_methods.map(a_m =>
-                            field_set(r, context, get_v(r, "this"),
-                              { kind: "att", att_name: a_m.name },
-                              mk_lambda(r, {
-                                return_t: a_m.return_t,
-                                parameters: a_m.parameters,
-                                body: a_m.body
-                              }, ["this"], r))
-                          ).reduce((p, c) => semicolon(r, p, c)))
-          )
-          :
-          override_methods.length == 0 ?
-            interfaces_init :
-            semicolon(r, interfaces_init, override_methods.map(a_m =>
-                                                  field_set(r, context, get_v(r, "this"),
-                                                    { kind: "att", att_name: a_m.name },
-                                                    mk_lambda(r, {
-                                                      return_t: a_m.return_t,
-                                                      parameters: a_m.parameters,
-                                                      body: a_m.body
-                                                    }, ["this"], r))
-                                                ).reduce((p, c) => semicolon(r, p, c)))
+              (override_methods.length == 0 ?
+                interfaces_init :
+              semicolon(r, interfaces_init, override_methods.map(a_m =>
+                                                    field_set(r, context, get_v(r, "this"),
+                                                      { kind: "att", att_name: a_m.name },
+                                                      mk_lambda(r, {
+                                                        return_t: a_m.return_t,
+                                                        parameters: a_m.parameters,
+                                                        body: a_m.body
+                                                      }, ["this"], r))
+                                                  ).reduce((p, c) => semicolon(r, p, c)))))
 
-          : _done)
+            : _done)
           (apply(inl(), { kind: "unit" as "unit" }))).then(base_sem =>
             Co.co_set_state<State, Err>(initial_bindings).then(_ =>
               is_static ? co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
@@ -824,16 +851,17 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
             is_used_as_base:false,
             type: inner_lambda_type,
             modifiers: C_kind == "interface" ? modifiers.filter(m => m == "public" || m == "private" || m == "protected") : m.modifiers,
-            initial_value: apply(inl<Stmt, Unit>(),
-              mk_lambda(m.range,
-                {
-                  return_t: m.return_t,
-                  parameters: m.parameters,
-                  body: m.body
-                },
-                ["this"],
-                m.range)
-            )
+            initial_value: apply(inr<Stmt, Unit>(), {})
+            // initial_value: apply(inl<Stmt, Unit>(),
+            //   mk_lambda(m.range,
+            //     {
+            //       return_t: m.return_t,
+            //       parameters: m.parameters,
+            //       body: m.body
+            //     },
+            //     ["this"],
+            //     m.range)
+            // )
           }
           return m1
         }))
@@ -898,7 +926,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
         if (concrete_classes_to_extend.length == 1) {
           concrete_extend = apply(inl(), concrete_classes_to_extend[0].value as ObjType)
         }
-        let res = def_method(m.range, C_name, concrete_extend, interfaces_to_implement, m,  _methods.filter(m => m.modifiers.some(m => m == "override")))(no_constraints)
+        let res = def_method(m.range, _methods, C_kind, C_name, concrete_extend, interfaces_to_implement, m,  _methods.filter(m => m.modifiers.some(m => m == "override")))(no_constraints)
         return res
       }
       ))).then(methods_t => {
@@ -1275,6 +1303,7 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
       else {
         let v = f.initial_value.value
         if (f.modifiers.some(m => m == "abstract" || m == "virtual")) {
+          console.log("virtual...")
           return (_: TypeConstraints) =>
             // co_stateless<State,Err,Typing>(
             //   Co.co_set_state<State,Err>({...bindings, bindings:bindings.bindings.remove("this")}).then(_ =>

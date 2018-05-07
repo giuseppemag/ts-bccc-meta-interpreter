@@ -844,6 +844,35 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     { name:"res3 is 9000", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("res3").v, "9000") },
   ]},
   {
+    name:"Simple virtual methods",
+    source:`class A{
+      double a;
+      public  A(int a){
+        this.a = a;
+      }
+      public virtual double GetA(){
+        return this.a;
+      }
+    }
+    
+    A a = new A(1);
+    double res1 = a.GetA();
+    debugger;`,
+  checks:[
+    { name:"res1 is 1", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("res1").v, 1) },
+  ]},
+  {
+    name:"Long executions (infinite loop)",
+    source:`int x = 1;
+    while(x < 200){
+     x = x + 1;
+    }
+    
+    debugger;`,
+  checks:[
+    { name:"x is 200", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 200) },
+  ]},
+  {
     name:"Fields/methods overloading",
     source:`  class A {
       double a;
