@@ -1,6 +1,6 @@
 {
   "name": "ts-bccc-meta-compiler",
-  "version": "1.0.93",
+  "version": "1.0.94",
   "description": "A meta-compiler based on the ts-bccc package.",
   "typings": "dist/main.d.ts",
   "typescript": {

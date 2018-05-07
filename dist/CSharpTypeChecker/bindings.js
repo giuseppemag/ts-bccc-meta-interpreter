@@ -662,7 +662,7 @@ exports.def_method = function (r, original_methods, C_kind, C_name, _extends, _i
                     out: m.return_t,
                     range: m.range
                 };
-                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, C_kind == "interface" ? exports.mk_abstract_lambda(m.range, {
+                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, C_kind == "interface" || m.modifiers.some(function (m) { return m == "abstract"; }) ? exports.mk_abstract_lambda(m.range, {
                     return_t: m.return_t,
                     parameters: m.parameters,
                     body: m.body

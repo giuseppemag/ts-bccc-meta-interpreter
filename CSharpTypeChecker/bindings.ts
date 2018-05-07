@@ -660,7 +660,7 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
                   
                 return field_set(r, context, get_v(r, "this"),
                         { kind: "att", att_name: m.name },
-                        C_kind == "interface" ? mk_abstract_lambda(m.range,
+                        C_kind == "interface" || m.modifiers.some(m => m == "abstract") ? mk_abstract_lambda(m.range,
                           {
                             return_t: m.return_t,
                             parameters: m.parameters,
