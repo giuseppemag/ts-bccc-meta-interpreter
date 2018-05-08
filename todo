@@ -1,4 +1,19 @@
 [g] tail recursion runtime
+[g] Strange error: "cannot redeclare variable this"
+```
+class C<a> {
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
+}
+
+class D {
+  C<int> c_int() {
+    var c = new C<int>(10);
+    return c;
+  }
+}
+```
 [g] Generics
   [ ] instantiate on:
     [x] func parameter
@@ -53,22 +68,6 @@
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] `Func<int, C<int>> mk_c = i => new C<int>(i);` does not compile
 [m] Arrays of generics do not parse correctly
-[m] Strange error: "cannot redeclare variable this"
-```
-class C<a> {
-  a x;
-  public C(a x) { this.x = x; }
-  public a get_x() { return this.x; }
-}
-
-class D {
-  C<int> c_int() {
-    var c = new C<int>(10);
-    return c;
-  }
-}
-```
-
 [m] Add tests
   [ ] generics and inheritance
   [ ] generics and interfaces
