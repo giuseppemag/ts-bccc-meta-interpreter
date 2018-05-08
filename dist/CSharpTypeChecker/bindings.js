@@ -589,23 +589,27 @@ exports.mk_param = function (name, type) {
     return { name: name, type: type };
 };
 exports.mk_abstract_lambda = function (r, def, closure_parameters, range) {
-    var parameters = def.parameters;
-    var return_t = def.return_t;
-    var body = def.body;
-    var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
-        return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
-    }, exports.done));
-    return function (constraints) { return Co.co_get_state().then(function (initial_bindings) {
-        return set_bindings(types_1.no_constraints).then(function (_) {
-            var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
-            var _fun_type = types_1.fun_type(m_params, return_t, r);
-            if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
-                return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
-            return Co.co_set_state(initial_bindings).then(function (_) {
-                return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, Sem.done_rt));
+    return function (constraints) {
+        var parameters = def.parameters;
+        return exports.instantiate_generics(r, def.return_t).then(function (return_t_i) {
+            var return_t = return_t_i.type;
+            var body = def.body;
+            var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
+                return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
+            }, exports.done));
+            return Co.co_get_state().then(function (initial_bindings) {
+                return set_bindings(types_1.no_constraints).then(function (_) {
+                    var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
+                    var _fun_type = types_1.fun_type(m_params, return_t, r);
+                    if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
+                        return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
+                    return Co.co_set_state(initial_bindings).then(function (_) {
+                        return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, return_t_i.sem.then(function (_) { return Sem.done_rt; })));
+                    });
+                });
             });
         });
-    }); };
+    };
 };
 exports.mk_lambda = function (r, def, closure_parameters, range) {
     return function (constraints) {

@@ -574,13 +574,15 @@ export let mk_param = function (name: Name, type: Type) {
   return { name: name, type: type }
 }
 export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
+  return constraints => {
   let parameters = def.parameters
-  let return_t = def.return_t
+  return instantiate_generics(r, def.return_t).then(return_t_i => {
+  let return_t = return_t_i.type
   let body = def.body
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
     closure_parameters.reduce<Stmt>((acc, cp) =>
       semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
-    return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
+  return Co.co_get_state<State, Err>().then(initial_bindings =>
 
     set_bindings(no_constraints).then(_ =>
         {
@@ -589,9 +591,10 @@ export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition,
           if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !type_equals(_fun_type, constraints.value)))
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
           return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
-                    co_unit(mk_typing(_fun_type, Sem.done_rt)))
+                    co_unit(mk_typing(_fun_type, return_t_i.sem.then(_ => Sem.done_rt))))
         }
       ))
+    })}
 }
 export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
   return constraints => {

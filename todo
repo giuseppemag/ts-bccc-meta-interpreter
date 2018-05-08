@@ -1,10 +1,17 @@
 [g] tail recursion runtime
 [g] Generics
   [ ] instantiate on:
-    [ ] method parameter
-    [ ] method return type
-    [ ] static method parameter
-    [ ] static method return type
+    [x] func parameter
+    [x] func return type
+    [/] method parameter
+    [/] method return type
+    [/] static method parameter
+    [/] static method return type
+    [/] abstract method parameter
+    [/] abstract method return type
+    [/] interface method parameter
+    [/] interface method return type
+    [ ] add tests
     [ ] generic method call
   [ ] Generic method
     [ ] Parser
@@ -29,7 +36,6 @@
       [ ] anonymous functions given to wrong contexts
   [ ] generics
     [ ] array
-    [ ] instantiation without declaration (`var x = (new C<int>(...)).m(...)`)
 
 [g] Restructure project
   [ ] Bindings.ts becomes a whole directory of files
