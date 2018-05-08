@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\ninterface I\n{\n  void M(int x, string y);\n}\n\nclass C<a> where a : I {\n  public void N(a x, a y) {\n    x.M(10, \"dieci\");\n    y.M(11, \"undici\");\n  }\n}\n";
+        var source = "\nclass C<a> {\n  a x;\n  public C(a x) { this.x = x; }\n  public a get_x() { return this.x; }\n}\n\nclass D {\n  int c_int(C<int> c0) {\n    return c0.get_x();\n  }\n}\n\n";
         // test 2
         // interface I
         // {

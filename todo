@@ -1,18 +1,15 @@
 [g] tail recursion runtime
 [g] Generics
   [ ] instantiate on:
-    [ ] function parameter
-    [ ] function return type
+    [ ] method parameter
+    [ ] method return type
+    [ ] static method parameter
+    [ ] static method return type
     [ ] generic method call
   [ ] Generic method
     [ ] Parser
     [ ] Instantiation
     [ ] Call
-  [ ] Generic constraints
-    [ ] Parser
-    [ ] Validation
-  [ ] Generic interfaces
-    [ ] Generic constraints over generic interfaces
   [ ] Covariance and contravariance
 
 [g] HTML renderers for server simulator
@@ -42,12 +39,30 @@
 [g] Move ccc_aux to CCC repo
 
 
-[m] stop
-  [X] Python
-  [X] C#
+[m] Generic constraints
+  [ ] Parser
+  [ ] Validation
+[m] Generic interfaces
+  [ ] Generic constraints over generic interfaces
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] `Func<int, C<int>> mk_c = i => new C<int>(i);` does not compile
 [m] Arrays of generics do not parse correctly
+[m] Strange error: "cannot redeclare variable this"
+```
+class C<a> {
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
+}
+
+class D {
+  C<int> c_int() {
+    var c = new C<int>(10);
+    return c;
+  }
+}
+```
+
 [m] Add tests
   [ ] generics and inheritance
   [ ] generics and interfaces

@@ -594,13 +594,15 @@ export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition,
       ))
 }
 export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
+  return constraints => {
   let parameters = def.parameters
-  let return_t = def.return_t
+  return instantiate_generics(r, def.return_t).then(return_t_i => {
+  let return_t = return_t_i.type
   let body = def.body
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
     closure_parameters.reduce<Stmt>((acc, cp) =>
       semicolon(r, _ => get_v(r, cp)(no_constraints).then(cp_t => decl_forced_v(r, cp, cp_t.type, true)(no_constraints)), acc), done))
-    return constraints => Co.co_get_state<State, Err>().then(initial_bindings =>
+    return Co.co_get_state<State, Err>().then(initial_bindings =>
 
     set_bindings(no_constraints).then(_ =>
       body(apply(inl(), return_t)).then(body_t =>
@@ -611,9 +613,11 @@ export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_
           if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !type_equals(_fun_type, constraints.value)))
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
           return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
-                    co_unit(mk_typing(_fun_type, Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))
+                    co_unit(mk_typing(_fun_type, return_t_i.sem.then(_ => Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range)))))
         }
       )))
+    })
+  }
 }
 // export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
 // export interface State { highlighting:SourceRange, bindings:Bindings }
@@ -628,9 +632,11 @@ export let def_fun = function (r: SourceRange, def: FunDefinition, closure_param
 
 
 export let def_method = function (r: SourceRange, original_methods:MethodDefinition[], C_kind:"normal" | "abstract" | "interface", C_name: string, _extends: Option<ObjType>, _implements:ObjType[], def: MethodDefinition, override_methods: MethodDefinition[]): Stmt {
+  return _ => {
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
-  let return_t = def.return_t
+  return instantiate_generics(r, def.return_t).then(return_t_i => {
+  let return_t = return_t_i.type
   let body = def.body
   let _done: Stmt = done
   let context: CallingContext = { kind: "class", C_name: C_name, looking_up_base: false }
@@ -646,10 +652,10 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
     original_methods.filter(m => m.modifiers.some(m => m == "abstract" || m == "virtual") || C_kind == "interface")
 
 
-  interfaces_init = 
+  interfaces_init =
     virtual_fields.length == 0 ? interfaces_init :
-    semicolon(r, 
-              interfaces_init, 
+    semicolon(r,
+              interfaces_init,
               virtual_fields.map(m =>
                 {
                   let inner_lambda_type: Type = {
@@ -657,7 +663,7 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
                     out: m.return_t,
                     range: m.range
                   }
-                  
+
                 return field_set(r, context, get_v(r, "this"),
                         { kind: "att", att_name: m.name },
                         C_kind == "interface" || m.modifiers.some(m => m == "abstract") ? mk_abstract_lambda(m.range,
@@ -680,7 +686,7 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
                     }
               ).reduce((p, c) => semicolon(r, p, c)))
   //console.log("interfaces_init", interfaces_init.length, _extends.kind)
-  return _ => Co.co_get_state<State, Err>().then(initial_bindings =>
+  return Co.co_get_state<State, Err>().then(initial_bindings =>
     set_bindings(no_constraints).then(_ =>
       body(apply(inl(), return_t)).then(body_t =>
         ((//improve...
@@ -723,12 +729,16 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
           (apply(inl(), { kind: "unit" as "unit" }))).then(base_sem =>
             Co.co_set_state<State, Err>(initial_bindings).then(_ =>
               is_static ? co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
-                Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))
+                  return_t_i.sem.then(_ =>
+                  Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range))))
                 : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]),
                   fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r), r),
+                  return_t_i.sem.then(_ =>
                   Sem.mk_lambda_rt(Sem.mk_lambda_rt(
-                    base_sem.sem.then(_ => body_t.sem), parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))
+                    base_sem.sem.then(_ => body_t.sem), parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range)))))
           ))))
+        })
+  }
 }
 
 export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Array<Stmt>): Stmt {
@@ -841,6 +851,16 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
 
     let fields = fields_from_context.map(f => f(context))
 
+    let instantiate_field_types = comm_list_coroutine(Immutable.List(fields.map(f => instantiate_generics(r, f.type))))
+    return instantiate_field_types.then(field_types_i_l => {
+    let field_types_i = field_types_i_l.toArray()
+
+    fields.forEach((f,f_i) => {
+      f.type = field_types_i[f_i].type
+    })
+
+    let field_types_i_sem = field_types_i.map(a => a.sem).reduce((a,b) => a.then(_ => b), Sem.done_rt)
+
     fields = fields.concat(
       extended_classes.map(e => {
         let base: FieldDefinition = {
@@ -855,7 +875,6 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
       }))
     let this_class_ref_type: Type = { kind: "ref", C_name: C_name }
     let this_class_ref_param: Parameter = { name: "this", type: this_class_ref_type }
-
 
     let casting_operators = extended_classes.map((ec:ObjType) : MethodDefinition => {
       let base_type: Type = { kind: "ref", C_name: ec.C_name }
@@ -1015,13 +1034,14 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
 
         return co_set_state<State, Err>({ ...initial_bindings, bindings: initial_bindings.bindings.set(C_name, { ...C_type, is_constant: true }) }).then(_ =>
           init_static_fields(no_constraints).then(init_static_fields_t =>
-            co_unit(mk_typing(unit_type, Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem)))
+            co_unit(mk_typing(unit_type, field_types_i_sem.then(_fti => Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem))))
           )
         )
       }
       )
     })
   })
+})
 }
 
 export let generic_instance_name = (C_name:string, generic_parameters:Array<GenericParameter>, generic_arguments:Immutable.Map<string,Type>) : string =>

@@ -21,17 +21,18 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-interface I
-{
-  void M(int x, string y);
+class C<a> {
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
 }
 
-class C<a> where a : I {
-  public void N(a x, a y) {
-    x.M(10, "dieci");
-    y.M(11, "undici");
+class D {
+  int c_int(C<int> c0) {
+    return c0.get_x();
   }
 }
+
 `
 
 // test 2

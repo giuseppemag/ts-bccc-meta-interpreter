@@ -379,7 +379,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
-        })), !is_visible
+        })) //, !is_visible
       ) })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?
