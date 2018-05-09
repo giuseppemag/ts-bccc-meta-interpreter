@@ -639,6 +639,7 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
   return instantiate_generics(r, def.return_t).then(return_t_i => {
+
   let return_t = return_t_i.type
   let body = def.body
   let _done: Stmt = done
@@ -1035,9 +1036,11 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
           }
         }).reduce((a, b) => semicolon(r, a, b), done)
 
+        let instantiate_methods = methods_t.toArray().map(m_t => m_t.sem).reduce((a, b) => a.then(a_i => b), Sem.done_rt)
+
         return co_set_state<State, Err>({ ...initial_bindings, bindings: initial_bindings.bindings.set(C_name, { ...C_type, is_constant: true }) }).then(_ =>
           init_static_fields(no_constraints).then(init_static_fields_t =>
-            co_unit(mk_typing(unit_type, field_types_i_sem.then(_fti => Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem))))
+            co_unit(mk_typing(unit_type, instantiate_methods.then(_ => field_types_i_sem.then(_fti => Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem)))))
           )
         )
       }

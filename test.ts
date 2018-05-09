@@ -28,8 +28,8 @@ class C<a> {
 }
 
 class D {
-  int c_int(C<int> c0) {
-    return c0.get_x();
+  C<bool> c_int(C<int> c0) {
+    return new C<bool>(c0.get_x() > 0);
   }
 }
 

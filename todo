@@ -1,27 +1,12 @@
 [g] tail recursion runtime
-[g] Strange error: "cannot redeclare variable this"
-```
-class C<a> {
-  a x;
-  public C(a x) { this.x = x; }
-  public a get_x() { return this.x; }
-}
-
-class D {
-  C<int> c_int() {
-    var c = new C<int>(10);
-    return c;
-  }
-}
-```
 [g] Generics
   [ ] instantiate on:
-    [x] func parameter
     [x] func return type
-    [/] method parameter
-    [/] method return type
-    [/] static method parameter
+    [x] method return type
     [/] static method return type
+    [ ] method parameter
+    [ ] func parameter
+    [/] static method parameter
     [/] abstract method parameter
     [/] abstract method return type
     [/] interface method parameter
@@ -33,6 +18,7 @@ class D {
     [ ] Instantiation
     [ ] Call
   [ ] Covariance and contravariance
+  [ ] return co_error if generic_arguments do not cover all names
 
 [g] HTML renderers for server simulator
 

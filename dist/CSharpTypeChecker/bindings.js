@@ -988,9 +988,10 @@ exports.def_class = function (r, modifiers, C_kind, C_name, extends_or_implement
                             }); };
                         }
                     }).reduce(function (a, b) { return exports.semicolon(r, a, b); }, exports.done);
+                    var instantiate_methods = methods_t.toArray().map(function (m_t) { return m_t.sem; }).reduce(function (a, b) { return a.then(function (a_i) { return b; }); }, Sem.done_rt);
                     return ts_bccc_1.co_set_state(__assign({}, initial_bindings, { bindings: initial_bindings.bindings.set(C_name, __assign({}, C_type, { is_constant: true })) })).then(function (_) {
                         return init_static_fields(types_1.no_constraints).then(function (init_static_fields_t) {
-                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, field_types_i_sem.then(function (_fti) { return Sem.declare_class_rt(r, C_name, C_int).then(function (_) { return init_static_fields_t.sem; }); })));
+                            return ts_bccc_2.co_unit(types_1.mk_typing(types_1.unit_type, instantiate_methods.then(function (_) { return field_types_i_sem.then(function (_fti) { return Sem.declare_class_rt(r, C_name, C_int).then(function (_) { return init_static_fields_t.sem; }); }); })));
                         });
                     });
                 });

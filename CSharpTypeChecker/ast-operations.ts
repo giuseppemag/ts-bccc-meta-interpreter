@@ -338,14 +338,13 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
   : n.ast.kind == "class" && n.ast.generic_parameters.length > 0 && !n.ast.generic_parameters.some(p => p.name.ast.kind != "id") ?
     def_generic_class(n.range, n.ast.C_name, n.ast.generic_parameters.map(p => ({ name:p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?", variance:p.variant })),
     (generic_arguments:Immutable.Map<string, Type>, is_visible?:boolean) : Stmt => {
-      // todo: return co_error if generic_arguments do not cover all names
       return constraints => {
       if (n.ast.kind != "class")
         return co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${n.ast} as it is not a class` })
       let generic_params = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
       let C_name = n.ast.C_name
       let C_name_inst = generic_params.length == 0 ? C_name : `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
-      // console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+      console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
 
       let substitutions = generic_arguments
 
@@ -385,7 +384,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
-        })), !is_visible
+        })) //, !is_visible
       )(constraints).then(res => try_bind("this", prev_this).then(_ => co_unit(res)))) } })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?
