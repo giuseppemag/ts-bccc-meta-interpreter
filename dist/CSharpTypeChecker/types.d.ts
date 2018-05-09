@@ -1,5 +1,6 @@
 import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum, Option } from "ts-bccc";
+import * as CCC from "ts-bccc";
 import { Coroutine } from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
@@ -187,3 +188,5 @@ export declare type FunWithStmts = {
 export declare type TypeConstraints = Option<Type | FunWithStmts>;
 export declare let no_constraints: TypeConstraints;
 export declare type Stmt = (constraints: TypeConstraints) => Coroutine<State, Err, Typing>;
+export declare let try_unbind: (k: string) => CCC.Coroutine<State, Err, Sum<TypeInformation, Unit>>;
+export declare let try_bind: (k: string, v: Sum<TypeInformation, Unit>) => CCC.Coroutine<State, Err, Unit>;

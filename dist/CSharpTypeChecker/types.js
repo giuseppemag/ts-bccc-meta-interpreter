@@ -10,6 +10,7 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 var ts_bccc_1 = require("ts-bccc");
+var ts_bccc_2 = require("ts-bccc");
 var source_range_1 = require("../source_range");
 exports.type_to_string = function (t) {
     return t.kind == "unit" ? "void"
@@ -96,3 +97,20 @@ exports.type_equals = function (t1, t2) {
     return t1.kind == t2.kind;
 };
 exports.no_constraints = ts_bccc_1.inr().f({});
+exports.try_unbind = function (k) {
+    return ts_bccc_1.co_get_state().then(function (s) {
+        return s.bindings.has(k) ?
+            ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.remove(k) })).then(function (_) {
+                return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), s.bindings.get(k)));
+            })
+            : ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), {}));
+    });
+};
+exports.try_bind = function (k, v) {
+    return ts_bccc_1.co_get_state().then(function (s) {
+        return v.kind == "right" ? ts_bccc_2.co_unit({})
+            : ts_bccc_1.co_set_state(__assign({}, s, { bindings: s.bindings.set(k, v.value) })).then(function (_) {
+                return ts_bccc_2.co_unit({});
+            });
+    });
+};

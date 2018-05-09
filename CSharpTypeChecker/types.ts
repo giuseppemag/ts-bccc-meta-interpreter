@@ -128,3 +128,16 @@ export type FunWithStmts = {kind:"fun_with_input_as_stmts", in: Stmt[],out:Type,
 export type TypeConstraints = Option<Type | FunWithStmts>
 export let no_constraints:TypeConstraints = inr<Type,Unit>().f({})
 export type Stmt = (constraints:TypeConstraints) => Coroutine<State, Err, Typing>
+
+export let try_unbind = (k:string) : Coroutine<State, Err, Option<TypeInformation>> =>
+  co_get_state<State,Err>().then(s =>
+  s.bindings.has(k) ?
+    co_set_state<State,Err>({...s, bindings:s.bindings.remove(k)}).then(_ =>
+    co_unit(apply(inl(), s.bindings.get(k))))
+  : co_unit(apply(inr(), {})))
+
+export let try_bind = (k:string, v:Option<TypeInformation>) : Coroutine<State, Err, Unit> =>
+  co_get_state<State,Err>().then(s =>
+  v.kind == "right" ? co_unit({})
+  : co_set_state<State,Err>({...s, bindings:s.bindings.set(k, v.value)}).then(_ =>
+  co_unit({})))
