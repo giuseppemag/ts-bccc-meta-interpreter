@@ -335,14 +335,14 @@ run_checks([
     },
     {
         name: "Simple virtual methods",
-        source: "class A{\n      double a;\n      public  A(int a){\n        this.a = a;\n      }\n      public virtual double GetA(){\n        return this.a;\n      }\n    }\n    \n    A a = new A(1);\n    double res1 = a.GetA();\n    debugger;",
+        source: "class A{\n      double a;\n      public  A(int a){\n        this.a = a;\n      }\n      public virtual double GetA(){\n        return this.a;\n      }\n    }\n\n    A a = new A(1);\n    double res1 = a.GetA();\n    debugger;",
         checks: [
             { name: "res1 is 1", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("res1").v, 1); } },
         ]
     },
     {
         name: "Long executions (infinite loop)",
-        source: "int x = 1;\n    while(x < 200){\n     x = x + 1;\n    }\n    \n    debugger;",
+        source: "int x = 1;\n    while(x < 200){\n     x = x + 1;\n    }\n\n    debugger;",
         checks: [
             { name: "x is 200", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, 200); } },
         ]
@@ -507,4 +507,44 @@ run_checks([
             { name: "x is ref_2.", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("x").v, "ref_2"); } },
         ]
     },
-]);
+    {
+        name: "Generics: multiple arguments",
+        source: "\nclass C<a,b> {\n  a x;\n  public C(a x) { this.x = x; }\n  public (a,b) get_x(b y) { return (this.x,y); }\n}\nC<int, bool> c = new C<int, bool>(10);\nvar y = c.get_x(true);\ntypechecker_debugger;\n",
+        checks: [
+            { name: "c is C<int,bool>.", step: 1, expected_kind: "bindings", check: function (s) { return assert_equal(s.get("c").C_name, "C<int,bool>"); } },
+            { name: "y is (10,true).", step: 3, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("y").v[0].v, 10) && assert_equal(s.globals.get(0).get("y").v[1].v, true); } },
+        ]
+    },
+    {
+        name: "Generics: instantiation from methods and functions",
+        source: "\nclass C<a> {\n  a x;\n  public C(a x) { this.x = x; }\n  public a get_x() { return this.x; }\n}\nclass D {\n  C<bool> c_int(C<int> c0) {\n    return new C<bool>(c0.get_x() > 0);\n  }\n}\nC<string> f(C<float> c_f) {\n  return new C<string>(\"!!!\");\n}\n    ",
+        checks: [
+            { name: "C<bool> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<bool>"); } },
+            { name: "C<int> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<int>"); } },
+            { name: "C<float> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<float>"); } },
+            { name: "C<string> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<string>"); } },
+        ]
+    },
+    {
+        name: "Generics: instantiation from static methods",
+        source: "\nclass C<a> {\n  a x;\n  public C(a x) { this.x = x; }\n  public a get_x() { return this.x; }\n}\nclass D {\n  static C<bool> c_int(C<int> c0) {\n    return new C<bool>(c0.get_x() > 0);\n  }\n}\n",
+        checks: [
+            { name: "C<bool> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<bool>"); } },
+            { name: "C<int> is instantiated", step: 2, expected_kind: "memory", check: function (s) { return s.classes.has("C<int>"); } },
+        ]
+    },
+    {
+        name: "Generics: wrong instantiation does not compile",
+        source: "\nclass C<a,b> {\n  a x;\n  public C(a x) { this.x = x; }\n  public (a,b) get_x(b y) { return (this.x,y); }\n}\nC<int> x;\n",
+        checks: [
+            { name: "C<int> is instantiated", step: 1, expected_kind: "error" },
+        ]
+    },
+    {
+        name: "Generics: wrong instantiation does not compile",
+        source: "\nclass C<a,b> {\n  a x;\n  public C(a x) { this.x = x; }\n  public (a,b) get_x(b y) { return (this.x,y); }\n}\nC<int, bool, float> x;\n",
+        checks: [
+            { name: "C<int> is instantiated", step: 1, expected_kind: "error" },
+        ]
+    },
+], "Generics: wrong instantiation does not compile");

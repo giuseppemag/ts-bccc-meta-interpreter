@@ -614,21 +614,26 @@ exports.mk_abstract_lambda = function (r, def, closure_parameters, range) {
 exports.mk_lambda = function (r, def, closure_parameters, range) {
     return function (constraints) {
         var parameters = def.parameters;
+        var parameter_types = Immutable.List(parameters.map(function (p) { return exports.instantiate_generics(r, p.type); }));
         return exports.instantiate_generics(r, def.return_t).then(function (return_t_i) {
-            var return_t = return_t_i.type;
-            var body = def.body;
-            var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
-                return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
-            }, exports.done));
-            return Co.co_get_state().then(function (initial_bindings) {
-                return set_bindings(types_1.no_constraints).then(function (_) {
-                    return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
-                        var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
-                        var _fun_type = types_1.fun_type(m_params, body_t.type, r);
-                        if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
-                            return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
-                        return Co.co_set_state(initial_bindings).then(function (_) {
-                            return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, return_t_i.sem.then(function (_) { return Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range); })));
+            return ccc_aux_1.comm_list_coroutine(parameter_types).then(function (parameter_types_i) {
+                parameters = parameters.map(function (p, p_i) { return (__assign({}, p, { type: parameter_types_i.get(p_i).type })); });
+                var return_t = return_t_i.type;
+                var parameters_i = parameter_types_i.toArray().map(function (p_i) { return p_i.sem; }).reduce(function (a, b) { return a.then(function (_) { return b; }); }, Sem.done_rt);
+                var body = def.body;
+                var set_bindings = parameters.reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, closure_parameters.reduce(function (acc, cp) {
+                    return exports.semicolon(r, function (_) { return exports.get_v(r, cp)(types_1.no_constraints).then(function (cp_t) { return exports.decl_forced_v(r, cp, cp_t.type, true)(types_1.no_constraints); }); }, acc);
+                }, exports.done));
+                return Co.co_get_state().then(function (initial_bindings) {
+                    return set_bindings(types_1.no_constraints).then(function (_) {
+                        return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
+                            var m_params = parameters.length == 0 ? types_1.tuple_type([{ kind: "unit" }]) : types_1.tuple_type((parameters.map(function (p) { return p.type; })));
+                            var _fun_type = types_1.fun_type(m_params, body_t.type, r);
+                            if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !types_1.type_equals(_fun_type, constraints.value)))
+                                return ts_bccc_2.co_error({ range: r, message: "Error: cannot create lambda, constraint type " + (constraints.value.kind == "fun_with_input_as_stmts" ? "" : types_1.type_to_string(constraints.value)) + " is not compatible with found type " + types_1.type_to_string(_fun_type) });
+                            return Co.co_set_state(initial_bindings).then(function (_) {
+                                return ts_bccc_2.co_unit(types_1.mk_typing(_fun_type, parameters_i.then(function (_) { return return_t_i.sem.then(function (_) { return Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), closure_parameters, range); }); })));
+                            });
                         });
                     });
                 });
@@ -653,70 +658,77 @@ exports.def_method = function (r, original_methods, C_kind, C_name, _extends, _i
     return function (_) {
         var is_static = def.modifiers.some(function (m) { return m == "static"; });
         var parameters = def.parameters;
+        var parameter_types = Immutable.List(parameters.map(function (p) { return exports.instantiate_generics(r, p.type); }));
         return exports.instantiate_generics(r, def.return_t).then(function (return_t_i) {
-            var return_t = return_t_i.type;
-            var body = def.body;
-            var _done = exports.done;
-            var context = { kind: "class", C_name: C_name, looking_up_base: false };
-            var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: types_1.ref_type(C_name) }]))
-                .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
-            var interfaces_init = _implements.length > 0 ?
-                _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
-                : exports.done;
-            var virtual_fields = original_methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; }) || C_kind == "interface"; });
-            interfaces_init =
-                virtual_fields.length == 0 ? interfaces_init :
-                    exports.semicolon(r, interfaces_init, virtual_fields.map(function (m) {
-                        var inner_lambda_type = {
-                            kind: "fun", in: types_1.tuple_type(m.parameters.length == 0 ? [{ kind: "unit" }] : m.parameters.map(function (p) { return p.type; })),
-                            out: m.return_t,
-                            range: m.range
-                        };
-                        return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, C_kind == "interface" || m.modifiers.some(function (m) { return m == "abstract"; }) ? exports.mk_abstract_lambda(m.range, {
-                            return_t: m.return_t,
-                            parameters: m.parameters,
-                            body: m.body
-                        }, ["this"], m.range)
-                            : exports.mk_lambda(m.range, {
+            return ccc_aux_1.comm_list_coroutine(parameter_types).then(function (parameter_types_i) {
+                parameters = parameters.map(function (p, p_i) { return (__assign({}, p, { type: parameter_types_i.get(p_i).type })); });
+                var parameters_i = parameter_types_i.toArray().map(function (p_i) { return p_i.sem; }).reduce(function (a, b) { return a.then(function (_) { return b; }); }, Sem.done_rt);
+                var return_t = return_t_i.type;
+                var body = def.body;
+                var _done = exports.done;
+                var context = { kind: "class", C_name: C_name, looking_up_base: false };
+                var set_bindings = (is_static ? parameters : parameters.concat([{ name: "this", type: types_1.ref_type(C_name) }]))
+                    .reduce(function (acc, par) { return exports.semicolon(r, exports.decl_v(r, par.name, par.type, false), acc); }, exports.done);
+                var interfaces_init = _implements.length > 0 ?
+                    _implements.map(function (i) { return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: i.C_name + "_base" }, exports.call_cons(r, context, i.C_name, [], i.C_name, [], true)); }).reduce(function (p, c) { return exports.semicolon(r, p, c); })
+                    : exports.done;
+                var virtual_fields = original_methods.filter(function (m) { return m.modifiers.some(function (m) { return m == "abstract" || m == "virtual"; }) || C_kind == "interface"; });
+                interfaces_init =
+                    virtual_fields.length == 0 ? interfaces_init :
+                        exports.semicolon(r, interfaces_init, virtual_fields.map(function (m) {
+                            var inner_lambda_type = {
+                                kind: "fun", in: types_1.tuple_type(m.parameters.length == 0 ? [{ kind: "unit" }] : m.parameters.map(function (p) { return p.type; })),
+                                out: m.return_t,
+                                range: m.range
+                            };
+                            return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: m.name }, C_kind == "interface" || m.modifiers.some(function (m) { return m == "abstract"; }) ? exports.mk_abstract_lambda(m.range, {
                                 return_t: m.return_t,
                                 parameters: m.parameters,
                                 body: m.body
-                            }, ["this"], m.range));
-                    }).reduce(function (p, c) { return exports.semicolon(r, p, c); }));
-            //console.log("interfaces_init", interfaces_init.length, _extends.kind)
-            return Co.co_get_state().then(function (initial_bindings) {
-                return set_bindings(types_1.no_constraints).then(function (_) {
-                    return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
-                        return ((def.is_constructor ?
-                            (_extends.kind == "left" ? // this is a constructor with base\
-                                (override_methods.length == 0 ?
-                                    exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), interfaces_init)
-                                    :
-                                        exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
-                                            return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
-                                                return_t: a_m.return_t,
-                                                parameters: a_m.parameters,
-                                                body: a_m.body
-                                            }, ["this"], r));
-                                        }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))))
-                                :
+                            }, ["this"], m.range)
+                                : exports.mk_lambda(m.range, {
+                                    return_t: m.return_t,
+                                    parameters: m.parameters,
+                                    body: m.body
+                                }, ["this"], m.range));
+                        }).reduce(function (p, c) { return exports.semicolon(r, p, c); }));
+                //console.log("interfaces_init", interfaces_init.length, _extends.kind)
+                return Co.co_get_state().then(function (initial_bindings) {
+                    return set_bindings(types_1.no_constraints).then(function (_) {
+                        return body(ts_bccc_1.apply(ts_bccc_1.inl(), return_t)).then(function (body_t) {
+                            return ((def.is_constructor ?
+                                (_extends.kind == "left" ? // this is a constructor with base\
                                     (override_methods.length == 0 ?
-                                        interfaces_init :
-                                        exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
-                                            return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
-                                                return_t: a_m.return_t,
-                                                parameters: a_m.parameters,
-                                                body: a_m.body
-                                            }, ["this"], r));
-                                        }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))))
-                            : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" }))).then(function (base_sem) {
-                            return Co.co_set_state(initial_bindings).then(function (_) {
-                                return is_static ? ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), return_t_i.sem.then(function (_) {
-                                    return Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range);
-                                })))
-                                    : ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), r), return_t_i.sem.then(function (_) {
-                                        return Sem.mk_lambda_rt(Sem.mk_lambda_rt(base_sem.sem.then(function (_) { return body_t.sem; }), parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range);
-                                    })));
+                                        exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), interfaces_init)
+                                        :
+                                            exports.semicolon(r, exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: "base" }, exports.call_cons(r, context, _extends.value.C_name, def.params_base_call.kind == "left" ? def.params_base_call.value : [], _extends.value.C_name, [], true)), exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
+                                                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
+                                                    return_t: a_m.return_t,
+                                                    parameters: a_m.parameters,
+                                                    body: a_m.body
+                                                }, ["this"], r));
+                                            }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))))
+                                    :
+                                        (override_methods.length == 0 ?
+                                            interfaces_init :
+                                            exports.semicolon(r, interfaces_init, override_methods.map(function (a_m) {
+                                                return exports.field_set(r, context, exports.get_v(r, "this"), { kind: "att", att_name: a_m.name }, exports.mk_lambda(r, {
+                                                    return_t: a_m.return_t,
+                                                    parameters: a_m.parameters,
+                                                    body: a_m.body
+                                                }, ["this"], r));
+                                            }).reduce(function (p, c) { return exports.semicolon(r, p, c); }))))
+                                : _done)(ts_bccc_1.apply(ts_bccc_1.inl(), { kind: "unit" }))).then(function (base_sem) {
+                                return Co.co_set_state(initial_bindings).then(function (_) {
+                                    return is_static ? ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), parameters_i.then(function (_) { return return_t_i.sem.then(function (_) {
+                                        return Sem.mk_lambda_rt(body_t.sem, parameters.map(function (p) { return p.name; }), [], def.range);
+                                    }); })))
+                                        : ts_bccc_2.co_unit(types_1.mk_typing(types_1.fun_type(types_1.tuple_type([types_1.ref_type(C_name)]), types_1.fun_type(types_1.tuple_type(parameters.map(function (p) { return p.type; })), body_t.type, r), r), parameters_i.then(function (_) {
+                                            return return_t_i.sem.then(function (_) {
+                                                return Sem.mk_lambda_rt(Sem.mk_lambda_rt(base_sem.sem.then(function (_) { return body_t.sem; }), parameters.map(function (p) { return p.name; }), ["this"], def.range), ["this"], [], def.range);
+                                            });
+                                        })));
+                                });
                             });
                         });
                     });

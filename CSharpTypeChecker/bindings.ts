@@ -599,8 +599,12 @@ export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition,
 export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_parameters: Array<Name>, range: SourceRange): Stmt {
   return constraints => {
   let parameters = def.parameters
-  return instantiate_generics(r, def.return_t).then(return_t_i => {
+  let parameter_types = Immutable.List(parameters.map(p => instantiate_generics(r, p.type)))
+  return instantiate_generics(r, def.return_t).then(return_t_i =>
+  comm_list_coroutine(parameter_types).then(parameter_types_i => {
+  parameters = parameters.map((p,p_i) => ({...p, type:parameter_types_i.get(p_i).type}))
   let return_t = return_t_i.type
+  let parameters_i = parameter_types_i.toArray().map(p_i => p_i.sem).reduce((a,b) => a.then(_ => b), Sem.done_rt)
   let body = def.body
   let set_bindings = parameters.reduce<Stmt>((acc, par) => semicolon(r, decl_v(r, par.name, par.type, false), acc),
     closure_parameters.reduce<Stmt>((acc, cp) =>
@@ -616,10 +620,10 @@ export let mk_lambda = function (r: SourceRange, def: LambdaDefinition, closure_
           if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !type_equals(_fun_type, constraints.value)))
             return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
           return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
-                    co_unit(mk_typing(_fun_type, return_t_i.sem.then(_ => Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range)))))
+                    co_unit(mk_typing(_fun_type, parameters_i.then(_ => return_t_i.sem.then(_ => Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), closure_parameters, range))))))
         }
       )))
-    })
+    }))
   }
 }
 // export interface Bindings extends Immutable.Map<Name, TypeInformation> {}
@@ -638,7 +642,11 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
   return _ => {
   let is_static = def.modifiers.some(m => m == "static")
   let parameters = def.parameters
-  return instantiate_generics(r, def.return_t).then(return_t_i => {
+  let parameter_types = Immutable.List(parameters.map(p => instantiate_generics(r, p.type)))
+  return instantiate_generics(r, def.return_t).then(return_t_i =>
+  comm_list_coroutine(parameter_types).then(parameter_types_i => {
+  parameters = parameters.map((p,p_i) => ({...p, type:parameter_types_i.get(p_i).type}))
+  let parameters_i = parameter_types_i.toArray().map(p_i => p_i.sem).reduce((a,b) => a.then(_ => b), Sem.done_rt)
 
   let return_t = return_t_i.type
   let body = def.body
@@ -733,15 +741,16 @@ export let def_method = function (r: SourceRange, original_methods:MethodDefinit
           (apply(inl(), { kind: "unit" as "unit" }))).then(base_sem =>
             Co.co_set_state<State, Err>(initial_bindings).then(_ =>
               is_static ? co_unit(mk_typing(fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r),
-                  return_t_i.sem.then(_ =>
-                  Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range))))
+                  parameters_i.then(_ => return_t_i.sem.then(_ =>
+                  Sem.mk_lambda_rt(body_t.sem, parameters.map(p => p.name), [], def.range)))))
                 : co_unit(mk_typing(fun_type(tuple_type([ref_type(C_name)]),
                   fun_type(tuple_type(parameters.map(p => p.type)), body_t.type, r), r),
+                  parameters_i.then(_ =>
                   return_t_i.sem.then(_ =>
                   Sem.mk_lambda_rt(Sem.mk_lambda_rt(
-                    base_sem.sem.then(_ => body_t.sem), parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range)))))
+                    base_sem.sem.then(_ => body_t.sem), parameters.map(p => p.name), ["this"], def.range), ["this"], [], def.range))))))
           ))))
-        })
+        }))
   }
 }
 

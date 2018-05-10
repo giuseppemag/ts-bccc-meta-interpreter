@@ -854,7 +854,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
         return this.a;
       }
     }
-    
+
     A a = new A(1);
     double res1 = a.GetA();
     debugger;`,
@@ -867,7 +867,7 @@ checks:[{ name:"res1 is in scope", step:1, expected_kind:"bindings", check:(s:CS
     while(x < 200){
      x = x + 1;
     }
-    
+
     debugger;`,
   checks:[
     { name:"x is 200", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, 200) },
@@ -1259,12 +1259,98 @@ Func<D,B> mid = f;
 
 var x = mid(new D());
 typechecker_debugger;
-`
-    ,
+`,
   checks:[
     { name:"x is B.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal((s.get("x") as any).C_name, "B") },
     { name:"x is ref_2.", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("x").v, "ref_2") },
   ]},
-])
 
+  {
+    name:"Generics: multiple arguments",
+    source:`
+class C<a,b> {
+  a x;
+  public C(a x) { this.x = x; }
+  public (a,b) get_x(b y) { return (this.x,y); }
+}
+C<int, bool> c = new C<int, bool>(10);
+var y = c.get_x(true);
+typechecker_debugger;
+`,
+  checks:[
+    { name:"c is C<int,bool>.", step:1, expected_kind:"bindings", check:(s:CSharp.Bindings) => assert_equal((s.get("c") as any).C_name, "C<int,bool>") },
+    { name:"y is (10,true).", step:3, expected_kind:"memory", check:(s:MemRt) => assert_equal((s.globals.get(0).get("y").v as any)[0].v, 10) && assert_equal((s.globals.get(0).get("y").v as any)[1].v, true) },
+  ]},
 
+  {
+    name:"Generics: instantiation from methods and functions",
+    source:`
+class C<a> {
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
+}
+class D {
+  C<bool> c_int(C<int> c0) {
+    return new C<bool>(c0.get_x() > 0);
+  }
+}
+C<string> f(C<float> c_f) {
+  return new C<string>("!!!");
+}
+    `,
+  checks:[
+    { name:"C<bool> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<bool>") },
+    { name:"C<int> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<int>") },
+    { name:"C<float> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<float>") },
+    { name:"C<string> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<string>") },
+  ]},
+
+  {
+    name:"Generics: instantiation from static methods",
+    source:`
+class C<a> {
+  a x;
+  public C(a x) { this.x = x; }
+  public a get_x() { return this.x; }
+}
+class D {
+  static C<bool> c_int(C<int> c0) {
+    return new C<bool>(c0.get_x() > 0);
+  }
+}
+`,
+  checks:[
+    { name:"C<bool> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<bool>") },
+    { name:"C<int> is instantiated", step:2, expected_kind:"memory", check:(s:MemRt) => s.classes.has("C<int>") },
+  ]},
+
+  {
+    name:"Generics: wrong instantiation does not compile",
+    source:`
+class C<a,b> {
+  a x;
+  public C(a x) { this.x = x; }
+  public (a,b) get_x(b y) { return (this.x,y); }
+}
+C<int> x;
+`,
+  checks:[
+    { name:"C<int> is instantiated", step:1, expected_kind:"error" },
+  ]},
+
+  {
+    name:"Generics: wrong instantiation does not compile",
+    source:`
+class C<a,b> {
+  a x;
+  public C(a x) { this.x = x; }
+  public (a,b) get_x(b y) { return (this.x,y); }
+}
+C<int, bool, float> x;
+`,
+  checks:[
+    { name:"C<int> is instantiated", step:1, expected_kind:"error" },
+  ]},
+
+], "Generics: wrong instantiation does not compile")

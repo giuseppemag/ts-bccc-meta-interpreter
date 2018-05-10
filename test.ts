@@ -21,19 +21,17 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C<a> {
+class C<a,b> {
   a x;
   public C(a x) { this.x = x; }
-  public a get_x() { return this.x; }
+  public (a,b) get_x(b y) { return (this.x,y); }
 }
 
-class D {
-  C<bool> c_int(C<int> c0) {
-    return new C<bool>(c0.get_x() > 0);
-  }
-}
-
+C<int, bool> c = new C<int, bool>(10);
+var y = c.get_x(true);
+typechecker_debugger;
 `
+
 
 // test 2
 // interface I
@@ -83,7 +81,8 @@ class D {
       //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
 
 
-      log("Step:", show.kind == "bindings" ? show.state :
+      log("Step:",
+      show.kind == "bindings" ? show.state.bindings.filter(c => c != undefined && (c.kind != "obj" || !c.is_internal)) :
       show.kind == "memory" ? {...show.memory, classes: show.memory.classes.filter(c => c != undefined && !c.is_internal).toMap() } :
       show)
       stream = stream.next()

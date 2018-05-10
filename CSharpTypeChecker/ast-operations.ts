@@ -344,7 +344,10 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
       let generic_params = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
       let C_name = n.ast.C_name
       let C_name_inst = generic_params.length == 0 ? C_name : `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
-      console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+      // console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
+      let type_parameter_names = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
+      if (type_parameter_names.length != generic_arguments.count() || type_parameter_names.some(p => !generic_arguments.has(p)))
+        return co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${C_name}: not all parameters were correctly bound.` })
 
       let substitutions = generic_arguments
 
@@ -384,7 +387,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
           is_used_as_base:false,
           modifiers:f.modifiers.toArray().map(mod => mod.ast.kind),
           initial_value:f.decl.kind == "decl" ? inr<Stmt, Unit>().f({}) : apply(inl<Stmt, Unit>(), ast_to_type_checker(substitutions)(f.decl.v)(context))
-        })) //, !is_visible
+        })), !is_visible
       )(constraints).then(res => try_bind("this", prev_this).then(_ => co_unit(res)))) } })
 
   : n.ast.kind == "decl" && n.ast.r.ast.kind == "id" ?

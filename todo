@@ -1,24 +1,12 @@
 [g] tail recursion runtime
 [g] Generics
   [ ] instantiate on:
-    [x] func return type
-    [x] method return type
-    [/] static method return type
-    [ ] method parameter
-    [ ] func parameter
-    [/] static method parameter
-    [/] abstract method parameter
-    [/] abstract method return type
-    [/] interface method parameter
-    [/] interface method return type
-    [ ] add tests
     [ ] generic method call
   [ ] Generic method
     [ ] Parser
     [ ] Instantiation
     [ ] Call
   [ ] Covariance and contravariance
-  [ ] return co_error if generic_arguments do not cover all names
 
 [g] HTML renderers for server simulator
 
@@ -46,6 +34,14 @@
 [g] Move ccc_aux to CCC repo
 
 
+[m] Generics
+  [ ] instantiate on:
+    [ ] abstract method parameter
+    [ ] abstract method return type
+    [ ] interface method parameter
+    [ ] interface method return type
+  [ ] Interfaces with method with generic parameters and return types
+  [ ] Abstract classes with method with generic parameters and return types
 [m] Generic constraints
   [ ] Parser
   [ ] Validation
@@ -80,7 +76,7 @@
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
   [ ] Integration in VSCode
   [ ] Exceptions
-  [ ] Fancy features: LINQ, generators, properties, generic constraints
+  [ ] Fancy features: LINQ, generators, properties
   [ ] Proper lex/yacc
   [ ] Generic tuple in standard library
 

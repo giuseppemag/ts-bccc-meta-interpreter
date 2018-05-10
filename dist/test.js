@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C<a> {\n  a x;\n  public C(a x) { this.x = x; }\n  public a get_x() { return this.x; }\n}\n\nclass D {\n  C<bool> c_int(C<int> c0) {\n    return new C<bool>(c0.get_x() > 0);\n  }\n}\n\n";
+        var source = "\nclass C<a,b> {\n  a x;\n  public C(a x) { this.x = x; }\n  public (a,b) get_x(b y) { return (this.x,y); }\n}\n\nC<int, bool> c = new C<int, bool>(10);\nvar y = c.get_x(true);\ntypechecker_debugger;\n";
         // test 2
         // interface I
         // {
@@ -57,7 +57,7 @@ var ImpLanguageWithSuspend;
         while (stream.kind == "step") {
             var show_1 = stream.show();
             //{ highlighting:SourceRange, globals:Scopes, heap:Scope, functions:Immutable.Map<ValueName,Lambda>, classes:Immutable.Map<ValueName, Interface>, stack:Immutable.Map<number, Scopes> }
-            log("Step:", show_1.kind == "bindings" ? show_1.state :
+            log("Step:", show_1.kind == "bindings" ? show_1.state.bindings.filter(function (c) { return c != undefined && (c.kind != "obj" || !c.is_internal); }) :
                 show_1.kind == "memory" ? __assign({}, show_1.memory, { classes: show_1.memory.classes.filter(function (c) { return c != undefined && !c.is_internal; }).toMap() }) :
                     show_1);
             stream = stream.next();
