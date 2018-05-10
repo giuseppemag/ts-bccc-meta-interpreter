@@ -1,4 +1,6 @@
 [g] tail recursion runtime
+[g] add multiple highlightings (along the stack) for function calls
+
 [g] Generics
   [ ] instantiate on:
     [ ] generic method call
@@ -7,8 +9,7 @@
     [ ] Instantiation
     [ ] Call
   [ ] Covariance and contravariance
-
-[g] HTML renderers for server simulator
+[g] multithreading: thread_debugger;
 
 [g] Filesystem simulator
   [ ] rendering
@@ -55,8 +56,6 @@
   [ ] generics and interfaces
 [m] save code also on wrong attempt (BA)
 [m] add `null`
-[m] add multiple highlightings (along the stack) for function calls
-[m] multithreading: thread_debugger;
 
 [m] ++ operator
   [ ] i++
@@ -74,11 +73,13 @@
   [ ] data science/better dashboard with predictions and risk detection
   [ ] e-commerce spec
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
-  [ ] Integration in VSCode
+  [ ] Integration in VSCode/Electron app
   [ ] Exceptions
   [ ] Fancy features: LINQ, generators, properties
   [ ] Proper lex/yacc
   [ ] Generic tuple in standard library
+  [ ] HTML renderers for server simulator
+
 
 [m] inheritance
   [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
