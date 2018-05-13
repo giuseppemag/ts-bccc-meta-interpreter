@@ -84,24 +84,53 @@ export let co_error = <s, e, a>(e: e): Coroutine<s, e, a> => mk_coroutine<s, e, 
 export let co_unit = <s, e, a>(v: a): Coroutine<s, e, a> => mk_coroutine<s, e, a>(co_res(v))
 export let co_suspend = <s,e>() : Coroutine<s,e,Unit> => mk_coroutine<s,e,Unit>(co_cont(co_unit({})))
 
-type Pair<a, b> = { a: a, b: b }
-let mk_pair = <a, b>(a: a, b: b) => ({ a: a, b: b })
-type Either<a, b> = { kind: "l", v: a } | { kind: "r", v: b }
-let inl = <a, b>(v: a): Either<a, b> => ({ kind: "l", v: v })
-let inr = <a, b>(v: b): Either<a, b> => ({ kind: "r", v: v })
-let run_step = <s, e, a>(p: Coroutine<s, e, a>, s: s): Either<s, Pair<s, Coroutine<s, e, a>>> => {
-  if (p.run.kind == "cmp") {
-    let pre = run_step(p.run.pre, s)
-    let p_in = p.run.p
-    if (pre.kind == "l") return inr(mk_pair(pre.v, p_in))
-    return inr(mk_pair(pre.v.a, mk_coroutine<s, e, a>({ kind: "cmp", pre: pre.v.b, p: p_in })))
+// type Pair<a, b> = { a: a, b: b }
+// let mk_pair = <a, b>(a: a, b: b) => ({ a: a, b: b })
+// type Either<a, b> = { kind: "l", v: a } | { kind: "r", v: b }
+// let inl = <a, b>(v: a): Either<a, b> => ({ kind: "l", v: v })
+// let inr = <a, b>(v: b): Either<a, b> => ({ kind: "r", v: v })
+// let run_step = <s, e, a>(p: Coroutine<s, e, a>, s: s): Either<s, Pair<s, Coroutine<s, e, a>>> => {
+//   if (p.run.kind == "cmp") {
+//     let pre = run_step(p.run.pre, s)
+//     let p_in = p.run.p
+//     if (pre.kind == "l") return inr(mk_pair(pre.v, p_in))
+//     return inr(mk_pair(pre.v.a, mk_coroutine<s, e, a>({ kind: "cmp", pre: pre.v.b, p: p_in })))
+//   }
+//   let q = p.run.run(s)
+//   if (q.kind == "e") return inl(s)
+//   if (q.kind == "v") return inl(q.s)
+//   if (q.kind == "k") return inr(mk_pair(q.s, q.k))
+//   return inr(mk_pair(q.s, mk_coroutine<s, e, a>({ kind: "cmp", pre: q.pre, p: q.p })))
+// }
+
+export type RunStepRes<s,e,a> = { kind:"err", e:e } | { kind:"end", s:s, v:a } | { kind:"k", s:s, k:Coroutine<s, e,a> }
+export let run_step = <s,e,a>(p:Coroutine<s, e, a>, s:s) : RunStepRes<s,e,a> => {
+  if (p.run.kind == "run") {
+    let q = p.run.run(s)
+    if (q.kind == "e") return { kind:"err", e:q.e }
+    if (q.kind == "v") return { kind:"end", s:q.s, v:q.v }
+    if (q.kind == "k") return { kind:"k", s:q.s, k:q.k }
+    return run_step_pre(q.pre, q.p, q.s)
+    // return { kind:"k", s:q.s, k:q.pre.combine(q.p) }
   }
-  let q = p.run.run(s)
-  if (q.kind == "e") return inl(s)
-  if (q.kind == "v") return inl(q.s)
-  if (q.kind == "k") return inr(mk_pair(q.s, q.k))
-  return inr(mk_pair(q.s, mk_coroutine<s, e, a>({ kind: "cmp", pre: q.pre, p: q.p })))
+  let q = run_step_pre<s,e,a>(p.run.pre, p.run.p, s)
+  if (q.kind == "k") return {...q, k:q.k}
+  return q
 }
+export let run_step_pre = <s,e,a>(pre:Coroutine<s, e, Unit>, p:Coroutine<s,e,a>, s:s) : RunStepRes<s,e,a> => {
+  if (pre.run.kind == "run") {
+    let q = pre.run.run(s)
+    if (q.kind == "e") return { kind:"err", e:q.e }
+    if (q.kind == "v") return run_step(p,q.s)
+    if (q.kind == "k") return { kind:"k", s:q.s, k:q.k.combine(p) }
+    // return { kind:"k", s:q.s, k:q.pre.combine(q.p).combine(p) }
+    return run_step_pre(q.pre, q.p.combine(p), q.s)
+  }
+  let q = run_step_pre<s,e,a>(pre.run.pre, pre.run.p.combine(p), s)
+  if (q.kind == "k") return {...q, k:q.k}
+  return q
+}
+
 
 
 export let co_change_state = <s,e>(f:(_:s) => s) =>

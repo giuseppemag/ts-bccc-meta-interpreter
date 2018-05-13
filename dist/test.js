@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nvar a = 2 + 5;\nvar b = 5 * 1.5f;\nvar c = 2.5 + (5 * 1.5f);\nvar d = \"a\" + a;\nvar e = !((d == \"c\") || (c > b));\nvar f = (a <= c) && (b == c);\n";
+        var source = "\nvar x = 0;\nvar y = 10;\nwhile (x < 100000) {\n  x = x + 1;\n  y = y + 1;\n}\n";
         // class C<a> {
         //   a x;
         //   public C(a x) { this.x = x; }

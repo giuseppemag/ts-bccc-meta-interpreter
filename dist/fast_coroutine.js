@@ -1,4 +1,12 @@
 "use strict";
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
 exports.co_err = function (e) { return ({ kind: "run", run: function (_) { return ({ kind: "e", e: e }); } }); };
@@ -61,25 +69,39 @@ var combine = function (q) {
 exports.co_error = function (e) { return exports.mk_coroutine(exports.co_err(e)); };
 exports.co_unit = function (v) { return exports.mk_coroutine(exports.co_res(v)); };
 exports.co_suspend = function () { return exports.mk_coroutine(exports.co_cont(exports.co_unit({}))); };
-var mk_pair = function (a, b) { return ({ a: a, b: b }); };
-var inl = function (v) { return ({ kind: "l", v: v }); };
-var inr = function (v) { return ({ kind: "r", v: v }); };
-var run_step = function (p, s) {
-    if (p.run.kind == "cmp") {
-        var pre = run_step(p.run.pre, s);
-        var p_in = p.run.p;
-        if (pre.kind == "l")
-            return inr(mk_pair(pre.v, p_in));
-        return inr(mk_pair(pre.v.a, exports.mk_coroutine({ kind: "cmp", pre: pre.v.b, p: p_in })));
+exports.run_step = function (p, s) {
+    if (p.run.kind == "run") {
+        var q_1 = p.run.run(s);
+        if (q_1.kind == "e")
+            return { kind: "err", e: q_1.e };
+        if (q_1.kind == "v")
+            return { kind: "end", s: q_1.s, v: q_1.v };
+        if (q_1.kind == "k")
+            return { kind: "k", s: q_1.s, k: q_1.k };
+        return exports.run_step_pre(q_1.pre, q_1.p, q_1.s);
+        // return { kind:"k", s:q.s, k:q.pre.combine(q.p) }
     }
-    var q = p.run.run(s);
-    if (q.kind == "e")
-        return inl(s);
-    if (q.kind == "v")
-        return inl(q.s);
+    var q = exports.run_step_pre(p.run.pre, p.run.p, s);
     if (q.kind == "k")
-        return inr(mk_pair(q.s, q.k));
-    return inr(mk_pair(q.s, exports.mk_coroutine({ kind: "cmp", pre: q.pre, p: q.p })));
+        return __assign({}, q, { k: q.k });
+    return q;
+};
+exports.run_step_pre = function (pre, p, s) {
+    if (pre.run.kind == "run") {
+        var q_2 = pre.run.run(s);
+        if (q_2.kind == "e")
+            return { kind: "err", e: q_2.e };
+        if (q_2.kind == "v")
+            return exports.run_step(p, q_2.s);
+        if (q_2.kind == "k")
+            return { kind: "k", s: q_2.s, k: q_2.k.combine(p) };
+        // return { kind:"k", s:q.s, k:q.pre.combine(q.p).combine(p) }
+        return exports.run_step_pre(q_2.pre, q_2.p.combine(p), q_2.s);
+    }
+    var q = exports.run_step_pre(pre.run.pre, pre.run.p.combine(p), s);
+    if (q.kind == "k")
+        return __assign({}, q, { k: q.k });
+    return q;
 };
 exports.co_change_state = function (f) {
     return exports.mk_coroutine({ kind: "run",

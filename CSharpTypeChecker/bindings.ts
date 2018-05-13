@@ -549,26 +549,8 @@ export let for_loop = function (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: St
 export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
   return constraints => p(constraints).then(p_t =>
     q(constraints).then(q_t =>
-      co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
-        return FastCo.co_get_state<MemRt, ErrVal>().then(s =>
-        {
-          let f = (counter:number) => FastCo.co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then(_ =>
-                    {
-                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = FastCo.co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
-                      return res.kind == "left" ? q_t.sem : f
-                    } )
-          if(s.steps_counter > 300) {
-            if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
-              return FastCo.co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
-            else
-              return f(0)
-          }
-
-          return f(s.steps_counter + 1)
-
-        })
-      }))
-      )))
+      co_unit(mk_typing(q_t.type, p_t.sem.combine(q_t.sem)
+    ))))
 }
 
 export let mk_param = function (name: Name, type: Type) {
@@ -776,6 +758,17 @@ export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Arr
         )),
       co_unit(Immutable.List<Typing>()))
 
+    let check_steps_counter =
+      FastCo.co_get_state<MemRt, ErrVal>().then(s =>
+      {
+        if(s.steps_counter > 3000) {
+          if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+            return FastCo.co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+          return FastCo.co_set_state<MemRt,ErrVal>({...s, steps_counter:0})
+        }
+        return FastCo.co_unit<MemRt,ErrVal,Unit>({})
+      })
+
     return check_arguments.then(args_t =>
       lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
         arg_values.length != lambda_t.type.in.args.length ?
@@ -783,9 +776,9 @@ export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Arr
           arg_values.length == 0) ||
           (lambda_t.type.kind == "fun" && lambda_t.type.out.kind == "fun" && lambda_t.type.out.in.kind == "tuple" && lambda_t.type.out.in.args.length == 1 && lambda_t.type.out.in.args[0].kind == "unit" &&
             arg_values.length == 0) ?
-          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))) :
+          co_unit(mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))) :
           co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => type_to_string(a.type))])}` })
-        : co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+        : co_unit(mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))))
     )
   }))
 }

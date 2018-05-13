@@ -21,12 +21,12 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-var a = 2 + 5;
-var b = 5 * 1.5f;
-var c = 2.5 + (5 * 1.5f);
-var d = "a" + a;
-var e = !((d == "c") || (c > b));
-var f = (a <= c) && (b == c);
+var x = 0;
+var y = 10;
+while (x < 100000) {
+  x = x + 1;
+  y = y + 1;
+}
 `
 
 // class C<a> {

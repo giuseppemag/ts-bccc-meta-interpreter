@@ -52,6 +52,20 @@ export declare let map: <s, e, a, b>(p: Coroutine<s, e, a>, f: (_: a) => b) => C
 export declare let co_error: <s, e, a>(e: e) => Coroutine<s, e, a>;
 export declare let co_unit: <s, e, a>(v: a) => Coroutine<s, e, a>;
 export declare let co_suspend: <s, e>() => Coroutine<s, e, Unit>;
+export declare type RunStepRes<s, e, a> = {
+    kind: "err";
+    e: e;
+} | {
+    kind: "end";
+    s: s;
+    v: a;
+} | {
+    kind: "k";
+    s: s;
+    k: Coroutine<s, e, a>;
+};
+export declare let run_step: <s, e, a>(p: Coroutine<s, e, a>, s: s) => RunStepRes<s, e, a>;
+export declare let run_step_pre: <s, e, a>(pre: Coroutine<s, e, Unit>, p: Coroutine<s, e, a>, s: s) => RunStepRes<s, e, a>;
 export declare let co_change_state: <s, e>(f: (_: s) => s) => Coroutine<s, e, Unit>;
 export declare let co_from_state: <s, e, a>(f: (_: s) => a) => Coroutine<s, e, a>;
 export declare let co_from_and_change_state: <s, e, a>(f: (_: s) => [a, s]) => Coroutine<s, e, a>;

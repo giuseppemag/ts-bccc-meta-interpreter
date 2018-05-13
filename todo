@@ -33,7 +33,6 @@
 
 [g] Move ccc_aux to CCC repo
 
-
 [m] Generics
   [ ] instantiate on:
     [ ] abstract method parameter

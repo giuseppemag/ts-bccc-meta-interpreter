@@ -15,6 +15,7 @@ import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
 import { standard_lib } from "./CSharpTypeChecker/standard_lib";
 import * as FastCo from "./fast_coroutine";
+import { run_step } from "./fast_coroutine";
 
 export type DebuggerStreamStep = { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                                  { kind:"bindings", state:CSharp.State, ast:ParserRes } |
@@ -53,34 +54,6 @@ export let get_stream = (source:string, custom_alert:Option<(_:string) => boolea
 
     let p = (CSharp.semicolon(zero_range, standard_lib(), ast_to_type_checker(Immutable.Map())(ast)(global_calling_context)))(CSharp.no_constraints)
 
-    type Res<a> = { kind:"err", e:Py.ErrVal } | { kind:"end", s:Py.MemRt } | { kind:"k", s:Py.MemRt, k:FastCo.Coroutine<Py.MemRt, Py.ErrVal,a> }
-    let run_step = <a>(p:FastCo.Coroutine<Py.MemRt, Py.ErrVal, a>, s:Py.MemRt) : Res<a> => {
-      if (p.run.kind == "run") {
-        let q = p.run.run(s)
-        if (q.kind == "e") return { kind:"err", e:q.e }
-        if (q.kind == "v") return { kind:"end", s:q.s }
-        if (q.kind == "k") return { kind:"k", s:q.s, k:q.k }
-        return run_step_pre(q.pre, q.p, q.s)
-        // return { kind:"k", s:q.s, k:q.pre.combine(q.p) }
-      }
-      let q = run_step_pre<a>(p.run.pre, p.run.p, s)
-      if (q.kind == "k") return {...q, k:q.k}
-      return q
-    }
-    let run_step_pre = <a>(pre:FastCo.Coroutine<Py.MemRt, Py.ErrVal, Unit>, p:FastCo.Coroutine<Py.MemRt, Py.ErrVal,a>, s:Py.MemRt) : Res<a> => {
-      if (pre.run.kind == "run") {
-        let q = pre.run.run(s)
-        if (q.kind == "e") return { kind:"err", e:q.e }
-        if (q.kind == "v") return run_step(p,q.s)
-        if (q.kind == "k") return { kind:"k", s:q.s, k:q.k.combine(p) }
-        // return { kind:"k", s:q.s, k:q.pre.combine(q.p).combine(p) }
-        return run_step_pre(q.pre, q.p.combine(p), q.s)
-      }
-      let q = run_step_pre<a>(pre.run.pre, pre.run.p.combine(p), s)
-      if (q.kind == "k") return {...q, k:q.k}
-      return q
-    }
-
     let runtime_stream = (state:Prod<Py.StmtRt,Py.MemRt>) : DebuggerStream => ({
       kind:"step",
       next:() => {
@@ -113,7 +86,7 @@ export let get_stream = (source:string, custom_alert:Option<(_:string) => boolea
         if (k.value.kind == "left") {
           return typechecker_stream(k.value.value)
         }
-        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : (s:string) => true))), {})
+        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : (s:string) => false))), {})
         let first_stream = runtime_stream(initial_runtime_state)
         // if (first_stream.kind == "step") {
         //   first_stream = first_stream.next()
