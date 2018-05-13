@@ -1,9 +1,10 @@
 import { Sum } from "ts-bccc";
 import { SourceRange } from "../source_range";
-import { ExprRt, Val, Lambda } from "./memory";
-export declare let mk_lambda_rt: (body: ExprRt<Sum<Val, Val>>, parameters: string[], closure_parameters: string[], range: SourceRange) => ExprRt<Sum<Val, Val>>;
-export declare let def_fun_rt: (n: string, body: ExprRt<Sum<Val, Val>>, parameters: string[], closure_parameters: string[], range: SourceRange) => ExprRt<Sum<Val, Val>>;
-export declare let return_rt: (e: ExprRt<Sum<Val, Val>>) => ExprRt<Sum<Val, Val>>;
-export declare let call_by_name_rt: (r: SourceRange, f_n: string, args: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
-export declare let call_lambda_expr_rt: (r: SourceRange, lambda: ExprRt<Sum<Val, Val>>, arg_values: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
-export declare let call_lambda_rt: (r: SourceRange, lambda: Lambda, arg_expressions: ExprRt<Sum<Val, Val>>[]) => ExprRt<Sum<Val, Val>>;
+import { MemRt, ErrVal, Val, Lambda } from "./memory";
+import { Coroutine } from "../fast_coroutine";
+export declare let mk_lambda_rt: (body: Coroutine<MemRt, ErrVal, Sum<Val, Val>>, parameters: string[], closure_parameters: string[], range: SourceRange) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let def_fun_rt: (n: string, body: Coroutine<MemRt, ErrVal, Sum<Val, Val>>, parameters: string[], closure_parameters: string[], range: SourceRange) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let return_rt: (e: Coroutine<MemRt, ErrVal, Sum<Val, Val>>) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let call_by_name_rt: (r: SourceRange, f_n: string, args: Coroutine<MemRt, ErrVal, Sum<Val, Val>>[]) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let call_lambda_expr_rt: (r: SourceRange, lambda: Coroutine<MemRt, ErrVal, Sum<Val, Val>>, arg_values: Coroutine<MemRt, ErrVal, Sum<Val, Val>>[]) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let call_lambda_rt: (r: SourceRange, lambda: Lambda, arg_expressions: Coroutine<MemRt, ErrVal, Sum<Val, Val>>[]) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;

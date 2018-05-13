@@ -13,12 +13,16 @@ import { MultiMap } from "../multi_map";
 export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
+export interface GenericMethodTyping extends MethodTyping {
+  instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt,
+  params:Array<GenericParameter> }
 export interface FieldType { type:Type, is_used_as_base:boolean,modifiers:Immutable.Set<Modifier>, initial_value:Option<Stmt> }
 export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"}
                                 | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
                                 | { kind:"other surface"} | { kind:"sprite"}
 export type ObjType = { kind:"obj", C_name:string,
                         is_internal:boolean, methods:MultiMap<Name, MethodTyping>,
+                        // generic_methods:Immutable.Map<Name, GenericMethodTyping>,
                         class_kind:"normal"|"abstract"|"interface"
                         fields:Immutable.Map<Name, FieldType>, range: SourceRange }
 export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}

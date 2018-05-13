@@ -3,8 +3,8 @@ import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, app
 import * as CCC from "ts-bccc"
 import * as St from "ts-bccc"
 import { mk_state, State } from "ts-bccc"
-import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
-import * as Co from "ts-bccc"
+// import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
+// import * as Co from "ts-bccc"
 
 import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
   ValueName, HeapRef,
@@ -18,7 +18,8 @@ import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
   get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, mk_tuple_val, RenderSurface } from "./memory"
 import { SourceRange } from "../source_range";
 import { mk_render_surface_val, RenderSurfaceOperation, mk_render_surface_operation_val, mk_circle_op, mk_square_op, mk_rectangle_op, mk_ellipse_op, mk_other_surface_op, mk_sprite_op, mk_line_op, mk_polygon_op, mk_text_op } from "./python";
-import { comm_list_coroutine } from "../ccc_aux";
+// import { comm_list_coroutine } from "../ccc_aux";
+import { co_error, Coroutine, mk_coroutine, co_unit, co_suspend, co_get_state, co_set_state, comm_list_coroutine } from "../fast_coroutine";
 
 export interface BoolCat extends Fun<Unit, Sum<Unit,Unit>> {}
 export let FalseCat:BoolCat = unit<Unit>().then(inl<Unit,Unit>())

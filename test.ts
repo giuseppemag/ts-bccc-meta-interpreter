@@ -21,14 +21,15 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C<a,b> {
+class C<a> {
   a x;
   public C(a x) { this.x = x; }
-  public (a,b) get_x(b y) { return (this.x,y); }
+  public a get_x() { return this.x; }
+  public b map<b>(Func<a,b> f) { return new C<b>(f(this.get_x())); }
 }
 
-C<int, bool> c = new C<int, bool>(10);
-var y = c.get_x(true);
+var c_int = new C<int>(10);
+var c_bool = c.map<bool>(x => x > 0);
 typechecker_debugger;
 `
 

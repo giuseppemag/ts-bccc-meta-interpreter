@@ -15,6 +15,10 @@ export interface MethodTyping {
     typing: Typing;
     modifiers: Immutable.Set<Modifier>;
 }
+export interface GenericMethodTyping extends MethodTyping {
+    instantiate: (_: Immutable.Map<Name, Type>, is_visible?: boolean) => Stmt;
+    params: Array<GenericParameter>;
+}
 export interface FieldType {
     type: Type;
     is_used_as_base: boolean;
