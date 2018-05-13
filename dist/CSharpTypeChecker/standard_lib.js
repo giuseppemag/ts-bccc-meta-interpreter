@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
+var FastCo = require("../fast_coroutine");
 var CSharp = require("./csharp");
 var Sem = require("../Python/python");
 var source_range_1 = require("../source_range");
@@ -203,7 +204,7 @@ var file_create = function (_) { return ({
         { name: "path", type: csharp_1.string_type }
     ],
     params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
-    body: from_js(csharp_1.string_type, Sem.return_rt(Sem.set_file(source_range_1.minus_two_range, Sem.get_v_rt(source_range_1.minus_two_range, "path"), ts_bccc_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_string_val(""))))))
+    body: from_js(csharp_1.string_type, Sem.return_rt(Sem.set_file(source_range_1.minus_two_range, Sem.get_v_rt(source_range_1.minus_two_range, "path"), FastCo.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), python_1.mk_string_val(""))))))
 }); };
 var file_delete = function (_) { return ({
     modifiers: ["static", "public"],

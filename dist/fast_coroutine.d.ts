@@ -1,6 +1,18 @@
 import * as Immutable from "immutable";
 export interface Unit {
 }
+export declare type CoConcreteRes<s, e, a> = {
+    kind: "k";
+    s: s;
+    k: Coroutine<s, e, a>;
+} | {
+    kind: "e";
+    e: e;
+} | {
+    kind: "v";
+    s: s;
+    v: a;
+};
 export declare type CoRes<s, e, a> = {
     kind: "k";
     s: s;

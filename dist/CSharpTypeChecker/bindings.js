@@ -18,6 +18,7 @@ var ccc_aux_1 = require("../ccc_aux");
 var main_1 = require("../main");
 var types_1 = require("./types");
 var multi_map_1 = require("../multi_map");
+var FastCo = require("../fast_coroutine");
 // Basic statements and expressions
 var ensure_constraints = function (r, constraints) { return function (res) {
     if (constraints.kind == "right")
@@ -568,14 +569,14 @@ exports.semicolon = function (r, p, q) {
     return function (constraints) { return p(constraints).then(function (p_t) {
         return q(constraints).then(function (q_t) {
             return ts_bccc_2.co_unit(types_1.mk_typing(q_t.type, p_t.sem.then(function (res) {
-                return ts_bccc_1.co_get_state().then(function (s) {
-                    var f = function (counter) { return ts_bccc_1.co_set_state(__assign({}, s, { steps_counter: counter })).then(function (_) {
-                        var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
+                return FastCo.co_get_state().then(function (s) {
+                    var f = function (counter) { return FastCo.co_set_state(__assign({}, s, { steps_counter: counter })).then(function (_) {
+                        var f = FastCo.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
                         return res.kind == "left" ? q_t.sem : f;
                     }); };
                     if (s.steps_counter > 300) {
                         if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
-                            return ts_bccc_2.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
+                            return FastCo.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
                         else
                             return f(0);
                     }
@@ -1361,7 +1362,7 @@ exports.coerce = function (r, e, t) {
         // console.log(`Coercing from ${type_to_string(e_v.type)} to ${type_to_string(t)}`)
         if (e_v.type.kind == "tuple" && t.kind == "record") {
             var record_labels_1 = t.args.keySeq().toArray();
-            return ts_bccc_2.co_unit(types_1.mk_typing(t, e_v.sem.then(function (e_v_rt) { return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_v_rt.value, record_labels_1))); })));
+            return ts_bccc_2.co_unit(types_1.mk_typing(t, e_v.sem.then(function (e_v_rt) { return FastCo.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_v_rt.value, record_labels_1))); })));
         }
         if (e_v.type.kind == "fun" && t.kind == "fun") {
             // console.log(`Coercing ${type_to_string(e_v.type)} --> ${type_to_string(t)}`)

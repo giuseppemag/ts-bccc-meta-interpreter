@@ -1353,4 +1353,4 @@ C<int, bool, float> x;
     { name:"C<int> is instantiated", step:1, expected_kind:"error" },
   ]},
 
-], "Generics: wrong instantiation does not compile")
+])

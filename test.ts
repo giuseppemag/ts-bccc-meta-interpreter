@@ -21,18 +21,24 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C<a> {
-  a x;
-  public C(a x) { this.x = x; }
-  public a get_x() { return this.x; }
-  public b map<b>(Func<a,b> f) { return new C<b>(f(this.get_x())); }
-}
-
-var c_int = new C<int>(10);
-var c_bool = c.map<bool>(x => x > 0);
-typechecker_debugger;
+var a = 2 + 5;
+var b = 5 * 1.5f;
+var c = 2.5 + (5 * 1.5f);
+var d = "a" + a;
+var e = !((d == "c") || (c > b));
+var f = (a <= c) && (b == c);
 `
 
+// class C<a> {
+//   a x;
+//   public C(a x) { this.x = x; }
+//   public a get_x() { return this.x; }
+//   public b map<b>(Func<a,b> f) { return new C<b>(f(this.get_x())); }
+// }
+
+// var c_int = new C<int>(10);
+// var c_bool = c.map<bool>(x => x > 0);
+// typechecker_debugger;
 
 // test 2
 // interface I

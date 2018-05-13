@@ -20,7 +20,16 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C<a> {\n  a x;\n  public C(a x) { this.x = x; }\n  public a get_x() { return this.x; }\n  public b map<b>(Func<a,b> f) { return new C<b>(f(this.get_x())); }\n}\n\nvar c_int = new C<int>(10);\nvar c_bool = c.map<bool>(x => x > 0);\ntypechecker_debugger;\n";
+        var source = "\nvar a = 2 + 5;\nvar b = 5 * 1.5f;\nvar c = 2.5 + (5 * 1.5f);\nvar d = \"a\" + a;\nvar e = !((d == \"c\") || (c > b));\nvar f = (a <= c) && (b == c);\n";
+        // class C<a> {
+        //   a x;
+        //   public C(a x) { this.x = x; }
+        //   public a get_x() { return this.x; }
+        //   public b map<b>(Func<a,b> f) { return new C<b>(f(this.get_x())); }
+        // }
+        // var c_int = new C<int>(10);
+        // var c_bool = c.map<bool>(x => x > 0);
+        // typechecker_debugger;
         // test 2
         // interface I
         // {

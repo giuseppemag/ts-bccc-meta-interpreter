@@ -6,6 +6,7 @@ import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
 import { Stmt } from "./csharp";
 import { MultiMap } from "../multi_map";
+import * as FastCo from "../fast_coroutine";
 export declare type Name = string;
 export interface Err {
     message: string;
@@ -145,9 +146,9 @@ export interface Typing {
     type: TypeInformation;
     sem: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>;
 }
-export declare let mk_typing: (t: Type, s: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>, is_constant?: boolean | undefined) => Typing;
-export declare let mk_typing_cat: Fun<Prod<Type, Sem.ExprRt<Sum<Sem.Val, Sem.Val>>>, Typing>;
-export declare let mk_typing_cat_full: Fun<Prod<TypeInformation, Sem.ExprRt<Sum<Sem.Val, Sem.Val>>>, Typing>;
+export declare let mk_typing: (t: Type, s: FastCo.Coroutine<Sem.MemRt, Sem.ErrVal, Sum<Sem.Val, Sem.Val>>, is_constant?: boolean | undefined) => Typing;
+export declare let mk_typing_cat: Fun<Prod<Type, FastCo.Coroutine<Sem.MemRt, Sem.ErrVal, Sum<Sem.Val, Sem.Val>>>, Typing>;
+export declare let mk_typing_cat_full: Fun<Prod<TypeInformation, FastCo.Coroutine<Sem.MemRt, Sem.ErrVal, Sum<Sem.Val, Sem.Val>>>, Typing>;
 export declare let empty_state: State;
 export declare let load: Fun<Prod<string, State>, Sum<Unit, TypeInformation>>;
 export declare let store: Fun<Prod<Prod<string, TypeInformation>, State>, State>;

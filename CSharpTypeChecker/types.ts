@@ -9,6 +9,7 @@ import { comm_list_coroutine, co_stateless } from "../ccc_aux";
 import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val } from "../main";
 import { Stmt } from "./csharp";
 import { MultiMap } from "../multi_map";
+import * as FastCo from "../fast_coroutine"
 
 export type Name = string
 export interface Err { message:string, range:SourceRange }

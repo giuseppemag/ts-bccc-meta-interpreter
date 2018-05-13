@@ -10,6 +10,7 @@ import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt, Mem
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings, var_type, fun_stmts_type, FunWithStmts, generic_type_decl, GenericParameter } from "./types";
 import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
+import * as FastCo from "../fast_coroutine"
 
 // Basic statements and expressions
 let ensure_constraints = (r: SourceRange, constraints: TypeConstraints) => (res: Coroutine<State, Err, Typing>) => {
@@ -549,16 +550,16 @@ export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
   return constraints => p(constraints).then(p_t =>
     q(constraints).then(q_t =>
       co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
-        return co_get_state<MemRt, ErrVal>().then(s =>
+        return FastCo.co_get_state<MemRt, ErrVal>().then(s =>
         {
-          let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ =>
+          let f = (counter:number) => FastCo.co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then(_ =>
                     {
-                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
+                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = FastCo.co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
                       return res.kind == "left" ? q_t.sem : f
                     } )
           if(s.steps_counter > 300) {
             if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
-              return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+              return FastCo.co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
             else
               return f(0)
           }
@@ -1431,7 +1432,7 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
     if (e_v.type.kind == "tuple" && t.kind == "record") {
       let record_labels = t.args.keySeq().toArray()
       return co_unit(
-        mk_typing(t, e_v.sem.then(e_v_rt => co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels)))))
+        mk_typing(t, e_v.sem.then(e_v_rt => FastCo.co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels)))))
       )
     }
 

@@ -1,6 +1,3 @@
-[g] tail recursion runtime
-[g] add multiple highlightings (along the stack) for function calls
-
 [g] Generics
   [ ] instantiate on:
     [ ] generic method call
@@ -11,6 +8,7 @@
     [ ] Instantiation: check existing method instances, if not present: def_method, then store
     [ ] Call: instantiate, then call
 [g] multithreading: thread_debugger;
+[g] add multiple highlightings (along the stack) for function calls
 
 [g] Filesystem simulator
   [ ] rendering
