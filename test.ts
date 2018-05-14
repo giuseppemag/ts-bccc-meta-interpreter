@@ -21,17 +21,65 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-class C<a,b> {
-  a x;
-  public C(a x) { this.x = x; }
-  public (a,b) get_x(b y) { return (this.x,y); }
+interface Option<a> {
+  bool has_value();
+  a get_value();
 }
 
-C<int, bool> c = new C<int, bool>(10);
-var y = c.get_x(true);
+class None<x> : Option<x> {
+  public override bool has_value() {
+    return false;
+  }
+}
+
+class Some<y> : Option<y> {
+  y value;
+  public Some(y value){
+    this.value = value;
+  }
+  public override y get_value() {
+    return this.value;
+  }
+}
+
+Option<int> maybe_none = new None<int>();
+bool is_some = maybe_none.has_value();
 typechecker_debugger;
+debugger;
 `
 
+// interface Option<a> {
+//   bool has_value();
+//   a get_value();
+// }
+
+// class None<a> : Option<a> {
+//   public override bool has_value(){
+//     return false;
+//   }
+// }
+
+// class Some<a> : Option<a> {
+//   a value;
+//   public Some(a value){
+//     this.value = value;
+//   }
+//   public override a get_value(){
+//     return this.value;
+//   }
+// }
+// typechecker_debugger;
+// debugger;
+
+// class C<a,b> {
+//   a x;
+//   public C(a x) { this.x = x; }
+//   public (a,b) get_x(b y) { return (this.x,y); }
+// }
+
+// C<int, bool> c = new C<int, bool>(10);
+// var y = c.get_x(true);
+// typechecker_debugger;
 
 // test 2
 // interface I

@@ -12,10 +12,11 @@ import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
 
 // Basic statements and expressions
-let ensure_constraints = (r: SourceRange, constraints: TypeConstraints) => (res: Coroutine<State, Err, Typing>) => {
-  if (constraints.kind == "right") return res
-  if (constraints.value.kind == "fun_with_input_as_stmts") return res
-  return coerce(r, _ => res, constraints.value)(no_constraints)
+let ensure_constraints = (r: SourceRange, constraints: TypeConstraints, _pre?: ExprRt<Sum<Val, Val>>) => (res: Coroutine<State, Err, Typing>) => {
+  let pre = _pre == undefined ? done_rt : _pre
+  if (constraints.kind == "right") return res.then(res_t => co_unit(mk_typing(res_t.type, pre.then(_ => res_t.sem))))
+  if (constraints.value.kind == "fun_with_input_as_stmts") return res.then(res_t => co_unit(mk_typing(res_t.type, pre.then(_ => res_t.sem))))
+  return coerce(r, _ => res, constraints.value, pre)(no_constraints)
 }
 
 const initial_value = (type: Type): Sem.Val => {
@@ -47,7 +48,7 @@ export let get_v = function (r: SourceRange, v: Name): Stmt {
   return constraints =>
     {
       return constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? i :
-             coerce(r, _ => i, constraints.value)(no_constraints)
+             coerce(r, _ => i, constraints.value, done_rt)(no_constraints)
     }
 }
 export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<State, Err, Typing> {
@@ -67,7 +68,7 @@ export let instantiate_generics = function(r:SourceRange, t:Type) : Coroutine<St
         let t_template = s.bindings.get(C_name)
         if (t_template.kind == "generic type decl" && t_template.params.length == args_i.length) {
           // t exists but is not instantiated
-          let instantiate_t1 = t_template.instantiate(Immutable.Map<string,Type>(t_template.params.map((p,i) => [p.name, args_i[i].type])))
+          let instantiate_t1 = t_template.instantiate(Immutable.Map<string,Type>(t_template.params.map((p,i) => [p.name, args_i[i].type])), false)
           let args_i_sem = args_i.reduce<Sem.StmtRt>((sem, a_i) => a_i ? sem.then(_ => a_i.sem) : sem, Sem.done_rt)
           return instantiate_t1(no_constraints).then(t1_t =>
               co_unit(mk_typing(t1, args_i_sem.then(_ => t1_t.sem))))
@@ -145,7 +146,7 @@ export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stm
   return c => {
     return instantiate_generics(r, t0).then(t_t => {
     let t = t_t.type
-    // console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}`)
+    console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}, ${JSON.stringify(c)}`)
     return e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State, Err>().then(s => {
       if (s.bindings.has(v)) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
@@ -153,7 +154,8 @@ export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stm
       let g = curry(f)
       let args = apply(constant<Unit, Name>(v).times(constant<Unit, TypeInformation>({ ...e_val.type, is_constant: is_constant != undefined ? is_constant : false })), {})
       return mk_coroutine<State, Err, Typing>(apply(g, args))
-    }))})
+    }))
+  })
   }
 }
 export let decl_const = function (r: SourceRange, c: Name, t0: Type, e: Stmt): Stmt {
@@ -215,7 +217,7 @@ export const mk_filesystem_and_program = (r: SourceRange, fs: Stmt, prg: Stmt): 
 }
 
 let coerce_to_constraint = (r: SourceRange, p: Stmt, p_t: Type): Stmt =>
-  constraints => coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? p_t : constraints.value)(constraints)
+  constraints => coerce(r, p, constraints.kind == "right" || constraints.value.kind == "var" || constraints.value.kind == "fun_with_input_as_stmts" ? p_t : constraints.value, done_rt)(constraints)
 
 export let bool = (r: SourceRange, b: boolean): Stmt =>
   coerce_to_constraint(r, _ => co_unit(mk_typing(bool_type, Sem.bool_expr(b))), bool_type)
@@ -250,7 +252,7 @@ export let tuple_value = function (r: SourceRange, args: Array<Stmt>): Stmt {
     )
     if (original_constraints.kind == "right") return res
     if (original_constraints.value.kind == "fun_with_input_as_stmts")  return res
-    return coerce(r, _ => res, original_constraints.value)(no_constraints)
+    return coerce(r, _ => res, original_constraints.value, done_rt)(no_constraints)
   }
 }
 
@@ -840,9 +842,13 @@ export let set_arr_el = function (r: SourceRange, a: Stmt, i: Stmt, e: Stmt): St
       ))
       : co_error<State, Err, Typing>({ range: r, message: `Error: expected an array, iclearnstead found ${type_to_string(a_t.type)}.` }))
 }
-
-export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "normal" | "abstract" | "interface", C_name: string, extends_or_implements: string[], methods_from_context: Array<(_: CallingContext) => MethodDefinition>, fields_from_context: Array<(_: CallingContext) => FieldDefinition>, is_internal = false): Stmt {
-  return _ => co_get_state<State, Err>().then(initial_bindings => {
+export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "normal" | "abstract" | "interface", C_name: string, extends_or_implements: {C_name:string, generic_parameters:GenericParameter[], type:Type}[], methods_from_context: Array<(_: CallingContext) => MethodDefinition>, fields_from_context: Array<(_: CallingContext) => FieldDefinition>, is_internal = false): Stmt {
+  return _ => comm_list_coroutine(Immutable.List(extends_or_implements.map(e => 
+      instantiate_generics(r, e.type)
+      ))).then(extends_or_implements_sem => 
+    
+    co_get_state<State, Err>().then(initial_bindings => {
+    
     let context: CallingContext = { kind: "class", C_name: C_name, looking_up_base: false }
     let _methods = methods_from_context.map(m => m(context))
     let methods = C_kind == "interface" ? [] : _methods.filter(m => !m.modifiers.some(m => m == "abstract" || m == "virtual" || m == "override"))
@@ -857,46 +863,29 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
       }
       methods = methods.concat([def_constructor])
     }
-    let s = extends_or_implements.filter(c => !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj")
-    if (extends_or_implements.some(c => !initial_bindings.bindings.has(c) || initial_bindings.bindings.get(c).kind != "obj"))
+    
+    let s = extends_or_implements.filter(c => !initial_bindings.bindings.has(type_to_string(c.type)) || initial_bindings.bindings.get(type_to_string(c.type)).kind != "obj")
+    
+    if (extends_or_implements.some(c => !initial_bindings.bindings.has(type_to_string(c.type)) || initial_bindings.bindings.get(type_to_string(c.type)).kind != "obj")){
+      
       return co_error({ message: `Wrong definition of base types when declaring class ${C_name}.`, range: r })
-    let extended_classes = extends_or_implements.map(c => initial_bindings.bindings.get(c) as ObjType)
+    }
+    let extended_classes = extends_or_implements.map(c => ({obj:initial_bindings.bindings.get(type_to_string(c.type)) as ObjType, type:c.type}) )
 
     let fields = fields_from_context.map(f => f(context))
-
-    let instantiate_field_types = comm_list_coroutine(Immutable.List(fields.map(f => instantiate_generics(r, f.type))))
-    return instantiate_field_types.then(field_types_i_l => {
-    let field_types_i = field_types_i_l.toArray()
-
-    fields.forEach((f,f_i) => {
-      f.type = field_types_i[f_i].type
-    })
-
-    let field_types_i_sem = field_types_i.map(a => a.sem).reduce((a,b) => a.then(_ => b), Sem.done_rt)
 
     fields = fields.concat(
       extended_classes.map(e => {
         let base: FieldDefinition = {
           is_used_as_base:true,
-          name: e.class_kind != "interface" ? "base" : `${e.C_name}_base`,
-          type: { kind: "ref", C_name: e.C_name } as Type,
+          name: e.obj.class_kind != "interface" ? "base" : `${e.obj.C_name}_base`,
+          type: { kind: "ref", C_name: e.obj.C_name } as Type,
           modifiers: ["public"] as Modifier[],
           initial_value: apply(inr<Stmt, Unit>(), {})
         }
 
         return base
       }))
-    let this_class_ref_type: Type = { kind: "ref", C_name: C_name }
-    let this_class_ref_param: Parameter = { name: "this", type: this_class_ref_type }
-
-    let casting_operators = extended_classes.map((ec:ObjType) : MethodDefinition => {
-      let base_type: Type = { kind: "ref", C_name: ec.C_name }
-      return  ({ modifiers:["static", "public", "casting", "operator"], is_constructor:false, range:r,
-      return_t:base_type, name:ec.C_name, parameters:[{ name:"self", type:this_class_ref_type }],
-      params_base_call:apply(inr(), {}),
-      body:field_get(r, context, get_v(r, "self"), ec.class_kind != "interface" ? "base" : `${ec.C_name}_base`) })
-    })
-    methods = methods.concat(casting_operators)
 
     fields = fields.concat(
       _methods.filter(m => m.modifiers.some(m => m == "abstract" || m == "virtual") || C_kind == "interface")
@@ -927,6 +916,31 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
         }))
     // console.log("fields: ", JSON.stringify([C_name, C_kind, fields.map(f => f.type)]))
     // console.log("methods: ", JSON.stringify([C_name, C_kind, methods.map(f => f.name)]))
+    
+    let instantiate_field_types = comm_list_coroutine(Immutable.List(fields.map(f => instantiate_generics(r, f.type))))
+    return instantiate_field_types.then(field_types_i_l => {
+    let field_types_i = field_types_i_l.toArray()
+
+    fields.forEach((f,f_i) => {
+      f.type = field_types_i[f_i].type
+    })
+
+    let field_types_i_sem = field_types_i.map(a => a.sem).reduce((a,b) => a.then(_ => b), Sem.done_rt)
+
+    
+    let this_class_ref_type: Type = { kind: "ref", C_name: C_name }
+    let this_class_ref_param: Parameter = { name: "this", type: this_class_ref_type }
+
+    let casting_operators = extended_classes.map((e) : MethodDefinition => {
+      let base_type: Type = { kind: "ref", C_name: e.obj.C_name }
+      return  ({ modifiers:["static", "public", "casting", "operator"], is_constructor:false, range:r,
+      return_t:base_type, name:e.obj.C_name, parameters:[{ name:"self", type:this_class_ref_type }],
+      params_base_call:apply(inr(), {}),
+      body:field_get(r, context, get_v(r, "self"), e.obj.class_kind != "interface" ? "base" : `${e.obj.C_name}_base`) })
+    })
+    methods = methods.concat(casting_operators)
+
+
 
 
     let get_class_kind = (name: string, bindings: Bindings): Option<ObjType> => {
@@ -974,7 +988,7 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
       )
     }
     return co_set_state<State, Err>({ ...initial_bindings, bindings: initial_bindings.bindings.set(C_name, { ...C_type_placeholder, is_constant: true }) }).then(_ => {
-      let concrete_extends_or_implements = extends_or_implements.map(c => get_class_kind(c, initial_bindings.bindings))
+      let concrete_extends_or_implements = extends_or_implements.map(c => get_class_kind(type_to_string(c.type), initial_bindings.bindings))
       let concrete_classes_to_extend = concrete_extends_or_implements.filter(e => e.kind == "left" && e.value.class_kind != "interface")
       let interfaces_to_implement:ObjType[] = concrete_extends_or_implements.filter(e => e.kind == "left" && e.value.class_kind == "interface").map(e => e.value) as any
       if (concrete_classes_to_extend.length > 1) {
@@ -1046,10 +1060,16 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
         }).reduce((a, b) => semicolon(r, a, b), done)
 
         let instantiate_methods = methods_t.toArray().map(m_t => m_t.sem).reduce((a, b) => a.then(a_i => b), Sem.done_rt)
+        let instantiate_extends_or_implements = extends_or_implements_sem.toArray().map(m_t => m_t.sem).reduce((a, b) => a.then(a_i => b), Sem.done_rt)
+        // let extends_or_implements_sem_rt = extends_or_implements_sem.toArray().reduce<Coroutine<State, Err, Typing>>((args, arg, arg_i) =>
+        //     args.then(args_t => {})),
+        //   co_unit(done))
 
         return co_set_state<State, Err>({ ...initial_bindings, bindings: initial_bindings.bindings.set(C_name, { ...C_type, is_constant: true }) }).then(_ =>
           init_static_fields(no_constraints).then(init_static_fields_t =>
-            co_unit(mk_typing(unit_type, instantiate_methods.then(_ => field_types_i_sem.then(_fti => Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem)))))
+            co_unit(mk_typing(unit_type, 
+              instantiate_extends_or_implements.then(_ =>
+                instantiate_methods.then(_ => field_types_i_sem.then(_fti => Sem.declare_class_rt(r, C_name, C_int).then(_ => init_static_fields_t.sem))))))
           )
         )
       }
@@ -1057,23 +1077,27 @@ export let def_class = function (r: SourceRange, modifiers:Modifier[], C_kind: "
     })
   })
 })
+)
 }
 
 export let generic_instance_name = (C_name:string, generic_parameters:Array<GenericParameter>, generic_arguments:Immutable.Map<string,Type>) : string =>
   generic_parameters.length == 0 ? C_name : `${C_name}<${generic_parameters.map(p => type_to_string(generic_arguments.get(p.name))).reduce((a,b) => a + "," + b)}>`
+  
+let C_name_inst_basic = (C_name:string, generic_parameters:GenericParameter[]) => generic_instance_name(C_name, generic_parameters, Immutable.Map<Name, Type>(generic_parameters.map(p => [p.name, ref_type(p.name)])))
 
 export let def_generic_class = function (r: SourceRange, C_name: string, generic_parameters:Array<GenericParameter>, instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt): Stmt {
   return _ => co_get_state<State, Err>().then(initial_bindings => {
-    let C_name_inst_basic = generic_instance_name(C_name, generic_parameters, Immutable.Map<Name, Type>(generic_parameters.map(p => [p.name, ref_type(p.name)])))
+    
     let new_bindings = initial_bindings.bindings.set(C_name, {...generic_type_decl(instantiate, generic_parameters, C_name), is_constant:true })
+    // console.log("GENERETIG NAME: ", C_name_inst_basic(C_name, generic_parameters), JSON.stringify(generic_parameters))
     return co_set_state<State, Err>({ ...initial_bindings, bindings:new_bindings }).then(_ =>
       co_stateless<State, Err, [Type,Sem.StmtRt]>(
       co_set_state<State, Err>({ ...initial_bindings, bindings:generic_parameters.reduce((b,p) => b.set(p.name, {...unit_type, is_constant:true }), new_bindings) }).then(_ =>
       instantiate(Immutable.Map<Name,Type>(generic_parameters.map(p => [p.name, ref_type(p.name)])), true)(no_constraints).then(t_sem =>
       co_get_state<State, Err>().then(temp_bindings =>
-      co_unit<State, Err, [Type,Sem.StmtRt]>([temp_bindings.bindings.get(C_name_inst_basic), t_sem.sem]))))).then(t =>
+      co_unit<State, Err, [Type,Sem.StmtRt]>([temp_bindings.bindings.get(C_name_inst_basic(C_name, generic_parameters)), t_sem.sem]))))).then(t =>
       co_get_state<State, Err>().then(final_bindings =>
-      co_set_state<State, Err>({ ...final_bindings, bindings:final_bindings.bindings.set(C_name_inst_basic, ({...t[0], is_constant:true})) }).then(_ =>
+      co_set_state<State, Err>({ ...final_bindings, bindings:final_bindings.bindings.set(C_name_inst_basic(C_name, generic_parameters), ({...t[0], is_constant:true})) }).then(_ =>
       co_unit<State, Err, Typing>(mk_typing(unit_type, t[1]))))))
   })
 }
@@ -1224,7 +1248,7 @@ export let field_get = function (r: SourceRange, context: CallingContext, this_r
                                                                 m.typing.type.out)) {
                           return co_error<State, Err, Typing>({ range: r, message: `Unexpected method` })
                         }
-                        return coerce(r, _ => f(), fun)(no_constraints)
+                        return coerce(r, _ => f(), fun, done_rt)(no_constraints)
                       })
                   }
                   else{
@@ -1335,8 +1359,10 @@ export let field_set = function (r: SourceRange, context: CallingContext, this_r
 
 
 export let call_cons = function (r: SourceRange, context: CallingContext, C_name: string, arg_values: Array<Stmt>, C_name_generic: string, type_args:Array<Type>, is_internal:boolean = false): Stmt {
+  
   return constraints => instantiate_generics(r, { kind:"generic type instance", C_name:C_name_generic, args:type_args }).then(inst_t => {
     let t = inst_t.type
+    
     return co_get_state<State, Err>().then(bindings => {
     if (!bindings.bindings.has(C_name)) return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} is undefined.` })
     let C_def = bindings.bindings.get(C_name)
@@ -1346,7 +1372,7 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
       return co_error<State, Err, Typing>({ range: r, message: `Error: class ${C_name} has no constructors.` })
     }
     let lambda_t = C_def.methods.get(C_name).first()
-
+    
     if (lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
       lambda_t.typing.type.out.kind != "fun" || lambda_t.typing.type.out.in.kind != "tuple")
       return co_error<State, Err, Typing>({ range: r, message: `Error: invalid constructor type ${type_to_string(lambda_t.typing.type)}` })
@@ -1387,19 +1413,22 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
       else if (context.C_name != C_name)
         return co_error<State, Err, Typing>({ range: r, message: `Error: cannot call non-public constructor ${C_name}.` })
     }
-    return ensure_constraints(r, constraints)(lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
-      check_arguments.then(args_t =>
-        init_fields(no_constraints).then(init_fields_t =>
-          lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
-            (lambda_t.typing.type.out.kind == "fun" &&
-              lambda_t.typing.type.out.in.kind == "tuple" &&
-              arg_values.length != lambda_t.typing.type.out.in.args.length) ?
-            co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}` })
-            :
-            co_unit(mk_typing(ref_type(C_name), inst_t.sem.then(_ => Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem))))
-        ))
-      : co_error<State, Err, Typing>({ range: r, message: `Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}` }))
-  })
+    return ensure_constraints(r, constraints, inst_t.sem)(
+        lambda_t.typing.type.kind == "fun" && lambda_t.typing.type.in.kind == "tuple" ?
+          check_arguments.then(args_t =>
+            init_fields(no_constraints).then(init_fields_t =>
+              lambda_t.typing.type.kind != "fun" || lambda_t.typing.type.in.kind != "tuple" ||
+                (lambda_t.typing.type.out.kind == "fun" &&
+                  lambda_t.typing.type.out.in.kind == "tuple" &&
+                  arg_values.length != lambda_t.typing.type.out.in.args.length) ?
+                co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}` })
+                :
+                co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem).then(res => co_unit(res)))
+                                                  )
+            ))
+          : co_error<State, Err, Typing>({ range: r, message: `Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}` })
+      )
+    })
   })
 }
 
@@ -1423,15 +1452,15 @@ export let get_class = (r: SourceRange, t: Type): Coroutine<State, Err, ObjType>
       })
       : co_unit<State, Err, ObjType>({ C_name: type_to_string(t), class_kind: "normal", fields: Immutable.Map<Name, FieldType>(), methods: MultiMap<Name, MethodTyping>([]), is_internal: true, range: zero_range, kind: "obj" })
 
-export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
+export let coerce = (r: SourceRange, e: Stmt, t: Type, pre: ExprRt<Sum<Val, Val>>): Stmt =>
   constraints => e(constraints).then(e_v => {
-    if (type_equals(t, e_v.type)) return co_unit(e_v)
+    if (type_equals(t, e_v.type)) return co_unit(mk_typing(e_v.type, pre.then(_ => e_v.sem)))
 
     // console.log(`Coercing from ${type_to_string(e_v.type)} to ${type_to_string(t)}`)
     if (e_v.type.kind == "tuple" && t.kind == "record") {
       let record_labels = t.args.keySeq().toArray()
       return co_unit(
-        mk_typing(t, e_v.sem.then(e_v_rt => co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels)))))
+        mk_typing(t, pre.then(_ => e_v.sem.then(e_v_rt => co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels))))))
       )
     }
 
@@ -1451,15 +1480,16 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type): Stmt =>
         m.v.modifiers.some(mod => mod == "operator") &&
         m.v.modifiers.some(mod => mod == "static")).map(c_op => !c_op ? undefined : ({ body: c_op.v, name: c_op.k }))
         .toArray() // as { body:MethodTyping, name:string}[]
+        
       let coercions = casting_operators.map(c_op => {
         if (!c_op)
           return (_: TypeConstraints) => co_error<State, Err, Typing>({ range: r, message: `Unexpected coercion error` })
-        let c_op_typing: Stmt = _ => co_unit<State, Err, Typing>(mk_typing(c_op.body.typing.type, Sem.static_method_get_expr_rt(r, e_type_name, c_op.name)))
+        let c_op_typing: Stmt = _ => co_unit<State, Err, Typing>(mk_typing(c_op.body.typing.type, pre.then(_ => Sem.static_method_get_expr_rt(r, e_type_name, c_op.name))))
         let coercion = call_lambda(r, c_op_typing, [_ => co_unit<State, Err, Typing>(e_v)])
         if (c_op.name == t_name) {
           return coercion
         } else {
-          return coerce(r, coercion, t)
+          return coerce(r, coercion, t, pre)
         }
       })
 

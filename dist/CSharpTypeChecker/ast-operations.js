@@ -1,6 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || Object.assign || function(t) {
+    for (var s, i = 1, n = arguments.length; i < n; i++) {
+        s = arguments[i];
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+            t[p] = s[p];
+    }
+    return t;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var Immutable = require("immutable");
+var main_1 = require("../main");
 var source_range_1 = require("../source_range");
 var bindings_1 = require("./bindings");
 var types_1 = require("./types");
@@ -115,7 +124,7 @@ exports.ast_to_type_checker = function (substitutions) { return function (n) { r
                                     : n.ast.kind == "for" ? bindings_1.for_loop(n.range, exports.ast_to_type_checker(substitutions)(n.ast.i)(context), exports.ast_to_type_checker(substitutions)(n.ast.c)(context), exports.ast_to_type_checker(substitutions)(n.ast.s)(context), exports.ast_to_type_checker(substitutions)(n.ast.b)(context))
                                         : n.ast.kind == "while" ? bindings_1.while_do(n.range, exports.ast_to_type_checker(substitutions)(n.ast.c)(context), exports.ast_to_type_checker(substitutions)(n.ast.b)(context))
                                             : n.ast.kind == "if" ? bindings_1.if_then_else(n.range, exports.ast_to_type_checker(substitutions)(n.ast.c)(context), exports.ast_to_type_checker(substitutions)(n.ast.t)(context), n.ast.e.kind == "right" ? bindings_1.done : exports.ast_to_type_checker(substitutions)(n.ast.e.value)(context))
-                                                : n.ast.kind == "as" ? bindings_1.coerce(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_csharp_type(substitutions)(n.ast.r))
+                                                : n.ast.kind == "as" ? bindings_1.coerce(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_csharp_type(substitutions)(n.ast.r), main_1.done_rt)
                                                     : n.ast.kind == "+" ? bindings_1.plus(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), exports.ast_to_type_checker(substitutions)(n.ast.r)(context))
                                                         : n.ast.kind == "-" ? bindings_1.minus(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), exports.ast_to_type_checker(substitutions)(n.ast.r)(context))
                                                             : n.ast.kind == "*" ? bindings_1.times(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), exports.ast_to_type_checker(substitutions)(n.ast.r)(context), n.range)
@@ -172,7 +181,7 @@ exports.ast_to_type_checker = function (substitutions) { return function (n) { r
                                                                                                                                                                 )
                                                                                                                                                                 : n.ast.kind == "class" && n.ast.generic_parameters.length == 0 ?
                                                                                                                                                                     bindings_1.def_class(n.range, n.ast.modifiers.toArray().map(function (m) { return m.kind; }), (n.ast.modifiers.toArray().some(function (m) { return m.kind == "abstract"; }) ? "abstract" :
-                                                                                                                                                                        n.ast.modifiers.toArray().some(function (m) { return m.kind == "interface"; }) ? "interface" : "normal"), n.ast.C_name, n.ast.extends_or_implements, n.ast.methods.toArray().map(function (m) { return function (context) { return ({
+                                                                                                                                                                        n.ast.modifiers.toArray().some(function (m) { return m.kind == "interface"; }) ? "interface" : "normal"), n.ast.C_name, n.ast.extends_or_implements.map(function (e) { return (__assign({}, e, { type: ast_to_csharp_type(Immutable.Map())(e.ast) })); }), n.ast.methods.toArray().map(function (m) { return function (context) { return ({
                                                                                                                                                                         name: m.decl.name,
                                                                                                                                                                         return_t: ast_to_csharp_type(substitutions)(m.decl.return_type),
                                                                                                                                                                         params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),
@@ -215,7 +224,7 @@ exports.ast_to_type_checker = function (substitutions) { return function (n) { r
                                                                                                                                                                                 var range = n.range;
                                                                                                                                                                                 var ast = n.ast;
                                                                                                                                                                                 return types_1.try_unbind("this").then(function (prev_this) { return bindings_1.def_class(range, ast.modifiers.toArray().map(function (m) { return m.kind; }), (ast.modifiers.toArray().some(function (m) { return m.kind == "abstract"; }) ? "abstract" :
-                                                                                                                                                                                    ast.modifiers.toArray().some(function (m) { return m.kind == "interface"; }) ? "interface" : "normal"), C_name_inst, ast.extends_or_implements, ast.methods.toArray().map(function (m) { return function (context) { return ({
+                                                                                                                                                                                    ast.modifiers.toArray().some(function (m) { return m.kind == "interface"; }) ? "interface" : "normal"), C_name_inst, ast.extends_or_implements.map(function (e) { return (__assign({}, e, { type: ast_to_csharp_type(substitutions)(e.ast) })); }), ast.methods.toArray().map(function (m) { return function (context) { return ({
                                                                                                                                                                                     name: m.decl.name,
                                                                                                                                                                                     return_t: ast_to_csharp_type(substitutions)(m.decl.return_type),
                                                                                                                                                                                     params_base_call: ts_bccc_1.apply(ts_bccc_1.inr(), {}),

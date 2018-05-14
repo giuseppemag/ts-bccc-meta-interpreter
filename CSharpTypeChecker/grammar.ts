@@ -118,7 +118,7 @@ import {
   filesystem_keyword,
   file_keyword
 } from './primitives';
-import { Modifier } from './types';
+import { Modifier, GenericParameter } from './types';
 
 let priority_operators_table =
   Immutable.Map<string, {priority:number, associativity:"left"|"right"}>()
@@ -176,7 +176,8 @@ export interface FieldAST { decl:DeclAST | DeclAndInitAST, modifiers:Immutable.L
 export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
-export interface ClassAST { kind: "class", C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:string[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
+
+export interface ClassAST { kind: "class", C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
 export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
@@ -592,12 +593,12 @@ let assign : () => Parser = () =>
   expr().then(l =>
     assign_right().then(r => co_unit(mk_assign(l,r))))
 
-let type_args = () : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
+let type_args = (check_array_decl=true) : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
   parser_or<Array<ParserRes>>(
-    type_decl().then(a =>
+    type_decl(check_array_decl).then(a =>
     parser_or<Array<ParserRes>>(
       comma.then(_ =>
-        type_args().then(as =>
+        type_args(check_array_decl).then(as =>
       co_unit([a, ...as]))),
       co_unit([a]))),
     co_unit(Array<ParserRes>()))
@@ -679,6 +680,23 @@ let identifiers = () : Coroutine<ParserState, ParserError, ParserRes[]> =>
     parser_or<Array<ParserRes>>(
       comma.then(_ =>
         identifiers().then(as =>
+       co_unit([a, ...as]))),
+    co_unit([a]))),
+  co_unit(Array<ParserRes>()))
+
+let generic_identifiers = () : Coroutine<ParserState, ParserError, ParserRes[]> =>
+  parser_or<Array<ParserRes>>(
+    parser_or<ParserRes>(
+      identifier.then(i =>
+      lt_op.then(_ =>
+      generic_identifiers().then(args =>
+      gt_op.then(gt =>
+        co_unit(mk_generic_type_inst(join_source_ranges(i.range, gt), i, args))
+      )))),
+      identifier).then(a =>
+    parser_or<Array<ParserRes>>(
+      comma.then(_ =>
+        generic_identifiers().then(as =>
        co_unit([a, ...as]))),
     co_unit([a]))),
   co_unit(Array<ParserRes>()))
@@ -836,7 +854,7 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
                                     body))))))))))))))
 
 
-let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:string[], modifiers:Immutable.List<ModifierAST>) =>
+let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[], modifiers:Immutable.List<ModifierAST>) =>
   left_curly_bracket.then(_ =>
   class_statements().then(declarations =>
   right_curly_bracket.then(closing_curly_range =>
@@ -862,7 +880,7 @@ let class_declaration = () =>
   parser_or<Array<ParserRes>>(
     lt_op.then(_ =>
       partial_match.then(_ =>
-      type_args().then(args =>
+      type_args(false).then(args =>
       gt_op.then(end_range =>
       co_unit(args)
     )))),co_unit(Array<ParserRes>())).then(type_params =>
@@ -871,12 +889,30 @@ let class_declaration = () =>
     let range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(c_m => c_m.range).reduce((p,n) => join_source_ranges(p,n))
     return parser_or<ParserRes>(
     colon_keyword.then(_ =>
-    identifiers().then(extends_or_implements =>
-    class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
+    generic_identifiers().then(extends_or_implements =>
+    class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), 
+                extends_or_implements_AUX(extends_or_implements),
+                Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
     )),
     class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), [], Immutable.List<ModifierAST>(c_ms.toArray().map(m => m.ast)))
   )}))))))
 
+let extends_or_implements_AUX = (extends_or_implements:ParserRes[]) : {C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[] => {
+  return extends_or_implements.map(i => {
+            if(i.ast.kind == "id"){
+              return { C_name : i.ast.value, generic_parameters : [], ast:i }
+            }
+            if(i.ast.kind == "generic type inst" &&
+                i.ast.f.ast.kind == "id"){
+              return  { C_name : i.ast.f.ast.value,
+                        generic_parameters : i.ast.args.map(e => (e.ast.kind == "id" ?  { name:e.ast.value, variance:"inv" as "inv" } : 
+                                                                                        { name:"?", variance:"inv" as "inv" })),
+                        ast:i
+                      }
+            }
+            return { C_name : "", generic_parameters : [], ast:i }
+          })
+}
 
 let interface_declaration = () =>
   no_match.then(_ =>
@@ -898,8 +934,8 @@ let interface_declaration = () =>
                   _ms.toArray().map(m => m && m.ast) : _ms.toArray().map(m => m && m.ast).concat([{kind:"public"}])
     return parser_or<ParserRes>(
         colon_keyword.then(_ =>
-        identifiers().then(extends_or_implements =>
-        class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), extends_or_implements.map(i => i.ast.kind == "id" ? i.ast.value : ""), Immutable.List<ModifierAST>(_ms_new))
+        generic_identifiers().then(extends_or_implements =>
+        class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), extends_or_implements_AUX(extends_or_implements), Immutable.List<ModifierAST>(_ms_new))
         )),
         class_body(class_name, range, type_params.map(p => ({ name:p, variant:"inv" as "inv"})), [], Immutable.List<ModifierAST>(_ms_new))
       )})))))

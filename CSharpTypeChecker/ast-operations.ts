@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 
-import { ValueName } from '../main'
+import { ValueName, done_rt } from '../main'
 import { join_source_ranges, print_range } from '../source_range'
 import {
   and,
@@ -225,7 +225,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
   : n.ast.kind == "while" ? while_do(n.range, ast_to_type_checker(substitutions)(n.ast.c)(context), ast_to_type_checker(substitutions)(n.ast.b)(context))
   : n.ast.kind == "if" ? if_then_else(n.range, ast_to_type_checker(substitutions)(n.ast.c)(context), ast_to_type_checker(substitutions)(n.ast.t)(context),
                             n.ast.e.kind == "right" ? done : ast_to_type_checker(substitutions)(n.ast.e.value)(context))
-  : n.ast.kind == "as" ? coerce(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_csharp_type(substitutions)(n.ast.r))
+  : n.ast.kind == "as" ? coerce(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_csharp_type(substitutions)(n.ast.r), done_rt)
   : n.ast.kind == "+" ? plus(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context),
                                              ast_to_type_checker(substitutions)(n.ast.r)(context))
   : n.ast.kind == "-" ? minus(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context),
@@ -304,7 +304,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
       (n.ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
       n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
       n.ast.C_name,
-      n.ast.extends_or_implements,
+      n.ast.extends_or_implements.map(e => ({...e, type:ast_to_csharp_type(Immutable.Map<string, Type>())(e.ast)})),
       n.ast.methods.toArray().map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
@@ -347,18 +347,18 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
       // console.log(`Instantiating generic type ${n.ast.C_name} into ${C_name_inst}`)
       let type_parameter_names = n.ast.generic_parameters.map(p => p.name.ast.kind == "id" ? p.name.ast.value : "_anonymous_type_parameter?")
       if (type_parameter_names.length != generic_arguments.count() || type_parameter_names.some(p => !generic_arguments.has(p)))
-        return co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${C_name}: not all parameters were correctly bound.` })
-
+      return co_error<State, Err, Typing>({ range: n.range, message: `Error: cannot instantiate ${C_name}: not all parameters were correctly bound.` })
+      
       let substitutions = generic_arguments
-
+      
       let range = n.range
       let ast = n.ast
-
+      
       return try_unbind("this").then(prev_this => def_class(range,
         ast.modifiers.toArray().map(m => m.kind),
         (ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
         ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
-        C_name_inst, ast.extends_or_implements,
+        C_name_inst, ast.extends_or_implements.map(e => ({...e, type:ast_to_csharp_type(substitutions)(e.ast)})),
         ast.methods.toArray().map(m => (context:CallingContext) => ({
             name:m.decl.name,
             return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),

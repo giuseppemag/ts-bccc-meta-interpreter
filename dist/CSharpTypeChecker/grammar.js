@@ -331,10 +331,11 @@ var assign = function () {
         return assign_right().then(function (r) { return ts_bccc_1.co_unit(primitives_1.mk_assign(l, r)); });
     });
 };
-var type_args = function () {
-    return primitives_1.parser_or(type_decl().then(function (a) {
+var type_args = function (check_array_decl) {
+    if (check_array_decl === void 0) { check_array_decl = true; }
+    return primitives_1.parser_or(type_decl(check_array_decl).then(function (a) {
         return primitives_1.parser_or(comma.then(function (_) {
-            return type_args().then(function (as) {
+            return type_args(check_array_decl).then(function (as) {
                 return ts_bccc_1.co_unit([a].concat(as));
             });
         }), ts_bccc_1.co_unit([a]));
@@ -423,6 +424,23 @@ var identifiers = function () {
     return primitives_1.parser_or(primitives_1.identifier.then(function (a) {
         return primitives_1.parser_or(comma.then(function (_) {
             return identifiers().then(function (as) {
+                return ts_bccc_1.co_unit([a].concat(as));
+            });
+        }), ts_bccc_1.co_unit([a]));
+    }), ts_bccc_1.co_unit(Array()));
+};
+var generic_identifiers = function () {
+    return primitives_1.parser_or(primitives_1.parser_or(primitives_1.identifier.then(function (i) {
+        return primitives_1.lt_op.then(function (_) {
+            return generic_identifiers().then(function (args) {
+                return primitives_1.gt_op.then(function (gt) {
+                    return ts_bccc_1.co_unit(primitives_1.mk_generic_type_inst(source_range_1.join_source_ranges(i.range, gt), i, args));
+                });
+            });
+        });
+    }), primitives_1.identifier).then(function (a) {
+        return primitives_1.parser_or(comma.then(function (_) {
+            return generic_identifiers().then(function (as) {
                 return ts_bccc_1.co_unit([a].concat(as));
             });
         }), ts_bccc_1.co_unit([a]));
@@ -645,7 +663,7 @@ var class_declaration = function () {
                     return primitives_1.identifier_token.then(function (class_name) {
                         return primitives_1.parser_or(primitives_1.lt_op.then(function (_) {
                             return partial_match.then(function (_) {
-                                return type_args().then(function (args) {
+                                return type_args(false).then(function (args) {
                                     return primitives_1.gt_op.then(function (end_range) {
                                         return ts_bccc_1.co_unit(args);
                                     });
@@ -654,8 +672,8 @@ var class_declaration = function () {
                         }), ts_bccc_1.co_unit(Array())).then(function (type_params) {
                             var range = c_ms.count() == 0 ? initial_range : c_ms.toArray().map(function (c_m) { return c_m.range; }).reduce(function (p, n) { return source_range_1.join_source_ranges(p, n); });
                             return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                                return identifiers().then(function (extends_or_implements) {
-                                    return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
+                                return generic_identifiers().then(function (extends_or_implements) {
+                                    return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements_AUX(extends_or_implements), Immutable.List(c_ms.toArray().map(function (m) { return m.ast; })));
                                 });
                             }), class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), [], Immutable.List(c_ms.toArray().map(function (m) { return m.ast; }))));
                         });
@@ -663,6 +681,22 @@ var class_declaration = function () {
                 });
             });
         });
+    });
+};
+var extends_or_implements_AUX = function (extends_or_implements) {
+    return extends_or_implements.map(function (i) {
+        if (i.ast.kind == "id") {
+            return { C_name: i.ast.value, generic_parameters: [], ast: i };
+        }
+        if (i.ast.kind == "generic type inst" &&
+            i.ast.f.ast.kind == "id") {
+            return { C_name: i.ast.f.ast.value,
+                generic_parameters: i.ast.args.map(function (e) { return (e.ast.kind == "id" ? { name: e.ast.value, variance: "inv" } :
+                    { name: "?", variance: "inv" }); }),
+                ast: i
+            };
+        }
+        return { C_name: "", generic_parameters: [], ast: i };
     });
 };
 var interface_declaration = function () {
@@ -684,8 +718,8 @@ var interface_declaration = function () {
                         var _ms_new = _ms.toArray().some(function (m) { return m.ast.kind == "public"; }) || _ms.count() == 0 ?
                             _ms.toArray().map(function (m) { return m && m.ast; }) : _ms.toArray().map(function (m) { return m && m.ast; }).concat([{ kind: "public" }]);
                         return primitives_1.parser_or(primitives_1.colon_keyword.then(function (_) {
-                            return identifiers().then(function (extends_or_implements) {
-                                return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements.map(function (i) { return i.ast.kind == "id" ? i.ast.value : ""; }), Immutable.List(_ms_new));
+                            return generic_identifiers().then(function (extends_or_implements) {
+                                return class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), extends_or_implements_AUX(extends_or_implements), Immutable.List(_ms_new));
                             });
                         }), class_body(class_name, range, type_params.map(function (p) { return ({ name: p, variant: "inv" }); }), [], Immutable.List(_ms_new)));
                     });

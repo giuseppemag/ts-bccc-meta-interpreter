@@ -20,7 +20,35 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\nclass C<a,b> {\n  a x;\n  public C(a x) { this.x = x; }\n  public (a,b) get_x(b y) { return (this.x,y); }\n}\n\nC<int, bool> c = new C<int, bool>(10);\nvar y = c.get_x(true);\ntypechecker_debugger;\n";
+        var source = "\ninterface Option<a> {\n  bool has_value();\n  a get_value();\n}\n\nclass None<x> : Option<x> {\n  public override bool has_value() {\n    return false;\n  }\n}\n\nclass Some<y> : Option<y> {\n  y value;\n  public Some(y value){\n    this.value = value;\n  }\n  public override y get_value() {\n    return this.value;\n  }\n}\n\nOption<int> maybe_none = new None<int>();\nbool is_some = maybe_none.has_value();\ntypechecker_debugger;\ndebugger;\n";
+        // interface Option<a> {
+        //   bool has_value();
+        //   a get_value();
+        // }
+        // class None<a> : Option<a> {
+        //   public override bool has_value(){
+        //     return false;
+        //   }
+        // }
+        // class Some<a> : Option<a> {
+        //   a value;
+        //   public Some(a value){
+        //     this.value = value;
+        //   }
+        //   public override a get_value(){
+        //     return this.value;
+        //   }
+        // }
+        // typechecker_debugger;
+        // debugger;
+        // class C<a,b> {
+        //   a x;
+        //   public C(a x) { this.x = x; }
+        //   public (a,b) get_x(b y) { return (this.x,y); }
+        // }
+        // C<int, bool> c = new C<int, bool>(10);
+        // var y = c.get_x(true);
+        // typechecker_debugger;
         // test 2
         // interface I
         // {

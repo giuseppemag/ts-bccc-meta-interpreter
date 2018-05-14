@@ -2,6 +2,7 @@ import * as Immutable from "immutable";
 import { Unit, Fun, Prod, Sum } from "ts-bccc";
 import * as CCC from "ts-bccc";
 import { SourceRange } from "../source_range";
+import * as Sem from "../Python/python";
 import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, ObjType, GenericParameter } from "./types";
 export declare let wrap_co_res: Fun<Prod<Typing, State>, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>;
 export declare let wrap_co: Fun<Prod<Typing, State>, Sum<Err, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>>;
@@ -70,7 +71,7 @@ export declare let mk_param: (name: string, type: Type) => {
 export declare let mk_abstract_lambda: (r: SourceRange, def: LambdaDefinition, closure_parameters: string[], range: SourceRange) => Stmt;
 export declare let mk_lambda: (r: SourceRange, def: LambdaDefinition, closure_parameters: string[], range: SourceRange) => Stmt;
 export declare let def_fun: (r: SourceRange, def: FunDefinition, closure_parameters: string[]) => Stmt;
-export declare let def_method: (r: SourceRange, original_methods: MethodDefinition[], C_kind: "interface" | "abstract" | "normal", C_name: string, _extends: Sum<ObjType, Unit>, _implements: ObjType[], def: MethodDefinition, override_methods: MethodDefinition[]) => Stmt;
+export declare let def_method: (r: SourceRange, original_methods: MethodDefinition[], C_kind: "normal" | "abstract" | "interface", C_name: string, _extends: Sum<ObjType, Unit>, _implements: ObjType[], def: MethodDefinition, override_methods: MethodDefinition[]) => Stmt;
 export declare let call_lambda: (r: SourceRange, lambda: Stmt, arg_values: Stmt[]) => Stmt;
 export declare let call_by_name: (r: SourceRange, f_n: string, args: Stmt[]) => Stmt;
 export declare let ret: (r: SourceRange, p: Stmt) => Stmt;
@@ -78,7 +79,11 @@ export declare let new_array: (r: SourceRange, type: Type, len: Stmt) => Stmt;
 export declare let new_array_and_init: (r: SourceRange, type: Type, args: Stmt[]) => Stmt;
 export declare let get_arr_el: (r: SourceRange, a: Stmt, i: Stmt) => Stmt;
 export declare let set_arr_el: (r: SourceRange, a: Stmt, i: Stmt, e: Stmt) => Stmt;
-export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "interface" | "abstract" | "normal", C_name: string, extends_or_implements: string[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
+export declare let def_class: (r: SourceRange, modifiers: Modifier[], C_kind: "normal" | "abstract" | "interface", C_name: string, extends_or_implements: {
+    C_name: string;
+    generic_parameters: GenericParameter[];
+    type: Type;
+}[], methods_from_context: ((_: CallingContext) => MethodDefinition)[], fields_from_context: ((_: CallingContext) => FieldDefinition)[], is_internal?: boolean) => Stmt;
 export declare let generic_instance_name: (C_name: string, generic_parameters: GenericParameter[], generic_arguments: Immutable.Map<string, Type>) => string;
 export declare let def_generic_class: (r: SourceRange, C_name: string, generic_parameters: GenericParameter[], instantiate: (_: Immutable.Map<string, Type>, is_visible?: boolean | undefined) => Stmt) => Stmt;
 export declare let field_get: (r: SourceRange, context: CallingContext, this_ref: Stmt, F_or_M_name: string, n?: number, called_by?: string) => Stmt;
@@ -92,4 +97,4 @@ export declare let field_set: (r: SourceRange, context: CallingContext, this_ref
 }, new_value: Stmt) => Stmt;
 export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[], C_name_generic: string, type_args: Type[], is_internal?: boolean) => Stmt;
 export declare let get_class: (r: SourceRange, t: Type) => CCC.Coroutine<State, Err, ObjType>;
-export declare let coerce: (r: SourceRange, e: Stmt, t: Type) => Stmt;
+export declare let coerce: (r: SourceRange, e: Stmt, t: Type, pre: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>) => Stmt;

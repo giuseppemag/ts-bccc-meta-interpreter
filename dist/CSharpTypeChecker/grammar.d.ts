@@ -2,6 +2,7 @@ import * as Immutable from 'immutable';
 import { Coroutine, Option } from 'ts-bccc';
 import { SourceRange } from '../source_range';
 import { BinOpKind, Token, UnaryOpKind } from './lexer';
+import { GenericParameter } from './types';
 export declare type ModifierAST = {
     kind: "abstract";
 } | {
@@ -139,7 +140,11 @@ export interface ClassAST {
         name: ParserRes;
         variant: "co" | "contra" | "inv";
     }[];
-    extends_or_implements: string[];
+    extends_or_implements: {
+        C_name: string;
+        generic_parameters: GenericParameter[];
+        ast: ParserRes;
+    }[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
     constructors: Immutable.List<ConstructorAST>;
