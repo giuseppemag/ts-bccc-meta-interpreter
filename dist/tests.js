@@ -547,4 +547,11 @@ run_checks([
             { name: "C<int> is instantiated", step: 1, expected_kind: "error" },
         ]
     },
+    {
+        name: "Generics: wrong instantiation does not compile",
+        source: "\n    interface Option<a> {\n      bool has_value();\n      a get_value();\n    }\n    \n    class None<x> : Option<x> {\n      public override bool has_value() {\n        return false;\n      }\n    }\n    \n    class Some<y> : Option<y> {\n      y value;\n      public Some(y value){\n        this.value = value;\n      }\n      public override y get_value() {\n        return this.value;\n      }\n    }\n    \n    Option<int> maybe_none = new None<int>();\n    bool is_some = maybe_none.has_value();\n    \n    \n    debugger;\n",
+        checks: [
+            { name: "is_some is false", step: 2, expected_kind: "memory", check: function (s) { return assert_equal(s.globals.get(0).get("is_some").v, false); } },
+        ]
+    },
 ]);

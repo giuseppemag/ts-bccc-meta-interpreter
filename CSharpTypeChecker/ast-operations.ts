@@ -245,15 +245,15 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
   : n.ast.kind == "&&" ? and(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
   : n.ast.kind == "||" ? or(n.range, ast_to_type_checker(substitutions)(n.ast.l)(context), ast_to_type_checker(substitutions)(n.ast.r)(context))
   : n.ast.kind == "=>" ? arrow(n.range,
-      extract_tuple_args(n.ast.l).map(a => {
+      extract_tuple_args(n.ast.l).filter(e => e.ast.kind != "unit").map(a => {
         if (a.ast.kind != "id") {
           //console.log(`Error: unsupported ast node: ${print_range(n.range)}`)
           throw new Error(`Unsupported ast node: ${print_range(n.range)}`)
         }
         return { name:a.ast.value, type:var_type }
       }),
-      // [ { name:n.ast.l.ast.value, type:var_type } ],
-      free_variables(n.ast.r, Immutable.Set<ValueName>(extract_tuple_args(n.ast.l).map(a => {
+      // [ { name:n.ast.l.ast.value, type:var_type } ],      
+      free_variables(n.ast.r, Immutable.Set<ValueName>(extract_tuple_args(n.ast.l).filter(e => e.ast.kind != "unit").map(a => {
         if (a.ast.kind != "id") {
           //console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
           throw new Error(`Unsupported ast node: ${print_range(n.range)}`)

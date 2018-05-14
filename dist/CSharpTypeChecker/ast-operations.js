@@ -140,15 +140,15 @@ exports.ast_to_type_checker = function (substitutions) { return function (n) { r
                                                                                                     : n.ast.kind == "not" ? bindings_1.not(n.range, exports.ast_to_type_checker(substitutions)(n.ast.e)(context))
                                                                                                         : n.ast.kind == "&&" ? bindings_1.and(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), exports.ast_to_type_checker(substitutions)(n.ast.r)(context))
                                                                                                             : n.ast.kind == "||" ? bindings_1.or(n.range, exports.ast_to_type_checker(substitutions)(n.ast.l)(context), exports.ast_to_type_checker(substitutions)(n.ast.r)(context))
-                                                                                                                : n.ast.kind == "=>" ? bindings_1.arrow(n.range, exports.extract_tuple_args(n.ast.l).map(function (a) {
+                                                                                                                : n.ast.kind == "=>" ? bindings_1.arrow(n.range, exports.extract_tuple_args(n.ast.l).filter(function (e) { return e.ast.kind != "unit"; }).map(function (a) {
                                                                                                                     if (a.ast.kind != "id") {
                                                                                                                         //console.log(`Error: unsupported ast node: ${print_range(n.range)}`)
                                                                                                                         throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));
                                                                                                                     }
                                                                                                                     return { name: a.ast.value, type: types_1.var_type };
                                                                                                                 }), 
-                                                                                                                // [ { name:n.ast.l.ast.value, type:var_type } ],
-                                                                                                                free_variables(n.ast.r, Immutable.Set(exports.extract_tuple_args(n.ast.l).map(function (a) {
+                                                                                                                // [ { name:n.ast.l.ast.value, type:var_type } ],      
+                                                                                                                free_variables(n.ast.r, Immutable.Set(exports.extract_tuple_args(n.ast.l).filter(function (e) { return e.ast.kind != "unit"; }).map(function (a) {
                                                                                                                     if (a.ast.kind != "id") {
                                                                                                                         //console.log(`Error: unsupported ast node: ${JSON.stringify(n)}`)
                                                                                                                         throw new Error("Unsupported ast node: " + source_range_1.print_range(n.range));

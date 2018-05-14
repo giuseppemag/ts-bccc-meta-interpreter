@@ -1352,5 +1352,38 @@ C<int, bool, float> x;
   checks:[
     { name:"C<int> is instantiated", step:1, expected_kind:"error" },
   ]},
+  {
+    name:"Generics: wrong instantiation does not compile",
+    source:`
+    interface Option<a> {
+      bool has_value();
+      a get_value();
+    }
+    
+    class None<x> : Option<x> {
+      public override bool has_value() {
+        return false;
+      }
+    }
+    
+    class Some<y> : Option<y> {
+      y value;
+      public Some(y value){
+        this.value = value;
+      }
+      public override y get_value() {
+        return this.value;
+      }
+    }
+    
+    Option<int> maybe_none = new None<int>();
+    bool is_some = maybe_none.has_value();
+    
+    
+    debugger;
+`,
+  checks:[
+    { name:"is_some is false", step:2, expected_kind:"memory", check:(s:MemRt) => assert_equal(s.globals.get(0).get("is_some").v, false) },
+  ]},
 
 ])
