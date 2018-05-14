@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\ninterface Option<a> {\n  bool has_value();\n  a get_value();\n}\n\nclass None<x> : Option<x> {\n  public override bool has_value() {\n    return false;\n  }\n}\n\nclass Some<y> : Option<y> {\n  y value;\n  public Some(y value){\n    this.value = value;\n  }\n  public override y get_value() {\n    return this.value;\n  }\n}\n\nOption<int> maybe_none = new None<int>();\nbool is_some = maybe_none.has_value();\n\n\ndebugger;\n";
+        var source = "\ninterface Option<a> {\n  bool has_value();\n  a get_value();\n}\n\nclass None<x> : Option<x> {\n  public override bool has_value() {\n    return false;\n  }\n}\n\nclass Some<y> : Option<y> {\n  y value;\n  public Some(y value){\n    this.value = value;\n  }\n  public override y get_value() {\n    return this.value;\n  }\n}\n\nOption<int> maybe_none = new None<int>();\nbool is_some = maybe_none.has_value();\n\nint x = 0;\nwhile(x < 10000){\n  x = x + 1;\n}\n\ntypechecker_debugger;\ndebugger;\n";
         // interface Option<a> {
         //   bool has_value();
         //   a get_value();
