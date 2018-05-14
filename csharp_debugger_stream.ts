@@ -14,6 +14,8 @@ import { ParserRes } from "./CSharpTypeChecker/csharp";
 import { mk_parser_state } from "./CSharpTypeChecker/grammar";
 import { ast_to_type_checker, global_calling_context } from "./CSharpTypeChecker/ast-operations";
 import { standard_lib } from "./CSharpTypeChecker/standard_lib";
+import * as FastCo from "./fast_coroutine";
+import { run_step } from "./fast_coroutine";
 
 export type DebuggerStreamStep = { kind:"memory", memory:Py.MemRt, ast:ParserRes } |
                                  { kind:"bindings", state:CSharp.State, ast:ParserRes } |
@@ -57,16 +59,16 @@ export let get_stream = (source:string, custom_alert:Option<(_:string) => boolea
       next:() => {
         let p = state.fst
         let s = state.snd
-        let k = apply(p.run, s)
-        if (k.kind == "left") {
-          let error = k.value
+        let q = run_step(p, s)
+        if (q.kind == "err") {
+          let error = q.e
           return { kind:"error", show:() => ({ kind:"message", message:error.message, range:error.range }) }
         }
-        if (k.value.kind == "left") {
-          return runtime_stream(k.value.value)
+        if (q.kind == "end") {
+          s = q.s
+          return { kind:"done", show:() => ({ kind:"memory", memory:s, ast:ast}) }
         }
-        s = k.value.value.snd
-        return { kind:"done", show:() => ({ kind:"memory", memory:s, ast:ast}) }
+        return runtime_stream({ fst:q.k, snd:q.s })
       },
       show:() => ({ kind:"memory", memory:state.snd, ast:ast })
     })
@@ -84,7 +86,7 @@ export let get_stream = (source:string, custom_alert:Option<(_:string) => boolea
         if (k.value.kind == "left") {
           return typechecker_stream(k.value.value)
         }
-        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : (s:string) => true))), {})
+        let initial_runtime_state = apply(constant<Unit,Py.StmtRt>(k.value.value.fst.sem).times(constant<Unit,Py.MemRt>(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : (s:string) => false))), {})
         let first_stream = runtime_stream(initial_runtime_state)
         // if (first_stream.kind == "step") {
         //   first_stream = first_stream.next()

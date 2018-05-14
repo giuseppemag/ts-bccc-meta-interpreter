@@ -44,6 +44,12 @@ class Some<y> : Option<y> {
 
 Option<int> maybe_none = new None<int>();
 bool is_some = maybe_none.has_value();
+
+int x = 0;
+while(x < 10000){
+  x = x + 1;
+}
+
 typechecker_debugger;
 debugger;
 `

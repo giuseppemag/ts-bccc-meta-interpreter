@@ -2,6 +2,7 @@ import { Map } from "immutable"
 import { co_run, co_unit, Coroutine, Fun, fun, Prod, Sum, Unit, apply, inl, inr } from 'ts-bccc';
 import * as CCC from 'ts-bccc';
 import * as Co from 'ts-bccc';
+import * as FastCo from '../fast_coroutine';
 
 import * as CSharp from './csharp';
 import * as Sem from '../Python/python';
@@ -262,7 +263,7 @@ let file_create = (_:CallingContext) : CSharp.MethodDefinition => ({
     Sem.set_file(
       minus_two_range,
       Sem.get_v_rt(minus_two_range, "path"),
-      co_unit(apply(inl(), mk_string_val(""))))))
+      FastCo.co_unit(apply(inl(), mk_string_val(""))))))
 })
 
 let file_delete = (_:CallingContext) : CSharp.MethodDefinition => ({

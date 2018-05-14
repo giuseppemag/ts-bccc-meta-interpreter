@@ -9,14 +9,14 @@ var __assign = (this && this.__assign) || Object.assign || function(t) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var ts_bccc_1 = require("ts-bccc");
-var ts_bccc_2 = require("ts-bccc");
-var Co = require("ts-bccc");
+// import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
+// import * as Co from "ts-bccc"
 var memory_1 = require("./memory");
 var basic_statements_1 = require("./basic_statements");
 var expressions_1 = require("./expressions");
 var python_1 = require("./python");
 var Immutable = require("immutable");
-var ccc_aux_1 = require("../ccc_aux");
+var fast_coroutine_1 = require("../fast_coroutine");
 exports.declare_class_rt = function (r, C_name, int) {
     return memory_1.set_class_def_rt(C_name, int);
 };
@@ -67,7 +67,7 @@ exports.field_set_rt = function (r, F_name, new_val_expr, this_addr) {
 };
 exports.static_field_get_expr_rt = function (r, C_name, F_name) {
     return memory_1.get_class_def_rt(r, C_name).then(function (C_def) {
-        return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), C_def.static_fields.get(F_name)));
+        return fast_coroutine_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), C_def.static_fields.get(F_name)));
     });
 };
 exports.static_method_get_expr_rt = function (r, C_name, F_name) {
@@ -129,14 +129,18 @@ exports.call_cons_rt = function (r, C_name, args, init_fields) {
                             var arg_expressions = args;
                             if (arg_expressions.length != lambda_1.parameters.length)
                                 return memory_1.runtime_error(r, "Error: wrong number of parameters in lambda invocation. Expected " + lambda_1.parameters.length + ", received " + arg_expressions.length + ".");
-                            var eval_args = ccc_aux_1.comm_list_coroutine(Immutable.List(arg_expressions));
+                            var eval_args = fast_coroutine_1.comm_list_coroutine(Immutable.List(arg_expressions));
                             var set_args_1 = function (arg_values) { return lambda_1.parameters.map(function (n, i) { return ({ fst: n, snd: arg_values[i] }); }).reduce(function (sets, arg_value) {
                                 return memory_1.set_v_rt(arg_value.fst, arg_value.snd).then(function (_) { return sets; });
                             }, basic_statements_1.done_rt); };
-                            var init_1 = ts_bccc_2.mk_coroutine(ts_bccc_1.apply(memory_1.push_scope_rt, lambda_1.closure).then(ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error()))));
-                            var pop_success = (ts_bccc_1.unit().times(ts_bccc_1.id())).then(Co.value().then(Co.result().then(Co.no_error())));
-                            var pop_failure = ts_bccc_1.constant({ message: "Internal error: cannot pop an empty stack.", range: r }).then(Co.error());
-                            var cleanup_1 = ts_bccc_2.mk_coroutine(memory_1.pop_scope_rt.then(pop_failure.plus(pop_success)));
+                            var init_1 = memory_1.push_scope_rt(lambda_1.closure); // .then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
+                            // let pop_success = (unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>())))
+                            // let pop_failure = constant<Unit,ErrVal>().then(Co.error<MemRt,ErrVal,Unit>())
+                            var cleanup_1 = fast_coroutine_1.co_from_state(memory_1.pop_scope_rt).then(function (popped_state) {
+                                if (popped_state.kind == "left")
+                                    return fast_coroutine_1.co_error({ message: "Internal error: cannot pop an empty stack.", range: r });
+                                return fast_coroutine_1.co_set_state(popped_state.value);
+                            });
                             return eval_args.then(function (arg_values) {
                                 // console.log("lambda arguments", JSON.stringify(arg_values)) ||
                                 return init_1.then(function (_) {
@@ -144,7 +148,7 @@ exports.call_cons_rt = function (r, C_name, args, init_fields) {
                                         return set_args_1(arg_values.toArray()).then(function (_) {
                                             return body_1.then(function (res) {
                                                 return cleanup_1.then(function (_) {
-                                                    return ts_bccc_2.co_unit(this_addr);
+                                                    return fast_coroutine_1.co_unit(this_addr);
                                                 });
                                             });
                                         });

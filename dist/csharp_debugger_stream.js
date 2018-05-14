@@ -9,6 +9,7 @@ var ccc_aux_1 = require("./ccc_aux");
 var grammar_1 = require("./CSharpTypeChecker/grammar");
 var ast_operations_1 = require("./CSharpTypeChecker/ast-operations");
 var standard_lib_1 = require("./CSharpTypeChecker/standard_lib");
+var fast_coroutine_1 = require("./fast_coroutine");
 exports.run_stream_to_end = function (s) {
     var run_stream_to_end = function (s) {
         return s.kind != "step" ? Immutable.List([s.show()])
@@ -38,16 +39,16 @@ exports.get_stream = function (source, custom_alert) {
             next: function () {
                 var p = state.fst;
                 var s = state.snd;
-                var k = ts_bccc_1.apply(p.run, s);
-                if (k.kind == "left") {
-                    var error_2 = k.value;
+                var q = fast_coroutine_1.run_step(p, s);
+                if (q.kind == "err") {
+                    var error_2 = q.e;
                     return { kind: "error", show: function () { return ({ kind: "message", message: error_2.message, range: error_2.range }); } };
                 }
-                if (k.value.kind == "left") {
-                    return runtime_stream_1(k.value.value);
+                if (q.kind == "end") {
+                    s = q.s;
+                    return { kind: "done", show: function () { return ({ kind: "memory", memory: s, ast: ast_1 }); } };
                 }
-                s = k.value.value.snd;
-                return { kind: "done", show: function () { return ({ kind: "memory", memory: s, ast: ast_1 }); } };
+                return runtime_stream_1({ fst: q.k, snd: q.s });
             },
             show: function () { return ({ kind: "memory", memory: state.snd, ast: ast_1 }); }
         }); };
@@ -64,7 +65,7 @@ exports.get_stream = function (source, custom_alert) {
                 if (k.value.kind == "left") {
                     return typechecker_stream_1(k.value.value);
                 }
-                var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : function (s) { return true; }))), {});
+                var initial_runtime_state = ts_bccc_1.apply(ts_bccc_1.constant(k.value.value.fst.sem).times(ts_bccc_1.constant(Py.empty_memory_rt(custom_alert.kind == "left" ? custom_alert.value : function (s) { return false; }))), {});
                 var first_stream = runtime_stream_1(initial_runtime_state);
                 // if (first_stream.kind == "step") {
                 //   first_stream = first_stream.next()

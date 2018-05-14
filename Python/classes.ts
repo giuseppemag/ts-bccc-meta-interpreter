@@ -1,6 +1,6 @@
 import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, apply, apply_pair, id, constant, curry, uncurry, lazy, swap_prod, swap_sum, compose_pair } from "ts-bccc"
-import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
-import * as Co from "ts-bccc"
+// import { mk_coroutine, Coroutine, suspend, co_unit, co_run, co_error } from "ts-bccc"
+// import * as Co from "ts-bccc"
 import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
          ValueName, HeapRef,
          set_class_def_rt, set_fun_def_rt, set_heap_v_rt, set_v_rt, set_v_expr_rt, set_highlighting_rt,
@@ -14,8 +14,9 @@ import { call_by_name_rt, call_lambda_rt, def_fun_rt, return_rt } from "./functi
 import { val_expr, unit_expr, str_expr } from "./expressions"
 import { call_lambda_expr_rt } from "./python";
 import * as Immutable from "immutable"
-import { comm_list_coroutine } from "../ccc_aux";
+// import { comm_list_coroutine } from "../ccc_aux";
 import { SourceRange } from "../source_range";
+import { co_error, Coroutine, mk_coroutine, co_unit, co_suspend, co_get_state, co_set_state, comm_list_coroutine, co_from_state } from "../fast_coroutine";
 
 export let declare_class_rt = function(r:SourceRange, C_name:ValueName, int:Interface) : StmtRt {
   return set_class_def_rt(C_name, int)
@@ -145,11 +146,14 @@ export let call_cons_rt = function(r:SourceRange, C_name:ValueName, args:Array<E
         set_v_rt(arg_value.fst, arg_value.snd).then(_ => sets),
         done_rt)
 
-      let init = mk_coroutine(apply(push_scope_rt, lambda.closure).then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
+      let init = push_scope_rt(lambda.closure) // .then(unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>()))))
 
-      let pop_success = (unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>())))
-      let pop_failure = constant<Unit,ErrVal>({ message:`Internal error: cannot pop an empty stack.`, range:r }).then(Co.error<MemRt,ErrVal,Unit>())
-      let cleanup = mk_coroutine(pop_scope_rt.then(pop_failure.plus(pop_success)))
+      // let pop_success = (unit<MemRt>().times(id<MemRt>())).then(Co.value<MemRt, ErrVal, Unit>().then(Co.result<MemRt, ErrVal, Unit>().then(Co.no_error<MemRt, ErrVal, Unit>())))
+      // let pop_failure = constant<Unit,ErrVal>().then(Co.error<MemRt,ErrVal,Unit>())
+      let cleanup = co_from_state<MemRt,ErrVal,Sum<Unit,MemRt>>(pop_scope_rt).then(popped_state => {
+        if (popped_state.kind == "left") return co_error<MemRt,ErrVal,Unit>({ message:`Internal error: cannot pop an empty stack.`, range:r })
+        return co_set_state(popped_state.value)
+      })
       return eval_args.then(arg_values =>
              // console.log("lambda arguments", JSON.stringify(arg_values)) ||
              init.then(_ =>

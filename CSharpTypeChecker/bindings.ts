@@ -10,6 +10,7 @@ import { ValueName, tuple_to_record, ExprRt, Val, mk_expr_from_val, done_rt, Mem
 import { Stmt, no_constraints, TypeConstraints, State, Err, Typing, Type, Name, load, TypeInformation, mk_typing_cat_full, store, unit_type, mk_typing, type_equals, tuple_type, bool_type, string_type, int_type, float_type, double_type, square_type, ellipse_type, rectangle_type, line_type, arr_type, polygon_type, text_type, sprite_type, render_surface_type, other_render_surface_type, circle_type, fun_type, ref_type, MethodTyping, FieldType, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, type_to_string, ObjType, Bindings, var_type, fun_stmts_type, FunWithStmts, generic_type_decl, GenericParameter } from "./types";
 import { MultiMap } from "../multi_map";
 import { ModifierAST } from "./grammar";
+import * as FastCo from "../fast_coroutine"
 
 // Basic statements and expressions
 let ensure_constraints = (r: SourceRange, constraints: TypeConstraints, _pre?: ExprRt<Sum<Val, Val>>) => (res: Coroutine<State, Err, Typing>) => {
@@ -146,7 +147,7 @@ export let decl_and_init_v = function (r: SourceRange, v: Name, t0: Type, e: Stm
   return c => {
     return instantiate_generics(r, t0).then(t_t => {
     let t = t_t.type
-    console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}, ${JSON.stringify(c)}`)
+    // console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}, ${JSON.stringify(c)}`)
     return e(t.kind == "var" ? no_constraints : apply(inl(), t)).then(e_val =>
     co_get_state<State, Err>().then(s => {
       if (s.bindings.has(v)) return co_error<State, Err, Typing>({ range: r, message: `Error: cannot redeclare variable ${v}` })
@@ -550,26 +551,8 @@ export let for_loop = function (r: SourceRange, i: Stmt, c: Stmt, s: Stmt, b: St
 export let semicolon = function (r: SourceRange, p: Stmt, q: Stmt): Stmt {
   return constraints => p(constraints).then(p_t =>
     q(constraints).then(q_t =>
-      co_unit(mk_typing(q_t.type, p_t.sem.then(res => {
-        return co_get_state<MemRt, ErrVal>().then(s =>
-        {
-          let f = (counter:number) => co_set_state<MemRt, ErrVal>({...s, steps_counter: counter}).then( _ =>
-                    {
-                      let f: Sem.ExprRt<Sum<Sem.Val, Sem.Val>> = co_unit(apply(inr<Sem.Val, Sem.Val>(), res.value))
-                      return res.kind == "left" ? q_t.sem : f
-                    } )
-          if(s.steps_counter > 300) {
-            if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
-              return co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
-            else
-              return f(0)
-          }
-
-          return f(s.steps_counter + 1)
-
-        })
-      }))
-      )))
+      co_unit(mk_typing(q_t.type, p_t.sem.combine(q_t.sem)
+    ))))
 }
 
 export let mk_param = function (name: Name, type: Type) {
@@ -777,6 +760,17 @@ export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Arr
         )),
       co_unit(Immutable.List<Typing>()))
 
+    let check_steps_counter =
+      FastCo.co_get_state<MemRt, ErrVal>().then(s =>
+      {
+        if(s.steps_counter > 3000) {
+          if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+            return FastCo.co_error({ range: r, message: `It seems your code has run into an infinite loop.` })
+          return FastCo.co_set_state<MemRt,ErrVal>({...s, steps_counter:0})
+        }
+        return FastCo.co_unit<MemRt,ErrVal,Unit>({})
+      })
+
     return check_arguments.then(args_t =>
       lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
         arg_values.length != lambda_t.type.in.args.length ?
@@ -784,9 +778,9 @@ export let call_lambda = function (r: SourceRange, lambda: Stmt, arg_values: Arr
           arg_values.length == 0) ||
           (lambda_t.type.kind == "fun" && lambda_t.type.out.kind == "fun" && lambda_t.type.out.in.kind == "tuple" && lambda_t.type.out.in.args.length == 1 && lambda_t.type.out.in.args[0].kind == "unit" &&
             arg_values.length == 0) ?
-          co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))) :
+          co_unit(mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))) :
           co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.type)} with arguments ${JSON.stringify([args_t.toArray().map(a => type_to_string(a.type))])}` })
-        : co_unit(mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem))))
+        : co_unit(mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(arg_t => arg_t.sem)))))
     )
   }))
 }
@@ -1423,7 +1417,7 @@ export let call_cons = function (r: SourceRange, context: CallingContext, C_name
                   arg_values.length != lambda_t.typing.type.out.in.args.length) ?
                 co_error<State, Err, Typing>({ range: r, message: `Error: parameter type mismatch when calling lambda expression ${type_to_string(lambda_t.typing.type)} with arguments ${JSON.stringify(args_t.toArray().map(t => type_to_string(t.type)))}` })
                 :
-                co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem).then(res => co_unit(res)))
+                co_unit(mk_typing(ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(arg_t => arg_t.sem), init_fields_t.sem).then(res => FastCo.co_unit(res)))
                                                   )
             ))
           : co_error<State, Err, Typing>({ range: r, message: `Error: cannot invoke non-lambda expression of type ${type_to_string(lambda_t.typing.type)}` })
@@ -1460,7 +1454,7 @@ export let coerce = (r: SourceRange, e: Stmt, t: Type, pre: ExprRt<Sum<Val, Val>
     if (e_v.type.kind == "tuple" && t.kind == "record") {
       let record_labels = t.args.keySeq().toArray()
       return co_unit(
-        mk_typing(t, pre.then(_ => e_v.sem.then(e_v_rt => co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels))))))
+        mk_typing(t, pre.then(_ => e_v.sem.then(e_v_rt => FastCo.co_unit(apply(inl(), tuple_to_record(e_v_rt.value, record_labels))))))
       )
     }
 

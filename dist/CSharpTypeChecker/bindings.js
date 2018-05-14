@@ -18,6 +18,7 @@ var ccc_aux_1 = require("../ccc_aux");
 var main_1 = require("../main");
 var types_1 = require("./types");
 var multi_map_1 = require("../multi_map");
+var FastCo = require("../fast_coroutine");
 // Basic statements and expressions
 var ensure_constraints = function (r, constraints, _pre) { return function (res) {
     var pre = _pre == undefined ? main_1.done_rt : _pre;
@@ -151,7 +152,7 @@ exports.decl_and_init_v = function (r, v, t0, e, is_constant) {
     return function (c) {
         return exports.instantiate_generics(r, t0).then(function (t_t) {
             var t = t_t.type;
-            console.log("Raw type was " + types_1.type_to_string(t0) + ", instantiated it is " + types_1.type_to_string(t) + ", " + JSON.stringify(c));
+            // console.log(`Raw type was ${type_to_string(t0)}, instantiated it is ${type_to_string(t)}, ${JSON.stringify(c)}`)
             return e(t.kind == "var" ? types_1.no_constraints : ts_bccc_1.apply(ts_bccc_1.inl(), t)).then(function (e_val) {
                 return ts_bccc_1.co_get_state().then(function (s) {
                     if (s.bindings.has(v))
@@ -568,21 +569,7 @@ exports.for_loop = function (r, i, c, s, b) {
 exports.semicolon = function (r, p, q) {
     return function (constraints) { return p(constraints).then(function (p_t) {
         return q(constraints).then(function (q_t) {
-            return ts_bccc_2.co_unit(types_1.mk_typing(q_t.type, p_t.sem.then(function (res) {
-                return ts_bccc_1.co_get_state().then(function (s) {
-                    var f = function (counter) { return ts_bccc_1.co_set_state(__assign({}, s, { steps_counter: counter })).then(function (_) {
-                        var f = ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inr(), res.value));
-                        return res.kind == "left" ? q_t.sem : f;
-                    }); };
-                    if (s.steps_counter > 300) {
-                        if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
-                            return ts_bccc_2.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
-                        else
-                            return f(0);
-                    }
-                    return f(s.steps_counter + 1);
-                });
-            })));
+            return ts_bccc_2.co_unit(types_1.mk_typing(q_t.type, p_t.sem.combine(q_t.sem)));
         });
     }); };
 };
@@ -756,6 +743,14 @@ exports.call_lambda = function (r, lambda, arg_values) {
                 });
             });
         }, ts_bccc_2.co_unit(Immutable.List()));
+        var check_steps_counter = FastCo.co_get_state().then(function (s) {
+            if (s.steps_counter > 3000) {
+                if (s.custom_alert('The program seems to be taking too much time. This might be an indication of an infinite loop. Press OK to terminate the program.'))
+                    return FastCo.co_error({ range: r, message: "It seems your code has run into an infinite loop." });
+                return FastCo.co_set_state(__assign({}, s, { steps_counter: 0 }));
+            }
+            return FastCo.co_unit({});
+        });
         return check_arguments.then(function (args_t) {
             return lambda_t.type.kind != "fun" || lambda_t.type.in.kind != "tuple" ||
                 arg_values.length != lambda_t.type.in.args.length ?
@@ -763,9 +758,9 @@ exports.call_lambda = function (r, lambda, arg_values) {
                     arg_values.length == 0) ||
                     (lambda_t.type.kind == "fun" && lambda_t.type.out.kind == "fun" && lambda_t.type.out.in.kind == "tuple" && lambda_t.type.out.in.args.length == 1 && lambda_t.type.out.in.args[0].kind == "unit" &&
                         arg_values.length == 0) ?
-                    ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; })))) :
+                    ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))))) :
                     ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.type) + " with arguments " + JSON.stringify([args_t.toArray().map(function (a) { return types_1.type_to_string(a.type); })]) })
-                : ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; }))));
+                : ts_bccc_2.co_unit(types_1.mk_typing(lambda_t.type.out, check_steps_counter.combine(Sem.call_lambda_expr_rt(r, lambda_t.sem, args_t.toArray().map(function (arg_t) { return arg_t.sem; })))));
         });
     })); };
 };
@@ -1338,7 +1333,7 @@ exports.call_cons = function (r, context, C_name, arg_values, C_name_generic, ty
                                 arg_values.length != lambda_t.typing.type.out.in.args.length) ?
                             ts_bccc_2.co_error({ range: r, message: "Error: parameter type mismatch when calling lambda expression " + types_1.type_to_string(lambda_t.typing.type) + " with arguments " + JSON.stringify(args_t.toArray().map(function (t) { return types_1.type_to_string(t.type); })) })
                             :
-                                ts_bccc_2.co_unit(types_1.mk_typing(types_1.ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }), init_fields_t.sem).then(function (res) { return ts_bccc_2.co_unit(res); })));
+                                ts_bccc_2.co_unit(types_1.mk_typing(types_1.ref_type(C_name), Sem.call_cons_rt(r, C_name, args_t.toArray().map(function (arg_t) { return arg_t.sem; }), init_fields_t.sem).then(function (res) { return FastCo.co_unit(res); })));
                     });
                 })
                 : ts_bccc_2.co_error({ range: r, message: "Error: cannot invoke non-lambda expression of type " + types_1.type_to_string(lambda_t.typing.type) }));
@@ -1375,7 +1370,7 @@ exports.coerce = function (r, e, t, pre) {
         // console.log(`Coercing from ${type_to_string(e_v.type)} to ${type_to_string(t)}`)
         if (e_v.type.kind == "tuple" && t.kind == "record") {
             var record_labels_1 = t.args.keySeq().toArray();
-            return ts_bccc_2.co_unit(types_1.mk_typing(t, pre.then(function (_) { return e_v.sem.then(function (e_v_rt) { return ts_bccc_2.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_v_rt.value, record_labels_1))); }); })));
+            return ts_bccc_2.co_unit(types_1.mk_typing(t, pre.then(function (_) { return e_v.sem.then(function (e_v_rt) { return FastCo.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), main_1.tuple_to_record(e_v_rt.value, record_labels_1))); }); })));
         }
         if (e_v.type.kind == "fun" && t.kind == "fun") {
             // console.log(`Coercing ${type_to_string(e_v.type)} --> ${type_to_string(t)}`)

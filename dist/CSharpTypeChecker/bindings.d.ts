@@ -4,6 +4,7 @@ import * as CCC from "ts-bccc";
 import { SourceRange } from "../source_range";
 import * as Sem from "../Python/python";
 import { Stmt, State, Err, Typing, Type, TypeInformation, Parameter, LambdaDefinition, FunDefinition, MethodDefinition, CallingContext, FieldDefinition, Modifier, ObjType, GenericParameter } from "./types";
+import * as FastCo from "../fast_coroutine";
 export declare let wrap_co_res: Fun<Prod<Typing, State>, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>;
 export declare let wrap_co: Fun<Prod<Typing, State>, Sum<Err, Sum<Prod<CCC.Coroutine<State, Err, Typing>, State>, Prod<Typing, State>>>>;
 export declare let get_v: (r: SourceRange, v: string) => Stmt;
@@ -97,4 +98,4 @@ export declare let field_set: (r: SourceRange, context: CallingContext, this_ref
 }, new_value: Stmt) => Stmt;
 export declare let call_cons: (r: SourceRange, context: CallingContext, C_name: string, arg_values: Stmt[], C_name_generic: string, type_args: Type[], is_internal?: boolean) => Stmt;
 export declare let get_class: (r: SourceRange, t: Type) => CCC.Coroutine<State, Err, ObjType>;
-export declare let coerce: (r: SourceRange, e: Stmt, t: Type, pre: Sem.ExprRt<Sum<Sem.Val, Sem.Val>>) => Stmt;
+export declare let coerce: (r: SourceRange, e: Stmt, t: Type, pre: FastCo.Coroutine<Sem.MemRt, Sem.ErrVal, Sum<Sem.Val, Sem.Val>>) => Stmt;

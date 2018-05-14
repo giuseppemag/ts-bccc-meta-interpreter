@@ -1,15 +1,14 @@
-[g] tail recursion runtime
-[g] add multiple highlightings (along the stack) for function calls
-
 [g] Generics
   [ ] instantiate on:
     [ ] generic method call
   [ ] Generic method
     [ ] Parser
-    [ ] Instantiation
-    [ ] Call
-  [ ] Covariance and contravariance
+    [ ] Type definition
+    [ ] Storage into ObjType
+    [ ] Instantiation: check existing method instances, if not present: def_method, then store
+    [ ] Call: instantiate, then call
 [g] multithreading: thread_debugger;
+[g] add multiple highlightings (along the stack) for function calls
 
 [g] Filesystem simulator
   [ ] rendering
@@ -33,7 +32,6 @@
   [ ] Separate parser from type checker
 
 [g] Move ccc_aux to CCC repo
-
 
 [m] Generics
   [ ] instantiate on:
@@ -75,7 +73,7 @@
   [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
   [ ] Integration in VSCode/Electron app
   [ ] Exceptions
-  [ ] Fancy features: LINQ, generators, properties
+  [ ] Fancy features: LINQ, generators, properties, covariance and contravariance, generic functions
   [ ] Proper lex/yacc
   [ ] Generic tuple in standard library
   [ ] HTML renderers for server simulator
