@@ -20,6 +20,9 @@ var fast_coroutine_1 = require("../fast_coroutine");
 exports.declare_class_rt = function (r, C_name, int) {
     return memory_1.set_class_def_rt(C_name, int);
 };
+exports.add_method_to_class_rt = function (r, C_name, method_name, method_body) {
+    return memory_1.add_method_def_rt(C_name, method_name, method_body);
+};
 exports.field_get_rt = function (r, F_name, this_addr) {
     return memory_1.get_heap_v_rt(r, this_addr.v).then(function (this_val) {
         if (this_val.value.k != "obj")
@@ -52,6 +55,11 @@ exports.method_get_expr_rt = function (r, M_name, this_expr) {
     return this_expr.then(function (this_addr) {
         return this_addr.value.k != "ref" ? memory_1.runtime_error(r, "runtime type error, method not found") :
             exports.method_get_rt(r, M_name, this_addr.value);
+    });
+};
+exports.method_body_get_rt = function (r, M_name, C_name) {
+    return memory_1.get_class_def_rt(r, C_name).then(function (_class) {
+        return _class.methods.get(M_name);
     });
 };
 exports.field_set_rt = function (r, F_name, new_val_expr, this_addr) {

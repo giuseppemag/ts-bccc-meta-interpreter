@@ -71,6 +71,7 @@ let bool = CSharp.def_class(minus_two_range, [], "normal", "bool", [], [
     binary_operator("&&", CSharp.bool_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as boolean) && (b_v.v as boolean))),
     binary_operator("||", CSharp.bool_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as boolean) || (b_v.v as boolean))),
   ],
+  [],
   [], true)
 
 let int = CSharp.def_class(minus_two_range, [], "normal", "int", [], [
@@ -90,6 +91,7 @@ let int = CSharp.def_class(minus_two_range, [], "normal", "int", [], [
     comparison_operator("==", CSharp.int_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) == (b_v.v as number))),
     comparison_operator("!=", CSharp.int_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) != (b_v.v as number))),
   ],
+  [],
   [], true)
 
 export let float = CSharp.def_class(minus_two_range, [], "normal", "float", [],[
@@ -108,6 +110,7 @@ export let float = CSharp.def_class(minus_two_range, [], "normal", "float", [],[
   comparison_operator("==", CSharp.float_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) == (b_v.v as number))),
   comparison_operator("!=", CSharp.float_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) != (b_v.v as number))),
 ],
+[],
 [], true)
 
 export let double = CSharp.def_class(minus_two_range, [], "normal", "double", [],[
@@ -125,6 +128,7 @@ export let double = CSharp.def_class(minus_two_range, [], "normal", "double", []
   comparison_operator("==", CSharp.double_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) == (b_v.v as number))),
   comparison_operator("!=", CSharp.double_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as number) != (b_v.v as number))),
 ],
+[],
 [], true)
 
 let string = CSharp.def_class(minus_two_range, [], "normal", "string", [],[
@@ -133,11 +137,13 @@ let string = CSharp.def_class(minus_two_range, [], "normal", "string", [],[
   comparison_operator("==", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) == (b_v.v as string))),
   comparison_operator("!=", CSharp.string_type, (a_v, b_v) => Sem.mk_bool_val((a_v.v as string) != (b_v.v as string))),
 ],
+[],
 [], true)
 
 let unit = CSharp.def_class(minus_two_range, [], "normal", "unit", [],[
   to_string(CSharp.unit_type, a_v => Sem.mk_string_val("")),
 ],
+[],
 [], true)
 
 let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
@@ -180,6 +186,7 @@ let math = CSharp.def_class(minus_two_range, [], "normal", "Math", [], [
                         Sem.return_rt(Sem.float_expr(Math.max(a_v.value.v as number, b_v.value.v as number))
                         )))) }),
       ],
+    [],
     [], true)
 
 let file_read_all_text = (_:CallingContext) : CSharp.MethodDefinition => ({
@@ -310,7 +317,7 @@ export const path = CSharp.def_class(minus_two_range, [], "normal", "Path", [], 
   file_move,
   file_read_all_text,
   file_write_all_text,
-], [], true);
+], [], [], true);
 
 export let standard_lib = () =>
   CSharp.semicolon(minus_two_range, int,

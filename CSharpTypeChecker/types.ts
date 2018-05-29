@@ -14,19 +14,22 @@ import * as FastCo from "../fast_coroutine"
 export type Name = string
 export interface Err { message:string, range:SourceRange }
 export interface MethodTyping { typing:Typing, modifiers:Immutable.Set<Modifier> }
-export interface GenericMethodTyping extends MethodTyping {
+export interface GenericMethodTyping {
   instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt,
-  params:Array<GenericParameter> }
+  params:Array<GenericParameter>,
+  is_the_target_a_field: boolean }
 export interface FieldType { type:Type, is_used_as_base:boolean,modifiers:Immutable.Set<Modifier>, initial_value:Option<Stmt> }
 export type RenderOperationType = { kind:"circle"} | { kind:"square"} | { kind:"rectangle"} | { kind:"ellipse"}
                                 | { kind:"line" } | { kind:"polygon" } | { kind:"text" }
                                 | { kind:"other surface"} | { kind:"sprite"}
 export type ObjType = { kind:"obj", C_name:string,
-                        is_internal:boolean, methods:MultiMap<Name, MethodTyping>,
-                        // generic_methods:Immutable.Map<Name, GenericMethodTyping>,
+                        is_internal:boolean, 
+                        methods:MultiMap<Name, MethodTyping>,
+                        generic_methods:Immutable.Map<Name, GenericMethodTyping>,
                         class_kind:"normal"|"abstract"|"interface"
                         fields:Immutable.Map<Name, FieldType>, range: SourceRange }
-export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
+export type Type = { kind:"render-grid-pixel"} 
+                 | { kind:"render-grid"}
                  | { kind:"render surface"} | RenderOperationType
                  | { kind:"unit"} | { kind:"bool"} | { kind:"var"} | { kind:"int"} | { kind:"double"} | { kind:"float"} | { kind:"string"} | { kind:"fun", in:Type, out:Type, range: SourceRange }
                  | ObjType
@@ -35,6 +38,7 @@ export type Type = { kind:"render-grid-pixel"} | { kind:"render-grid"}
                  | { kind:"tuple", args:Array<Type> }
                  | { kind:"generic type instance", C_name:string, args:Array<Type> }
                  | { kind:"generic type decl", instantiate:(_:Immutable.Map<Name, Type>, is_visible?:boolean) => Stmt, params:Array<GenericParameter>, C_name:string }
+                 | { kind:"generic method decl", instantiate:(_:Type[], is_visible?:boolean) => MethodDefinition, params:Array<GenericParameter> }
 export type GenericParameter = { name:string, variance:"co" | "contra" | "inv" }
 export let type_to_string = (t:Type) : string =>
   t.kind == "unit" ? "void"
@@ -127,6 +131,12 @@ export interface Parameter { name:Name, type:Type }
 export interface LambdaDefinition { return_t:Type, parameters:Array<Parameter>, body:Stmt,  }
 export interface FunDefinition extends LambdaDefinition { name:string, range:SourceRange }
 export interface MethodDefinition extends FunDefinition { modifiers:Array<Modifier>, is_constructor:boolean, params_base_call:Option<Stmt[]>  }
+export interface GenericMethodDefinition {  modifiers:Array<Modifier>, 
+                                            name:string, range:SourceRange,
+                                            is_constructor:boolean, params_base_call:Option<Stmt[]>, params:Array<GenericParameter>,
+                                            return_t:Type, parameters:Array<Parameter>, 
+                                            body: (_:Immutable.Map<string, Type>, method_name:string) => MethodDefinition
+                                        }
 export interface FieldDefinition extends Parameter { modifiers:Array<Modifier>, initial_value:Option<Stmt>, is_used_as_base:boolean }
 export type CallingContext = { kind:"global scope" } | { kind:"class", C_name:string, looking_up_base:boolean }
 export type FunWithStmts = {kind:"fun_with_input_as_stmts", in: Stmt[],out:Type, range: SourceRange}

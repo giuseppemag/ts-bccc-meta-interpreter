@@ -8,7 +8,7 @@ import { StmtRt, ExprRt, Interface, MemRt, ErrVal, Val, Lambda, Bool,
          mk_ref_val, Scope,
          mk_string_val,
          mk_unit_val, get_arr_len_rt, get_arr_el_rt, get_class_def_rt, get_fun_def_rt,
-         get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, new_obj_rt } from "./memory"
+         get_heap_v_rt, get_v_rt, pop_scope_rt, push_scope_rt, new_obj_rt, add_method_def_rt } from "./memory"
 import { done_rt, dbg_rt, if_then_else_rt, while_do_rt } from "./basic_statements"
 import { call_by_name_rt, call_lambda_rt, def_fun_rt, return_rt } from "./functions"
 import { val_expr, unit_expr, str_expr } from "./expressions"
@@ -20,6 +20,10 @@ import { co_error, Coroutine, mk_coroutine, co_unit, co_suspend, co_get_state, c
 
 export let declare_class_rt = function(r:SourceRange, C_name:ValueName, int:Interface) : StmtRt {
   return set_class_def_rt(C_name, int)
+}
+
+export let add_method_to_class_rt = function(r:SourceRange, C_name:ValueName, method_name:ValueName, method_body:StmtRt) : StmtRt {
+  return add_method_def_rt(C_name, method_name, method_body)
 }
 
 export let field_get_rt = function(r:SourceRange, F_name:ValueName, this_addr:HeapRef) : ExprRt<Sum<Val,Val>> {
@@ -53,6 +57,12 @@ export let method_get_expr_rt = function(r:SourceRange, M_name:ValueName, this_e
   return this_expr.then(this_addr =>
     this_addr.value.k != "ref" ? runtime_error(r, `runtime type error, method not found`) :
     method_get_rt(r, M_name, this_addr.value))
+}
+
+
+export let method_body_get_rt = function(r:SourceRange, M_name:ValueName, C_name:string) : ExprRt<Sum<Val,Val>> {
+  return get_class_def_rt(r, C_name).then(_class =>
+        _class.methods.get(M_name))
 }
 
 

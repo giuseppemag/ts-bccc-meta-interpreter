@@ -55,7 +55,7 @@ var bool = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "bool"
     binary_operator("^", CSharp.bool_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v != b_v.v); }),
     binary_operator("&&", CSharp.bool_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v && b_v.v); }),
     binary_operator("||", CSharp.bool_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v || b_v.v); }),
-], [], true);
+], [], [], true);
 var int = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "int", [], [
     casting_operator("string", CSharp.int_type, CSharp.string_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
     to_string(CSharp.int_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
@@ -72,7 +72,7 @@ var int = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "int", 
     comparison_operator("<=", CSharp.int_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v <= b_v.v); }),
     comparison_operator("==", CSharp.int_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v == b_v.v); }),
     comparison_operator("!=", CSharp.int_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v != b_v.v); }),
-], [], true);
+], [], [], true);
 exports.float = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "float", [], [
     casting_operator("string", CSharp.float_type, CSharp.string_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
     to_string(CSharp.float_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
@@ -88,7 +88,7 @@ exports.float = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "
     comparison_operator("<=", CSharp.float_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v <= b_v.v); }),
     comparison_operator("==", CSharp.float_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v == b_v.v); }),
     comparison_operator("!=", CSharp.float_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v != b_v.v); }),
-], [], true);
+], [], [], true);
 exports.double = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "double", [], [
     casting_operator("string", CSharp.double_type, CSharp.string_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
     to_string(CSharp.double_type, function (a_v) { return Sem.mk_string_val(a_v.v.toString()); }),
@@ -103,16 +103,16 @@ exports.double = CSharp.def_class(source_range_1.minus_two_range, [], "normal", 
     comparison_operator("<=", CSharp.double_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v <= b_v.v); }),
     comparison_operator("==", CSharp.double_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v == b_v.v); }),
     comparison_operator("!=", CSharp.double_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v != b_v.v); }),
-], [], true);
+], [], [], true);
 var string = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "string", [], [
     to_string(CSharp.string_type, function (a_v) { return Sem.mk_string_val(a_v.v); }),
     binary_operator("+", CSharp.string_type, function (a_v, b_v) { return Sem.mk_string_val(a_v.v + b_v.v); }),
     comparison_operator("==", CSharp.string_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v == b_v.v); }),
     comparison_operator("!=", CSharp.string_type, function (a_v, b_v) { return Sem.mk_bool_val(a_v.v != b_v.v); }),
-], [], true);
+], [], [], true);
 var unit = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "unit", [], [
     to_string(CSharp.unit_type, function (a_v) { return Sem.mk_string_val(""); }),
-], [], true);
+], [], [], true);
 var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math", [], [
     function (_) { return ({ modifiers: ["static", "public"], is_constructor: false, range: source_range_1.minus_two_range,
         return_t: CSharp.double_type, name: "sqrt", parameters: [{ name: "a", type: CSharp.double_type }],
@@ -147,7 +147,7 @@ var math = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "Math"
                 return Sem.return_rt(Sem.float_expr(Math.max(a_v.value.v, b_v.value.v)));
             });
         })) }); },
-], [], true);
+], [], [], true);
 var file_read_all_text = function (_) { return ({
     modifiers: ["static", "public"],
     is_constructor: false,
@@ -239,7 +239,7 @@ exports.path = CSharp.def_class(source_range_1.minus_two_range, [], "normal", "P
     file_move,
     file_read_all_text,
     file_write_all_text,
-], [], true);
+], [], [], true);
 exports.standard_lib = function () {
     return CSharp.semicolon(source_range_1.minus_two_range, int, CSharp.semicolon(source_range_1.minus_two_range, exports.float, CSharp.semicolon(source_range_1.minus_two_range, exports.double, CSharp.semicolon(source_range_1.minus_two_range, string, CSharp.semicolon(source_range_1.minus_two_range, bool, CSharp.semicolon(source_range_1.minus_two_range, unit, CSharp.semicolon(source_range_1.minus_two_range, math, exports.path)))))));
 };

@@ -16,9 +16,10 @@ export interface MethodTyping {
     typing: Typing;
     modifiers: Immutable.Set<Modifier>;
 }
-export interface GenericMethodTyping extends MethodTyping {
+export interface GenericMethodTyping {
     instantiate: (_: Immutable.Map<Name, Type>, is_visible?: boolean) => Stmt;
     params: Array<GenericParameter>;
+    is_the_target_a_field: boolean;
 }
 export interface FieldType {
     type: Type;
@@ -50,6 +51,7 @@ export declare type ObjType = {
     C_name: string;
     is_internal: boolean;
     methods: MultiMap<Name, MethodTyping>;
+    generic_methods: Immutable.Map<Name, GenericMethodTyping>;
     class_kind: "normal" | "abstract" | "interface";
     fields: Immutable.Map<Name, FieldType>;
     range: SourceRange;
@@ -100,6 +102,10 @@ export declare type Type = {
     instantiate: (_: Immutable.Map<Name, Type>, is_visible?: boolean) => Stmt;
     params: Array<GenericParameter>;
     C_name: string;
+} | {
+    kind: "generic method decl";
+    instantiate: (_: Type[], is_visible?: boolean) => MethodDefinition;
+    params: Array<GenericParameter>;
 };
 export declare type GenericParameter = {
     name: string;
@@ -171,6 +177,17 @@ export interface MethodDefinition extends FunDefinition {
     modifiers: Array<Modifier>;
     is_constructor: boolean;
     params_base_call: Option<Stmt[]>;
+}
+export interface GenericMethodDefinition {
+    modifiers: Array<Modifier>;
+    name: string;
+    range: SourceRange;
+    is_constructor: boolean;
+    params_base_call: Option<Stmt[]>;
+    params: Array<GenericParameter>;
+    return_t: Type;
+    parameters: Array<Parameter>;
+    body: (_: Immutable.Map<string, Type>, method_name: string) => MethodDefinition;
 }
 export interface FieldDefinition extends Parameter {
     modifiers: Array<Modifier>;

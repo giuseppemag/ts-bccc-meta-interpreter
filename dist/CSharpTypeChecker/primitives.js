@@ -44,7 +44,7 @@ exports.mk_bool = function (v, sr) { return ({ range: sr, ast: { kind: "bool", v
 exports.mk_int = function (v, sr) { return ({ range: sr, ast: { kind: "int", value: v } }); };
 exports.mk_float = function (v, sr) { return ({ range: sr, ast: { kind: "float", value: v } }); };
 exports.mk_double = function (v, sr) { return ({ range: sr, ast: { kind: "double", value: v } }); };
-exports.mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v } }); };
+exports.mk_identifier = function (v, sr) { return ({ range: sr, ast: { kind: "id", value: v, optional_params: [] } }); };
 exports.mk_noop = function () { return ({ range: source_range_1.mk_range(-1, -1, -1, -1), ast: { kind: "noop" } }); };
 exports.mk_return = function (e, range) { return ({ range: range, ast: { kind: "return", value: e } }); };
 exports.mk_args = function (sr, ds) { return ({ range: sr, ast: { kind: "args", value: Immutable.List(ds) } }); };
@@ -93,16 +93,19 @@ exports.mk_array_cons_call_and_init = function (new_range, _type, actuals) {
 exports.mk_constructor_declaration = function (range, function_name, arg_decls, params_base_call, body) {
     return ({ kind: "cons_decl", name: function_name, arg_decls: arg_decls, body: body, params_base_call: params_base_call, range: range });
 };
-exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body) {
-    return ({ kind: "func_decl", name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range, params_base_call: [] });
+exports.mk_function_declaration = function (range, return_type, function_name, arg_decls, body, generic_parameters) {
+    return ({ kind: "func_decl", generic_parameters: generic_parameters, name: function_name, return_type: return_type, arg_decls: arg_decls, body: body, range: range, params_base_call: [] });
 };
-exports.mk_class_declaration = function (C_name, generic_parameters, extends_or_implements, fields, methods, constructors, modifiers, range) {
+exports.mk_class_declaration = function (C_name, generic_parameters, extends_or_implements, fields, methods, generic_methods, constructors, modifiers, range) {
     return ({ range: range,
         ast: { kind: "class", C_name: C_name,
             generic_parameters: generic_parameters,
             extends_or_implements: extends_or_implements,
             modifiers: modifiers,
-            fields: fields, methods: methods, constructors: constructors } });
+            fields: fields,
+            methods: methods,
+            generic_methods: generic_methods,
+            constructors: constructors } });
 };
 exports.mk_private = function (sr) { return ({ range: sr, ast: { kind: "private" } }); };
 exports.mk_public = function (sr) { return ({ range: sr, ast: { kind: "public" } }); };
@@ -278,10 +281,22 @@ exports.mk_other_surface_prs = function () {
         });
     });
 };
+var _ident = function () {
+    return exports.identifier.then(function (res) {
+        return exports.parser_or(exports.lt_op.then(function (_) {
+            return grammar_1.type_args().then(function (args) {
+                return exports.gt_op.then(function (gt_range) {
+                    return ts_bccc_1.co_unit(__assign({}, res, { ast: res.ast.kind == "id"
+                            ? __assign({}, res.ast, { optional_params: args }) : res.ast, range: source_range_1.join_source_ranges(res.range, gt_range) }));
+                });
+            });
+        }), ts_bccc_1.co_unit(res));
+    });
+};
 exports.term = function (try_par) {
     return exports.parser_or(exports.mk_empty_surface_prs(), exports.parser_or(exports.mk_circle_prs(), exports.parser_or(exports.mk_square_prs(), exports.parser_or(exports.mk_ellipse_prs(), exports.parser_or(exports.mk_rectangle_prs(), exports.parser_or(exports.mk_line_prs(), exports.parser_or(exports.mk_polygon_prs(), exports.parser_or(exports.mk_text_prs(), exports.parser_or(exports.mk_sprite_prs(), exports.parser_or(exports.mk_other_surface_prs(), exports.parser_or(exports.bool, exports.parser_or(exports.float, exports.parser_or(exports.double, exports.parser_or(exports.int, exports.parser_or(exports.string, try_par ?
-        exports.parser_or(exports.identifier, grammar_1.par.then(function (res) { return ts_bccc_1.co_unit(exports.mk_bracket(res.val[0], res.range)); }))
-        : exports.identifier)))))))))))))));
+        exports.parser_or(_ident(), grammar_1.par.then(function (res) { return ts_bccc_1.co_unit(exports.mk_bracket(res.val[0], res.range)); }))
+        : _ident())))))))))))))));
 };
 exports.unary_expr = function () {
     return exports.not_op.then(function (_) {

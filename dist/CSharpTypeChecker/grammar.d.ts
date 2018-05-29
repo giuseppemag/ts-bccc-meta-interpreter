@@ -49,6 +49,7 @@ export interface DoubleAST {
 export interface IdAST {
     kind: "id";
     value: string;
+    optional_params: ParserRes[];
 }
 export interface ForAST {
     kind: "for";
@@ -147,6 +148,7 @@ export interface ClassAST {
     }[];
     fields: Immutable.List<FieldAST>;
     methods: Immutable.List<MethodAST>;
+    generic_methods: Immutable.List<MethodAST>;
     constructors: Immutable.List<ConstructorAST>;
     modifiers: Immutable.List<ModifierAST>;
 }
@@ -175,6 +177,7 @@ export interface FunctionDeclarationAST {
     return_type: ParserRes;
     arg_decls: Immutable.List<DeclAST>;
     body: ParserRes;
+    generic_parameters: ParserRes[];
 }
 export interface FunctionCallAST {
     kind: "func_call";
@@ -367,5 +370,6 @@ export declare let par: Coroutine<ParserState, ParserError, {
     range: SourceRange;
 }>;
 export declare let expr: () => Coroutine<ParserState, ParserError, ParserRes>;
+export declare let type_args: (check_array_decl?: boolean) => Coroutine<ParserState, ParserError, ParserRes[]>;
 export declare let program: Parser;
 export declare let program_prs: () => Parser;

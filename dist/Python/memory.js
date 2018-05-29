@@ -279,6 +279,9 @@ exports.get_heap_v_rt = function (r, v) {
 exports.set_class_def_rt = function (v, int) {
     return fast_coroutine_1.co_change_state(exports.store_class_def_rt(v, int)).combine(fast_coroutine_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_unit_val)));
 };
+exports.add_method_def_rt = function (class_name, method_name, method_body) {
+    return fast_coroutine_1.co_change_state(function (prev_state) { return (__assign({}, prev_state, { classes: prev_state.classes.set(class_name, __assign({}, prev_state.classes.get(class_name), { methods: prev_state.classes.get(class_name).methods.set(method_name, method_body) })) })); }).combine(fast_coroutine_1.co_unit(ts_bccc_1.apply(ts_bccc_1.inl(), exports.mk_unit_val)));
+};
 exports.get_class_def_rt = function (r, v) {
     return fast_coroutine_1.co_from_state(exports.load_class_def_rt(v)).then(function (loaded_val) {
         if (loaded_val.kind == "left")

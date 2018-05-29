@@ -95,9 +95,10 @@ import {
   Typing,
   try_unbind,
   try_bind,
+  MethodDefinition,
 } from './types'
 import { ParserRes } from './grammar'
-import { inr, apply, inl, Unit, co_error, co_get_state, co_unit } from 'ts-bccc';
+import { inr, apply, inl, Unit, co_error, co_get_state, co_unit, Option } from 'ts-bccc';
 import { mk_constructor_call, mk_semicolon, mk_assign, mk_field_ref } from './primitives';
 
 let ast_to_csharp_type = (substitutions:Immutable.Map<string,Type>) => (s:ParserRes) : Type =>
@@ -263,7 +264,9 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
   : n.ast.kind == "," ? tuple_value(n.range, ([n.ast.l].concat(extract_tuple_args(n.ast.r))).map(a => ast_to_type_checker(substitutions)(a)(context)))
   : n.ast.kind == "id" ? get_v(n.range, n.ast.value)
   : n.ast.kind == "return" ? ret(n.range, ast_to_type_checker(substitutions)(n.ast.value)(context))
-  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? field_get(n.range, context, ast_to_type_checker(substitutions)(n.ast.l)(context), n.ast.r.ast.value)
+  : n.ast.kind == "." && n.ast.r.ast.kind == "id" ? 
+    field_get(n.range, context, ast_to_type_checker(substitutions)(n.ast.l)(context), {name:n.ast.r.ast.value, 
+                                                                                       params: n.ast.r.ast.optional_params.map(p => ast_to_csharp_type(substitutions)(p))})
   : n.ast.kind == "ternary_if" && n.ast.then_else.ast.kind == "ternary_then_else" ?
     if_then_else(n.range, ast_to_type_checker(substitutions)(n.ast.condition)(context), ast_to_type_checker(substitutions)(n.ast.then_else.ast._then)(context), ast_to_type_checker(substitutions)(n.ast.then_else.ast._else)(context))
 
@@ -305,7 +308,8 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
       n.ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
       n.ast.C_name,
       n.ast.extends_or_implements.map(e => ({...e, type:ast_to_csharp_type(Immutable.Map<string, Type>())(e.ast)})),
-      n.ast.methods.toArray().map(m => (context:CallingContext) => ({
+
+      n.ast.methods.toArray().filter(m => m.decl.generic_parameters.length == 0).map(m => (context:CallingContext) => ({
           name:m.decl.name,
           return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
           params_base_call: apply(inr<Stmt[], Unit>(), {}),
@@ -327,6 +331,62 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
           modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
           is_constructor:true
         }))),
+      n.ast.methods.toArray().filter(m => m.decl.generic_parameters.length >= 0).map(m => (context:CallingContext) => ({
+        name:m.decl.name,
+        return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+        params_base_call: apply(inr<Stmt[], Unit>(), {}),
+        parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+        body:(s:Immutable.Map<string, Type>, name:string) => 
+          {
+            substitutions = substitutions.merge(s)
+            let res:MethodDefinition = {
+                name:name,
+                return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+                params_base_call: apply(inr<Stmt[], Unit>(), {}),
+                parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+                body:ast_to_type_checker(substitutions.merge(s))(m.decl.body)(context),
+                range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+                modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+                is_constructor:false,
+              }
+            
+            return res
+          
+          
+          },
+        range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+        modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+        is_constructor:false,
+        params: m.decl.generic_parameters.map(p => ({name: p.ast.kind == "id" ? p.ast.value : "?", variance: "inv" as "co" | "contra" | "inv"}))
+      })).concat(
+      n.ast.generic_methods.toArray().map(m => (context:CallingContext) => ({
+        name:m.decl.name,
+        return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+        params_base_call: apply(inr<Stmt[], Unit>(), {}),
+        parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+        body:(s:Immutable.Map<string, Type>, name:string) => 
+          {
+            substitutions = substitutions.merge(s)
+            let res:MethodDefinition = {
+                name:name,
+                return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+                params_base_call: apply(inr<Stmt[], Unit>(), {}),
+                parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+                body:ast_to_type_checker(substitutions.merge(s))(m.decl.body)(context),
+                range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+                modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+                is_constructor:false,
+              }
+            
+            return res
+          
+          
+          },
+        range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+        modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+        is_constructor:false,
+        params: m.decl.generic_parameters.map(p => ({name: p.ast.kind == "id" ? p.ast.value : "?", variance: "inv" as "co" | "contra" | "inv"}))
+      }))),
       n.ast.fields.toArray().map(f => (context:CallingContext) => ({
         name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
         type:ast_to_csharp_type(substitutions)(f.decl.l),
@@ -359,7 +419,7 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
         (ast.modifiers.toArray().some(m => m.kind == "abstract")  ? "abstract" :
         ast.modifiers.toArray().some(m => m.kind == "interface")  ? "interface" : "normal") as "normal" | "abstract" | "interface",
         C_name_inst, ast.extends_or_implements.map(e => ({...e, type:ast_to_csharp_type(substitutions)(e.ast)})),
-        ast.methods.toArray().map(m => (context:CallingContext) => ({
+        ast.methods.toArray().filter(m => m.decl.generic_parameters.length == 0).map(m => (context:CallingContext) => ({
             name:m.decl.name,
             return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
             params_base_call: apply(inr<Stmt[], Unit>(), {}),
@@ -381,6 +441,60 @@ export let ast_to_type_checker = (substitutions:Immutable.Map<string,Type>) => (
             modifiers:c.modifiers.toArray().map(mod => mod.ast.kind),
             is_constructor:true
           }))),
+        ast.methods.toArray().filter(m => m.decl.generic_parameters.length >= 0).map(m => (context:CallingContext) => ({
+            name:m.decl.name,
+            return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+            params_base_call: apply(inr<Stmt[], Unit>(), {}),
+            parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+            body:(s:Immutable.Map<string, Type>, name:string) => 
+              {
+                substitutions = substitutions.merge(s)
+                let res:MethodDefinition = {
+                    name:name,
+                    return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+                    params_base_call: apply(inr<Stmt[], Unit>(), {}),
+                    parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+                    body:ast_to_type_checker(substitutions.merge(s))(m.decl.body)(context),
+                    range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+                    modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+                    is_constructor:false,
+                  }
+                
+                return res
+              
+              
+              },
+            range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+            modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+            is_constructor:false,
+            params: m.decl.generic_parameters.map(p => ({name: p.ast.kind == "id" ? p.ast.value : "?", variance: "inv" as "co" | "contra" | "inv"}))
+          })).concat(
+        ast.generic_methods.toArray().map(m => (context:CallingContext) => ({
+          name:m.decl.name,
+
+          return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+          params_base_call: apply(inr<Stmt[], Unit>(), {}),
+          parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+          body:(s:Immutable.Map<string, Type>, name:string) => {
+            substitutions = substitutions.merge(s)
+            let res:MethodDefinition = {
+                name:name,
+                return_t:ast_to_csharp_type(substitutions)(m.decl.return_type),
+                params_base_call: apply(inr<Stmt[], Unit>(), {}),
+                parameters:m.decl.arg_decls.toArray().map(a => ({ name:a.r.ast.kind == "id" ? a.r.ast.value : "", type:ast_to_csharp_type(substitutions)(a.l) })),
+                body:ast_to_type_checker(substitutions.merge(s))(m.decl.body)(context),
+                range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+                modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+                is_constructor:false,
+              }
+            
+            return res
+          },
+          range:join_source_ranges(m.decl.return_type.range, m.decl.body.range),
+          modifiers:m.modifiers.toArray().map(mod => mod.ast.kind),
+          is_constructor:false,
+          params: m.decl.generic_parameters.map(p => ({name: p.ast.kind == "id" ? p.ast.value : "?", variance: "inv" as "co" | "contra" | "inv"  }))
+        }))),
         ast.fields.toArray().map(f => (context:CallingContext) => ({
           name:f.decl.r.ast.kind == "id" ? f.decl.r.ast.value : "",
           type:ast_to_csharp_type(substitutions)(f.decl.l),

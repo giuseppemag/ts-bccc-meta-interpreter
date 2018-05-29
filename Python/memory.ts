@@ -6,6 +6,7 @@ import { Unit, Fun, Prod, Sum, unit, absurd, fst, snd, defun, fun, inl, inr, app
 import { SourceRange, mk_range } from "../source_range"
 // import { comm_list_coroutine } from "../ccc_aux";
 import { FileSystem } from "./filesystem";
+import { Type } from "../CSharpTypeChecker/types";
 import { co_error, Coroutine, mk_coroutine, co_unit, co_res, CoRes, co_change_state, co_from_state, co_from_and_change_state, comm_list_coroutine } from "../fast_coroutine";
 
 export let runtime_error = function(r:SourceRange, e:string) : ExprRt<Sum<Val,Val>> { return co_error<MemRt, ErrVal, Sum<Val,Val>>({ message:e, range:r }) }
@@ -41,6 +42,7 @@ export interface Scopes extends Immutable.Map<NestingLevel, Immutable.Map<ValueN
 export interface Interface {  base:Sum<Interface, Unit>,
                               static_methods:Immutable.Map<ValueName, StmtRt>,
                               methods:Immutable.Map<ValueName, StmtRt>,
+                              generic_methods: Immutable.Map<ValueName, StmtRt>,
                               static_fields:Immutable.Map<ValueName, Val>,
                               is_internal:boolean,
                               range:SourceRange }
@@ -327,6 +329,13 @@ export let get_heap_v_rt = function (r:SourceRange, v: ValueName): ExprRt<Sum<Va
 export let set_class_def_rt = function (v: ValueName, int: Interface): StmtRt {
   return co_change_state<MemRt,ErrVal>(store_class_def_rt(v, int)).combine(co_unit(apply(inl<Val,Val>(),mk_unit_val)))
 }
+export let add_method_def_rt = function (class_name: ValueName, method_name:ValueName, method_body:StmtRt): StmtRt {
+  return co_change_state<MemRt,ErrVal>(prev_state => ({...prev_state, classes: prev_state.classes.set(class_name, 
+                                                                                                      {...prev_state.classes.get(class_name), 
+                                                                                                          methods: prev_state.classes.get(class_name).methods.set(method_name, method_body)})
+                                                      })).combine(co_unit(apply(inl<Val,Val>(),mk_unit_val)))
+}
+
 export let get_class_def_rt = function (r:SourceRange, v: ValueName): ExprRt<Interface> {
   return co_from_state<MemRt,ErrVal,Sum<Unit,Interface>>(load_class_def_rt(v)).then(loaded_val => {
     if (loaded_val.kind == "left") return co_error({ message:`Cannot find class ${v}.`, range:r })

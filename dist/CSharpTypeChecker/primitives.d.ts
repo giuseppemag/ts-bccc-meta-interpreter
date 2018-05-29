@@ -63,7 +63,7 @@ export declare const mk_constructor_declaration: (range: SourceRange, function_n
     kind: "left";
     value: ParserRes[];
 }, body: ParserRes) => ConstructorDeclarationAST;
-export declare const mk_function_declaration: (range: SourceRange, return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes) => FunctionDeclarationAST;
+export declare const mk_function_declaration: (range: SourceRange, return_type: ParserRes, function_name: string, arg_decls: Immutable.List<DeclAST>, body: ParserRes, generic_parameters: ParserRes[]) => FunctionDeclarationAST;
 export declare const mk_class_declaration: (C_name: string, generic_parameters: {
     name: ParserRes;
     variant: "co" | "contra" | "inv";
@@ -71,7 +71,7 @@ export declare const mk_class_declaration: (C_name: string, generic_parameters: 
     C_name: string;
     generic_parameters: GenericParameter[];
     ast: ParserRes;
-}[], fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, modifiers: Immutable.List<ModifierAST>, range: SourceRange) => ParserRes;
+}[], fields: Immutable.List<FieldAST>, methods: Immutable.List<MethodAST>, generic_methods: Immutable.List<MethodAST>, constructors: Immutable.List<ConstructorAST>, modifiers: Immutable.List<ModifierAST>, range: SourceRange) => ParserRes;
 export declare const mk_private: (sr: SourceRange) => {
     range: SourceRange;
     ast: ModifierAST;

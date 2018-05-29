@@ -1,5 +1,5 @@
 import { Coroutine, co_error, co_set_state, Unit, co_get_state, co_unit, apply, Option } from "ts-bccc";
-import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, par } from "./grammar";
+import { ParserState, ParserError, Parser, ParserRes, DeclAST, DeclAndInitAST, ConstructorDeclarationAST, FunctionDeclarationAST, ConstructorAST, MethodAST, FieldAST, ModifierAST, expr, par, type_args } from "./grammar";
 import { mk_range, SourceRange, zero_range, join_source_ranges, print_range } from "../source_range";
 import { BinOpKind, UnaryOpKind } from "./lexer";
 import { co_catch, co_repeat, some, none } from "../ccc_aux";
@@ -37,7 +37,7 @@ export const mk_bool = (v:boolean, sr:SourceRange) : ParserRes => ({ range:sr, a
 export const mk_int = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "int", value:v }})
 export const mk_float = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "float", value:v }})
 export const mk_double = (v:number, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "double", value:v }})
-export const mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v }})
+export const mk_identifier = (v:string, sr:SourceRange) : ParserRes => ({ range:sr, ast:{ kind: "id", value:v, optional_params:[] }})
 export const mk_noop = () : ParserRes => ({ range:mk_range(-1,-1,-1,-1), ast:{ kind: "noop" }})
 
 export const mk_return = (e:ParserRes, range:SourceRange) : ParserRes => ({ range:range, ast:{ kind: "return", value:e }})
@@ -90,16 +90,19 @@ export const mk_array_cons_call_and_init = (new_range:SourceRange, _type:ParserR
 export const mk_constructor_declaration = (range:SourceRange, function_name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes) : ConstructorDeclarationAST =>
   ({kind:"cons_decl", name:function_name, arg_decls:arg_decls, body:body, params_base_call: params_base_call, range:range})
 
-export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes) : FunctionDeclarationAST =>
-  ({kind:"func_decl", name:function_name, return_type:return_type, arg_decls:arg_decls, body:body, range:range, params_base_call:[]})
+export const mk_function_declaration = (range:SourceRange, return_type:ParserRes, function_name:string, arg_decls:Immutable.List<DeclAST>, body:ParserRes, generic_parameters:ParserRes[]) : FunctionDeclarationAST =>
+  ({kind:"func_decl", generic_parameters:generic_parameters, name:function_name, return_type:return_type, arg_decls:arg_decls, body:body, range:range, params_base_call:[]})
 
-export const mk_class_declaration = (C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[],fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST>, range:SourceRange) : ParserRes =>
+export const mk_class_declaration = (C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[],fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, generic_methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST>, range:SourceRange) : ParserRes =>
   ({  range: range,
       ast: {kind:"class", C_name:C_name,
             generic_parameters:generic_parameters,
             extends_or_implements: extends_or_implements,
             modifiers:modifiers,
-            fields:fields, methods:methods, constructors:constructors } })
+            fields:fields, 
+            methods:methods,
+            generic_methods: generic_methods,
+            constructors:constructors } })
 
 export const mk_private = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"private"}})
 export const mk_public = (sr:SourceRange) : { range:SourceRange, ast:ModifierAST } => ({ range:sr, ast:{ kind:"public"}})
@@ -226,6 +229,20 @@ export const mk_other_surface_prs : () => Parser = () =>
   co_unit(mk_other_surface(join_source_ranges(kw, sy.range), s, dx, dy, sx, sy, rot))
   )))))))
 
+
+let _ident = () =>
+  identifier.then(res =>  
+    parser_or<ParserRes>(lt_op.then(_ =>
+                        type_args().then(args =>
+                        gt_op.then(gt_range =>
+                        {
+                          return co_unit({ ...res,  ast: res.ast.kind == "id" 
+                                                        ? { ...res.ast, optional_params: args }
+                                                        : res.ast,
+                                                    range: join_source_ranges(res.range, gt_range)
+                                          })}))),
+                          co_unit(res)))
+
 export const term : (try_par:boolean) => Parser = (try_par:boolean) : Parser =>
   parser_or<ParserRes>(mk_empty_surface_prs(),
   parser_or<ParserRes>(mk_circle_prs(),
@@ -244,11 +261,14 @@ export const term : (try_par:boolean) => Parser = (try_par:boolean) : Parser =>
   parser_or<ParserRes>(int,
   parser_or<ParserRes>(string,
   try_par ?
-    parser_or<ParserRes>(identifier,
-      par.then(res => co_unit(mk_bracket(res.val[0], res.range))))
-  : identifier
+    parser_or<ParserRes>(_ident(),
+                         par.then(res => co_unit(mk_bracket(res.val[0], res.range))))
+  : _ident()
+  
   )))))))))))))))
 
+
+    
 export const unary_expr : () => Parser = () =>
   not_op.then(_ =>
   expr().then(e =>

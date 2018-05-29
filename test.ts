@@ -21,37 +21,21 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-interface Option<a> {
-  bool has_value();
-  a get_value();
+    class Tank{
+      public Func<void, int> move;
+      public int move_slow(){
+        var x = 1;
+        return x;
+      }
+      public Tank(){
+        this.move = this.move_slow;
+      }
 }
-
-class None<x> : Option<x> {
-  public override bool has_value() {
-    return false;
-  }
-}
-
-class Some<y> : Option<y> {
-  y value;
-  public Some(y value){
-    this.value = value;
-  }
-  public override y get_value() {
-    return this.value;
-  }
-}
-
-Option<int> maybe_none = new None<int>();
-bool is_some = maybe_none.has_value();
-
-int x = 0;
-while(x < 10000){
-  x = x + 1;
-}
-
-typechecker_debugger;
+    
+var t1 = new Tank();
+t1.move = t1.move_slow;
 debugger;
+typechecker_debugger;
 `
 
 // interface Option<a> {

@@ -34,7 +34,11 @@
 [g] Move ccc_aux to CCC repo
 
 [m] Generics
-  [ ] instantiate on:
+  [x] print editor
+  [ ] remove (generic type decl) print
+  [ ] implicit creation of types not working
+  [x] instantiate on:
+    [x] generics on simple methods
     [ ] abstract method parameter
     [ ] abstract method return type
     [ ] interface method parameter
@@ -44,6 +48,7 @@
 [m] Generic constraints
   [ ] Parser
   [ ] Validation
+[m] \n in debugger GO
 [m] Generic interfaces
   [ ] Generic constraints over generic interfaces
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
@@ -66,7 +71,7 @@
   [ ] binary operator overloading
   [ ] unary operator overloading
   [ ] add unary - to standard library
-
+[m] decl local
 [ ] Next level
   [ ] data science/better dashboard with predictions and risk detection
   [ ] e-commerce spec

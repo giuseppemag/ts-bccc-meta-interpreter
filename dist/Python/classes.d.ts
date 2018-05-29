@@ -3,10 +3,12 @@ import { Interface, MemRt, ErrVal, Val, HeapRef } from "./memory";
 import { SourceRange } from "../source_range";
 import { Coroutine } from "../fast_coroutine";
 export declare let declare_class_rt: (r: SourceRange, C_name: string, int: Interface) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let add_method_to_class_rt: (r: SourceRange, C_name: string, method_name: string, method_body: Coroutine<MemRt, ErrVal, Sum<Val, Val>>) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let field_get_rt: (r: SourceRange, F_name: string, this_addr: HeapRef) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let field_get_expr_rt: (r: SourceRange, F_name: string, this_expr: Coroutine<MemRt, ErrVal, Sum<Val, Val>>) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let method_get_rt: (r: SourceRange, M_name: string, this_addr: HeapRef) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let method_get_expr_rt: (r: SourceRange, M_name: string, this_expr: Coroutine<MemRt, ErrVal, Sum<Val, Val>>) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let method_body_get_rt: (r: SourceRange, M_name: string, C_name: string) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let field_set_rt: (r: SourceRange, F_name: {
     att_name: string;
     kind: "att";

@@ -144,6 +144,7 @@ export interface Interface {
     base: Sum<Interface, Unit>;
     static_methods: Immutable.Map<ValueName, StmtRt>;
     methods: Immutable.Map<ValueName, StmtRt>;
+    generic_methods: Immutable.Map<ValueName, StmtRt>;
     static_fields: Immutable.Map<ValueName, Val>;
     is_internal: boolean;
     range: SourceRange;
@@ -228,6 +229,7 @@ export declare let set_arr_el_expr_rt: (r: SourceRange, a: Coroutine<MemRt, ErrV
 export declare let set_heap_v_rt: (v: string, val: Val) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let get_heap_v_rt: (r: SourceRange, v: string) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let set_class_def_rt: (v: string, int: Interface) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
+export declare let add_method_def_rt: (class_name: string, method_name: string, method_body: Coroutine<MemRt, ErrVal, Sum<Val, Val>>) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let get_class_def_rt: (r: SourceRange, v: string) => Coroutine<MemRt, ErrVal, Interface>;
 export declare let set_fun_def_rt: (v: string, l: Lambda) => Coroutine<MemRt, ErrVal, Sum<Val, Val>>;
 export declare let get_fun_def_rt: (r: SourceRange, v: string) => Coroutine<MemRt, ErrVal, Lambda>;

@@ -157,7 +157,7 @@ export interface BoolAST { kind: "bool", value: boolean }
 export interface IntAST { kind: "int", value: number }
 export interface FloatAST { kind: "float", value: number }
 export interface DoubleAST { kind: "double", value: number }
-export interface IdAST { kind: "id", value: string }
+export interface IdAST { kind: "id", value: string, optional_params: ParserRes[] }
 export interface ForAST { kind: "for", i:ParserRes, c:ParserRes, s:ParserRes, b:ParserRes }
 export interface WhileAST { kind: "while", c:ParserRes, b:ParserRes }
 export interface IfAST { kind: "if", c:ParserRes, t:ParserRes, e:Option<ParserRes> }
@@ -177,12 +177,12 @@ export interface MethodAST { decl:FunctionDeclarationAST, modifiers:Immutable.Li
 export interface ConstructorAST { decl:ConstructorDeclarationAST, modifiers:Immutable.List<{ range:SourceRange, ast:ModifierAST }> }
 
 
-export interface ClassAST { kind: "class", C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
+export interface ClassAST { kind: "class", C_name:string, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[], fields:Immutable.List<FieldAST>, methods:Immutable.List<MethodAST>, generic_methods:Immutable.List<MethodAST>, constructors:Immutable.List<ConstructorAST>, modifiers:Immutable.List<ModifierAST> }
 export interface ConstructorDeclarationAST { kind:"cons_decl", range:SourceRange, name:string, arg_decls:Immutable.List<DeclAST>, params_base_call:Option<ParserRes[]>, body:ParserRes }
 
 export interface BinOpAST { kind: BinOpKind, l:ParserRes, r:ParserRes }
 export interface UnaryOpAST { kind: UnaryOpKind, e:ParserRes }
-export interface FunctionDeclarationAST { kind:"func_decl", params_base_call:ParserRes[], range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes }
+export interface FunctionDeclarationAST { kind:"func_decl", params_base_call:ParserRes[], range:SourceRange, name:string, return_type:ParserRes, arg_decls:Immutable.List<DeclAST>, body:ParserRes, generic_parameters:ParserRes[] }
 export interface FunctionCallAST { kind:"func_call", name:ParserRes, actuals:Array<ParserRes> }
 export interface ConstructorCallAST { kind:"cons_call", name:string, type_args:Array<ParserRes>, actuals:Array<ParserRes> }
 export interface ArrayConstructorCallAST { kind:"array_cons_call", type:ParserRes, actual:ParserRes }
@@ -580,6 +580,16 @@ let semicolon = ignore_whitespace(semicolon_sign)
 let comma = ignore_whitespace(comma_sign)
 let with_semicolon = <A>(p:Coroutine<ParserState, ParserError, A>) => p.then(p_res => ignore_whitespace(semicolon_sign).then(_ => co_unit(p_res)))
 
+export let type_args = (check_array_decl=true) : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
+  parser_or<Array<ParserRes>>(
+    type_decl(check_array_decl).then(a =>
+    parser_or<Array<ParserRes>>(
+      comma.then(_ =>
+        type_args(check_array_decl).then(as =>
+      co_unit([a, ...as]))),
+      co_unit([a]))),
+    co_unit(Array<ParserRes>()))
+
 let assign_right = () : Parser =>
   no_match.then(_ =>
   equal_sign.then(_ =>
@@ -593,15 +603,7 @@ let assign : () => Parser = () =>
   expr().then(l =>
     assign_right().then(r => co_unit(mk_assign(l,r))))
 
-let type_args = (check_array_decl=true) : Coroutine<ParserState, ParserError, Array<ParserRes>> =>
-  parser_or<Array<ParserRes>>(
-    type_decl(check_array_decl).then(a =>
-    parser_or<Array<ParserRes>>(
-      comma.then(_ =>
-        type_args(check_array_decl).then(as =>
-      co_unit([a, ...as]))),
-      co_unit([a]))),
-    co_unit(Array<ParserRes>()))
+
 
 let tuple_or_record : Coroutine<ParserState,ParserError,ParserRes> =
   left_bracket.then(lb =>
@@ -831,6 +833,7 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
   no_match.then(_ =>
   type_decl().then(return_type =>
   identifier_token.then(function_name =>
+  generic_parameters().then(gps => 
   left_bracket.then(_ =>
   partial_match.then(_ =>
   arg_decls().then(arg_decls =>
@@ -842,7 +845,8 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
                                       return_type,
                                       function_name.id,
                                       Immutable.List<DeclAST>(arg_decls),
-                                      {range:semicolon, ast:{ kind: "noop" }})))),
+                                      {range:semicolon, ast:{ kind: "noop" }},
+                                      gps.toArray().map(p => p.name))))),
     left_curly_bracket.then(_ =>
     function_statements(co_lookup(right_curly_bracket).then(_ => co_unit({}))).then(body =>
     right_curly_bracket.then(rb =>
@@ -851,7 +855,8 @@ let function_declaration = (modifiers:{range:SourceRange, ast:ModifierAST}[]) =>
                                     return_type,
                                     function_name.id,
                                     Immutable.List<DeclAST>(arg_decls),
-                                    body))))))))))))))
+                                    body,
+                                    gps.toArray().map(p => p.name))))))))))))))))
 
 
 let class_body = (class_name:{id: string;range: SourceRange}, initial_range:SourceRange, generic_parameters:{ name:ParserRes, variant:"co"|"contra"|"inv" }[], extends_or_implements:{C_name:string, generic_parameters:GenericParameter[], ast:ParserRes}[], modifiers:Immutable.List<ModifierAST>) =>
@@ -865,7 +870,8 @@ let class_body = (class_name:{id: string;range: SourceRange}, initial_range:Sour
       generic_parameters,
       extends_or_implements,
       declarations.fst,
-      declarations.snd.fst,
+      declarations.snd.fst.filter(m => m!=undefined && m.decl.generic_parameters.length == 0).toList(),
+      declarations.snd.fst.filter(m => m!=undefined && m.decl.generic_parameters.length > 0).toList(),
       declarations.snd.snd,
       modifiers,
       join_source_ranges(initial_range, closing_curly_range))
@@ -994,6 +1000,16 @@ let modifier = () : Coroutine<ParserState, ParserError, { range:SourceRange, ast
   parser_or<{ range:SourceRange, ast:ModifierAST }>(interface_modifier.then(r => co_unit(mk_interface(r))),
   static_modifier.then(r => co_unit(mk_static(r))))))))))
 
+let generic_parameters = () : Coroutine<ParserState, ParserError, Immutable.List<{ name:ParserRes, variant:"co"|"contra"|"inv" }>> =>
+  parser_or<Immutable.List<{ name:ParserRes, variant:"co"|"contra"|"inv" }>>(
+    lt_op.then(_ => 
+      type_args().then(args =>
+      gt_op.then(_ =>
+      co_unit(Immutable.List(args.map(a => ({name:a, variant:"inv" as "co"|"contra"|"inv"}))))
+      ))),  
+    co_unit(Immutable.List())
+  )
+
 let modifiers = () : Coroutine<ParserState, ParserError, Immutable.List<{ range:SourceRange, ast:ModifierAST }>> =>
   parser_or<Immutable.List<{ range:SourceRange, ast:ModifierAST }>>(
   modifier().then(m =>
@@ -1030,7 +1046,7 @@ let class_statements : () => Coroutine<ParserState, ParserError, Prod<Immutable.
           decl().then(d => co_unit<ParserState, ParserError, DeclAST | DeclAndInitAST>(d))).then(d =>
       co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
         apply(inl<FieldAST, Sum<MethodAST, ConstructorAST>>(), { decl:d, modifiers:ms })))))
-    ,
+      ,
       parser_or<Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
         modifiers().then(ms => function_declaration(ms.toArray()).then(d =>
           co_unit<ParserState, ParserError, Sum<FieldAST, Sum<MethodAST, ConstructorAST>>>(
