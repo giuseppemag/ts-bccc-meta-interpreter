@@ -1,97 +1,26 @@
-[g] Generics
-  [ ] instantiate on:
-    [ ] generic method call
-  [ ] Generic method
-    [ ] Parser
-    [ ] Type definition
-    [ ] Storage into ObjType
-    [ ] Instantiation: check existing method instances, if not present: def_method, then store
-    [ ] Call: instantiate, then call
 [g] multithreading: thread_debugger;
 [g] add multiple highlightings (along the stack) for function calls
-
-[g] Filesystem simulator
-  [ ] rendering
-
-[g] unit tests
-  [ ] failed coercions and wrong types
-    [ ] primitives and operations
-    [ ] field getter and setter
-    [ ] in both functions and methods
-      [ ] return types
-      [ ] arguments
-      [ ] anonymous functions
-      [ ] arrays
-      [ ] anonymous functions given to wrong contexts
-  [ ] generics
-    [ ] array
-
-[g] Restructure project
-  [ ] Bindings.ts becomes a whole directory of files
-  [ ] `Python` semantics should be properly called `C#` semantics
-  [ ] Separate parser from type checker
-
 [g] Move ccc_aux to CCC repo
 
-[m] Generics
-  [x] print editor
-  [ ] remove (generic type decl) print
-  [ ] implicit creation of types not working
-  [x] instantiate on:
-    [x] generics on simple methods
-    [ ] abstract method parameter
-    [ ] abstract method return type
-    [ ] interface method parameter
-    [ ] interface method return type
-  [ ] Interfaces with method with generic parameters and return types
-  [ ] Abstract classes with method with generic parameters and return types
-[m] Generic constraints
-  [ ] Parser
-  [ ] Validation
-[m] \n in debugger GO
-[m] Generic interfaces
-  [ ] Generic constraints over generic interfaces
 [m] parse/typecheck errors from dev3 exam (see cesco@Slack)
 [m] `Func<int, C<int>> mk_c = i => new C<int>(i);` does not compile
 [m] Arrays of generics do not parse correctly
-[m] Add tests
-  [ ] generics and inheritance
-  [ ] generics and interfaces
 [m] save code also on wrong attempt (BA)
 [m] add `null`
 
 [m] ++ operator
   [ ] i++
-  [ ] ++i
 [m] Getters vs function application (test example below):
   (string,string,(string,Func<int,Func<int,int>>)) v = ("Hello", "world", ("!",(x => y => x * y)));
   var h = v.Item3.Item2(3);
   var y = h(2);
-[m] operator overloading in regular classes (classes have a list of methods per name, not just one entry)
-  [ ] binary operator overloading
-  [ ] unary operator overloading
-  [ ] add unary - to standard library
-[m] decl local
+
 [ ] Next level
-  [ ] data science/better dashboard with predictions and risk detection
-  [ ] e-commerce spec
-  [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
-  [ ] Integration in VSCode/Electron app
-  [ ] Exceptions
-  [ ] Fancy features: LINQ, generators, properties, covariance and contravariance, generic functions
-  [ ] Proper lex/yacc
-  [ ] Generic tuple in standard library
-  [ ] HTML renderers for server simulator
-
-
-[m] inheritance
-  [ ] abstract classes are not instantiatable (only internally), same goes for the abstract methods not initialized
-[m] double check tokens
-  [ ] quotes, special characters, "\n"
-[m] (System.Diagnostics.GC) Garbage collection (and `heap_alloc` fills in the gaps)
-[m] Exam mode in desktop application
-  [ ] login
-[m] var a = 1 + + 1; does not print a proper error
-[g] Access modifiers: incompatibility errors do not bubble up correctly
-[g] closure of functions: free_variables vs decl/decl_and_init (`bound` should become the state)
-[m] Casting operator for primitives `(int)5.5`
+  [ ] sprint 1
+    [ ] data science with predictions and risk detection
+    [ ] intitute dashboard
+    [ ] javascript / typescript / php / java / C# + electron
+  [ ] sprint 2
+    [ ] e-commerce spec
+    [ ] e-commerce business model (teacher, student, paid materials, free materials, "Tinder-style" limited access, etc.)
+    
