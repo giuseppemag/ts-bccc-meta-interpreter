@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    var res = 2 * 3 + 4;\n    \n    debugger;\n    typechecker_debugger;\n";
+        var source = "\n    int invokeFuncs(Func<int[], int>[] functions, int[] arguments) {\n      var sum = 0;\n    \n      for(int i = 0; i < functions.Length; i = i + 1) {\n        var currFunc = functions[i]; \n        var currRes = currFunc(arguments); \n        sum = sum + currRes;\n      }\n    \n      return sum;\n    }\n    \n    int f1(int[] array) {\n      var sum = 0;\n      for(int i = 0; i < array.Length; i = i + 1) {\n        sum = sum + array[i];\n      }\n      return sum;\n    }\n     \n    int f2(int[] array) {\n      var prod = 1;\n      for(int i = 0; i < array.Length; i = i + 1) {\n        prod = prod * array[i];\n      }\n      return prod;\n    }\n     \n    int f3(int[] array) {\n      var sum = f1(array);\n      var average = sum/array.Length;\n    } \n    \n    \n    var f = new Func<int[],int>[3];\n    f[0] = f3;\n    f[1] = f2; \n    f[2] = f1;\n    var args = new int[] { 1, 2, 3 };\n    var res = invokeFuncs(f, args);\n    \n    debugger;\n    typechecker_debugger;\n";
         // interface Option<a> {
         //   bool has_value();
         //   a get_value();

@@ -21,7 +21,46 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    var res = 2 * 3 + 4;
+    int invokeFuncs(Func<int[], int>[] functions, int[] arguments) {
+      var sum = 0;
+    
+      for(int i = 0; i < functions.Length; i = i + 1) {
+        var currFunc = functions[i]; 
+        var currRes = currFunc(arguments); 
+        sum = sum + currRes;
+      }
+    
+      return sum;
+    }
+    
+    int f1(int[] array) {
+      var sum = 0;
+      for(int i = 0; i < array.Length; i = i + 1) {
+        sum = sum + array[i];
+      }
+      return sum;
+    }
+     
+    int f2(int[] array) {
+      var prod = 1;
+      for(int i = 0; i < array.Length; i = i + 1) {
+        prod = prod * array[i];
+      }
+      return prod;
+    }
+     
+    int f3(int[] array) {
+      var sum = f1(array);
+      var average = sum/array.Length;
+    } 
+    
+    
+    var f = new Func<int[],int>[3];
+    f[0] = f3;
+    f[1] = f2; 
+    f[2] = f1;
+    var args = new int[] { 1, 2, 3 };
+    var res = invokeFuncs(f, args);
     
     debugger;
     typechecker_debugger;
