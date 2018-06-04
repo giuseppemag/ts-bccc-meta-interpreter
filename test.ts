@@ -21,21 +21,10 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    class Tank{
-      public Func<void, int> move;
-      public int move_slow(){
-        var x = 1;
-        return x;
-      }
-      public Tank(){
-        this.move = this.move_slow;
-      }
-}
+    var res = 2 * 3 + 4;
     
-var t1 = new Tank();
-t1.move = t1.move_slow;
-debugger;
-typechecker_debugger;
+    debugger;
+    typechecker_debugger;
 `
 
 // interface Option<a> {

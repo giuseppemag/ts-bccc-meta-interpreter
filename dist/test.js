@@ -20,7 +20,7 @@ var ImpLanguageWithSuspend;
     };
     ImpLanguageWithSuspend.get_stream = DebuggerStream.get_stream;
     ImpLanguageWithSuspend.test_parser = function () {
-        var source = "\n    class Tank{\n      public Func<void, int> move;\n      public int move_slow(){\n        var x = 1;\n        return x;\n      }\n      public Tank(){\n        this.move = this.move_slow;\n      }\n}\n    \nvar t1 = new Tank();\nt1.move = t1.move_slow;\ndebugger;\ntypechecker_debugger;\n";
+        var source = "\n    var res = 2 * 3 + 4;\n    \n    debugger;\n    typechecker_debugger;\n";
         // interface Option<a> {
         //   bool has_value();
         //   a get_value();
