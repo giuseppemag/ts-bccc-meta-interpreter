@@ -73,6 +73,7 @@ exports.load = ts_bccc_1.fun(function (x) {
 exports.store = ts_bccc_1.fun(function (x) {
     return (__assign({}, x.snd, { bindings: x.snd.bindings.set(x.fst.fst, x.fst.snd) }));
 });
+var C_name_inst = function (C_name, generic_params, generic_arguments) { return generic_params.length == 0 ? C_name : C_name + "<" + generic_params.map(function (p) { return exports.type_to_string(generic_arguments.get(p)); }).reduce(function (a, b) { return a + "," + b; }) + ">"; };
 exports.type_equals = function (t1, t2) {
     if (t1.kind == "fun" && t2.kind == "fun")
         return exports.type_equals(t1.in, t2.in) && exports.type_equals(t1.out, t2.out);
@@ -88,6 +89,12 @@ exports.type_equals = function (t1, t2) {
         return t1.C_name == t2.C_name;
     if (t1.kind == "ref" && t2.kind == "ref")
         return t1.C_name == t2.C_name;
+    if (t1.kind == "ref" && t2.kind == "generic type instance")
+        return exports.type_equals(t1, { kind: "ref",
+            C_name: C_name_inst(t2.C_name, t2.args.map(function (e) { return exports.type_to_string(e); }), Immutable.Map(t2.args.map(function (e) { return [exports.type_to_string(e), e]; }))) });
+    if (t2.kind == "ref" && t1.kind == "generic type instance")
+        return exports.type_equals(t2, { kind: "ref",
+            C_name: C_name_inst(t1.C_name, t1.args.map(function (e) { return exports.type_to_string(e); }), Immutable.Map(t1.args.map(function (e) { return [exports.type_to_string(e), e]; }))) });
     if (t1.kind == "generic type instance" && t2.kind == "generic type instance")
         return t1.args.length == t2.args.length &&
             t1.args.every(function (t1_arg, i) { return exports.type_equals(t1_arg, t2.args[i]); });

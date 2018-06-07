@@ -574,7 +574,9 @@ export let mk_abstract_lambda = function (r: SourceRange, def: LambdaDefinition,
           let m_params:Type = parameters.length == 0 ? tuple_type([{kind:"unit"}]) : tuple_type((parameters.map(p => p.type)))
           let _fun_type = fun_type(m_params, return_t, r)
           if (constraints.kind == "left" && (constraints.value.kind == "fun_with_input_as_stmts" || !type_equals(_fun_type, constraints.value)))
-            return co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
+            return  console.log("###    ", JSON.stringify(constraints)) ||
+                    console.log("@@@    ", JSON.stringify(_fun_type)) ||
+                    co_error<State, Err, Typing>({ range: r, message: `Error: cannot create lambda, constraint type ${constraints.value.kind == "fun_with_input_as_stmts" ? "" : type_to_string(constraints.value)} is not compatible with found type ${type_to_string(_fun_type)}` })
           return Co.co_set_state<State, Err>(initial_bindings).then(_ =>
                     co_unit(mk_typing(_fun_type, return_t_i.sem.then(_ => Sem.done_rt))))
         }

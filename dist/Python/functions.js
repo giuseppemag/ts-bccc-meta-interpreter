@@ -32,7 +32,7 @@ exports.call_by_name_rt = function (r, f_n, args) {
 exports.call_lambda_expr_rt = function (r, lambda, arg_values) {
     return lambda.then(function (l) {
         return l.value.k == "lambda" ? exports.call_lambda_rt(r, l.value.v, arg_values)
-            : memory_1.runtime_error(r, "Cannot invoke non-lambda expression.");
+            : memory_1.runtime_error(r, "Cannot invoke non-lambda expression. " + l.value.k);
     });
 };
 exports.call_lambda_rt = function (r, lambda, arg_expressions) {

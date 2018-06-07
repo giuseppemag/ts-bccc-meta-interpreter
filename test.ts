@@ -21,49 +21,53 @@ export let get_stream = DebuggerStream.get_stream
 
 export let test_parser = () => {
     let source = `
-    int invokeFuncs(Func<int[], int>[] functions, int[] arguments) {
-      var sum = 0;
-    
-      for(int i = 0; i < functions.Length; i = i + 1) {
-        var currFunc = functions[i]; 
-        var currRes = currFunc(arguments); 
-        sum = sum + currRes;
-      }
-    
-      return sum;
-    }
-    
-    int f1(int[] array) {
-      var sum = 0;
-      for(int i = 0; i < array.Length; i = i + 1) {
-        sum = sum + array[i];
-      }
-      return sum;
-    }
-     
-    int f2(int[] array) {
-      var prod = 1;
-      for(int i = 0; i < array.Length; i = i + 1) {
-        prod = prod * array[i];
-      }
-      return prod;
-    }
-     
-    int f3(int[] array) {
-      var sum = f1(array);
-      var average = sum/array.Length;
-    } 
-    
-    
-    var f = new Func<int[],int>[3];
-    f[0] = f3;
-    f[1] = f2; 
-    f[2] = f1;
-    var args = new int[] { 1, 2, 3 };
-    var res = invokeFuncs(f, args);
-    
-    debugger;
-    typechecker_debugger;
+interface Visitor<a,b> {
+  public b OnSome(a _a);
+  public b onNone();
+ }
+ 
+ class IntVisitorToString : Visitor<int,string> {
+  public override string OnSome(int v) { return "Value: " + v; }
+  public override string onNone() { return "No value"; }
+ }
+ 
+ interface Option<a, b>
+ {
+  b Visit(Visitor<a,b> v);
+ }
+ 
+ class None<a, b> : Option<a, b>
+ {
+  public None() { }
+ 
+  public override b Visit(Visitor<a,b> v)
+  {
+    return v.onNone();
+  }
+ }
+ 
+ class Some<a, b> : Option<a, b>
+ {
+  a v;
+  public Some(a v) { this.v = v; }
+ 
+  public override b Visit(Visitor<a,b> vis)
+  {
+    return vis.OnSome(this.v);
+  }
+ }
+ 
+ var values_or_not = new Option<int,string>[] { new None<int,string>(), new Some<int,string>(10), new Some<int,string>(2), new None<int,string>() };
+ typechecker_debugger;
+ var s = "";
+ var v = new IntVisitorToString();
+ for(int i = 0; i < values_or_not.Length; i = i + 1)
+ {
+  var x = values_or_not[i];
+  s = s + x.Visit(v) + "; ";
+ }
+ typechecker_debugger;
+ debugger;
 `
 
 // interface Option<a> {

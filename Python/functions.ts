@@ -45,7 +45,7 @@ export let call_by_name_rt = function(r:SourceRange,f_n:ValueName, args:Array<Ex
 export let call_lambda_expr_rt = function(r:SourceRange,lambda:ExprRt<Sum<Val,Val>>, arg_values:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> {
   return lambda.then(l =>
          l.value.k == "lambda" ? call_lambda_rt(r,l.value.v, arg_values)
-         : runtime_error(r,"Cannot invoke non-lambda expression."))
+         : runtime_error(r,`Cannot invoke non-lambda expression. ${l.value.k}`))
 }
 
 export let call_lambda_rt = function(r:SourceRange,lambda:Lambda, arg_expressions:Array<ExprRt<Sum<Val,Val>>>) : ExprRt<Sum<Val,Val>> {

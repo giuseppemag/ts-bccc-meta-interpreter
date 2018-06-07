@@ -110,6 +110,9 @@ export let load: Fun<Prod<string, State>, Sum<Unit,TypeInformation>> = fun(x =>
 export let store: Fun<Prod<Prod<string, TypeInformation>, State>, State> = fun(x =>
     ({...x.snd, bindings:x.snd.bindings.set(x.fst.fst, x.fst.snd) }))
 
+
+let C_name_inst = (C_name:string,generic_params:string[],generic_arguments:Immutable.Map<string, Type>,) => generic_params.length == 0 ? C_name : `${C_name}<${generic_params.map(p => type_to_string(generic_arguments.get(p))).reduce((a,b) => a + "," + b)}>`
+
 export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "fun" && t2.kind == "fun") return type_equals(t1.in,t2.in) && type_equals(t1.out,t2.out)
   if (t1.kind == "tuple" && t2.kind == "tuple") return t1.args.length == t2.args.length &&
@@ -119,6 +122,14 @@ export let type_equals = (t1:Type,t2:Type) : boolean => {
   if (t1.kind == "arr" && t2.kind == "arr") return type_equals(t1.arg,t2.arg)
   if (t1.kind == "obj" && t2.kind == "obj") return t1.C_name == t2.C_name
   if (t1.kind == "ref" && t2.kind == "ref") return t1.C_name == t2.C_name
+  if (t1.kind == "ref" && t2.kind == "generic type instance") return type_equals(t1, {kind:"ref",
+                                                                                      C_name:C_name_inst(t2.C_name, 
+                                                                                                 t2.args.map(e => type_to_string(e)), 
+                                                                                                 Immutable.Map<string, Type>(t2.args.map(e => [type_to_string(e), e])))})
+  if (t2.kind == "ref" && t1.kind == "generic type instance") return type_equals(t2, {kind:"ref",
+                                                                                      C_name:C_name_inst(t1.C_name, 
+                                                                                                t1.args.map(e => type_to_string(e)), 
+                                                                                                Immutable.Map<string, Type>(t1.args.map(e => [type_to_string(e), e])))})
   if (t1.kind == "generic type instance" && t2.kind == "generic type instance") return t1.args.length == t2.args.length &&
     t1.args.every((t1_arg,i) => type_equals(t1_arg, t2.args[i]))
   if (t1.kind != t2.kind &&
